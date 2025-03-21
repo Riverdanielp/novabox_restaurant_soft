@@ -67,6 +67,10 @@ class Authentication extends Cl_Controller {
         }
 }
     public function index() {
+        
+        if($this->session->userdata('user_id') > 0){
+            redirect("Dashboard/dashboard");
+        }
         $is_valid = isset($_POST['is_valid']) && $_POST['is_valid']?$_POST['is_valid']:'';
         $update_plan = isset($_GET['update_plan']) && $_GET['update_plan']?$_GET['update_plan']:'';
         $data['update_plan'] = $update_plan;

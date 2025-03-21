@@ -1,4 +1,96 @@
 <?php
+if (!function_exists('getEnvOrDefault')) {
+    function getEnvOrDefault($key, $default) {
+        $value = getenv($key);
+        return $value !== false ? $value : $default;
+    }
+}
+
+// Obtener la configuración desde el entorno o usar valores por defecto
+define("DECIMAL_SEPARATOR", getEnvOrDefault("DECIMAL_SEPARATOR", "."));
+define("THOUSAND_SEPARATOR", getEnvOrDefault("THOUSAND_SEPARATOR", ","));
+define("DECIMAL_PLACES", getEnvOrDefault("DECIMAL_PLACES", 2));
+
+/**
+ * Formatea un número en formato de moneda.
+ *
+ * @param float $value
+ * @return string
+ */
+function formatPrice($value) {
+    if (!is_numeric($value)) {
+        return "0";
+    }
+
+    return number_format((float) $value, DECIMAL_PLACES, DECIMAL_SEPARATOR, THOUSAND_SEPARATOR);
+}
+
+/**
+ * Convierte un número formateado en un valor numérico limpio.
+ *
+ * @param string $value
+ * @return float
+ */
+function unformatPrice($value) {
+    if (!is_string($value)) {
+        return (float) $value;
+    }
+
+    $rawNumber = str_replace(THOUSAND_SEPARATOR, "", $value);
+    $rawNumber = str_replace(DECIMAL_SEPARATOR, ".", $rawNumber);
+
+    return (float) $rawNumber;
+}
+
+
+/**
+ * get plan name
+ * @access public
+ * @return string
+ * @param int
+ */
+function filterSpecialCharactersEscPos($text) {
+    // Definir un array de caracteres especiales y sus reemplazos
+    $specialChars = [
+        'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', // Minúsculas con acentos
+        'Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', // Mayúsculas con acentos
+        'ñ' => 'n', 'Ñ' => 'N', // Ñ y ñ
+        '°' => '.', // Grados por punto
+        '¿' => '', '¡' => '', // Eliminar signos de interrogación y exclamación invertidos
+        '´' => '', '`' => '', // Eliminar acentos y tildes sueltos
+        '¨' => '', '^' => '', // Eliminar diéresis y circunflejos
+        '~' => '', // Eliminar virgulilla
+        'ª' => '.', 'º' => '.', // Eliminar ordinales
+        '«' => '"', '»' => '"', // Comillas angulares por comillas dobles
+        '“' => '"', '”' => '"', // Comillas curvas por comillas dobles
+        '‘' => "'", '’' => "'", // Comillas simples curvas por comillas simples rectas
+        '…' => '...', // Puntos suspensivos
+        '–' => '-', '—' => '-', // Guiones largos por guiones cortos
+        '•' => '*', // Viñetas por asteriscos
+        // '€' => 'EUR', // Símbolo de euro por "EUR"
+        // '$' => 'USD', // Símbolo de dólar por "USD"
+        // '£' => 'GBP', // Símbolo de libra por "GBP"
+        // '¥' => 'JPY', // Símbolo de yen por "JPY"
+    ];
+
+    // Reemplazar caracteres especiales
+    $text = strtr($text, $specialChars);
+
+    // Eliminar cualquier otro carácter no ASCII
+    $text = preg_replace('/[^\x20-\x7E]/', '', $text);
+
+    return $text;
+}
+
+// Función para filtrar recursivamente un array
+function filterArrayRecursivelyEscPos($array) {
+    array_walk_recursive($array, function(&$value, $key) {
+        if (is_string($value)) {
+            $value = filterSpecialCharactersEscPos($value);
+        }
+    });
+    return $array;
+}
 /**
  * return  characters to HTML entities.
  * @return string
@@ -471,14 +563,36 @@ function getKitchenSaleDetailsBySaleNo($sale_no) {
 }
 function getKitchenSaleDetailsBySaleNoWithDeleted($sale_no) {
     $CI = & get_instance();
-    $user_information = $CI->db->query("SELECT * FROM tbl_kitchen_sales where `sale_no`='$sale_no' AND del_status='Live'")->row();
+    
+    $CI->db->select("tbl_kitchen_sales.*, w.full_name as waiter_name, tbl_customers.name as customer_name, tbl_customers.phone as customer_phone, tbl_customers.address as customer_address, tbl_tables.name as table_name, tbl_users.full_name as user_name, tbl_companies.invoice_footer as invoice_footer");
+    $CI->db->from('tbl_kitchen_sales');
+    $CI->db->join('tbl_customers', 'tbl_customers.id = tbl_kitchen_sales.customer_id', 'left');
+    $CI->db->join('tbl_users', 'tbl_users.id = tbl_kitchen_sales.user_id', 'left');
+    $CI->db->join('tbl_tables', 'tbl_tables.id = tbl_kitchen_sales.table_id', 'left');
+    $CI->db->join('tbl_companies', 'tbl_companies.id = tbl_kitchen_sales.outlet_id', 'left');
+    $CI->db->join('tbl_users w', 'w.id = tbl_kitchen_sales.waiter_id', 'left');
+    $CI->db->where("tbl_kitchen_sales.sale_no", $sale_no);
+    $CI->db->where("tbl_kitchen_sales.del_status", 'Live');
+    $CI->db->order_by('tbl_kitchen_sales.id', 'ASC');
+    
+    $result = $CI->db->get();
 
-    if(isset($user_information) && $user_information){
-        return $user_information;
-    }else{
+    if($result->num_rows() > 0){
+        return $result->row();
+    } else {
         return false;
     }
 }
+// function getKitchenSaleDetailsBySaleNoWithDeleted($sale_no) {
+//     $CI = & get_instance();
+//     $user_information = $CI->db->query("SELECT * FROM tbl_kitchen_sales where `sale_no`='$sale_no' AND del_status='Live'")->row();
+
+//     if(isset($user_information) && $user_information){
+//         return $user_information;
+//     }else{
+//         return false;
+//     }
+// }
 function getExistOrderInfo($sale_no) {
     $CI = & get_instance();
     $user_information = $CI->db->query("SELECT * FROM tbl_running_orders where `sale_no`='$sale_no' AND del_status='Live'")->row();
@@ -2487,7 +2601,7 @@ function getPurchaseIngredients($id) {
     if (!empty($purchase_ingredients)) {
         $pur_ingr_all = "";
         $key = 1;
-        $pur_ingr_all .= "<b>SN-Ingredient-Qty/Amount-Unit Price-Total</b><br>";
+        $pur_ingr_all .= "<b>SN-Ingredient-Cant/Monto-Unit Price-Total</b><br>";
         foreach ($purchase_ingredients as $value) {
             $pur_ingr_all .= $key ."-". getIngredientNameById($value->ingredient_id)."-".$value->quantity_amount.unitName(getPurchaseUnitIdByIgId($value->ingredient_id)) ."-". $value->unit_price ."-". $value->total."<br>";
             $key++;

@@ -170,7 +170,7 @@ class Waiter extends Cl_Controller {
                 }elseif($sale_info[0]->order_type==3){
                     $order_name = $sale_info[0]->sale_no;
                 }
-                $notification = "Table: ".$sale_info[0]->table_name.', Customer: '.$sale_info[0]->customer_name.', Item: '.$item_info->menu_name.' is ready to serve, Order: '.$order_name;
+                $notification = "Mesa: ".$sale_info[0]->table_name.', Cliente: '.$sale_info[0]->customer_name.', Item: '.$item_info->menu_name.' está listo para servir, Order: '.$order_name;
                 $notification_data = array();        
                 $notification_data['notification'] = $notification;
                 $notification_data['waiter_id'] = $sale_info[0]->waiter_id;
@@ -221,12 +221,12 @@ class Waiter extends Cl_Controller {
                         $order_name = $sale_info->sale_no;
                     }elseif($sale_info->order_type==2){
                         $order_name = $sale_info->sale_no;
-                        $order_type_operation = 'Take Away order is ready to take';
+                        $order_type_operation = 'El pedido para llevar está listo';
                     }elseif($sale_info->order_type==3){
                         $order_name = $sale_info->sale_no;
                         $order_type_operation = 'Delivery order is ready to deliver';
                     }
-                    $notification = 'Customer: '.$sale_info->customer_name.', Order Number: '.$order_name.' '.$order_type_operation;
+                    $notification = 'Cliente: '.$sale_info->customer_name.', Orden Número: '.$order_name.' '.$order_type_operation;
                     $notification_data = array();        
                     $notification_data['notification'] = $notification;
                     $notification_data['waiter_id'] = $sale_info->waiter_id;

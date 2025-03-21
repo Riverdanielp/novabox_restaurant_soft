@@ -173,7 +173,7 @@ class Waiter_app extends Cl_Controller {
             }else if($single_table_information->order_type==3){
                 $order_number = $single_table_information->sale_no;
             }
-            $notification_message = 'Order:'.$order_number.' has been modified';
+            $notification_message = 'Orden: '.$order_number.' ha sido modificado';
             $bar_kitchen_notification_data = array();
             $bar_kitchen_notification_data['notification'] = $notification_message;
             $bar_kitchen_notification_data['outlet_id'] = $outlet_id;

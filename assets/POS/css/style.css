@@ -60,7 +60,7 @@ textarea:focus {
 
 .specific_category_items_holder {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 15px;
 }
 
@@ -133,7 +133,7 @@ select {
 
 .main_left {
   position: relative;
-  width: 190px;
+  width:225px;
   overflow: visible !important;
 }
 
@@ -224,6 +224,7 @@ select {
 }
 
 .holder .operation_button {
+  height: 31px;
   border-radius: 5px;
   line-height: 29px;
   font-size: 11px;

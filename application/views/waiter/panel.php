@@ -222,16 +222,6 @@ $mode = APPLICATION_lcl;
         </div>
 
     </div>
-    <?php if(APPLICATION_MODE == 'demo'): ?>
-                <?php
-                $company = getMainCompany();
-                $language_manifesto = $company->language_manifesto;
-                if(str_rot13($language_manifesto)=="eriutoeri"):?>
-                    <a class="btn btn-danger custom_shadow" href="https://codecanyon.net/item/irestora-plus-multi-outlet-next-gen-restaurant-pos/24077441" target="_blank">&nbsp;&nbsp;Buy Now&nbsp;&nbsp;</a>
-                <?php else:?>
-                    <a class="btn btn-danger custom_shadow" href="https://codecanyon.net/item/irestora-plus-next-gen-restaurant-pos/23033741" target="_blank">&nbsp;&nbsp;Buy Now&nbsp;&nbsp;</a>
-                <?php endif;?>
-    <?php endif; ?>
     <!-- end of item modal -->
     <script src="<?php echo base_url(); ?>assets/css-framework/bootstrap-new/bootstrap.bundle.min.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/kitchen_panel/js/marquee.js"></script>

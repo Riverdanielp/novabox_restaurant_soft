@@ -235,6 +235,12 @@ if ($this->session->flashdata('exception')) {
                                             class="required_star">*</span></label>
                                     <select tabindex="8" class="form-control select2" name="precision" id="precision">
                                         <option
+                                            <?= isset($outlet_information) && $outlet_information->precision == "0" ? 'selected' : '' ?>
+                                            value="0">0 dígitos</option>
+                                        <option
+                                            <?= isset($outlet_information) && $outlet_information->precision == "1" ? 'selected' : '' ?>
+                                            value="1">1 dígitos</option>
+                                        <option
                                             <?= isset($outlet_information) && $outlet_information->precision == "2" ? 'selected' : '' ?>
                                             value="2"><?php echo lang('2_Digit'); ?></option>
                                         <option

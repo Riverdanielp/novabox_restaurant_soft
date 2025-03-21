@@ -373,9 +373,11 @@
               let i = 1;
               if (cursor) {
                   let orderData = cursor.value;
+                    console.log('orderData',orderData);
                   let orderInfo = orderData.order;
                   let table_id = orderData.table_id;
                   let rowData = JSON.parse(orderInfo);
+                //   console.log('rowData',rowData);
                   let sales_id = cursor.value.sales_id;
   
                   let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
@@ -386,9 +388,9 @@
                   if(user_id_login==user_id){
                     let sale_no_plan = get_plan_string(rowData.sale_no);
                       if (i == 1) {
-                          order_list_left += '<div data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix txt_5" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
+                          order_list_left += '<div data-dan="1" data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix txt_5" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
                       } else {
-                          order_list_left += '<div data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
+                          order_list_left += '<div data-dan="1" data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
                       }
                       order_list_left += '<div class="inside_single_order_container fix">';
                       order_list_left += '<div class="single_order_content_holder_inside fix">';
@@ -399,7 +401,7 @@
                       if (rowData.orders_table_text) {
                           tables_booked =  rowData.orders_table_text;
                       } else {
-                          tables_booked = "None";
+                          tables_booked = "No";
                       }
                       let order_type = "";
                       if(rowData !== null) {
@@ -2096,7 +2098,7 @@
                         <div id="receiptData">
                             <div id="receipt-data">
                                 <div class="text-center">
-                                <img alt="`+outlet_name+`" src="`+base_url+`images/`+invoice_logo+`">
+                                <img alt="`+outlet_name+`" src="`+base_url+`images/`+invoice_logo+`" style="max-width:100%;max-height:100px;">
                                 <h3> `+outlet_name+` </h3> 
                                 `+text_no_str+`
                                     <p class="p_txt">
@@ -2161,7 +2163,7 @@
             let i = 1;
             total_item_counter+=Number(this_item.qty);
             let discount_value = Number(this_item.item_discount_amount) ? "(-"+getAmount(this_item.item_discount_amount)+")": '';
-            let alternative_name = getAlternativeNameById(this_item.food_menu_id, window.items);
+            let alternative_name = "";//getAlternativeNameById(this_item.food_menu_id, window.items);
             invoice_print+=`<tr>`;
             invoice_print+=`<td class="no-border border-bottom ir_wid_90"># `+sl+`:`+this_item.menu_name+alternative_name;
             invoice_print+=`<small></small> &nbsp;&nbsp;`+ this_item.qty + `&nbsp;X&nbsp;`+getAmount(this_item.menu_unit_price)+discount_value ;
@@ -3595,7 +3597,7 @@
                 $("#last_10_customer_id").html(response.customer_id);
                 $("#last_10_customer_name").html(response.customer_name);
                 $("#last_10_table_id").html(response.table_id);
-                $("#last_10_table_name").html((response.orders_table_text!=undefined  && response.orders_table_text?response.orders_table_text:'None'));
+                $("#last_10_table_name").html((response.orders_table_text!=undefined  && response.orders_table_text?response.orders_table_text:'No'));
                 $("#open_invoice_date_hidden").val(response.sale_date);
   
   
@@ -7083,7 +7085,7 @@
                               phone_text_ +
                               "</div>";
                           last_10_orders +=
-                              '<div class="third_column column fix">' + (rowData.orders_table_text!=undefined?rowData.orders_table_text:'None') + "</div>";
+                              '<div class="third_column column fix">' + (rowData.orders_table_text!=undefined?rowData.orders_table_text:'No') + "</div>";
                           last_10_orders += "</div>";
       
                           i++;
@@ -9656,7 +9658,7 @@
             toastr['error']((please_select_open_order), '');
           }
         } else {
-          toastr['error'](("Due amount not allow for walk in customer!"), '');
+          toastr['error'](("No se puede procesar credito a cliente predeterminado!"), '');
         }
       });
       $("body").on("click", "#add_customer", function(e) {
@@ -9686,10 +9688,10 @@
           error++;
         }
   
-        if (customer_phone == "") {
-          $("#customer_phone_modal").css("border", "1px solid red");
-          error++;
-        }
+        // if (customer_phone == "") {
+        //   $("#customer_phone_modal").css("border", "1px solid red");
+        //   error++;
+        // }
   
         if(tax_is_gst=="Yes"){
             if (!same_or_diff_state) {
@@ -12005,6 +12007,7 @@
         }
     }
     function updateForMerge(sale_id,merge_id){
+        console.log('updateForMerge');
         let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
         objectStore.openCursor().onsuccess = function(event) {
             let cursor = event.target.result;
@@ -12090,6 +12093,14 @@
               parseFloat(splitted_width) *
               parseFloat(total_kitchen_type_done_items)
             ).toFixed(ir_precision);
+            
+            let style_div = "background-color: #f1f1f1;";
+            if (percentage_for_done_cooking == 100) {
+                style_div = "background-color: #a8ff9e;";
+            } else if (percentage_for_started_cooking > 0) {
+                style_div = "background-color: #a8e3ff;";
+            }
+            
             if (i == 1) {
               order_list_left +=
                 '<div data-started-cooking="' +
@@ -12100,7 +12111,7 @@
                 response[key].sales_id +
                 '" data-selected="unselected" id="order_' +
                 response[key].sales_id +
-                '">';
+                '" style="' + style_div + '">';
             } else {
               order_list_left +=
                 '<div data-started-cooking="' +
@@ -12111,7 +12122,7 @@
                 response[key].sales_id +
                 '" data-selected="unselected" id="order_' +
                 response[key].sales_id +
-                '">';
+                '" style="' + style_div + '">';
             }
             order_list_left += '<div class="inside_single_order_container fix">';
             order_list_left +=
@@ -12148,7 +12159,7 @@
                 w++;
               }
             } else {
-              tables_booked = "None";
+              tables_booked = "No";
             }
   
             order_list_left +=
@@ -12282,7 +12293,7 @@
                 w++;
               }
             } else {
-              tables_booked = "None";
+              tables_booked = "No";
             }
             let phone_text_ = "";
             if (orders[key].phone) {
@@ -12965,7 +12976,7 @@
                   $("#order_details_customer_id").html(response.customer_id);
                   $("#order_details_customer_name").html(response.customer_name);
                   $("#order_details_table_id").html(response.table_id);
-                  $("#order_details_table_name").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'None'));
+                  $("#order_details_table_name").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'No'));
                   $("#open_invoice_date_hidden").val(response.sale_date);
                   $(".datepicker_custom")
                       .datepicker({
@@ -15294,7 +15305,7 @@
                         w++;
                     }
                 } else {
-                    tables_booked = "None";
+                    tables_booked = "No";
                 }
   
                 let phone_text_ = "";
@@ -15727,11 +15738,11 @@
                           order_type_id = 3;
                       }
                       $("#last_10_waiter_id_").html(response.waiter_id);
-                      $("#last_10_waiter_name_").html("None");
+                      $("#last_10_waiter_name_").html("No");
                       $("#last_10_customer_id_").html(1);
                       $("#last_10_customer_name_").html("Walk-in Customer");
                       $("#last_10_table_id_").html(response.table_id);
-                      $("#last_10_table_name_").html((data.orders_table_text!=undefined && data.orders_table_text?data.orders_table_text:'None'));
+                      $("#last_10_table_name_").html((data.orders_table_text!=undefined && data.orders_table_text?data.orders_table_text:'No'));
                       $("#last_10_order_type_").html(order_type);
                       $("#last_10_order_type_id_").html(order_type_id);
                       let draw_table_for_last_ten_sales_order = "";
@@ -15975,7 +15986,7 @@
                   $("#last_10_customer_id_").html(response.customer_id);
                   $("#last_10_customer_name_").html(response.customer_name);
                   $("#last_10_table_id_").html(response.table_id);
-                  $("#last_10_table_name_").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'None'));
+                  $("#last_10_table_name_").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'No'));
                   $("#last_10_order_type_").html(order_type);
                   $("#last_10_order_type_id_").html(order_type_id);
                   let draw_table_for_last_ten_sales_order = "";
@@ -16248,11 +16259,11 @@
                           order_type_id = 3;
                       }
                       $("#self_online_last_10_waiter_id_").html(response.waiter_id);
-                      $("#self_online_last_10_waiter_name_").html("None");
+                      $("#self_online_last_10_waiter_name_").html("No");
                       $("#self_online_last_10_customer_id_").html(response.customer_id);
                       $("#self_online_last_10_customer_name_").html(response.customer_name);
                       $("#self_online_last_10_table_id_").html(response.table_id);
-                      $("#self_online_last_10_table_name_").html((data.orders_table_text!=undefined && data.orders_table_text?data.orders_table_text:'None'));
+                      $("#self_online_last_10_table_name_").html((data.orders_table_text!=undefined && data.orders_table_text?data.orders_table_text:'No'));
                       $("#self_online_last_10_order_type_").html(order_type);
                       $("#self_online_last_10_order_type_id_").html(order_type_id);
                       let draw_table_for_last_ten_sales_order = "";
@@ -16477,7 +16488,7 @@
                   $("#last_10_customer_id_").html(response.customer_id);
                   $("#last_10_customer_name_").html(response.customer_name);
                   $("#last_10_table_id_").html(response.table_id);
-                  $("#last_10_table_name_").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'None'));
+                  $("#last_10_table_name_").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'No'));
                   $("#last_10_order_type_").html(order_type);
                   $("#last_10_order_type_id_").html(order_type_id);
                   let draw_table_for_last_ten_sales_order = "";
@@ -19372,7 +19383,7 @@
                               w++;
                           }
                       } else {
-                          tables_booked = "None";
+                          tables_booked = "No";
                       }
   
                       let phone_text_ = "";
@@ -19462,7 +19473,7 @@
                               w++;
                           }
                       } else {
-                          tables_booked = "None";
+                          tables_booked = "No";
                       }
   
                       let phone_text_ = "";
@@ -19698,7 +19709,95 @@
           };
       }
   
+
+
+      $(document).on("click", "#aviso_whatsapp", function (e) {
+        // Verifica si hay un pedido seleccionado
+        console.log('click');
+        if ($(".holder .order_details > .single_order[data-selected=selected]").length > 0) {
+            // Obtén el ID del pedido seleccionado
+            // let sale_id = $(".holder .order_details .single_order[data-selected=selected]").attr("id").substr(6);data-sale_no
+            let sale_id = $(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no"); //.substr(6);
+    
+            // Realiza una solicitud AJAX para obtener los detalles del pedido
+            $.ajax({
+                url: base_url + "Sale/get_order_details_for_whatsapp/" + sale_id, // Ajusta la URL según tu backend
+                method: "GET",
+                data: { sale_id: sale_id },
+                success: function (response) {
+                    response = JSON.parse(response);
+    
+                    // Construir el mensaje
+                    let mensaje = `Estimado Cliente: ${response.customer_name}, le informamos que su pedido ya está listo!\n------------------------\n`;
+    
+                    // Agregar los ítems al mensaje
+                    response.items.forEach(function (item) {
+                        mensaje += `${item.name} (${item.quantity} x ${item.price})\n`;
+                        if (item.modifiers) {
+                            item.modifiers.forEach(function (modifier) {
+                                mensaje += ` + ${modifier.name} (${modifier.price})\n`;
+                            });
+                        }
+                    });
+    
+                    // Agregar totales al mensaje
+                    mensaje += `------------------------\nSubtotal: ${response.subtotal}\n`;
+                    if (response.total_discount !== "0") {
+                        mensaje += `Descuento: ${response.total_discount}\n`;
+                    }
+                    if (response.delivery_charge !== "0") {
+                        mensaje += `Serv. Delivery: ${response.delivery_charge}\n`;
+                    }
+                    if (response.total_tax !== "0") {
+                        mensaje += `Impuestos: ${response.total_tax}\n`;
+                    }
+                    mensaje += `TOTAL: ${response.total_payable}\n------------------------\n*${response.company_name}*`;
+    
+                    // Codificar el mensaje para la URL
+                    let mensaje_codificado = encodeURIComponent(mensaje);
+    
+                    // Generar la URL de WhatsApp
+                    let url_whatsapp = `https://wa.me/${response.phone}?text=${mensaje_codificado}`;
+    
+                    // Abrir la URL en una nueva pestaña
+                    window.open(url_whatsapp, "_blank");
+                },
+                error: function () {
+                    swal({
+                        title: "Error",
+                        text: "No se pudieron obtener los detalles del pedido.",
+                        confirmButtonText: "OK",
+                        confirmButtonColor: "#b6d6f6",
+                    });
+                },
+            });
+        } else {
+            // Si no hay un pedido seleccionado, muestra una alerta
+            swal({
+                title: "Advertencia",
+                text: "Por favor, seleccione un pedido abierto.",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#b6d6f6",
+            });
+        }
+    });
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   })(jQuery);
 
+  
   
   

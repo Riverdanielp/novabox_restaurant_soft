@@ -28,6 +28,18 @@ $company = getMainCompany();
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title><?php echo escape_output($site_name); ?></title>
+    <meta name="description" content="Tu sistema de gestión de restaurant desde la nube!">
+
+    <meta name="theme-color" content="#ff9710">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Novabox - Restaurant Soft">
+    <link rel="apple-touch-icon" href="<?php echo base_url(); ?>assets/logos/android-launchericon-192-192.png">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="<?php echo base_url(); ?>manifest.json?v=1.01">
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="<?php echo base_url(); ?>images/favicon.ico" type="image/x-icon">
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
 
@@ -56,7 +68,7 @@ $company = getMainCompany();
         <!-- Mixins-->
         <!-- Pen Title-->
         <div class="pen-title">
-            <img src="<?php echo escape_output($system_logo); ?>">
+            <img src="<?php echo escape_output($system_logo); ?>" style="max-width: 350px;">
         </div>
         <?php
             $active_login_button = $this->session->flashdata('active_login_button');;unset($_SESSION['active_login_button']);
@@ -74,7 +86,7 @@ $company = getMainCompany();
         ?>
         <table class="btn_login_pin_table" style="display:<?php echo $div_hide?>">
             <tr>
-                <td><a href="#" class="btn_login_pin_type <?php echo isset($active_login_button) && $active_login_button==1?'active_login_btn':''?> active_login_button" data-id="1">Login using Username</a> <a class="btn_pin_trigger btn_login_pin_type active_login_button  <?php echo isset($active_login_button) && $active_login_button==2?'active_login_btn':''?>" data-id="2" href="#">Login using Pin</a></td>
+                <td><a href="#" class="btn_login_pin_type <?php echo isset($active_login_button) && $active_login_button==1?'active_login_btn':''?> active_login_button" data-id="1">Acceso con Usuario</a> <a class="btn_pin_trigger btn_login_pin_type active_login_button  <?php echo isset($active_login_button) && $active_login_button==2?'active_login_btn':''?>" data-id="2" href="#">Acceso con Pin</a></td>
             </tr>
         </table>
         <div class="container">
@@ -94,7 +106,7 @@ $company = getMainCompany();
                     echo '</p>';
                 }
                 ?>
-                <h1 class="title"><?php echo lang('login'); ?></h1>
+                <h1 class="title">Iniciar Sesión</h1>
 
                 <?php echo form_open(base_url() . 'Authentication/loginCheck', $arrayName = array('novalidate' => 'novalidate')) ?>
                 <div class="div_1 text_center display_none_login" id="loginpin"></div>
@@ -102,8 +114,8 @@ $company = getMainCompany();
                 <input type="hidden" class="form-control display_none_login" name="active_login_button_hidden" id="active_login_button_hidden" value="<?php echo $active_login_button?>">
 
                 <div class="input-container margin_login_top div_2">
-                    <input name="email_address" type="text" value="<?php if(APPLICATION_MODE == 'demo'){ echo "admin@doorsoft.co"; }else{ echo set_value('email_address');} ?>" id="email_address" required="required"/>
-                    <label for="email_address"><?php echo lang('email_address'); ?></label>
+                    <input name="email_address" type="text" value="<?php echo set_value('email_address'); ?>" id="email_address" required="required"/>
+                    <label for="email_address">Correo o Usuario</label>
                     <div class="bar"></div>
 
                 </div>
@@ -114,8 +126,8 @@ $company = getMainCompany();
                 <?php } ?>
                 <br>
                 <div class="input-container  div_2">
-                    <input id="password" type="password" name="password" value="<?php if(APPLICATION_MODE == 'demo'){ echo "123456"; }else{ echo set_value('password');} ?>" required="required"/>
-                    <label for="password"><?php echo lang('password'); ?></label>
+                    <input id="password" type="password" name="password" value="<?php  echo set_value('password'); ?>" required="required"/>
+                    <label for="password">Contraseña</label>
                     <div class="bar"></div>
                 </div>
                 <?php if (form_error('password')) { ?>
@@ -124,7 +136,7 @@ $company = getMainCompany();
                     </div>
                 <?php } ?>
                 <div class="button-container div_2">
-                    <button type="submit" class="submit_login" name="submit" value="submit"><span><?php echo lang('login'); ?></span></button>
+                    <button type="submit" class="submit_login" name="submit" value="submit"><span>Acceder</span></button>
                 </div>
                 
                 <?php
@@ -133,31 +145,12 @@ $company = getMainCompany();
                     <a class="txt-color-primary div_signup_link_a" href="<?php echo base_url()?>#pricing"><?php echo lang('Signup'); ?></a>
                 </p>
                 <?php endif;?>
-                <div class="footer div_2"><a href="<?php echo base_url()?>forgot-password-step-one"><?php echo lang('forgot_password'); ?></a></div>
                 <?php echo form_close();?>
 
             
             </div>
             <?php $system_version_number = $this->session->userdata('system_version_number');?>
-            <p class="pull-right"><?php echo $system_version_number?"v".$system_version_number:''?></p>
-            <?php if(APPLICATION_MODE == 'demo'): ?> 
-
-            <div style="width:100%;text-align:center">
-                <a class="w-100 set_data btn btn-primary btn_demo" data-email="admin@doorsoft.co" data-password="123456" data-pin="1234" href="#">Admin</a>
-                <a class="w-100 set_data btn btn-primary btn_demo" data-email="cashier@doorsoft.co" data-password="123456" data-pin="1111" href="#">Cashier</a>
-                <a class="w-100 set_data btn btn-primary btn_demo" data-email="manager@doorsoft.co" data-password="123456" data-pin="2222" href="#">Manager</a>
-                <a class="w-100 set_data btn btn-primary btn_demo" data-email="waiter1@doorsoft.co" data-password="123456" data-pin="3333" href="#">Waiter</a>
-                <a class="w-100 set_data btn btn-primary btn_demo" data-email="chef@doorsoft.co" data-password="123456" data-pin="4444" href="#">Chef</a>
-            </div>
-                <?php
-                $company = getMainCompany();
-                $language_manifesto = $company->language_manifesto;
-                if(str_rot13($language_manifesto)=="eriutoeri"):?>
-                    <a class="btn btn-danger custom_shadow" href="https://codecanyon.net/item/irestora-plus-multi-outlet-next-gen-restaurant-pos/24077441" target="_blank">&nbsp;&nbsp;Buy Now&nbsp;&nbsp;</a>
-                <?php else:?>
-                    <a class="btn btn-danger custom_shadow" href="https://codecanyon.net/item/irestora-plus-next-gen-restaurant-pos/23033741" target="_blank">&nbsp;&nbsp;Buy Now&nbsp;&nbsp;</a>
-                <?php endif;?>
-            <?php endif; ?>
+            <p class="pull-right"></p>
             <div class="card alt">
                 <!--<div class="toggle"></div>-->
                 <h1 class="title">Register
@@ -188,6 +181,7 @@ $company = getMainCompany();
         </div>
     </div>
 </div>
+<script src="<?php echo base_url();?>pwa.js?v=1.01"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/notify/toastr.js"></script>
 </body>
 </html>

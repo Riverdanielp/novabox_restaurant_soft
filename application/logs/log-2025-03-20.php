@@ -12623,3 +12623,189 @@ DEBUG - 2025-03-20 19:41:52 --> Total execution time: 0.1734
 DEBUG - 2025-03-20 19:41:52 --> Total execution time: 0.1853
 DEBUG - 2025-03-20 19:41:52 --> Total execution time: 0.1993
 DEBUG - 2025-03-20 19:41:52 --> Total execution time: 0.2340
+ERROR - 2025-03-20 21:13:49 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:14:23 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:14:23 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:14:24 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:14:26 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:14:28 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:14:30 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:14:32 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:14:34 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:14:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:15:21 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:15:28 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:15:40 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:15:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:15:51 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:15:57 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:16:16 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:16:35 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:16:42 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:16:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:17:34 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:17:37 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:17:39 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:17:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:18:40 --> Could not find the language line "search"
+ERROR - 2025-03-20 21:18:40 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:18:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:18:49 --> Could not find the language line "search"
+ERROR - 2025-03-20 21:18:49 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:18:56 --> Could not find the language line "search"
+ERROR - 2025-03-20 21:18:56 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:19:05 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:19:05 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:19:05 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:19:05 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 21:19:05 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2876
+ERROR - 2025-03-20 21:19:29 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:19:29 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:19:29 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:19:29 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 21:19:29 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2876
+ERROR - 2025-03-20 21:19:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:20:02 --> Could not find the language line "search"
+ERROR - 2025-03-20 21:20:02 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:20:05 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:20:05 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:20:05 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:20:05 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 21:20:05 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:20:05 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:20:14 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:20:14 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:20:14 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:20:14 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 21:20:15 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:20:15 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:32:24 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:32:27 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:33:56 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:34:39 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:35:41 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:36:45 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:36:45 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:36:49 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:36:52 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2933
+ERROR - 2025-03-20 21:37:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:37:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:38:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:38:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:39:13 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:39:20 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:39:21 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:39:27 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:39:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:39:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:40:42 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:40:43 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:40:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:40:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:41:15 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:41:33 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:41:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:41:44 --> Severity: error --> Exception: number_format(): Argument #2 ($decimals) must be of type int, string given C:\laragon\www\novabox_restaurant_soft\application\helpers\my_helper.php 2894
+ERROR - 2025-03-20 21:41:50 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 21:41:50 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:41:56 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:41:56 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:41:56 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:41:56 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 21:41:56 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:41:56 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:42:09 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:42:09 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:42:09 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:42:09 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 21:42:09 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:42:09 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:42:39 --> Could not find the language line "error"
+ERROR - 2025-03-20 21:42:39 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:42:39 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 21:42:39 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 21:42:39 --> Could not find the language line "modified"
+ERROR - 2025-03-20 21:42:39 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:08:41 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:08:42 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:08:46 --> Could not find the language line "search"
+ERROR - 2025-03-20 22:08:46 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:09:02 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:09:02 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:09:02 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:09:02 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 22:09:02 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:09:02 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:16:46 --> Could not find the language line "invoice_logo"
+ERROR - 2025-03-20 22:16:46 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:18:48 --> Could not find the language line "search"
+ERROR - 2025-03-20 22:18:48 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:19:01 --> Could not find the language line "search"
+ERROR - 2025-03-20 22:19:02 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:39:11 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:39:11 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:39:11 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:39:11 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 22:39:11 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:39:11 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:41:48 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:41:48 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:41:48 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:41:48 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 22:41:48 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:41:48 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:54:03 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:54:03 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:54:03 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:54:03 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 22:54:03 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:54:03 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:59:38 --> Could not find the language line "error"
+ERROR - 2025-03-20 22:59:38 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:59:38 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 22:59:38 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 22:59:38 --> Could not find the language line "modified"
+ERROR - 2025-03-20 22:59:38 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:01:37 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:01:37 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:01:37 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:01:37 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 23:01:37 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:01:37 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:05:50 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:05:50 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:05:50 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:05:50 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 23:05:50 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:05:50 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:29:28 --> Severity: Warning --> Undefined property: stdClass::$is_merge C:\laragon\www\novabox_restaurant_soft\application\controllers\Sale.php 1270
+ERROR - 2025-03-20 23:29:30 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:29:30 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:29:30 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:29:30 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 23:29:30 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:29:30 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:45:09 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:45:09 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:45:09 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:45:09 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 23:45:09 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:45:09 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:45:13 --> Could not find the language line "search"
+ERROR - 2025-03-20 23:45:13 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:45:19 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:45:31 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:45:31 --> Severity: Warning --> Undefined variable $result C:\laragon\www\novabox_restaurant_soft\application\models\Common_model.php 1459
+ERROR - 2025-03-20 23:45:31 --> Severity: Warning --> foreach() argument must be of type array|object, null given C:\laragon\www\novabox_restaurant_soft\application\controllers\Kitchen.php 646
+ERROR - 2025-03-20 23:45:58 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:46:02 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:46:03 --> Severity: Warning --> Undefined variable $result C:\laragon\www\novabox_restaurant_soft\application\models\Common_model.php 1459
+ERROR - 2025-03-20 23:46:03 --> Severity: Warning --> foreach() argument must be of type array|object, null given C:\laragon\www\novabox_restaurant_soft\application\controllers\Kitchen.php 646
+ERROR - 2025-03-20 23:46:10 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:46:26 --> Severity: Warning --> Undefined property: stdClass::$is_merge C:\laragon\www\novabox_restaurant_soft\application\controllers\Sale.php 1270
+ERROR - 2025-03-20 23:55:05 --> Could not find the language line "error"
+ERROR - 2025-03-20 23:55:05 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:55:05 --> Could not find the language line "customer_address_msg"
+ERROR - 2025-03-20 23:55:05 --> Could not find the language line "mg-2"
+ERROR - 2025-03-20 23:55:05 --> Could not find the language line "modified"
+ERROR - 2025-03-20 23:55:05 --> Could not find the language line "modified"

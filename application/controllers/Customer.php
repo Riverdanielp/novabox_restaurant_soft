@@ -115,7 +115,7 @@ class Customer extends Cl_Controller {
         $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
         if (htmlspecialcharscustom($this->input->post('submit'))) {
             $this->form_validation->set_rules('name', lang('category_name'), 'required|max_length[50]');
-            $this->form_validation->set_rules('phone', lang('phone'), 'required|max_length[50]');
+            // $this->form_validation->set_rules('phone', lang('phone'), 'required|max_length[50]');
             if(collectGST()=="Yes"){
                 $this->form_validation->set_rules('gst_number', lang('gst_number'), 'required|max_length[50]');
                 $this->form_validation->set_rules('same_or_diff_state', lang('same_or_diff_state'), 'required|max_length[50]');

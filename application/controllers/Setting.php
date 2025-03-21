@@ -123,7 +123,8 @@ class Setting extends Cl_Controller {
                 $outlet_info['zone_name'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('zone_name')));
                 $outlet_info['currency'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('currency')));
                 $outlet_info['currency_position'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('currency_position')));
-                $outlet_info['precision'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('precision')));
+                $outlet_info['precision'] =($this->input->post($this->security->xss_clean('precision')));
+                
                 if(isServiceAccessOnly('sGmsJaFJE')):
                     $outlet_info['saas_landing_page'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('saas_landing_page')));
                 endif;

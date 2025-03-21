@@ -40,6 +40,18 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title><?php echo escape_output($site_name); ?></title>
+    <meta name="description" content="Tu sistema de gestión de restaurant desde la nube!">
+
+    <meta name="theme-color" content="#ff9710">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Novabox - Restaurant Soft">
+    <link rel="apple-touch-icon" href="<?php echo base_url(); ?>assets/logos/android-launchericon-192-192.png">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="<?php echo base_url(); ?>manifest.json?v=1.01">
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="<?php echo base_url(); ?>images/favicon.ico" type="image/x-icon">
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     <!-- jQuery 3.7 -->
@@ -1048,16 +1060,6 @@
         </div>
     </div>
 
-    <?php if(APPLICATION_MODE == 'demo'): ?>
-                <?php
-                $company = getMainCompany();
-                $language_manifesto = $company->language_manifesto;
-                if(str_rot13($language_manifesto)=="eriutoeri"):?>
-                    <a class="btn btn-danger custom_shadow" href="https://codecanyon.net/item/irestora-plus-multi-outlet-next-gen-restaurant-pos/24077441" target="_blank">&nbsp;&nbsp;Buy Now&nbsp;&nbsp;</a>
-                <?php else:?>
-                    <a class="btn btn-danger custom_shadow" href="https://codecanyon.net/item/irestora-plus-next-gen-restaurant-pos/23033741" target="_blank">&nbsp;&nbsp;Buy Now&nbsp;&nbsp;</a>
-                <?php endif;?>
-    <?php endif; ?>
 
 <?php
 //generating object for access module show/hide
@@ -1080,6 +1082,7 @@ endif;
         /*This variable could not be escaped because this is building object*/
         window.menu_objects = [<?php echo ($menu_objects);?>];
     </script>
+    <script src="<?php echo base_url();?>pwa.js?v=1.01"></script>
     <!-- Bootstrap 5.0.0 -->
     <script src="<?php echo base_url(); ?>assets/bower_components/jquery-slimscroll/jquery.slimscroll.min.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/css-framework/bootstrap-new/bootstrap.bundle.min.js?v=7.5"></script>

@@ -512,9 +512,9 @@ foreach ($notifications as $single_notification){
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <title><?php echo escape_output($site_name); ?></title>
     <script src="<?php echo base_url()?>assets/POS/js/jquery-3.3.1.min.js?v=7.5"></script>
-    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/style.css?v=7.5">
-    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/style2.css?v=7.5">
-    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/customModal.css?v=7.5">
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/style.css?v=7.501">
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/style2.css?v=7.501">
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/customModal.css?v=7.501">
     <script src="<?php echo base_url(); ?>assets/graph/go.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/graph/dom-to-image.min.js?v=7.5"></script>
     <!-- font awesome -->
@@ -1024,6 +1024,8 @@ foreach ($notifications as $single_notification){
                                 $display_btn_2 = '';
                              endif; ?>
 
+                            <button class="operation_button" id="aviso_whatsapp">
+                            <i class="fab fa-whatsapp"></i> Mensaje: Pedido Listo!</button>
                             <button class="operation_button <?php echo escape_output($display_btn_1)?>" id="modify_order"><i
                                         class="fas fa-edit"></i><?php echo lang('modify_order_'); ?></button>
                             <button class="operation_button no-need-for-waiter fix <?php echo escape_output($display_btn_2)?>" id="close_order_button"><i
@@ -1955,6 +1957,11 @@ foreach ($notifications as $single_notification){
                 <div class="content">
 
                     <div class="left-item b">
+                        <div class="customer_section">
+                            <p class="input_level"> Ingrese CI/RUC Para Verificar: <span class="ir_color_red">*</span></p>
+                            <input type="text" class="add_customer_modal_input" id="customer_gst_number_modal" required>
+
+                        </div>
                         <input type="hidden" id="customer_id_modal" value="">
                         <div class="customer_section">
                             <p class="input_level"><?php echo lang('name'); ?> <span class="ir_color_red">*</span></p>
@@ -2000,6 +2007,15 @@ foreach ($notifications as $single_notification){
                     </div>
 
                     <div class="right-item b">
+                        <div class="customer_section">
+                            
+                            <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
+                            
+                        <button class="btn bg-blue-btn w-10" id="ruc_search"><i class="icon ti-search"></i>Buscar RUC</button>
+                        <br>
+                        <span id="ruc_message" class="mt-2 text-info">(Ingrese RUC y presione 'Enter')</span> 
+                            <br>
+                        </div>
                         <div class="customer_section">
                             <p class="input_level"><?php echo lang('dob'); ?></p>
                             <input type="datable" class="add_customer_modal_input" autocomplete="off"
@@ -4504,7 +4520,7 @@ foreach ($notifications as $single_notification){
 
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/howler.min.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/dist/js/feather.min.js?v=7.5"></script>
-    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js?v=2.3"></script>
+    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js?v=7.501"></script>
     <script src="<?php echo base_url(); ?>assets/POS/js/media.js?v=7.5"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.js?v=7.5"></script>
     <script type="text/javascript">
@@ -4543,6 +4559,66 @@ foreach ($notifications as $single_notification){
 
     }
     </script>
+
+<script>
+            document.getElementById("ruc_search").addEventListener("click", function() {
+                let rucInput = document.getElementById("customer_gst_number_modal").value;
+                
+                // Eliminar cualquier guion y tomar solo los números antes del guion
+                let ruc = rucInput.split('-')[0];
+
+                // Obtener el contenedor del mensaje
+                let messageContainer = document.getElementById("ruc_message");
+                
+                // Limpiar el mensaje de error o éxito antes de hacer la búsqueda
+                messageContainer.textContent = "Buscando RUC..."; // Mensaje de búsqueda
+                messageContainer.classList.remove('text-danger', 'text-success');
+                messageContainer.classList.add('text-warning'); // Color de advertencia mientras buscamos
+
+                // Si el RUC tiene más de 4 dígitos y no contiene guion, hacemos la solicitud
+                if (ruc.length > 4 && !rucInput.includes('-')) {
+                    // Crear un objeto FormData y añadir el ruc
+                    let formData = new FormData();
+                    formData.append("ruc", ruc);
+
+                    // Realizar el fetch a la API de RUC con form-data
+                    fetch('https://ruc.novabox.work/consultas/ruc', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error || !data.ruc) {
+                            // Si no se encuentra el RUC, mostrar el mensaje de error
+                            messageContainer.textContent = "No se encontraron datos para este RUC.";
+                            messageContainer.classList.remove('text-warning', 'text-success');
+                            messageContainer.classList.add('text-danger'); // Mensaje en rojo
+                        } else {
+                            // Si se encuentra el RUC, completar los campos con los datos
+                            document.getElementById("customer_name_modal").value = data.nombre + ' ' + data.apellido || '';
+                            // Formatear el RUC con el dígito verificador y actualizar el campo
+                            let fullRuc = `${ruc}-${data.dv}`;
+                            document.getElementById("customer_gst_number_modal").value = fullRuc;
+
+                            // Mostrar el mensaje de éxito
+                            messageContainer.textContent = "RUC encontrado!";
+                            messageContainer.classList.remove('text-warning', 'text-danger');
+                            messageContainer.classList.add('text-success'); // Mensaje en verde
+                        }
+                    })
+                    .catch(error => {
+                        // En caso de error en la API
+                        messageContainer.textContent = "Error al obtener los datos.";
+                        messageContainer.classList.remove('text-warning', 'text-success');
+                        messageContainer.classList.add('text-danger'); // Mensaje de error
+                    });
+                } else {
+                    // Si el RUC tiene menos de 5 caracteres, no se hace nada
+                    messageContainer.textContent = "(Ingrese RUC y presione 'Enter')";
+                    messageContainer.classList.remove('text-warning', 'text-danger', 'text-success');
+                }
+            });
+        </script>
 
     <!--for datatable-->
     <script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js?v=7.5"></script>

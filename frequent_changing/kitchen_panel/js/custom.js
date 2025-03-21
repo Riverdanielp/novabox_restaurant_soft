@@ -107,7 +107,7 @@ $(document).ready(function () {
     } else {
       swal({
         title: "Alert",
-        text: "You should select all for Take Away and Delivery order, as these are pack!",
+        text: "¡Debes seleccionar todo para pedidos para llevar o entrega a domicilio, ya que estos están empaquetados!",
         confirmButtonColor: "#b6d6f6",
       });
     }
@@ -214,11 +214,11 @@ $(document).ready(function () {
             },
             success: function (response) {
               bgColorAdd();
-              swal({
-                title: "Alert",
-                text: "Cooking Started!!",
-                confirmButtonColor: "#b6d6f6",
-              });
+              // swal({
+              //   title: "Alert",
+              //   text: "Cooking Started!!",
+              //   confirmButtonColor: "#b6d6f6",
+              // });
             },
             error: function () {
               alert("error");
@@ -228,7 +228,7 @@ $(document).ready(function () {
       } else {
         swal({
           title: "Alert!",
-          text: "Please select an item to Cook!",
+          text: "Por favor seleccione un artículo para cocinar!",
           confirmButtonColor: "#b6d6f6",
         });
       }
@@ -360,11 +360,11 @@ $(document).ready(function () {
                 kitchen_id: kitchen_id,
             },
             success: function (response) {
-              swal({
-                title: "Alert",
-                text: "Cooking Done!!",
-                confirmButtonColor: "#b6d6f6",
-              });
+              // swal({
+              //   title: "Alert",
+              //   text: "Cocina Terminada",
+              //   confirmButtonColor: "#b6d6f6",
+              // });
             },
             error: function () {
               alert("error");
@@ -374,7 +374,7 @@ $(document).ready(function () {
       } else {
         swal({
           title: "Alert!",
-          text: "Please select an item to cooking item done!",
+          text: "¡Seleccione un artículo para cocinar el artículo listo!",
           confirmButtonColor: "#b6d6f6",
         });
       }
@@ -432,11 +432,11 @@ $(document).ready(function () {
                 kitchen_id: kitchen_id,
             },
             success: function (response) {
-              swal({
-                title: "Alert",
-                text: "Cooking Done!!",
-                confirmButtonColor: "#b6d6f6",
-              });
+              // swal({
+              //   title: "Alert",
+              //   text: "Cooking Done!!",
+              //   confirmButtonColor: "#b6d6f6",
+              // });
             },
             error: function () {
               alert("error");
@@ -446,7 +446,7 @@ $(document).ready(function () {
       } else {
         swal({
           title: "Alert",
-          text: "Please select an item to cooking item done!!",
+          text: "¡Seleccione un artículo para cocinar el artículo listo!",
           confirmButtonColor: "#b6d6f6",
         });
       }
@@ -568,11 +568,11 @@ $(document).ready(function () {
             },
             success: function (response) {
               bgColorAdd();
-              swal({
-                title: "Alert",
-                text: "Cooking Started!!",
-                confirmButtonColor: "#b6d6f6",
-              });
+              // swal({
+              //   title: "Alert",
+              //   text: "Cooking Started!!",
+              //   confirmButtonColor: "#b6d6f6",
+              // });
             },
             error: function () {
               alert("error");
@@ -582,7 +582,7 @@ $(document).ready(function () {
       } else {
         swal({
           title: "Alert!",
-          text: "Please select an item to Cook!",
+          text: "Por favor seleccione un artículo para cocinar!",
           confirmButtonColor: "#b6d6f6",
         });
       }
@@ -618,11 +618,11 @@ $(document).ready(function () {
           },
           success: function (response) {
             bgColorAdd();
-            swal({
-              title: "Alert",
-              text: "Cooking Started!!",
-              confirmButtonColor: "#b6d6f6",
-            });
+            // swal({
+            //   title: "Alert",
+            //   text: "Cooking Started!!",
+            //   confirmButtonColor: "#b6d6f6",
+            // });
           },
           error: function () {
             alert("error");
@@ -674,11 +674,11 @@ $(document).ready(function () {
                 kitchen_id: kitchen_id,
             },
             success: function (response) {
-              swal({
-                title: "Alert",
-                text: "Cooking Done!!",
-                confirmButtonColor: "#b6d6f6",
-              });
+              // swal({
+              //   title: "Alert",
+              //   text: "Cooking Done!!",
+              //   confirmButtonColor: "#b6d6f6",
+              // });
             },
             error: function () {
               alert("error");
@@ -688,7 +688,7 @@ $(document).ready(function () {
       } else {
         swal({
           title: "Alert!",
-          text: "Please select an item to cooking item done!",
+          text: "Por favor seleccione un artículo para cocinar el artículo listo!",
           confirmButtonColor: "#b6d6f6",
         });
       }
@@ -723,11 +723,11 @@ $(document).ready(function () {
               kitchen_id: kitchen_id,
           },
           success: function (response) {
-            swal({
-              title: "Alert",
-              text: "Cooking Done!!",
-              confirmButtonColor: "#b6d6f6",
-            });
+            // swal({
+            //   title: "Alert",
+            //   text: "Cooking Done!!",
+            //   confirmButtonColor: "#b6d6f6",
+            // });
           },
           error: function () {
             alert("error");
@@ -1225,7 +1225,7 @@ $(document).ready(function () {
                             order_list_left += '<div class="fix items_holder">';
                             let items = response[key].items;
                             let i_counter = 0;
-                            order_list_left += '<div class="single_el_wrapper"><div class="el_wrapper"><label for="all_select_all_of_an_order_' + response[key].sales_id +'" id="select_all_of_an_order_' + response[key].sales_id +'" class="select_all_of_an_order"><input id="all_select_all_of_an_order_' + response[key].sales_id +'" type="checkbox"><span>Select All</span></label></div></div>'
+                            order_list_left += '<div class="single_el_wrapper"><div class="el_wrapper"><label for="all_select_all_of_an_order_' + response[key].sales_id +'" id="select_all_of_an_order_' + response[key].sales_id +'" class="select_all_of_an_order"><input id="all_select_all_of_an_order_' + response[key].sales_id +'" type="checkbox"><span>Select. Todo</span></label></div></div>'
 
                             for (let key_item in items) {
 
@@ -1364,9 +1364,9 @@ $(document).ready(function () {
                             order_list_left +=
                                 '<button class="start_cooking_button cook_bg" id="start_cooking_button_' +
                                 response[key].sales_id +
-                                '">Cook</button><button class="done_cooking" id="done_cooking_' +
+                                '">Cocinar</button><button class="done_cooking" id="done_cooking_' +
                                 response[key].sales_id +
-                                '">Done</button>';
+                                '">Terminar</button>';
                             order_list_left += "</div>";
                             order_list_left += "</div>";
                         }

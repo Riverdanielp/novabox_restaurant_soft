@@ -96,7 +96,7 @@ $(document).ready(function () {
     } else {
       swal({
         title: "Alert",
-        text: "You should select all for Take Away and Delivery order, as these are pack!",
+        text: "¡Debes seleccionar todo para pedidos para llevar o entrega a domicilio, ya que estos están empaquetados!",
         confirmButtonColor: "#b6d6f6",
       });
     }
@@ -1379,13 +1379,13 @@ function refresh_orders() {
           $order_list_left +=
             '<button class="select_all_of_an_order" id="select_all_of_an_order_' +
             response[key].sales_id +
-            '">Select All</button><button class="unselect_all_of_an_order" id="unselect_all_of_an_order_' +
+            '">Select. Todo</button><button class="unselect_all_of_an_order" id="unselect_all_of_an_order_' +
             response[key].sales_id +
-            '">Unselect All</button><button class="start_cooking_button" id="start_cooking_button_' +
+            '">Deselect. Todo</button><button class="start_cooking_button" id="start_cooking_button_' +
             response[key].sales_id +
-            '">Prepare</button><button class="done_cooking" id="done_cooking_' +
+            '">Preparar</button><button class="done_cooking" id="done_cooking_' +
             response[key].sales_id +
-            '">Done</button>';
+            '">Terminar</button>';
           $order_list_left += "</div>";
           $order_list_left += "</div>";
         }

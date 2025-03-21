@@ -401,7 +401,7 @@ class Sale_model extends CI_Model {
         $user_id = $this->session->userdata('user_id');
         $role = $this->session->userdata('role');
 
-      $this->db->select("*,tbl_sales.id as sale_id,tbl_customers.name as customer_name, tbl_sales.id as sales_id,tbl_users.full_name as waiter_name,tbl_tables.name as table_name");
+      $this->db->select("*,tbl_sales.id as sale_id,tbl_customers.name as customer_name,tbl_customers.phone as customer_phone, tbl_sales.id as sales_id,tbl_users.full_name as waiter_name,tbl_tables.name as table_name");
       $this->db->from('tbl_sales');
       $this->db->join('tbl_tables', 'tbl_tables.id = tbl_sales.table_id', 'left');
       $this->db->join('tbl_users', 'tbl_users.id = tbl_sales.waiter_id', 'left');
@@ -430,7 +430,7 @@ class Sale_model extends CI_Model {
 
     public function future_sales($outlet_id){
         $today_date = date('Y-m-d');
-        $this->db->select("tbl_sales.*,tbl_customers.name as customer_name,tbl_tables.name as table_name,tbl_customers.phone");
+        $this->db->select("tbl_sales.*,tbl_customers.name as customer_name,tbl_customers.phone as customer_phone,tbl_tables.name as table_name,tbl_customers.phone");
         $this->db->from('tbl_sales');
         $this->db->join('tbl_customers', 'tbl_customers.id = tbl_sales.customer_id', 'left');
         $this->db->join('tbl_tables', 'tbl_tables.id = tbl_sales.table_id', 'left');

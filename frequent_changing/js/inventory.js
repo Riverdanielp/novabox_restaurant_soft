@@ -5,7 +5,7 @@ $(function() {
     let currency = '';
     $('#stockValue').html(stock_value+': '+currency + $(
         '#grandTotal').val() +
-        '<a class="top" title="" data-placement="top" data-toggle="tooltip" style="cursor:pointer" data-original-title="Calculated based on last purchase price and Ingredient with negative Stock Qty/Amount is not considered"><i data-feather="help-circle"></i></a>'
+        '<a class="top" title="" data-placement="top" data-toggle="tooltip" style="cursor:pointer" data-original-title="Calculado en base al último precio de compra y no se considera el ingrediente con cantidad/cantidad de stock negativa"><i data-feather="help-circle"></i></a>'
     );
     //iCheck for checkbox and radio inputs
     $('input[type="checkbox"].minimal, input[type="radio"].minimal').iCheck({
