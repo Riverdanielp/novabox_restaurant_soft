@@ -20281,6 +20281,118 @@ function updateNumberButtons(numbers) {
     // Iniciar la actualización periódica (cada 5 segundos)
     setInterval(updateNumbersInterval, 5000);
 
+// // Manejar clic en botones de número
+// $(document).on('click', '.number_buttons', function() {
+//     const $button = $(this);
+//     const numberId = $button.data('number');
+//     const numberName = $button.data('name');
+//     const saleId = $button.data('sale_id');
+//     const saleNo = $button.data('sale_no');
+    
+//     // Deseleccionar todos los botones
+//     $('.number_buttons').removeClass('selected');
+    
+//     // Seleccionar el botón clickeado
+//     $button.addClass('selected');
+    
+//     // Verificar si el botón está rojo (ocupado)
+//     if ($button.hasClass('btn-danger') && saleId) {
+//         // Abrir modal de pago para este número ocupado
+//         openPaymentModalForNumber(saleNo);
+//     } else {
+//         // Botón verde - función normal
+//         $('#selected_number').val(numberId);
+//         $('#selected_number_name').val(numberName);
+        
+//         // Actualizar el botón principal
+//         updateMainButton(numberName);
+//         $("#dp_modal_cancel_button").click();
+//     }
+// });
+
+// // Función para abrir el modal de pago para un número ocupado
+// function openPaymentModalForNumber(saleNo) {
+//     // Simular clic en el botón de pago con el sale_no correspondiente
+//     if(pre_or_post_payment == 2) {
+//         let resq = getSelectedOrderDetails(saleNo).then(function(data){
+//             let is_invoice = data.is_invoice;
+//             if (is_invoice == 2) {
+//                 let invoiced_error = $("#invoiced_error").val();
+//                 toastr['error']((invoiced_error + "!"), '');
+//             } else {
+//                 processPaymentModal(saleNo);
+//             }
+//         });
+//     } else {
+//         processPaymentModal(saleNo);
+//     }
+// }
+
+// // Función común para procesar el modal de pago
+// function processPaymentModal(saleNo) {
+//     getSelectedOrderDetails(saleNo).then(function(data){
+//         let response = jQuery.parseJSON(data);
+//         if(response !== null) {
+//             $(".empty_title").show();
+//             $("#payment_list_div").html('');
+
+//             $("#order_payment_modal_name").html(response.customer_name);
+//             $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
+//             $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
+//             $("#finalize_total_due").html(response.total_payable);
+//             $("#selected_invoice_sale_customer").val(response.customer_id);
+//             $("#pay_amount_invoice_input").val(response.total_payable);
+
+//             $("#order_payment_modal").removeClass("inActive");
+//             $("#order_payment_modal").addClass("active");
+//             $(".pos__modal__overlay").fadeIn(200);
+//             checkSMSDisabled(response.customer_id);
+
+//             $("#open_invoice_date_hidden").val(response.sale_date);
+
+//             if(Number(response.previous_due_tmp)){
+//                 $(".previous_due_div").css('opacity','1');
+//                 $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
+//             } else {
+//                 $(".previous_due_div").css('opacity','0');
+//             }
+            
+//             // Resto de la configuración del modal...
+//             $("#is_multi_currency").val('');
+//             $(".set_no_access").removeClass('no_access');
+//             $(".finalize_modal_is_mul_currency").hide(300);
+//             $("#finalize_amount_input").html('');
+//             $(".badge_custom").remove();
+//             $(".previous_due_div").show();
+//             $(".loyalty_point_div").hide();
+            
+//             // Configuración de detalles del carrito
+//             $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart).toFixed(0));
+//             $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
+//             $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
+//             $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
+//             $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
+//             $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
+//             $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
+//             $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
+//             $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
+
+//             set_default_payment();
+//             cal_finalize_modal('');
+//             $(".datepicker_custom")
+//                 .datepicker({
+//                     autoclose: true,
+//                     format: "yyyy-mm-dd",
+//                     startDate: "0",
+//                     todayHighlight: true,
+//                 })
+//                 .datepicker("update", response.sale_date);
+
+//             $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
+//         }
+//     });
+// }
+
 // Manejar clic en botones de número
 $(document).on('click', '.number_buttons', function() {
     const $button = $(this);
@@ -20310,90 +20422,39 @@ $(document).on('click', '.number_buttons', function() {
     }
 });
 
-// Función para abrir el modal de pago para un número ocupado
+// Función mejorada para abrir el modal de pago
 function openPaymentModalForNumber(saleNo) {
-    // Simular clic en el botón de pago con el sale_no correspondiente
-    if(pre_or_post_payment == 2) {
-        let resq = getSelectedOrderDetails(saleNo).then(function(data){
-            let is_invoice = data.is_invoice;
-            if (is_invoice == 2) {
-                let invoiced_error = $("#invoiced_error").val();
-                toastr['error']((invoiced_error + "!"), '');
+    // 1. Deseleccionar todas las órdenes
+    $('.single_order').attr('data-selected', 'unselected');
+    
+    // 2. Seleccionar la orden correspondiente
+    const $order = $(`[data-sale_no="${saleNo}"]`);
+    if ($order.length) {
+        $order.attr('data-selected', 'selected');
+        
+        // Pequeña pausa para asegurar la selección
+        setTimeout(() => {
+            // Verificar si es pre_or_post_payment == 2
+            if(pre_or_post_payment == 2) {
+                getSelectedOrderDetails(saleNo).then(function(data){
+                    let is_invoice = data.is_invoice;
+                    if (is_invoice == 2) {
+                        let invoiced_error = $("#invoiced_error").val();
+                        toastr['error']((invoiced_error + "!"), '');
+                    } else {
+                        // Hacer clic en el botón real
+                        $("#create_invoice_and_close").click();
+                    }
+                });
             } else {
-                processPaymentModal(saleNo);
+                // Hacer clic en el botón real
+                $("#create_invoice_and_close").click();
             }
-        });
+        }, 100);
     } else {
-        processPaymentModal(saleNo);
+        toastr['error']('No se encontró la orden correspondiente', 'Error');
     }
 }
-
-// Función común para procesar el modal de pago
-function processPaymentModal(saleNo) {
-    getSelectedOrderDetails(saleNo).then(function(data){
-        let response = jQuery.parseJSON(data);
-        if(response !== null) {
-            $(".empty_title").show();
-            $("#payment_list_div").html('');
-
-            $("#order_payment_modal_name").html(response.customer_name);
-            $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
-            $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-            $("#finalize_total_due").html(response.total_payable);
-            $("#selected_invoice_sale_customer").val(response.customer_id);
-            $("#pay_amount_invoice_input").val(response.total_payable);
-
-            $("#order_payment_modal").removeClass("inActive");
-            $("#order_payment_modal").addClass("active");
-            $(".pos__modal__overlay").fadeIn(200);
-            checkSMSDisabled(response.customer_id);
-
-            $("#open_invoice_date_hidden").val(response.sale_date);
-
-            if(Number(response.previous_due_tmp)){
-                $(".previous_due_div").css('opacity','1');
-                $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
-            } else {
-                $(".previous_due_div").css('opacity','0');
-            }
-            
-            // Resto de la configuración del modal...
-            $("#is_multi_currency").val('');
-            $(".set_no_access").removeClass('no_access');
-            $(".finalize_modal_is_mul_currency").hide(300);
-            $("#finalize_amount_input").html('');
-            $(".badge_custom").remove();
-            $(".previous_due_div").show();
-            $(".loyalty_point_div").hide();
-            
-            // Configuración de detalles del carrito
-            $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart).toFixed(0));
-            $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
-            $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
-            $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
-            $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
-            $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
-            $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
-            $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
-            $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
-
-            set_default_payment();
-            cal_finalize_modal('');
-            $(".datepicker_custom")
-                .datepicker({
-                    autoclose: true,
-                    format: "yyyy-mm-dd",
-                    startDate: "0",
-                    todayHighlight: true,
-                })
-                .datepicker("update", response.sale_date);
-
-            $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
-        }
-    });
-}
-
-
 
 
 
