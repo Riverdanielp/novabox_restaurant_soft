@@ -53,7 +53,7 @@
                                 <td class="ir_txt_center"><?php echo escape_output($i--); ?></td>
                                 <td><?php echo escape_output($fmc->name) ?></td>
                                 <td><?php echo escape_output($fmc->description) ?></td>
-                                <td><img src="<?php echo base_url()?>images/<?php echo escape_output($fmc->logo) ?>" alt=""> </td>
+                                <td><img src="<?php echo base_url()?>images/<?php echo escape_output($fmc->logo) ?>" alt="" style="max-width: 195px;max-height:145px;"> </td>
                                 <td><?php echo escape_output(userName($fmc->user_id)); ?></td>
 
                                 <td>

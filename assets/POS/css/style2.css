@@ -2354,7 +2354,7 @@ aside#pos__sidebar .sub__sub__menu__list li a i {
     display: block; } }
 @media (min-width: 992px) {
   .holder .order_details {
-    height: calc(100vh - 330px) !important; } }
+    height: calc(100vh - 348px) !important; } }
 @media (max-width: 1300px) {
   #main_part .main_right #main_item_holder .category-list {
     display: none; }

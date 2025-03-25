@@ -6,6 +6,10 @@ if (!function_exists('getEnvOrDefault')) {
     }
 }
 
+function VERS(){
+    return '?v=7.528';
+}
+
 // Obtener la configuración desde el entorno o usar valores por defecto
 define("DECIMAL_SEPARATOR", getEnvOrDefault("DECIMAL_SEPARATOR", "."));
 define("THOUSAND_SEPARATOR", getEnvOrDefault("THOUSAND_SEPARATOR", ","));
@@ -41,7 +45,6 @@ function unformatPrice($value) {
 
     return (float) $rawNumber;
 }
-
 
 /**
  * get plan name
@@ -264,7 +267,8 @@ function getShortName() {
     if(!$short_name){
         $short_name = getRandomCodeOne(1);
     }
-    return $short_name.(getRandomCodeTwoCapital(2));
+    // return $short_name.(getRandomCodeTwoCapital(2));
+    return (getRandomCodeTwoCapital(3));
 }
 function getShortCustomerName() {
     $CI = & get_instance();

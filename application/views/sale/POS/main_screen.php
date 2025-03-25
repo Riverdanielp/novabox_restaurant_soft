@@ -163,7 +163,7 @@ foreach($food_menus as $single_menus){
     $menu_to_show .= '<div class="single_item animate__animated animate__flipInX" data-price="'.$sale_price.'"  data-price_take="'.$sale_price_take.'"  data-price_delivery="'.$sale_price_delivery.'" data-is_variation="'.$is_variation.'"  id="item_'.$single_menus->id.'">';
     $menu_to_show .= '<img src="'.$image_path.'" alt="" width="142">';
         $menu_to_show .= '<p class="item_name '.$item_name_c.'" data-tippy-content="'.$single_menus->name.'">'.$single_menus->name.'</p>';
-    $menu_to_show .= '<p class="item_price">'.lang('price').': <span id="price_'.$single_menus->id.'">'.getAmtP($sale_price).'</span></p>';
+    $menu_to_show .= '<p class="item_price">'.$this->session->userdata('currency').' <span id="price_'.$single_menus->id.'">'.getAmtP($sale_price).'</span></p>';
     $menu_to_show .= '</div>';
     //if its the last content and there is no more category then set exit to last category
     if($is_new_category==false && $total_menus==$i){
@@ -512,9 +512,9 @@ foreach ($notifications as $single_notification){
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <title><?php echo escape_output($site_name); ?></title>
     <script src="<?php echo base_url()?>assets/POS/js/jquery-3.3.1.min.js?v=7.5"></script>
-    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/style.css?v=7.501">
-    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/style2.css?v=7.501">
-    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/customModal.css?v=7.501">
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/style.css<?php echo VERS() ?>">
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/style2.css<?php echo VERS() ?>">
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/POS/css/customModal.css<?php echo VERS() ?>">
     <script src="<?php echo base_url(); ?>assets/graph/go.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/graph/dom-to-image.min.js?v=7.5"></script>
     <!-- font awesome -->
@@ -647,6 +647,122 @@ foreach ($notifications as $single_notification){
         #pos__sidebar .have_sub_menu.active > a::after {
             content: "\f068";
             transform: rotate(180deg);
+        }
+    </style>
+    <style>
+        .table-responsive {
+            width: 100%; /* Ocupa todo el ancho disponible */
+            min-height: 200px; /* Altura mínima para pantallas pequeñas */
+            max-height: 80vh; /* Altura máxima relativa al viewport */
+            overflow-y: auto; /* Habilita el scroll vertical */
+            /* Opcional: para visualizar el contenedor */
+        }
+        .d-flex {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center; /* Centra los botones horizontalmente */
+            align-items: center; /* Centra los botones verticalmente */
+            gap: 0.5rem !important;
+        }
+
+        .flex-wrap {
+            flex-wrap: wrap !important;
+        }
+
+        .gap-2 {
+            gap: .5rem !important;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #212529;
+            text-align: center;
+            text-decoration: none;
+            vertical-align: middle;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+            background-color: transparent;
+            border: 1px solid transparent;
+            padding: .375rem .75rem;
+            font-size: 1rem;
+            border-radius: .25rem;
+            transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+        }
+        .btn {
+            border-radius: 3px;
+            -webkit-box-shadow: none;
+            box-shadow: none;
+            border: none;
+        }
+        .btn-success {
+            background-color: #00a65a;
+            border-color: #008d4c;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dd4b39;
+            border-color: #d73925;
+            color: white;
+        }
+        .btn-group-lg>.btn, .btn-lg {
+            padding: .5rem 1rem;
+            font-size: 1.25rem;
+            border-radius: .3rem;
+        }
+        /* #show_numbers_modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        #show_numbers_modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 10px;
+        }
+
+        .display_none {
+            display: none;
+        }
+
+        .display_none.display_block {
+            display: block;
+        } */
+         
+        .number_buttons {
+            width: 65px;
+            height: 65px;
+        }
+        .number_buttons.selected {
+            background-color: #1E90FF !important; /* Azul */
+            border-color: #1E90FF !important;
+            color: white !important;
+        }
+        #numbers_button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #numbers_button i {
+            transition: all 0.3s ease;
         }
     </style>
 </head>
@@ -1157,8 +1273,13 @@ foreach ($notifications as $single_notification){
                             <?php
                             endif;
                             ?>
-                            <button class="<?php echo escape_output($is_self_order_class) ?>" id="table_button"><i class="fal fa-table"></i> <?php echo lang('table'); ?></button>
-                            
+                            <button class="<?php echo escape_output($is_self_order_class) ?>" id="table_button" style="display: none;"><i class="fal fa-table"></i> <?php echo lang('table'); ?></button>
+                            <button class="" id="numbers_button">
+                                <i class="fa fa-list-ol"></i> 
+                                <i class="far fa-check-square selected-icon" style="display: none;"></i>
+                                <span class="button-text">Números</span>
+                                
+                            </button>
                         </div>
                         <?php if($is_self_order=="Yes" && $is_online_order!="Yes"):?>
                             <div class="self_order_table_person_wrapper">
@@ -1994,16 +2115,6 @@ foreach ($notifications as $single_notification){
                             <input type="email" placeholder="<?php echo lang('password'); ?>" class="add_customer_modal_input" id="customer_password_modal">
                         </div>
 
-                        <?php if(collectGST()=="Yes"){?>
-                            <div class="customer_section">
-                                <p class="input_level"><?php echo lang('same_or_diff_state'); ?> <span class="required_star">*</span></p>
-                                <select class="form-control irp_width_100 select2 same_or_diff_state_modal" name="same_or_diff_state" id="same_or_diff_state">
-                                    <option value="0"><?php echo lang('select'); ?></option>
-                                    <option value="1"><?php echo lang('same_state'); ?></option>
-                                    <option value="2"><?php echo lang('different_state'); ?></option>
-                                </select>
-                            </div>
-                        <?php } ?>
                     </div>
 
                     <div class="right-item b">
@@ -2133,6 +2244,50 @@ foreach ($notifications as $single_notification){
 
     </div>
     <!-- end add customer modal -->
+
+    <!-- Numbers Modal -->
+     
+    <div id="show_numbers_modal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content" id="editCustomer1">
+            <h1>
+                Numeros
+                <a href="javascript:void(0)" class="alertCloseIcon">
+                    <i class="fal fa-times"></i>
+                </a>
+            </h1>
+
+            <div class="table-responsive">
+                <div class="d-flex flex-wrap gap-2">
+                    <?php if (empty($numbers)): ?>
+                        <h5>Aun no existen números</h5>
+                    <?php else : ?>
+                        <?php foreach ($numbers as $number): ?>
+                            <button class="btn btn-lg number_buttons
+                                <?php echo ($number->sale_id) ? 'btn-danger' : 'btn-success'; ?>" 
+                                data-sale_id="<?php echo escape_output($number->sale_id); ?>"
+                                data-sale_no="<?php echo escape_output($number->sale_no); ?>"
+                                data-user_id="<?php echo escape_output($number->user_id); ?>"
+                                data-number="<?php echo escape_output($number->id); ?>"
+                                data-name="<?php echo escape_output($number->name); ?>">
+                                <?php echo escape_output($number->name); ?>
+                            </button>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <footer class="pos__modal__footer">
+                <div class="left_box left_bottom">
+                    <button class="floatright" id="dp_modal_cancel_button">Cancelar</button>
+                </div>
+            </footer>
+
+        </div>
+
+    </div>
+
+    <!-- end Numbers modal -->
 
     <!-- The sale hold modal -->
     <div id="show_sale_hold_modal" class="modal">
@@ -2538,7 +2693,8 @@ foreach ($notifications as $single_notification){
                             ?>
                             <li class="custom_li" data-aggregator_tran_code="<?php echo escape_output($value->aggregator_tran_code) ?>" data-row="<?php echo escape_output($value->id) ?>">
                                 <input type="checkbox" <?php echo escape_output($checked)?> name="delivery_partner_id" value="<?php echo escape_output($value->id) ?>" class="class_check"  id="myCheckbox<?php echo escape_output($value->id) ?>" />
-                                <label class="label_c" for="myCheckbox<?php echo escape_output($value->id) ?>"><img src="<?php echo base_url()?>images/<?php echo escape_output($value->logo) ?>"" />
+                                <label class="label_c" for="myCheckbox<?php echo escape_output($value->id) ?>">
+                                    <img src="<?php echo base_url()?>images/<?php echo escape_output($value->logo) ?>"  style="max-width: 145px;max-height:100px;" />
                                     <p class="dl_p_title"><?php echo escape_output($value->name) ?></p>
                                 </label>
                             </li>
@@ -3318,6 +3474,7 @@ foreach ($notifications as $single_notification){
         <div class="modal-content">
 
             <h1 id="modal_item_name"><?php echo lang('Finalize'); ?> <?php echo lang('sale'); ?>
+                            <span id="order_payment_modal_name"></span>
                 <a href="javascript:void(0)" class="alertCloseIcon">
                     <i class="fal fa-times"></i>
                 </a>
@@ -4520,7 +4677,7 @@ foreach ($notifications as $single_notification){
 
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/howler.min.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/dist/js/feather.min.js?v=7.5"></script>
-    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js?v=7.501"></script>
+    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js<?php echo VERS() ?>"></script>
     <script src="<?php echo base_url(); ?>assets/POS/js/media.js?v=7.5"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.js?v=7.5"></script>
     <script type="text/javascript">

@@ -263,6 +263,7 @@ class Authentication extends Cl_Controller {
                                 $login_session['company_id'] = $user_information->company_id;
                                 $login_session['session_outlets'] = $user_information->outlets;
                                 $login_session['active_menu_tmp'] = 4;
+                                $login_session['code_short'] = getShortName();
 
                                 //Company Information
 
@@ -965,6 +966,7 @@ class Authentication extends Cl_Controller {
         $this->session->unset_userdata('active_menu_tmp');
         $this->session->unset_userdata('designation');
         $this->session->unset_userdata('is_collapse');
+        $this->session->unset_userdata('code_short');
 
         //Shop Information
         $this->session->unset_userdata('currency');
@@ -3013,6 +3015,7 @@ class Authentication extends Cl_Controller {
                                 $login_session['company_id'] = $user_information->company_id;
                                 $login_session['session_outlets'] = $user_information->outlets;
                                 $login_session['active_menu_tmp'] = 4;
+                                $login_session['code_short'] = getShortName();
 
                                 //Company Information
 

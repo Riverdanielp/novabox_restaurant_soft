@@ -56,7 +56,7 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="thousands_separator" value="<?php echo escape_output($this->session->userdata('thousands_separator'))?>">
 <input type="hidden" id="currency_position" value="<?php echo escape_output($this->session->userdata('currency_position'))?>">
 <input type="hidden" id="same_or_diff_state" value="">
-<input type="hidden" id="username_short" value="<?php echo escape_output(getShortName())?>">
+<input type="hidden" id="username_short" value="<?php echo escape_output($this->session->userdata('code_short'))?>">
 <input type="hidden" id="hidden_currency" value="<?php echo escape_output($this->session->userdata('currency'))?>">
 <input type="hidden" id="food_menu_tooltip" value="<?php echo escape_output($this->session->userdata('food_menu_tooltip'))?>">
 <input type="hidden" id="ir_precision" value="<?php echo escape_output($getCompanyInfo->precision)?>">
@@ -196,6 +196,9 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="inv_bill_no" value="<?php echo lang('Bill_No') ?>">
 <input type="hidden" id="inv_token_number" value="<?php echo lang('token_number') ?>">
 <input type="hidden" id="order_type_changing_alert" value="<?php echo lang('order_type_changing_alert') ?>">
+<input type="hidden" id="assets_vers" value="<?php echo VERS() ?>">
+<input type="hidden" id="selected_number" value="">
+<input type="hidden" id="selected_number_name" value="">
 
 <input type="hidden" id="modifiers_txt" value="<?php echo lang('modifiers'); ?>">
 <input type="hidden" id="quantity_not_available" value="<?php echo lang('quantity_not_available'); ?>">

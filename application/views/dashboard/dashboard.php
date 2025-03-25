@@ -636,7 +636,7 @@
     </div>
 </section>
 
-<script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/dashboard_chart_custom.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/dashboard_chart_custom.js<?php echo VERS() ?>"></script>
 <!-- ChartJS -->
 <script src="<?php echo base_url(); ?>assets/bower_components/chart.js/Chart.js"></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/plugins/local/loader.js"></script>

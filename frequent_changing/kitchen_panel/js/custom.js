@@ -1114,6 +1114,7 @@ $(document).ready(function () {
                 let order_list_left = "";
                 let i = 1;
                 for (let key in response) {
+                  console.log(response[key]);
                     let items_tmp = response[key].items;
                     if(items_tmp.length){
                         let order_name = "";
@@ -1204,7 +1205,7 @@ $(document).ready(function () {
                                 '<div class="header_portion light-blue-background fix">';
                             order_list_left += '<div class="fix floatleft" style="width:70%;">';
                             order_list_left +='<p class="order_number table_no">'+table+': ' + tables_booked + '</p>';
-                            order_list_left += '<p class="order_number customer_name">'+customer_name_ln+'</p>';
+                            order_list_left += '<p class="order_number customer_name">'+response[key].customer_name+'</p>';
                             order_list_left += '<p class="order_number sale_no">'+sale_no+': ' + order_name + "</p> ";
                             order_list_left += "</div>";
                             order_list_left += '<div class="fix floatleft" style="width:30%;">';

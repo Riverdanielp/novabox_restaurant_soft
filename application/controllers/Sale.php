@@ -515,6 +515,10 @@ class Sale extends Cl_Controller {
         $data['kitchens'] = $this->Common_model->getAllByOutletId($outlet_id, "tbl_kitchens");
         $data['notifications'] = $this->get_new_notification();
         $data['sale_details'] = $this->Common_model->getDataById($sale_id, "tbl_sales");
+        $this->db->where("outlet_id", $outlet_id);
+        $this->db->where("del_status", "Live");
+        // $this->db->order_by("name", "ASC");
+        $data['numbers'] = $this->db->get("tbl_numeros")->result();
         $this->load->view('sale/POS/main_screen', $data);
     }
 
@@ -1209,6 +1213,28 @@ class Sale extends Cl_Controller {
             //on previous order
             $sale_no = $order_details->sale_no;
             $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
+
+
+
+            // Verificar si el número ya está asignado a otra orden
+            // if (isset($order_details->selected_number) && $order_details->selected_number > 0) {
+            //     $existing_sale = $this->db->select('sale_id')
+            //                             ->where('id', $order_details->selected_number)
+            //                             ->where('sale_id !=', $sale_d->id) // Excluir la orden actual si es una actualización
+            //                             ->where('sale_id IS NOT NULL')
+            //                             ->get('tbl_numeros')
+            //                             ->row();
+                
+            //     if ($existing_sale) {
+            //         $return_data['invoice_status'] = '1';
+            //         $return_data['invoice_msg'] = 'El número seleccionado ya está asignado a otra orden';
+            //         echo json_encode($return_data);
+            //         return;
+            //     }
+            // }
+
+
+
             $data = array();
             $data['customer_id'] = trim_checker($order_details->customer_id);
             $data['counter_id'] = trim_checker($order_details->counter_id);
@@ -1269,6 +1295,8 @@ class Sale extends Cl_Controller {
             $data['table_id'] = trim_checker($order_details->table_id);
             $data['is_merge'] = trim_checker($order_details->is_merge);
             $data['zatca_value'] = trim_checker($order_details->zatca_invoice_value);
+            $data['number_slot'] = trim_checker($order_details->selected_number );
+            $data['number_slot_name'] = trim_checker($order_details->selected_number_name );
             $data['sale_no'] = $sale_no;
             $today_ = date('Y-m-d');
             if($today_<$data['sale_date']){
@@ -1283,6 +1311,7 @@ class Sale extends Cl_Controller {
                     $total_tax+=$val->tax_field_amount;
                 }
             }
+
             $data['vat'] = $total_tax;
             $data['sale_vat_objects'] = json_encode($order_details->sale_vat_objects);
             $data['order_type'] = trim_checker($order_details->order_type);
@@ -1294,6 +1323,33 @@ class Sale extends Cl_Controller {
                 $data['is_update_sender'] = 1;
                 $data['is_update_receiver'] = 1;
                 $data['is_update_receiver_admin'] = 1;
+
+                
+                // Limpiar número anterior si existe
+                $previous_number = $this->db->select('number_slot')
+                    ->where('id', $sale_id)
+                    ->get('tbl_kitchen_sales')
+                    ->row()->number_slot;
+
+                if($previous_number > 0) {
+                    $this->db->where("id", $previous_number)
+                    ->update("tbl_numeros", [
+                        "sale_id" => NULL,
+                        "sale_no" => NULL,
+                        "user_id" => NULL
+                    ]); 
+                }
+
+                // Actualizar con el nuevo número si existe
+                if (isset($order_details->selected_number) && $order_details->selected_number > 0) {
+                    $this->db->where("id", $order_details->selected_number)
+                            ->update("tbl_numeros", [
+                                "sale_id" => $sale_id,
+                                "sale_no" => $sale_no,
+                                "user_id" => $this->session->userdata('user_id')
+                            ]);
+                }
+    
                 $this->db->where('id', $sale_id);
                 $this->db->update('tbl_kitchen_sales', $data);
                 checkAndRemoveAllRemovedItem($order_details->items,$sale_id);
@@ -1302,6 +1358,16 @@ class Sale extends Cl_Controller {
                 $data['random_code'] = trim_checker(isset($order_details->random_code) && $order_details->random_code?$order_details->random_code:'');
                 $this->db->insert('tbl_kitchen_sales', $data);
                 $sale_id = $this->db->insert_id();
+
+
+                if (isset($order_details->selected_number) && $order_details->selected_number > 0) {
+                    $this->db->where("id", $order_details->selected_number)
+                    ->update("tbl_numeros", [
+                        "sale_id" => $sale_id,
+                        "sale_no" => $sale_no,
+                        "user_id" => $this->session->userdata('user_id')
+                    ]);
+                }
 
                 if($is_self_order=="Yes" && $is_online_order!="Yes"){
                     $notification = "a new self order has been placed, Order Number is: ".$sale_no;
@@ -1720,9 +1786,21 @@ class Sale extends Cl_Controller {
 
         $select_kitchen_row = getKitchenSaleDetailsBySaleNo($order_details->sale_no);
         if($select_kitchen_row){
+            // 1. Obtener el número asociado antes de eliminar
+            $number_slot = $select_kitchen_row->number_slot;
             $this->db->delete("tbl_kitchen_sales_details", array("sales_id" => $select_kitchen_row->id));
             $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
             $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
+            
+            // 2. Resetear el número si existe
+            if($number_slot && $number_slot > 0) {
+                $this->db->where('id', $number_slot)
+                        ->update('tbl_numeros', [
+                            'sale_id' => NULL,
+                            'sale_no' => NULL,
+                            "user_id" => NULL
+                        ]);
+            }
         }
 
         $txt = '<b>Reason: '.$reason."</b>";
@@ -1773,7 +1851,7 @@ class Sale extends Cl_Controller {
             }
         }
 
-        $notification = "an order has been deleted, Order Number is: ".$order_details->sale_no;
+        $notification = "Se ha eliminado un pedido, el número de pedido es: ".$order_details->sale_no;
         $notification_data = array();
         $notification_data['notification'] = $notification;
         $notification_data['sale_id'] = $select_kitchen_row->id;
@@ -2063,6 +2141,11 @@ class Sale extends Cl_Controller {
         $sale_id = '';
         $check_existing = getSaleDetailsBySaleNo($sale_no);
         $select_kitchen_row = getKitchenSaleDetailsBySaleNo($sale_no);
+
+        $kitchen_sale = $this->db->select('number_slot')
+        ->where('sale_no', $sale_no)
+        ->get('tbl_kitchen_sales')
+        ->row();
 
         if(isset($check_existing) && $check_existing){
             $sale_id = $check_existing->id;
@@ -2393,7 +2476,7 @@ class Sale extends Cl_Controller {
                 $customer = getCustomerData(trim_checker($order_details->customer_id));
                 $outlet_name = $this->session->userdata('outlet_name');
                 $sms_content = "Hi ".$customer->name.", thank you for visiting '.$outlet_name.'. Total bill of your order on '.$order_details->date_time.' is ".getAmtCustom($order_details->total_payable).". Paid amount is: ".getAmtCustom($order_details->paid_amount).", Due Amount is: ".getAmtCustom($order_details->due_amount)."
-We hope to see you again!";
+            We hope to see you again!";
                 if($customer->phone){
                     smsSendOnly($sms_content,$customer->phone);
                 }
@@ -2405,6 +2488,17 @@ We hope to see you again!";
                     $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
                     $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
                 }
+            }
+            
+            if($kitchen_sale && $kitchen_sale->number_slot > 0) {
+            // Liberar el número en tbl_numeros
+            $this->db->where('id', $kitchen_sale->number_slot)
+                ->update('tbl_numeros', [
+                    'sale_id' => NULL,
+                    'sale_no' => NULL,
+                    "user_id" => NULL
+                ]);
+
             }
             echo escape_output($sale_id_offline);
             $this->db->trans_commit();
@@ -2532,6 +2626,8 @@ We hope to see you again!";
         $sales_information = $this->get_all_information_of_a_sale_kitchen($sale_no);
        
 
+        $sales_information->selected_number = $sales_information->number_slot;
+        $sales_information->selected_number_name = $sales_information->number_slot_name;
         $sales_information->sub_total = getAmtP(isset($sales_information->sub_total) && $sales_information->sub_total?$sales_information->sub_total:0);
         $sales_information->paid_amount = getAmtP(isset($sales_information->paid_amount) && $sales_information->paid_amount?$sales_information->paid_amount:0);
         $sales_information->due_amount = getAmtP(isset($sales_information->due_amount) && $sales_information->due_amount?$sales_information->due_amount:0);
@@ -3196,6 +3292,23 @@ We hope to see you again!";
             }
             $this->db->where('id', $sale->id);
             $this->db->update('tbl_sales', $order_status);
+            // Resetear número asociado si la orden se está cerrando
+            if($close_order == 'true') {
+                $kitchen_sale = $this->db->select('number_slot')
+                                        ->where('sale_no', $sale_no)
+                                        ->get('tbl_kitchen_sales')
+                                        ->row();
+                if($kitchen_sale && $kitchen_sale->number_slot > 0) {
+                    // Liberar el número en tbl_numeros
+                    $this->db->where('id', $kitchen_sale->number_slot)
+                            ->update('tbl_numeros', [
+                                'sale_id' => NULL,
+                                'sale_no' => NULL,
+                                "user_id" => NULL
+                            ]);
+
+                }
+            }
             echo escape_output($sale->id);
 
 
@@ -3885,6 +3998,7 @@ We hope to see you again!";
 
         echo json_encode($return_data);
     }
+    
     public function getOrderedTable(){
         $getOrderedTable = $this->Common_model->getOrderedTable();
         echo json_encode($getOrderedTable);
@@ -4804,5 +4918,14 @@ We hope to see you again!";
         echo "Formateado: $formateado\n"; // "12,345.68"
         echo "<br>";
         echo "Desformateado: $sinFormato\n"; // 12345.68
+    }
+
+    public function getUpdatedNumbers() {
+        $outlet_id = $this->session->userdata('outlet_id');
+        $this->db->where("outlet_id", $outlet_id);
+        $this->db->where("del_status", "Live");
+        $numbers = $this->db->get("tbl_numeros")->result();
+        
+        echo json_encode($numbers);
     }
 }

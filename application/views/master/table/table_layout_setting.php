@@ -168,6 +168,6 @@
 <script type="text/javascript" src="<?php echo base_url()?>assets/plugins/draw/plugins/text/wPaint.menu.text.min.js"></script>
 <script type="text/javascript" src="<?php echo base_url()?>assets/plugins/draw/plugins/shapes/wPaint.menu.main.shapes.min.js"></script>
 <script type="text/javascript" src="<?php echo base_url()?>assets/plugins/draw/plugins/file/wPaint.menu.main.file.min.js"></script>
-<script src="<?php echo base_url()?>frequent_changing/table_design/custom.js"></script>
+<script src="<?php echo base_url()?>frequent_changing/table_design/custom.js<?php echo VERS() ?>"></script>
 
 

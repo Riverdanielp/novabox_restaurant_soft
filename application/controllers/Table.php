@@ -1,20 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Table Controller
-  ###########################################################
- */
-
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Table extends Cl_Controller {

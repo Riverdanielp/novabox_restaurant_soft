@@ -267,7 +267,7 @@
     <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/kitchen_panel/js/datable.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/kitchen_panel/js/jquery.cookie.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/howler.min.js"></script>
-    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/kitchen_panel/js/custom.js"></script>
+    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/kitchen_panel/js/custom.js<?php echo VERS() ?>"></script>
     <!-- material icon -->
 
 </body>

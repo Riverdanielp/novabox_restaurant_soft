@@ -148,6 +148,7 @@
       let selected_variation = $("#selected_variation").val();
       let not_booked_yet = $("#not_booked_yet").val();
       let transfer_transferred_msg = $("#transfer_transferred_msg").val();
+      let assets_vers = $("#assets_vers").val();
       
       
         //INVOICE LABLE
@@ -248,7 +249,7 @@
       }
   
       let db;
-      let request = window.indexedDB.open("irestora_plus", 1);
+      let request = window.indexedDB.open("restaurantDB", 1);
   
       request.onsuccess = function(event) {
           db = request.result;
@@ -259,12 +260,21 @@
   
       };
       request.onupgradeneeded = function(event) {
-          let db = event.target.result;
-          let objectStore = db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement:true});
-          let objectStore2 = db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement:true});
-          let objectStore3 = db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement:true});
-          let objectStore4 = db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement:true});
-          let objectStore5 = db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement:true});
+            let db = event.target.result;
+            let objectStore = db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore2 = db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore3 = db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore4 = db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore5 = db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore6 = db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement:false});
+            
+            // if (!db.objectStoreNames.contains('pending_kitchen_orders')) {
+            //     let store = db.createObjectStore('pending_kitchen_orders', {
+            //         keyPath: 'sale_no',
+            //         autoIncrement: false
+            //     });
+            //     store.createIndex('sale_no', 'sale_no', { unique: true });
+            // }
       }
       function getSmsSeedStatus(){
           let sms_send_auto_checker = Number($("#sms_send_auto_checker").val());
@@ -373,7 +383,7 @@
               let i = 1;
               if (cursor) {
                   let orderData = cursor.value;
-                    console.log('orderData',orderData);
+                    // console.log('orderData',orderData);
                   let orderInfo = orderData.order;
                   let table_id = orderData.table_id;
                   let rowData = JSON.parse(orderInfo);
@@ -394,8 +404,11 @@
                       }
                       order_list_left += '<div class="inside_single_order_container fix">';
                       order_list_left += '<div class="single_order_content_holder_inside fix">';
+                      let number_selected = '';
                       let waiter_name = rowData.waiter_name != "" && rowData.waiter_name!=undefined  && rowData.waiter_name!=null && rowData.waiter_name!="undefined" ? rowData.waiter_name : "";
                       let customer_name = rowData.customer_name != null ? rowData.customer_name : "";
+                      let selected_number = rowData.selected_number != null ? rowData.selected_number : "";
+                      let selected_number_name = rowData.selected_number_name != null ? rowData.selected_number_name : "";
                       let tables_booked = "";
   
                       if (rowData.orders_table_text) {
@@ -415,8 +428,8 @@
                       }
  
   
-                      order_list_left += '<span id="open_orders_order_status_' + sales_id + '" class="ir_display_none">' + rowData.order_status + '</span> <p><span title="' + customer_name + '" class="running_order_customer_name">'+lang_customer+': ' + customer_name + '</span></p> <i class="far fa-chevron-right running_order_right_arrow" id="running_order_right_arrow_' + sales_id + '"></i>';
-                      order_list_left += '<p class="oder_list_class">'+lang_order+': <span data-added_offline_status="'+orderData.added_offline_status+'" class="running_order_order_number">' + rowData.sale_no + "</span></p>";
+                      order_list_left += '<p class="oder_list_class"><b>#' + selected_number_name + ' </b>'+' <span data-added_offline_status="'+orderData.added_offline_status+'" class="running_order_order_number">' + rowData.sale_no + "</span></p>";
+                      order_list_left += '<span id="open_orders_order_status_' + sales_id + '" class="ir_display_none">' + rowData.order_status + '</span> <p><span title="' + customer_name + '" class="running_order_customer_name">' + customer_name + '</span></p> <i class="far fa-chevron-right running_order_right_arrow" id="running_order_right_arrow_' + sales_id + '"></i>';
                       order_list_left += '<p class="oder_list_class">'+lang_order_type+': <span class="running_order_order_number_">' + order_type + "</span></p>";
                       order_list_left += '<p>'+lang_table+': <span class="running_order_table_name">' + tables_booked + "</span></p>";
                       order_list_left += '<p>'+lang_waiter+': <span class="running_order_waiter_name">' + waiter_name + "</span></p>";
@@ -1147,8 +1160,8 @@
                               <div class="ir_clear"></div>
                           </div>
                       </div>
-                      <script src="`+base_url+`assets/dist/js/print/jquery-2.0.3.min.js"></script>
-                      <script src="`+base_url+`assets/dist/js/print/custom.js"></script>
+                      <script src="`+base_url+`assets/dist/js/print/jquery-2.0.3.min.js`+assets_vers+`"></script>
+                      <script src="`+base_url+`assets/dist/js/print/custom.js`+assets_vers+`"></script>
                       <script>
                           $(function() {
                           setTimeout(function(){ window.print(); }, 1000); 
@@ -1187,6 +1200,13 @@
               }
           }
   
+          if (!checkInternetConnection()) {
+            // Guardar en IndexedDB para sincronización posterior
+            console.log('Guardar en IndexedDB para sincronización posterior');
+            savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
+            return;
+            }
+
           $.ajax({
               url: base_url + "Sale/add_kitchen_sale_by_ajax",
               method: "POST",
@@ -1227,11 +1247,40 @@
 
               },
               error: function () {
-  
+                // Si falla, guardar para reintentar luego
+                savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
               },
           });
       }
   
+        function savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print) {
+            // let db = window.db; // Asegúrate de tener acceso a tu instancia de IndexedDB
+            
+            let transaction = db.transaction(['pending_kitchen_orders'], 'readwrite');
+            let store = transaction.objectStore('pending_kitchen_orders');
+            
+            let orderData = {
+                sale_no: sale_no,
+                order_object: order_object,
+                is_self_order: is_self_order,
+                is_print: is_print,
+                attempts: 0,
+                last_attempt: new Date().getTime()
+            };
+            
+            let request = store.put(orderData);
+            
+            request.onsuccess = function() {
+                console.log('Pedido guardado para sincronización posterior:', sale_no);
+                // Mostrar notificación al usuario
+                toastr['info']('Pedido guardado localmente. Se enviará a cocina cuando se recupere la conexión.', 'Modo Offline');
+            };
+            
+            request.onerror = function(event) {
+                console.error('Error al guardar pedido pendiente:', event.target.error);
+            };
+        }
+
       function push_online_update(orders){
           $.ajax({
               url:base_url+"Sale/push_online",
@@ -4261,6 +4310,7 @@
                                           $(".empty_title").show();
                                           $("#payment_list_div").html('');
   
+                                          $("#order_payment_modal_name").html(response.customer_name);
                                           $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
                                           $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
                                           $("#finalize_total_due").html(response.total_payable);
@@ -4545,8 +4595,8 @@
                             foundItems[key].item_name +"</p>";
                         searched_category_items_to_show +=
                             '<p class="item_price">' +
-                            price_txt +
-                            ": " +
+                            inv_currency +
+                            " " +
                             foundItems[key].price +
                             "</p>";
   
@@ -4571,8 +4621,8 @@
                             "</p>";
                         searched_category_items_to_show +=
                             '<p class="item_price">' +
-                            price_txt +
-                            ": " +
+                            inv_currency +
+                            " " +
                             foundItems[key].price +
                             "</p>";
   
@@ -4621,8 +4671,8 @@
                           "</p>";
                       searched_category_items_to_show +=
                           '<p class="item_price">' +
-                          price_txt +
-                          ": " +
+                          inv_currency +
+                          " " +
                           foundItems[key].price +
                           "</p>";
                       searched_category_items_to_show +=
@@ -5362,7 +5412,7 @@
                           item_id +
                           '"></i></div>';
                       draw_table_for_order +=
-                          '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="Amt or %" class="1_cp_discount_'+item_id+' discount_cart_input" id="percentage_table_' +
+                          '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="% o importe" class="1_cp_discount_'+item_id+' discount_cart_input" id="percentage_table_' +
                           item_id +
                           '" value="' +
                           discount_input_value +
@@ -6113,8 +6163,8 @@
                 "</p>";
               searched_category_items_to_show +=
                 '<p class="item_price">' +
-                price_txt +
-                ": " +
+                inv_currency +
+                " " +
                 foundItems[key].price +
                 "</p>";
               searched_category_items_to_show += "</div>";
@@ -6155,8 +6205,8 @@
                                 "</p>";
                             searched_category_items_to_show +=
                                 '<p class="item_price">' +
-                                price_txt +
-                                ": " +
+                                inv_currency +
+                                " " +
                                 foundItems[key].price +
                                 "</p>";
                             searched_category_items_to_show += "</div>";
@@ -7372,7 +7422,7 @@
                     item_id +
                     '"></i></div>';
                 draw_table_for_order +=
-                    '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="Amt or %" class="1_cp_discount_'+item_id+' discount_cart_input" id="percentage_table_' +
+                    '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="% o importe" class="1_cp_discount_'+item_id+' discount_cart_input" id="percentage_table_' +
                     item_id +
                     '" value="' +
                     discount_input_value +
@@ -7495,7 +7545,7 @@
                         item_id +
                         '"></i></div>';
                     draw_table_for_order +=
-                        '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="Amt or %" class="discount_cart_input" id="free_percentage_table_' +
+                        '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="% o importe" class="discount_cart_input" id="free_percentage_table_' +
                         item_id +
                         '" value="' +
                         discount_input_value +
@@ -7597,7 +7647,7 @@
                         item_id +
                         '"></i></div>';
                     draw_table_for_order +=
-                        '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="Amt or %" class="discount_cart_input" id="free_percentage_table_' +
+                        '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="% o importe" class="discount_cart_input" id="free_percentage_table_' +
                         item_id +
                         '" value="" disabled></div>';
                     draw_table_for_order +=
@@ -8330,6 +8380,9 @@
                   order_info += '"user_name":"' + ($("#user_name").val()) + '",';
                   order_info += '"user_id":"' + ($("#user_id").val()) + '",';
                   order_info += '"zatca_invoice_value":"' + ($("#zatca_invoice_value").val()) + '",';
+                  //numero seleccionado
+                  order_info += '"selected_number":"' + ($("#selected_number").val() || '') + '",';
+                  order_info += '"selected_number_name":"' + ($("#selected_number_name").val() || '') + '",';
                   order_info += '"customer_name":"' + customer_name + '",';
                   order_info += '"delivery_partner_id":"' + delivery_partner_id + '",';
                   order_info += '"self_order_table_id":"' + self_order_table_id + '",';
@@ -8841,6 +8894,9 @@
                   order_info += '"status":"Pending",';
                   order_info += '"user_name":"' + ($("#user_name").val()) + '",';
                   order_info += '"user_id":"' + ($("#user_id").val()) + '",';
+                  //numero seleccionado
+                  order_info += '"selected_number":"' + ($("#selected_number").val() || '') + '",';
+                  order_info += '"selected_number_name":"' + ($("#selected_number_name").val() || '') + '",';
                   order_info += '"customer_name":"' + customer_name + '",';
                   order_info += '"delivery_partner_id":"' + delivery_partner_id + '",';
                   order_info += '"rounding_amount_hidden":"' + rounding_amount_hidden + '",';
@@ -9411,6 +9467,9 @@
                 order_info += '"charge_type":"' + ($("#split_charge_type").val()) + '",';
                 order_info += '"order_time":"' + ($("#split_order_time").val()) + '",';
                 order_info += '"order_type":"1",';
+                //numero seleccionado
+                order_info += '"selected_number":"' + ($("#selected_number").val() || '') + '",';
+                order_info += '"selected_number_name":"' + ($("#selected_number_name").val() || '') + '",';
                 order_info += '"customer_name":"' + customer_name + '",';
                 order_info += '"waiter_id":"' + waiter_id + '",';
                 order_info += '"waiter_name":"' + waiter_name + '",';
@@ -10086,8 +10145,8 @@
                         "</p>";
                     searched_category_items_to_show +=
                         '<p class="item_price">' +
-                        price_txt +
-                        ": " +
+                        inv_currency +
+                        " " +
                         foundItems[key].price +
                         "</p>";
                     searched_category_items_to_show +=
@@ -11729,6 +11788,7 @@
                   this_action.attr("data-selected", "selected");
               }
           });
+          clearNumberSelection();
       }
         let default_customer = Number($("#default_customer_hidden").val());
         let default_waiter = Number($("#default_waiter_hidden").val());
@@ -12699,7 +12759,7 @@
               this_item.food_menu_id +
               '"></i></div>';
             draw_table_for_order +=
-              '<div class="single_order_column forth_column"><input type="" name="" placeholder="Amt or %" class="discount_cart_input" id="percentage_table_' +
+              '<div class="single_order_column forth_column"><input type="" name="" placeholder="% o importe" class="discount_cart_input" id="percentage_table_' +
               this_item.food_menu_id +
               '" value="' +
               this_item.menu_discount_value +
@@ -13248,7 +13308,7 @@
                 },
                 success: function (datas) {
                     let response = jQuery.parseJSON(datas.self_order_content);
-  
+                    selectNumber(response.selected_number, response.selected_number_name);
                     arrange_info_on_the_cart_to_modify(response);
                 },
                 error: function () {
@@ -13261,6 +13321,7 @@
                 let response = jQuery.parseJSON(data);
                 console.log(response);
                 if(response !== null) {
+                    selectNumber(response.selected_number, response.selected_number_name);
                     arrange_info_on_the_cart_to_modify(response);
                 }
             });
@@ -13742,7 +13803,7 @@
                       item_id +
                       '"></i></div>';
                   draw_table_for_order +=
-                      '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="Amt or %" class="discount_cart_input" id="free_percentage_table_' +
+                      '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="% o importe" class="discount_cart_input" id="free_percentage_table_' +
                       item_id +
                       '" value="" disabled></div>';
                   draw_table_for_order +=
@@ -13925,7 +13986,7 @@
                 this_item.food_menu_id +
                 '"></i></div>';
             draw_table_for_order +=
-                '<div class="single_order_column forth_column"><input type="" name="" placeholder="Amt or %" class="1_cp_discount_' + this_item.food_menu_id + ' discount_cart_input" id="percentage_table_' +
+                '<div class="single_order_column forth_column"><input type="" name="" placeholder="% o importe" class="1_cp_discount_' + this_item.food_menu_id + ' discount_cart_input" id="percentage_table_' +
                 this_item.food_menu_id +
                 '" value="' +
                 this_item.menu_discount_value +
@@ -17566,6 +17627,7 @@
                                           $(".empty_title").show();
                                           $("#payment_list_div").html('');
   
+                                          $("#order_payment_modal_name").html(response.customer_name);
                                           $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
                                           $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
                                           $("#finalize_total_due").html(response.total_payable);
@@ -17633,6 +17695,7 @@
                                   $(".empty_title").show();
                                   $("#payment_list_div").html('');
   
+                                  $("#order_payment_modal_name").html(response.customer_name);
                                   $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
                                   $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
                                   $("#finalize_total_due").html(response.total_payable);
@@ -17848,9 +17911,11 @@
                   let res = getSelectedOrderDetails(sale_no).then(function(data){
                       let response = jQuery.parseJSON(data);
                       if(response !== null) {
+                        console.log(response);
                           $(".empty_title").show();
                           $("#payment_list_div").html('');
   
+                          $("#order_payment_modal_name").html(response.customer_name);
                           $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
                           $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
                           $("#finalize_total_due").html(Number(response.total_payable).toFixed(ir_precision));
@@ -19781,16 +19846,552 @@
             });
         }
     });
+
+    
+    $(document).on("click", "#numbers_button", function (e) {
+        $("#show_numbers_modal").addClass("active");
+        $(".pos__modal__overlay").fadeIn(200);
+    });
+    
+    $(document).on("click", "#numbers_modal_cancel_button, .pos__modal__overlay", function (e) {
+        $("#show_numbers_modal").removeClass("active");
+        $(".pos__modal__overlay").fadeOut(200);
+        resetNumbersModal(); // Restablecer el modal al estado inicial
+    });
+    
+    $(document).on("click", ".get_numbers_category", function (e) {
+        $("#numbers_category_screen").hide(); // Oculta la pantalla de categorías
+        $("#numbers_selection_screen").show(); // Muestra la pantalla de números
+        $("#numbers_modal_back_button").show(); // Muestra el botón "Atrás"
+    });
+    
+    $(document).on("click", "#numbers_modal_back_button", function (e) {
+        $("#numbers_selection_screen").hide(); // Oculta la pantalla de números
+        $("#numbers_category_screen").show(); // Muestra la pantalla de categorías
+        $("#numbers_modal_back_button").hide(); // Oculta el botón "Atrás"
+    });
+    
+    function resetNumbersModal() {
+        $("#numbers_category_screen").show(); // Muestra la pantalla de categorías
+        $("#numbers_selection_screen").hide(); // Oculta la pantalla de números
+        $("#numbers_modal_back_button").hide(); // Oculta el botón "Atrás"
+    }
+
+
+    // Limpiar selección
+    $('#clear_number_selection').click(function() {
+        clearNumberSelection();
+    });
+    
+    // Cerrar modal
+    $('#numbers_modal_close, #numbers_modal_cancel_button').click(function() {
+        $('#show_numbers_modal').removeClass('active');
+        $('.pos__modal__overlay').fadeOut(200);
+    });
+    
+    // Función para limpiar la selección
+    function clearNumberSelection() {
+        $('.number_buttons').removeClass('selected');
+        $('#selected_number').val('');
+        $('#selected_number_name').val('');
+        updateMainButton(); 
+    }
+    
+    // Inicializar con cualquier selección previa
+    function initNumberSelection() {
+        const selectedNumber = $('#selected_number').val();
+        if (selectedNumber) {
+            const selectedButton = $(`.number_buttons[data-number="${selectedNumber}"]`);
+            if (selectedButton.length) {
+                selectedButton.addClass('selected');
+                const numberName = selectedButton.data('name');
+                updateMainButton(numberName);
+            }
+        }
+    }
+    
+    // Función para actualizar el botón principal
+    function updateMainButton(numberName = null) {
+        if (numberName) {
+            // Mostrar icono de selección y ocultar el predeterminado
+            $('#numbers_button .default-icon').hide();
+            $('#numbers_button .selected-icon').show();
+            $('#numbers_button .button-text').text('#' + numberName);
+        } else {
+            // Mostrar icono predeterminado y ocultar el de selección
+            $('#numbers_button .default-icon').show();
+            $('#numbers_button .selected-icon').hide();
+            $('#numbers_button .button-text').text('Números');
+        }
+    }
+    
+    // // Manejar clic en botones de número
+    // $(document).on('click', '.number_buttons', function() {
+    //     const numberId = $(this).data('number');
+    //     const numberName = $(this).data('name');
+        
+    //     // Deseleccionar todos los botones
+    //     $('.number_buttons').removeClass('selected');
+        
+    //     // Seleccionar el botón clickeado
+    //     $(this).addClass('selected');
+        
+    //     // Actualizar el hidden input
+    //     $('#selected_number').val(numberId);
+    //     $('#selected_number_name').val(numberName);
+        
+    //     // Actualizar el botón principal
+    //     updateMainButton(numberName);
+    // });
+
+    /**
+     * Selecciona un número y actualiza todos los elementos relacionados
+     * @param {string|number} numberId - ID del número a seleccionar
+     * @param {string} numberName - Nombre del número a mostrar
+     */
+    function selectNumber(numberId, numberName) {
+        // Deseleccionar todos los botones primero
+        $('.number_buttons').removeClass('selected');
+        
+        // Seleccionar el botón específico si se proporciona ID
+        if (numberId) {
+            const selectedButton = $(`.number_buttons[data-number="${numberId}"]`);
+            if (selectedButton.length) {
+                selectedButton.addClass('selected');
+            }
+        }
+        
+        // Actualizar el hidden input
+        $('#selected_number').val(numberId || '');
+        $('#selected_number_name').val(numberName || '');
+        
+        // Actualizar el botón principal
+        updateMainButton(numberName);
+    }
+
+    // function handlePrinting(data) {
+    //     if (!data || !data.content_data_direct_print) return;
+    
+    //     // Procesar la impresión directa (a impresoras configuradas)
+    //     let content_data_direct_print = data.content_data_direct_print;
+    //     for (let key in content_data_direct_print) {
+    //         if (content_data_direct_print[key].ipvfour_address) {
+    //             $.ajax({
+    //                 url: content_data_direct_print[key].ipvfour_address + "print_server/irestora_printer_server.php",
+    //                 method: "post",
+    //                 dataType: "json",
+    //                 data: {
+    //                     content_data: "[" + (JSON.stringify(content_data_direct_print[key])) + "]",
+    //                     print_type: data.print_type,
+    //                 },
+    //                 success: function(data) {},
+    //                 error: function() {},
+    //             });
+    //         }
+    //     }
+    
+    //     // Mostrar popup de impresión si es necesario
+    //     $("#kot_print").val(2);
+    //     print_kot_popup_print(data.content_data_popup_print, 1);
+    // }
+
+    function handleAjaxResult(success, cursor, order, store) {
+        if (success) {
+            // Eliminar el pedido sincronizado exitosamente
+            let deleteRequest = store.delete(cursor.primaryKey);
+            deleteRequest.onsuccess = function() {
+                console.log('Pedido sincronizado y eliminado de pendientes:', order.sale_no);
+                cursor.continue(); // Procesar siguiente pedido
+            };
+            deleteRequest.onerror = function(event) {
+                console.error('Error al eliminar pedido sincronizado:', event.target.error);
+                cursor.continue();
+            };
+        } else {
+            // Manejar intento fallido
+            order.attempts++;
+            order.last_attempt = new Date().getTime();
+            
+            if (order.attempts >= 5) {
+                // Eliminar después de muchos intentos fallidos
+                let deleteRequest = store.delete(cursor.primaryKey);
+                deleteRequest.onsuccess = function() {
+                    console.warn('Pedido eliminado por muchos intentos fallidos:', order.sale_no);
+                    cursor.continue();
+                };
+            } else {
+                // Actualizar contador de intentos
+                let updateRequest = cursor.update(order);
+                updateRequest.onsuccess = function() {
+                    console.log('Actualizados intentos para pedido:', order.sale_no, 'Intentos:', order.attempts);
+                    cursor.continue();
+                };
+            }
+        }
+    }
+
+    
+    function syncPendingKitchenOrders() {
+        if (!checkInternetConnection()) return;
+    
+        // 1. Primero obtener todos los IDs de pedidos pendientes
+        const transaction = db.transaction(['pending_kitchen_orders'], "readonly");
+        const store = transaction.objectStore("pending_kitchen_orders");
+        const getAllRequest = store.getAllKeys();
+    
+        getAllRequest.onsuccess = function() {
+            const orderIds = getAllRequest.result;
+            
+            // 2. Procesar cada pedido secuencialmente
+            processOrdersSequentially(orderIds, 0);
+        };
+    }
+    
+    function processOrdersSequentially(orderIds, index) {
+        if (index >= orderIds.length) return;
+    
+        const saleNo = orderIds[index];
+        
+        // 1. Obtener el pedido completo
+        const getTransaction = db.transaction(['pending_kitchen_orders'], "readonly");
+        const getStore = getTransaction.objectStore("pending_kitchen_orders");
+        const getRequest = getStore.get(saleNo);
+    
+        getRequest.onsuccess = function() {
+            const order = getRequest.result;
+            if (!order) {
+                processOrdersSequentially(orderIds, index + 1);
+                return;
+            }
+    
+            // 2. Enviar al servidor
+            $.ajax({
+                url: base_url + "Sale/add_kitchen_sale_by_ajax",
+                method: "POST",
+                dataType: 'json',
+                data: {
+                    order: order.order_object,
+                    is_self_order: order.is_self_order,
+                    close_order: 0,
+                    csrf_irestoraplus: csrf_value_,
+                },
+                success: function(data) {
+                    // 3. Eliminar el pedido (con nueva transacción)
+                    const deleteTransaction = db.transaction(['pending_kitchen_orders'], "readwrite");
+                    const deleteStore = deleteTransaction.objectStore("pending_kitchen_orders");
+                    const deleteRequest = deleteStore.delete(saleNo);
+    
+                    deleteRequest.onsuccess = function() {
+                        console.log('Pedido sincronizado y eliminado:', saleNo);
+                        
+                        if (!data.invoice_status && order.is_print) {
+                            handlePrinting(data);
+                        }
+                        
+                        // Procesar siguiente pedido
+                        processOrdersSequentially(orderIds, index + 1);
+                    };
+    
+                    deleteRequest.onerror = function(event) {
+                        console.error('Error al eliminar pedido:', event.target.error);
+                        processOrdersSequentially(orderIds, index + 1);
+                    };
+                },
+                error: function() {
+                    // 4. Manejar reintento (con nueva transacción)
+                    const updateTransaction = db.transaction(['pending_kitchen_orders'], "readwrite");
+                    const updateStore = updateTransaction.objectStore("pending_kitchen_orders");
+                    
+                    order.attempts++;
+                    order.last_attempt = new Date().getTime();
+                    
+                    if (order.attempts >= 5) {
+                        const deleteRequest = updateStore.delete(saleNo);
+                        deleteRequest.onsuccess = function() {
+                            console.warn('Eliminado por muchos intentos fallidos:', saleNo);
+                            processOrdersSequentially(orderIds, index + 1);
+                        };
+                    } else {
+                        const updateRequest = updateStore.put(order);
+                        updateRequest.onsuccess = function() {
+                            console.log('Actualizado contador de intentos:', saleNo);
+                            processOrdersSequentially(orderIds, index + 1);
+                        };
+                    }
+                }
+            });
+        };
+    }
+    
+    // Función auxiliar para manejar la impresión (ajusta según tus necesidades)
+    
+    function handlePrinting(data) {
+        try {
+            if (data.content_data_direct_print) {
+                let content = data.content_data_direct_print;
+                for (let key in content) {
+                    if (content[key].ipvfour_address) {
+                        $.ajax({
+                            url: content[key].ipvfour_address + "print_server/irestora_printer_server.php",
+                            method: "post",
+                            dataType: "json",
+                            data: {
+                                content_data: "[" + JSON.stringify(content[key]) + "]",
+                                print_type: data.print_type,
+                            }
+                        });
+                    }
+                }
+                $("#kot_print").val(2);
+                if (typeof print_kot_popup_print === 'function') {
+                    print_kot_popup_print(data.content_data_popup_print, 1);
+                }
+            }
+        } catch (e) {
+            console.error('Error en handlePrinting:', e);
+        }
+    }
+    initNumberSelection();
+
+    // Verificar cada 30 segundos si hay pedidos pendientes
+    setInterval(syncPendingKitchenOrders, 10000);
+
+    // También verificar cuando se detecta conexión
+    window.addEventListener('online', syncPendingKitchenOrders);
+
+
+
+    // function updateNumbersInterval() {
+    //     $.ajax({
+    //         url: base_url + "Sale/getUpdatedNumbers",
+    //         method: "POST",
+    //         dataType: 'json',
+    //         data: {
+    //             csrf_irestoraplus: csrf_value_,
+    //         },
+    //         success: function(response) {
+    //             // Actualizar cada botón de número
+    //             $('.number_buttons').each(function() {
+    //                 const button = $(this);
+    //                 const numberId = button.data('number');
+                    
+    //                 // Buscar el número en la respuesta
+    //                 const updatedNumber = response.find(num => num.id == numberId);
+                    
+    //                 if (updatedNumber) {
+    //                     // Actualizar clases y atributos
+    //                     button.toggleClass('btn-danger', updatedNumber.sale_id > 0);
+    //                     button.toggleClass('btn-success', !updatedNumber.sale_id);
+                        
+    //                     // Actualizar data attributes
+    //                     button.attr('data-sale_id', updatedNumber.sale_id || '');
+    //                     button.attr('data-sale_no', updatedNumber.sale_no || '');
+    //                     button.attr('data-user_id', updatedNumber.user_id || '');
+                        
+    //                     // Efecto visual si cambió de estado
+    //                     if ((updatedNumber.sale_id && !button.hasClass('btn-danger')) {
+    //                         animateNumberChange(button);
+    //                     } else if (!updatedNumber.sale_id && !button.hasClass('btn-success')) {
+    //                         animateNumberChange(button);
+    //                     }
+    //                 }
+    //             });
+    //         },
+    //         error: function() {
+    //             console.error('Error al actualizar números');
+    //         }
+    //     });
+    // }
+    
+    // Función para animar cambios de estado
+    
+    let previousNumbersState = {};
+
+function updateNumbersInterval() {
+    $.ajax({
+        url: base_url + "Sale/getUpdatedNumbers",
+        method: "POST",
+        dataType: 'json',
+        data: {
+            csrf_irestoraplus: csrf_value_,
+        },
+        success: function(response) {
+            let currentState = {};
+            let hasChanges = false;
+            
+            // Construir estado actual
+            response.forEach(num => {
+                currentState[num.id] = {
+                    sale_id: num.sale_id,
+                    sale_no: num.sale_no,
+                    user_id: num.user_id
+                };
+                
+                // Verificar si hay cambios
+                if (!previousNumbersState[num.id] || 
+                    previousNumbersState[num.id].sale_id !== num.sale_id) {
+                    hasChanges = true;
+                }
+            });
+            
+            // Solo actualizar si hay cambios
+            if (hasChanges) {
+                updateNumberButtons(response);
+                previousNumbersState = currentState;
+            }
+        },
+        error: function() {
+            console.error('Error al actualizar números');
+        }
+    });
+}
+
+function updateNumberButtons(numbers) {
+    const container = $('.table-responsive .d-flex');
+    container.empty(); // Limpiar contenedor
+    
+    if (numbers.length === 0) {
+        container.append('<h5>Aun no existen números</h5>');
+        return;
+    }
+    
+    numbers.forEach(number => {
+        const button = $('<button>')
+            .addClass('btn btn-lg number_buttons')
+            .addClass(number.sale_id ? 'btn-danger' : 'btn-success')
+            .attr('data-sale_id', number.sale_id || '')
+            .attr('data-sale_no', number.sale_no || '')
+            .attr('data-user_id', number.user_id || '')
+            .attr('data-number', number.id)
+            .attr('data-name', number.name)
+            .text(number.name);
+        
+        container.append(button);
+    });
+}
     
 
+    function animateNumberChange(button) {
+        button.css('transform', 'scale(1.2)');
+        setTimeout(function() {
+            button.css('transform', 'scale(1)');
+        }, 300);
+    }
+    updateNumbersInterval();
+    // Iniciar la actualización periódica (cada 5 segundos)
+    setInterval(updateNumbersInterval, 5000);
 
+// Manejar clic en botones de número
+$(document).on('click', '.number_buttons', function() {
+    const $button = $(this);
+    const numberId = $button.data('number');
+    const numberName = $button.data('name');
+    const saleId = $button.data('sale_id');
+    const saleNo = $button.data('sale_no');
+    
+    // Deseleccionar todos los botones
+    $('.number_buttons').removeClass('selected');
+    
+    // Seleccionar el botón clickeado
+    $button.addClass('selected');
+    
+    // Verificar si el botón está rojo (ocupado)
+    if ($button.hasClass('btn-danger') && saleId) {
+        // Abrir modal de pago para este número ocupado
+        openPaymentModalForNumber(saleNo);
+    } else {
+        // Botón verde - función normal
+        $('#selected_number').val(numberId);
+        $('#selected_number_name').val(numberName);
+        
+        // Actualizar el botón principal
+        updateMainButton(numberName);
+        $("#dp_modal_cancel_button").click();
+    }
+});
 
+// Función para abrir el modal de pago para un número ocupado
+function openPaymentModalForNumber(saleNo) {
+    // Simular clic en el botón de pago con el sale_no correspondiente
+    if(pre_or_post_payment == 2) {
+        let resq = getSelectedOrderDetails(saleNo).then(function(data){
+            let is_invoice = data.is_invoice;
+            if (is_invoice == 2) {
+                let invoiced_error = $("#invoiced_error").val();
+                toastr['error']((invoiced_error + "!"), '');
+            } else {
+                processPaymentModal(saleNo);
+            }
+        });
+    } else {
+        processPaymentModal(saleNo);
+    }
+}
 
+// Función común para procesar el modal de pago
+function processPaymentModal(saleNo) {
+    getSelectedOrderDetails(saleNo).then(function(data){
+        let response = jQuery.parseJSON(data);
+        if(response !== null) {
+            $(".empty_title").show();
+            $("#payment_list_div").html('');
 
+            $("#order_payment_modal_name").html(response.customer_name);
+            $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
+            $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
+            $("#finalize_total_due").html(response.total_payable);
+            $("#selected_invoice_sale_customer").val(response.customer_id);
+            $("#pay_amount_invoice_input").val(response.total_payable);
 
+            $("#order_payment_modal").removeClass("inActive");
+            $("#order_payment_modal").addClass("active");
+            $(".pos__modal__overlay").fadeIn(200);
+            checkSMSDisabled(response.customer_id);
 
+            $("#open_invoice_date_hidden").val(response.sale_date);
 
+            if(Number(response.previous_due_tmp)){
+                $(".previous_due_div").css('opacity','1');
+                $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
+            } else {
+                $(".previous_due_div").css('opacity','0');
+            }
+            
+            // Resto de la configuración del modal...
+            $("#is_multi_currency").val('');
+            $(".set_no_access").removeClass('no_access');
+            $(".finalize_modal_is_mul_currency").hide(300);
+            $("#finalize_amount_input").html('');
+            $(".badge_custom").remove();
+            $(".previous_due_div").show();
+            $(".loyalty_point_div").hide();
+            
+            // Configuración de detalles del carrito
+            $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart).toFixed(0));
+            $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
+            $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
+            $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
+            $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
+            $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
+            $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
+            $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
+            $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
 
+            set_default_payment();
+            cal_finalize_modal('');
+            $(".datepicker_custom")
+                .datepicker({
+                    autoclose: true,
+                    format: "yyyy-mm-dd",
+                    startDate: "0",
+                    todayHighlight: true,
+                })
+                .datepicker("update", response.sale_date);
+
+            $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
+        }
+    });
+}
 
 
 

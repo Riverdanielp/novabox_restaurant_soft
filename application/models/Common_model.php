@@ -1,19 +1,5 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Common_model Model
-  ###########################################################
- */
+
 class Common_model extends CI_Model {
     public function __construct(){
         parent::__construct();
@@ -1706,7 +1692,22 @@ class Common_model extends CI_Model {
         $result = $this->db->get()->result();
         return $result;
     }
-
+    
+    public function getAllByCompanyIdAndOutlet($company_id, $outlet_id, $table) {
+        $this->db->where("company_id", $company_id);
+        $this->db->where("outlet_id", $outlet_id);
+        return $this->db->get($table)->result();
+    }
+    
+    public function countNumbersByOutlet($outlet_id) {
+        $this->db->where("outlet_id", $outlet_id);
+        return $this->db->count_all_results("tbl_numeros");
+    }
+    
+    public function batchInsert($table, $data) {
+        $this->db->insert_batch($table, $data);
+    }
+    
 
 }
 

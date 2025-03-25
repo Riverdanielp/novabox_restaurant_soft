@@ -76,7 +76,7 @@
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/bower_components/select2/dist/css/select2.min.css?v=7.5">
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/css-framework/bootstrap-new/bootstrap.min.css?v=7.5">
     <!-- New Admin Panel Design -->
-    <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/newDesign/style.css?v=7.5">
+    <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/newDesign/style.css<?php echo VERS() ?>">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/fontawesome-free-6.5.1-web/css/all.min.css?var=1.6">
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/jquery.mCustomScrollbar.css?v=7.5">
@@ -572,6 +572,8 @@
                                 <?php echo lang('List'); ?> <?php echo lang('table'); ?></a></li>
                                 <li data-access="view-280" class="menu_assign_class" data-menu__cid="irp_32"><a class="child-menu" href="<?php echo base_url()?>table/tableLayoutSetting">
                                 <?php echo lang('table_layout_setting'); ?></a></li>
+                                <li data-access="view-280" class="menu_assign_class" data-menu__cid="irp_32"><a class="child-menu" href="<?php echo base_url()?>numbers/numbers">
+                                Números</a></li>
  
                                 <!-- End Sub Menu -->
                             </ul>
