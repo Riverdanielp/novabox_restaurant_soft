@@ -65,6 +65,7 @@
                                         name="printing_choice">
                                     <option <?php echo isset($printer_->printing_choice) && $printer_->printing_choice == "web_browser_popup"?"selected":'' ?> <?php echo set_select('printing_choice',"web_browser_popup")?> value="web_browser_popup"><?php echo lang('browser_popup_print'); ?></option>
                                     <option <?php echo isset($printer_->printing_choice) && $printer_->printing_choice == "direct_print"?"selected":'' ?> <?php echo set_select('printing_choice',"direct_print")?> value="direct_print"><?php echo lang('direct_print'); ?></option>
+                                    <option <?php echo isset($printer_->printing_choice) && $printer_->printing_choice == "printer_app"?"selected":'' ?> <?php echo set_select('printing_choice',"printer_app")?> value="printer_app">printerApp</option>
                                 </select>
                             </div>
                         </div>
@@ -194,7 +195,7 @@
                                 </div>
                             <?php } ?>
                         </div>
-                        <div class="col-sm-12 col-md-4 col-lg-4 mb-2 receipt_printer_div txt_11 div_direct_print">
+                        <div class="col-sm-12 col-md-4 col-lg-4 mb-2 receipt_printer_div txt_11 div_direct_print" id="path_string_div">
                             <div class="form-group">
                                 <label><?php echo lang('path'); ?> <span class="required_star">*</span></label>  <a class="pull-right ipv_4_tooltip btn custom_bt_xs link_color" href="<?php echo base_url()?>images/shareable_path.png" target="_blank"><?php echo lang('printer_path_tooltip'); ?></a>
                                 <input tabindex="1" autocomplete="off" type="text" name="path" id="path_string" class="form-control" placeholder="<?php echo lang('path'); ?>" value="<?php echo escape_output($printer_->path); ?>">
@@ -276,4 +277,4 @@
    
    
 </section>
-<script type="text/javascript" src="<?php echo base_url('frequent_changing/js/printer.js'); ?>"></script>
+<script type="text/javascript" src="<?php echo base_url('frequent_changing/js/printer.js'); ?><?php echo VERS() ?>"></script>

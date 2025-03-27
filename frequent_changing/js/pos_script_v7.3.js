@@ -1446,22 +1446,30 @@
                         csrf_irestoraplus: csrf_value_,
                     },
                     success: function (response) {
+                        console.log("Respuesta del servidor:", response); // Verifica la estructura exacta
                         let order = '';
                         let outlet_id_indexdb = $("#outlet_id_indexdb").val();
                         let company_id_indexdb = $("#company_id_indexdb").val();
-        
+                    
                         let get_all_running_order_for_new_pc = response.get_all_running_order_for_new_pc;
+                        console.log("Órdenes a procesar:", get_all_running_order_for_new_pc); // Confirma que hay datos
+                    
                         for (let key_order in get_all_running_order_for_new_pc) {
-                                order = get_all_running_order_for_new_pc[key_order];
-                               let sale_no_new = order.sale_no;
-                               let order_object = order.self_order_content;
-                               if (!$("#order_"+get_plan_string(sale_no_new)).length) {
-                                    add_sale_by_ajax('',order_object,outlet_id_indexdb,company_id_indexdb,sale_no_new,"","","");
-                                    
-                                    toastr['success']((sale_no_new+" "+pulled_successfully), '');
-                               } 
+                            order = get_all_running_order_for_new_pc[key_order];
+                            let sale_no_new = order.sale_no;
+                            console.log("Procesando orden:", sale_no_new); // Rastrea cada orden
+                    
+                            let order_id = "order_" + get_plan_string(sale_no_new);
+                            console.log("ID a verificar:", order_id); // Confirma el ID generado
+                    
+                            if (!$("#" + order_id).length) {
+                                console.log("Añadiendo orden nueva:", sale_no_new);
+                                add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+                                toastr['success']((sale_no_new + " " + pulled_successfully), '');
+                            } else {
+                                console.log("La orden ya existe en el DOM:", order_id); // Por si ya está presente
+                            }
                         }
-        
                     },
                     error: function () {
           
@@ -4234,6 +4242,18 @@
                               let print_type_bill = $(".print_type_bill").val();
                               if (print_type_bill == "web_browser_popup") {
                                   print_bill(data,sale_no);
+                                } else if (print_type_bill == "printer_app") {
+                                    $.ajax({
+                                        url: base_url + "Sale/printer_app_bill/" + sale_no,
+                                        method: "GET",
+                                        success: function(base64) {
+                                            console.log(base64);
+                                            window.location.href = 'print://' + base64;
+                                        },
+                                        error: function() {
+                                            alert("Error al generar el ticket para la impresora.");
+                                        }
+                                    });
                               }else if (print_type_bill == "direct_print"){
                                   $.ajax({
                                       url: base_url + "Authentication/printSaleBillByAjax",
@@ -4647,56 +4667,171 @@
           return (Number(Math.floor(Math.random() * (6 - 1 + 1) + 3))).toFixed(ir_precision);
       }
       //when anything is searched
-      $(document).on("keyup", "#search", function (e) {
-        // if (e.keyCode == 13) {
-        let searched_string = $(this).val().trim();
-        if (searched_string) {
-          let foundItems = searchItemAndConstructGallery(searched_string);
-          let searched_category_items_to_show =
-            '<div id="searched_item_found" class="specific_category_items_holder 002">';
-          for (let key in foundItems) {
-              if (foundItems.hasOwnProperty(key)) {
-                  if (foundItems[key].parent_id == '0') {
-                      searched_category_items_to_show +=
-                          '<div class="single_item animate__animated animate__flipInX"  data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"   data-price_delivery="' + foundItems[key].price_delivery + '"  id="item_' +
-                          foundItems[key].item_id +
-                          '">';
-                      searched_category_items_to_show +=
-                          '<img src="' + foundItems[key].image + '" alt="" width="141">';
-                      searched_category_items_to_show +=
-                          '<p class="item_name" data-tippy-content="' +
-                          foundItems[key].item_name +
-                          '">' +
-                          foundItems[key].item_name +
-                          "</p>";
-                      searched_category_items_to_show +=
-                          '<p class="item_price">' +
-                          inv_currency +
-                          " " +
-                          foundItems[key].price +
-                          "</p>";
-                      searched_category_items_to_show +=
-                          '<span class="item_vat_percentage ir_display_none">' +
-                          foundItems[key].vat_percentage +
-                          "</span>";
-                      searched_category_items_to_show += "</div>";
-                  }
-              }
-          }
-          searched_category_items_to_show += "<div>";
-          $("#searched_item_found").remove();
-          $(".specific_category_items_holder").fadeOut(0);
-          $(".category_items").prepend(searched_category_items_to_show);
-          // }
+    //   $(document).on("keyup", "#search", function (e) {
+    //     // if (e.keyCode == 13) {
+    //     let searched_string = $(this).val().trim();
+    //     if (searched_string) {
+    //       let foundItems = searchItemAndConstructGallery(searched_string);
+    //       let searched_category_items_to_show =
+    //         '<div id="searched_item_found" class="specific_category_items_holder 002">';
+    //       for (let key in foundItems) {
+    //           if (foundItems.hasOwnProperty(key)) {
+    //               if (foundItems[key].parent_id == '0') {
+    //                   searched_category_items_to_show +=
+    //                       '<div class="single_item animate__animated animate__flipInX"  data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"   data-price_delivery="' + foundItems[key].price_delivery + '"  id="item_' +
+    //                       foundItems[key].item_id +
+    //                       '">';
+    //                   searched_category_items_to_show +=
+    //                       '<img src="' + foundItems[key].image + '" alt="" width="141">';
+    //                   searched_category_items_to_show +=
+    //                       '<p class="item_name" data-tippy-content="' +
+    //                       foundItems[key].item_name +
+    //                       '">' +
+    //                       foundItems[key].item_name +
+    //                       "</p>";
+    //                   searched_category_items_to_show +=
+    //                       '<p class="item_price">' +
+    //                       inv_currency +
+    //                       " " +
+    //                       foundItems[key].price +
+    //                       "</p>";
+    //                   searched_category_items_to_show +=
+    //                       '<span class="item_vat_percentage ir_display_none">' +
+    //                       foundItems[key].vat_percentage +
+    //                       "</span>";
+    //                   searched_category_items_to_show += "</div>";
+    //               }
+    //           }
+    //       }
+    //       searched_category_items_to_show += "<div>";
+    //       $("#searched_item_found").remove();
+    //       $(".specific_category_items_holder").fadeOut(0);
+    //       $(".category_items").prepend(searched_category_items_to_show);
+    //       // }
+    //         if(food_menu_tooltip=="show"){
+    //             tippy(".item_name", {
+    //                 placement: "bottom-start",
+    //             });
+    //         }
+    //     } else {
+    //         show_all_items();
+    //     }
+    //   });
+
+    // Modificar el evento keyup del buscador para manejar Enter
+$(document).on("keyup", "#search", function (e) {
+    let searched_string = $(this).val().trim();
+    
+    // Si se presiona Enter
+    if (e.keyCode === 13 && searched_string) {
+        e.preventDefault(); // Prevenir comportamiento por defecto
+        
+        // Buscar producto por código exacto
+        let foundItem = window.items.find(item => 
+            item.item_code && item.item_code.trim().toLowerCase() === searched_string.toLowerCase()
+        );
+        
+        if (foundItem) {
+            // Simular click en el producto encontrado
+            $(`#item_${foundItem.item_id}`).click();
+            // Limpiar el buscador después de agregar
+            $(this).val('');
+            // Mostrar todos los items nuevamente
+            show_all_items();
+        } else {
+            // Si no se encuentra, mantener el comportamiento actual de búsqueda
+            let foundItems = searchItemAndConstructGallery(searched_string);
+            let searched_category_items_to_show = 
+                '<div id="searched_item_found" class="specific_category_items_holder 002">';
+            
+            for (let key in foundItems) {
+                if (foundItems.hasOwnProperty(key)) {
+                    if (foundItems[key].parent_id == '0') {
+                        searched_category_items_to_show +=
+                            '<div class="single_item animate__animated animate__flipInX"  data-price="' + 
+                            foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
+                            '"    data-is_variation="' + foundItems[key].is_variation + 
+                            '"  data-parent_id="' + foundItems[key].parent_id + 
+                            '"   data-price_delivery="' + foundItems[key].price_delivery + 
+                            '"  id="item_' + foundItems[key].item_id + '">';
+                        searched_category_items_to_show +=
+                            '<img src="' + foundItems[key].image + '" alt="" width="141">';
+                        searched_category_items_to_show +=
+                            '<p class="item_name" data-tippy-content="' +
+                            foundItems[key].item_name + '">' +
+                            foundItems[key].item_name + "</p>";
+                        searched_category_items_to_show +=
+                            '<p class="item_price">' + inv_currency + " " +
+                            foundItems[key].price + "</p>";
+                        searched_category_items_to_show +=
+                            '<span class="item_vat_percentage ir_display_none">' +
+                            foundItems[key].vat_percentage + "</span>";
+                        searched_category_items_to_show += "</div>";
+                    }
+                }
+            }
+            
+            searched_category_items_to_show += "<div>";
+            $("#searched_item_found").remove();
+            $(".specific_category_items_holder").fadeOut(0);
+            $(".category_items").prepend(searched_category_items_to_show);
+            
             if(food_menu_tooltip=="show"){
                 tippy(".item_name", {
                     placement: "bottom-start",
                 });
             }
-        } else {
-            show_all_items();
         }
-      });
+    } else if (searched_string) {
+        // Comportamiento normal de búsqueda mientras se escribe
+        let foundItems = searchItemAndConstructGallery(searched_string);
+        let searched_category_items_to_show = 
+            '<div id="searched_item_found" class="specific_category_items_holder 002">';
+        
+        for (let key in foundItems) {
+            if (foundItems.hasOwnProperty(key)) {
+                if (foundItems[key].parent_id == '0') {
+                    searched_category_items_to_show +=
+                        '<div class="single_item animate__animated animate__flipInX"  data-price="' + 
+                        foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
+                        '"    data-is_variation="' + foundItems[key].is_variation + 
+                        '"  data-parent_id="' + foundItems[key].parent_id + 
+                        '"   data-price_delivery="' + foundItems[key].price_delivery + 
+                        '"  id="item_' + foundItems[key].item_id + '">';
+                    searched_category_items_to_show +=
+                        '<img src="' + foundItems[key].image + '" alt="" width="141">';
+                    searched_category_items_to_show +=
+                        '<p class="item_name" data-tippy-content="' +
+                        foundItems[key].item_name + '">' +
+                        foundItems[key].item_name + "</p>";
+                    searched_category_items_to_show +=
+                        '<p class="item_price">' + inv_currency + " " +
+                        foundItems[key].price + "</p>";
+                    searched_category_items_to_show +=
+                        '<span class="item_vat_percentage ir_display_none">' +
+                        foundItems[key].vat_percentage + "</span>";
+                    searched_category_items_to_show += "</div>";
+                }
+            }
+        }
+        
+        searched_category_items_to_show += "<div>";
+        $("#searched_item_found").remove();
+        $(".specific_category_items_holder").fadeOut(0);
+        $(".category_items").prepend(searched_category_items_to_show);
+        
+        if(food_menu_tooltip=="show"){
+            tippy(".item_name", {
+                placement: "bottom-start",
+            });
+        }
+    } else {
+        show_all_items();
+    }
+});
+
+
+
       $(document).on(
         "click",
         ".dine_in_button,.take_away_button,.delivery_button",
@@ -9982,6 +10117,7 @@
           let item_total_price_without_discount = (
               parseFloat(item_quantity) * (parseFloat(item_unit_price))
           ).toFixed(ir_precision);
+          console.log(parseFloat(item_quantity),parseFloat(item_unit_price),ir_precision);
           //set item total price without discount
           $("#modal_item_price_variable_without_discount").html(
               item_total_price_without_discount
@@ -10051,6 +10187,7 @@
           let item_total_price_without_discount = (
               parseFloat(item_quantity) * parseFloat(item_unit_price)
           ).toFixed(ir_precision);
+          console.log(parseFloat(item_quantity),parseFloat(item_unit_price),ir_precision);
           //set item total price without discount
           $("#modal_item_price_variable_without_discount").html(
               item_total_price_without_discount
@@ -12545,6 +12682,18 @@
             getSelectedOrderDetailsRecentSale(sale_no).then(function(order_info){
                 call_print_invoice(order_info,inv_qr_code_enable_status);
             });
+        } else if (print_type_invoice == "printer_app") {
+            $.ajax({
+                url: base_url + "Sale/printer_app_invoice/" + sale_no,
+                method: "GET",
+                success: function(base64) {
+                    console.log(base64);
+                    window.location.href = 'print://' + base64;
+                },
+                error: function() {
+                    alert("Error al generar el ticket para la impresora.");
+                }
+            });
           }else if (print_type_invoice == "direct_print"){
             $("#finalize_order_modal").removeClass("active");
             $(".pos__modal__overlay").fadeOut(300);
@@ -13607,7 +13756,7 @@
             notifications_list +=
               '<button class="single_serve_b" id="notification_serve_button_' +
               this_notification.id +
-              '">Serve/Take/Delivery</button>';
+              '">Servir/Tomar/Entregar</button>';
             notifications_list += "</div>";
             notifications_list += "</div>";
           }
@@ -13706,6 +13855,22 @@
                     for (let key1 in already_invoiced_orders) {
                         order = already_invoiced_orders[key1];
                         deleteOrderForWaiter(order.sale_no);
+                    }
+                }
+            
+                let get_all_running_order_for_new_pc = response.get_all_running_order_for_new_pc;
+            
+                for (let key_order in get_all_running_order_for_new_pc) {
+                    order = get_all_running_order_for_new_pc[key_order];
+                    let sale_no_new = order.sale_no;
+            
+                    let order_id = "order_" + get_plan_string(sale_no_new);
+            
+                    if (!$("#" + order_id).length) {
+                        add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+                        // toastr['success']((sale_no_new + " " + pulled_successfully), '');
+                        console.log(sale_no_new + " " + pulled_successfully);
+                    } else {
                     }
                 }
             },
@@ -17616,9 +17781,10 @@
                               let invoiced_error = $("#invoiced_error").val();
                               toastr['error']((invoiced_error + "!"), '');
                           }else{
-                              if(order_type==1){
-                                  body_el.find('.invoice_box').toggleClass('active');
-                              }else{
+                            // OPCIONES PARA PAGOS DIVIDOS DESACTIVADOS
+                            //   if(order_type==1){
+                            //       body_el.find('.invoice_box').toggleClass('active');
+                            //   }else{
                                 let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
                                 let res = getSelectedOrderDetails(sale_no).then(function(data){
                                       let response = jQuery.parseJSON(data);
@@ -17681,13 +17847,14 @@
                                           $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
                                       }
                                   });
-                              }
+                            //   }
                           }
                       });
                   }else{
-                      if(order_type==1){
-                          body_el.find('.invoice_box').toggleClass('active');
-                      }else{
+                    // OPCIONES PARA PAGOS DIVIDOS DESACTIVADOS
+                    //   if(order_type==1){
+                    //       body_el.find('.invoice_box').toggleClass('active');
+                    //   }else{
                         let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
                         let res = getSelectedOrderDetails(sale_no).then(function(data){ 
                             let response = jQuery.parseJSON(data);
@@ -17750,7 +17917,7 @@
                                   $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
                               }
                           });
-                      }
+                    //   }
                   }
   
               } else {
@@ -19769,9 +19936,6 @@
     
       let edit_sale_id_check = Number($("#edit_sale_id").val());
       if(!edit_sale_id_check){
-          window.onbeforeunload = function(){
-              return 'Are you sure you want to leave?';
-          };
       }
   
 
@@ -19924,26 +20088,7 @@
             $('#numbers_button .button-text').text('Números');
         }
     }
-    
-    // // Manejar clic en botones de número
-    // $(document).on('click', '.number_buttons', function() {
-    //     const numberId = $(this).data('number');
-    //     const numberName = $(this).data('name');
-        
-    //     // Deseleccionar todos los botones
-    //     $('.number_buttons').removeClass('selected');
-        
-    //     // Seleccionar el botón clickeado
-    //     $(this).addClass('selected');
-        
-    //     // Actualizar el hidden input
-    //     $('#selected_number').val(numberId);
-    //     $('#selected_number_name').val(numberName);
-        
-    //     // Actualizar el botón principal
-    //     updateMainButton(numberName);
-    // });
-
+ 
     /**
      * Selecciona un número y actualiza todos los elementos relacionados
      * @param {string|number} numberId - ID del número a seleccionar
@@ -19968,32 +20113,6 @@
         // Actualizar el botón principal
         updateMainButton(numberName);
     }
-
-    // function handlePrinting(data) {
-    //     if (!data || !data.content_data_direct_print) return;
-    
-    //     // Procesar la impresión directa (a impresoras configuradas)
-    //     let content_data_direct_print = data.content_data_direct_print;
-    //     for (let key in content_data_direct_print) {
-    //         if (content_data_direct_print[key].ipvfour_address) {
-    //             $.ajax({
-    //                 url: content_data_direct_print[key].ipvfour_address + "print_server/irestora_printer_server.php",
-    //                 method: "post",
-    //                 dataType: "json",
-    //                 data: {
-    //                     content_data: "[" + (JSON.stringify(content_data_direct_print[key])) + "]",
-    //                     print_type: data.print_type,
-    //                 },
-    //                 success: function(data) {},
-    //                 error: function() {},
-    //             });
-    //         }
-    //     }
-    
-    //     // Mostrar popup de impresión si es necesario
-    //     $("#kot_print").val(2);
-    //     print_kot_popup_print(data.content_data_popup_print, 1);
-    // }
 
     function handleAjaxResult(success, cursor, order, store) {
         if (success) {
@@ -20152,6 +20271,7 @@
         }
     }
     initNumberSelection();
+    
 
     // Verificar cada 30 segundos si hay pedidos pendientes
     setInterval(syncPendingKitchenOrders, 10000);
@@ -20160,49 +20280,6 @@
     window.addEventListener('online', syncPendingKitchenOrders);
 
 
-
-    // function updateNumbersInterval() {
-    //     $.ajax({
-    //         url: base_url + "Sale/getUpdatedNumbers",
-    //         method: "POST",
-    //         dataType: 'json',
-    //         data: {
-    //             csrf_irestoraplus: csrf_value_,
-    //         },
-    //         success: function(response) {
-    //             // Actualizar cada botón de número
-    //             $('.number_buttons').each(function() {
-    //                 const button = $(this);
-    //                 const numberId = button.data('number');
-                    
-    //                 // Buscar el número en la respuesta
-    //                 const updatedNumber = response.find(num => num.id == numberId);
-                    
-    //                 if (updatedNumber) {
-    //                     // Actualizar clases y atributos
-    //                     button.toggleClass('btn-danger', updatedNumber.sale_id > 0);
-    //                     button.toggleClass('btn-success', !updatedNumber.sale_id);
-                        
-    //                     // Actualizar data attributes
-    //                     button.attr('data-sale_id', updatedNumber.sale_id || '');
-    //                     button.attr('data-sale_no', updatedNumber.sale_no || '');
-    //                     button.attr('data-user_id', updatedNumber.user_id || '');
-                        
-    //                     // Efecto visual si cambió de estado
-    //                     if ((updatedNumber.sale_id && !button.hasClass('btn-danger')) {
-    //                         animateNumberChange(button);
-    //                     } else if (!updatedNumber.sale_id && !button.hasClass('btn-success')) {
-    //                         animateNumberChange(button);
-    //                     }
-    //                 }
-    //             });
-    //         },
-    //         error: function() {
-    //             console.error('Error al actualizar números');
-    //         }
-    //     });
-    // }
-    
     // Función para animar cambios de estado
     
     let previousNumbersState = {};
@@ -20281,6 +20358,7 @@ function updateNumberButtons(numbers) {
     // Iniciar la actualización periódica (cada 5 segundos)
     setInterval(updateNumbersInterval, 5000);
 
+
 // // Manejar clic en botones de número
 // $(document).on('click', '.number_buttons', function() {
 //     const $button = $(this);
@@ -20297,6 +20375,8 @@ function updateNumberButtons(numbers) {
     
 //     // Verificar si el botón está rojo (ocupado)
 //     if ($button.hasClass('btn-danger') && saleId) {
+//         $('#editar_orden_button').data('sale_no', saleNo);
+//         $('#print_bill_orden_button').data('sale_no', saleNo);
 //         // Abrir modal de pago para este número ocupado
 //         openPaymentModalForNumber(saleNo);
 //     } else {
@@ -20310,88 +20390,70 @@ function updateNumberButtons(numbers) {
 //     }
 // });
 
-// // Función para abrir el modal de pago para un número ocupado
+// // Función mejorada para abrir el modal de pago
 // function openPaymentModalForNumber(saleNo) {
-//     // Simular clic en el botón de pago con el sale_no correspondiente
-//     if(pre_or_post_payment == 2) {
-//         let resq = getSelectedOrderDetails(saleNo).then(function(data){
-//             let is_invoice = data.is_invoice;
-//             if (is_invoice == 2) {
-//                 let invoiced_error = $("#invoiced_error").val();
-//                 toastr['error']((invoiced_error + "!"), '');
+//     // 1. Deseleccionar todas las órdenes
+//     $('.single_order').attr('data-selected', 'unselected');
+    
+//     // 2. Seleccionar la orden correspondiente
+//     const $order = $(`[data-sale_no="${saleNo}"]`);
+//     if ($order.length) {
+//         $order.attr('data-selected', 'selected');
+        
+//         // Pequeña pausa para asegurar la selección
+//         setTimeout(() => {
+//             // Verificar si es pre_or_post_payment == 2
+//             if(pre_or_post_payment == 2) {
+//                 getSelectedOrderDetails(saleNo).then(function(data){
+//                     let is_invoice = data.is_invoice;
+//                     if (is_invoice == 2) {
+//                         let invoiced_error = $("#invoiced_error").val();
+//                         toastr['error']((invoiced_error + "!"), '');
+//                     } else {
+//                         // Hacer clic en el botón real
+//                         $("#create_invoice_and_close").click();
+//                     }
+//                 });
 //             } else {
-//                 processPaymentModal(saleNo);
+//                 // Hacer clic en el botón real
+//                 $("#create_invoice_and_close").click();
 //             }
-//         });
+//         }, 100);
 //     } else {
-//         processPaymentModal(saleNo);
+//         toastr['error']('No se encontró la orden correspondiente', 'Error');
+//     }
+// }
+// // Función para emular el botón de modificar orden
+// function openModifyOrderForNumber(saleNo) {
+//     // 1. Deseleccionar todas las órdenes
+//     $('.single_order').attr('data-selected', 'unselected');
+    
+//     // 2. Seleccionar la orden correspondiente
+//     const $order = $(`[data-sale_no="${saleNo}"]`);
+//     if ($order.length) {
+//         $order.attr('data-selected', 'selected');
+        
+//         // Pequeña pausa para asegurar la selección
+//         setTimeout(() => {
+//             // Hacer clic en el botón real de modificar
+//             $("#modify_order").click();
+//         }, 100);
+//     } else {
+//         toastr['error']('No se encontró la orden correspondiente', 'Error');
 //     }
 // }
 
-// // Función común para procesar el modal de pago
-// function processPaymentModal(saleNo) {
-//     getSelectedOrderDetails(saleNo).then(function(data){
-//         let response = jQuery.parseJSON(data);
-//         if(response !== null) {
-//             $(".empty_title").show();
-//             $("#payment_list_div").html('');
-
-//             $("#order_payment_modal_name").html(response.customer_name);
-//             $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
-//             $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-//             $("#finalize_total_due").html(response.total_payable);
-//             $("#selected_invoice_sale_customer").val(response.customer_id);
-//             $("#pay_amount_invoice_input").val(response.total_payable);
-
-//             $("#order_payment_modal").removeClass("inActive");
-//             $("#order_payment_modal").addClass("active");
-//             $(".pos__modal__overlay").fadeIn(200);
-//             checkSMSDisabled(response.customer_id);
-
-//             $("#open_invoice_date_hidden").val(response.sale_date);
-
-//             if(Number(response.previous_due_tmp)){
-//                 $(".previous_due_div").css('opacity','1');
-//                 $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
-//             } else {
-//                 $(".previous_due_div").css('opacity','0');
-//             }
-            
-//             // Resto de la configuración del modal...
-//             $("#is_multi_currency").val('');
-//             $(".set_no_access").removeClass('no_access');
-//             $(".finalize_modal_is_mul_currency").hide(300);
-//             $("#finalize_amount_input").html('');
-//             $(".badge_custom").remove();
-//             $(".previous_due_div").show();
-//             $(".loyalty_point_div").hide();
-            
-//             // Configuración de detalles del carrito
-//             $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart).toFixed(0));
-//             $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
-//             $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
-//             $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
-//             $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
-//             $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
-//             $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
-//             $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
-//             $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
-
-//             set_default_payment();
-//             cal_finalize_modal('');
-//             $(".datepicker_custom")
-//                 .datepicker({
-//                     autoclose: true,
-//                     format: "yyyy-mm-dd",
-//                     startDate: "0",
-//                     todayHighlight: true,
-//                 })
-//                 .datepicker("update", response.sale_date);
-
-//             $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
-//         }
-//     });
-// }
+// // Asignar esta función a tu botón personalizado
+// $(document).on('click', '#editar_orden_button', function() {
+//     // Obtener el saleNo del botón o de donde lo tengas almacenado
+//     const saleNo = $(this).data('sale_no'); // Asegúrate de que tu botón tenga data-sale_no
+    
+//     if (saleNo) {
+//         openModifyOrderForNumber(saleNo);
+//     } else {
+//         toastr['error']('No se pudo identificar la orden a modificar', 'Error');
+//     }
+// });
 
 // Manejar clic en botones de número
 $(document).on('click', '.number_buttons', function() {
@@ -20409,8 +20471,14 @@ $(document).on('click', '.number_buttons', function() {
     
     // Verificar si el botón está rojo (ocupado)
     if ($button.hasClass('btn-danger') && saleId) {
-        // Abrir modal de pago para este número ocupado
-        openPaymentModalForNumber(saleNo);
+        // Guardar el saleNo en los botones de acción
+        $('#editar_orden_button').data('sale_no', saleNo);
+        $('#print_bill_orden_button').data('sale_no', saleNo);
+        $('#pagar_orden_button').data('sale_no', saleNo);
+        
+        $("#dp_modal_cancel_button").click();
+        // Mostrar detalles de la orden en el modal (emulando el doble clic)
+        showOrderDetailsModal(saleNo);
     } else {
         // Botón verde - función normal
         $('#selected_number').val(numberId);
@@ -20422,7 +20490,27 @@ $(document).on('click', '.number_buttons', function() {
     }
 });
 
-// Función mejorada para abrir el modal de pago
+// Función para mostrar los detalles de la orden en un modal
+function showOrderDetailsModal(saleNo) {
+    // 1. Deseleccionar todas las órdenes
+    $('.single_order').attr('data-selected', 'unselected');
+    
+    // 2. Seleccionar la orden correspondiente
+    const $order = $(`[data-sale_no="${saleNo}"]`);
+    if ($order.length) {
+        $order.attr('data-selected', 'selected');
+        
+        // Pequeña pausa para asegurar la selección
+        setTimeout(() => {
+            // Emular el doble clic para mostrar detalles
+            get_details_of_a_particular_order_for_modal(saleNo);
+        }, 100);
+    } else {
+        toastr['error']('No se encontró la orden correspondiente', 'Error');
+    }
+}
+
+// Función para abrir modal de pago (desde el botón en el modal de detalles)
 function openPaymentModalForNumber(saleNo) {
     // 1. Deseleccionar todas las órdenes
     $('.single_order').attr('data-selected', 'unselected');
@@ -20434,7 +20522,6 @@ function openPaymentModalForNumber(saleNo) {
         
         // Pequeña pausa para asegurar la selección
         setTimeout(() => {
-            // Verificar si es pre_or_post_payment == 2
             if(pre_or_post_payment == 2) {
                 getSelectedOrderDetails(saleNo).then(function(data){
                     let is_invoice = data.is_invoice;
@@ -20442,12 +20529,16 @@ function openPaymentModalForNumber(saleNo) {
                         let invoiced_error = $("#invoiced_error").val();
                         toastr['error']((invoiced_error + "!"), '');
                     } else {
-                        // Hacer clic en el botón real
+                        // Cerrar el modal de detalles primero si es necesario
+                        $('.modal').removeClass('active');
+                        // Hacer clic en el botón real de pago
                         $("#create_invoice_and_close").click();
                     }
                 });
             } else {
-                // Hacer clic en el botón real
+                // Cerrar el modal de detalles primero si es necesario
+                $('.modal').removeClass('active');
+                // Hacer clic en el botón real de pago
                 $("#create_invoice_and_close").click();
             }
         }, 100);
@@ -20456,10 +20547,85 @@ function openPaymentModalForNumber(saleNo) {
     }
 }
 
+// Función para emular el botón de modificar orden
+function openModifyOrderForNumber(saleNo) {
+    // 1. Deseleccionar todas las órdenes
+    $('.single_order').attr('data-selected', 'unselected');
+    
+    // 2. Seleccionar la orden correspondiente
+    const $order = $(`[data-sale_no="${saleNo}"]`);
+    if ($order.length) {
+        $order.attr('data-selected', 'selected');
+        
+        // Pequeña pausa para asegurar la selección
+        setTimeout(() => {
+            // Cerrar el modal de detalles primero si es necesario
+            $('.modal').removeClass('active');
+            // Hacer clic en el botón real de modificar
+            $("#modify_order").click();
+        }, 100);
+    } else {
+        toastr['error']('No se encontró la orden correspondiente', 'Error');
+    }
+}
+
+// Asignar eventos a los botones de acción en el modal de detalles
+$(document).on('click', '#editar_orden_button', function() {
+    $("order_details_close_button").click();
+    const saleNo = $(this).data('sale_no');
+    if (saleNo) {
+        openModifyOrderForNumber(saleNo);
+    } else {
+        toastr['error']('No se pudo identificar la orden a modificar', 'Error');
+    }
+});
+
+
+$(document).on('click', '#pagar_orden_button', function() {
+    $("order_details_close_button").click();
+    
+    const saleNo = $(this).data('sale_no');
+    if (saleNo) {
+        openPaymentModalForNumber(saleNo);
+    } else {
+        toastr['error']('No se pudo identificar la orden a pagar', 'Error');
+    }
+});
+
+// Función para emular el botón de imprimir cuenta
+function openPrintBillForNumber(saleNo) {
+    // 1. Deseleccionar todas las órdenes
+    $('.single_order').attr('data-selected', 'unselected');
+    
+    // 2. Seleccionar la orden correspondiente
+    const $order = $(`[data-sale_no="${saleNo}"]`);
+    if ($order.length) {
+        $order.attr('data-selected', 'selected');
+        
+        // Pequeña pausa para asegurar la selección
+        setTimeout(() => {
+            // Cerrar el modal de detalles primero si es necesario
+            $('.modal').removeClass('active');
+            // Hacer clic en el botón real de imprimir cuenta
+            $("#create_bill_and_close").click();
+        }, 100);
+    } else {
+        toastr['error']('No se encontró la orden correspondiente', 'Error');
+    }
+}
+
+// Asignar evento al botón de imprimir cuenta
+$(document).on('click', '#print_bill_orden_button', function() {
+    const saleNo = $(this).data('sale_no');
+    if (saleNo) {
+        openPrintBillForNumber(saleNo);
+    } else {
+        toastr['error']('No se pudo identificar la orden a imprimir', 'Error');
+    }
+});
+
+
 
 
   })(jQuery);
-
-  
-  
   

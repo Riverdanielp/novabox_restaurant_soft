@@ -666,7 +666,7 @@ class FoodMenu extends Cl_Controller {
                     $objWorksheet = $objPHPExcel->setActiveSheetIndex(0);
 
                     //loop from first data untill last data
-                    if ($totalrows > 2 && $totalrows < 54) {
+                    if ($totalrows > 2 && $totalrows < 504) {
                         $arrayerror = '';
                         for ($i = 4; $i <= $totalrows; $i++) {
                             $name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(0, $i)->getValue()));

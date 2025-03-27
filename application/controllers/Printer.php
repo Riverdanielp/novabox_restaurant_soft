@@ -103,6 +103,9 @@ class Printer extends Cl_Controller {
           
             if($printing_choice=="web_browser_popup"){
                 $this->form_validation->set_rules('print_format', lang('print_format'), 'required|max_length[50]');
+            }else if($printing_choice=="printer_app"){
+                $this->form_validation->set_rules('print_format', lang('print_format'), 'required|max_length[50]');
+                $this->form_validation->set_rules('path', lang('path'), 'required|max_length[100]');
             }else{
                 $this->form_validation->set_rules('type', lang('type'), 'required|max_length[20]');
                 if($type=="linux" || $type=="windows"){

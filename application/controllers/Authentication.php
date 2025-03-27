@@ -48,11 +48,7 @@ class Authentication extends Cl_Controller {
             $data['base_url'] = base_url();
             echo json_encode($data);
         }else{
-            if(isServiceAccessOnly('sGmsJaFJE')){
-                $update_plan = isset($_GET['update_plan']) && $_GET['update_plan']?$_GET['update_plan']:'';
-                $data['update_plan'] = $update_plan;
-                $this->load->view('saas/landing/index',$data);
-            }else{
+ 
                 $company = getMainCompany();
                 if(isset($company->sos_enable_online_order_frontend_website) && $company->sos_enable_online_order_frontend_website==1){
                     $data = array();
@@ -63,7 +59,7 @@ class Authentication extends Cl_Controller {
                     $this->load->view('authentication/login');
                 }
                 
-            }
+            // }
         }
 }
     public function index() {

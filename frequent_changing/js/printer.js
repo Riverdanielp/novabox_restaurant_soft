@@ -18,6 +18,11 @@ $(function () {
             $(".network_div1").hide();
             $(".receipt_printer_div").hide();
         }
+        if(this_value_invoice =="printer_app"){
+            $(".network_div1").hide();
+            $(".receipt_printer_div").hide();
+            $("#path_string_div").show();
+        }
     }
 
     $(document).on('change','#type' , function(e){
@@ -40,6 +45,20 @@ $(function () {
             $(".receipt_printer_div").hide();
         }
 
+    } else if (this_value_invoice == "printer_app") {
+            $(".print_server_url_div_invoice").hide();
+            // $(".print_format_div_invoice").css("display", "none");
+            // $(".print_format_div_invoice").find("input").css("pointer-events", "none");
+            $(".print_format_div_invoice").css("display", "block");
+            $(".div_direct_print").hide();
+    
+            // if(this_value=="linux" || this_value == "windows"){
+            // }else if(this_value=="network"){
+            //     $(".receipt_printer_div").hide();
+            // }
+            $("#path_string_div").show();
+            $(".receipt_printer_div").show();
+    
     } else {
         $(".div_direct_print").hide();
         $(".print_server_url_div_invoice").hide();
@@ -58,9 +77,9 @@ $(function () {
         let printer_ip_address = $("#printer_ip_address").val();
         let printer_type_value = '';
         if(type=="windows"){
-             printer_type_value = path;
+            printer_type_value = path;
         }else{
-             printer_type_value = printer_ip_address;
+            printer_type_value = printer_ip_address;
         }
         let port = $("#printer_port").val();
         let url = ssl_type+ipvfour_address+"/print_server/print.php?printer_type_value="+printer_type_value+"&&port="+port+"&&type="+type;

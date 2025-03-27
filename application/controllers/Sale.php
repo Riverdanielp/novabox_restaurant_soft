@@ -2624,10 +2624,13 @@ class Sale extends Cl_Controller {
      */
     public function get_all_information_of_a_sale($sale_no){
         $sales_information = $this->get_all_information_of_a_sale_kitchen($sale_no);
+    //    echo '<pre>';
+    //    var_dump($sales_information); 
+    //    echo '<pre>';
        
 
-        $sales_information->selected_number = $sales_information->number_slot;
-        $sales_information->selected_number_name = $sales_information->number_slot_name;
+        $sales_information->selected_number = @$sales_information->number_slot;
+        $sales_information->selected_number_name = @$sales_information->number_slot_name;
         $sales_information->sub_total = getAmtP(isset($sales_information->sub_total) && $sales_information->sub_total?$sales_information->sub_total:0);
         $sales_information->paid_amount = getAmtP(isset($sales_information->paid_amount) && $sales_information->paid_amount?$sales_information->paid_amount:0);
         $sales_information->due_amount = getAmtP(isset($sales_information->due_amount) && $sales_information->due_amount?$sales_information->due_amount:0);
@@ -3994,7 +3997,8 @@ class Sale extends Cl_Controller {
         $return_data['get_waiter_orders_for_update_receiver'] = $get_waiter_orders_for_update_receiver;
         $return_data['get_waiter_orders_for_delete_sender'] = $get_waiter_orders_for_delete_sender; 
         $return_data['already_invoiced_orders'] = $already_invoiced_orders;
-        $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc($user_id);
+        // $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc($user_id);
+        $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc_all();
 
         echo json_encode($return_data);
     }
@@ -4435,7 +4439,9 @@ class Sale extends Cl_Controller {
         $company_id = $this->session->userdata('company_id');
         $outlet_id = $this->session->userdata('outlet_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-        $printer = getPrinterInfo(isset($company_data->receipt_printer_invoice) && $company_data->receipt_printer_invoice?$company_data->receipt_printer_invoice:'');
+        // $printer = getPrinterInfo(isset($company_data->receipt_printer_invoice) && $company_data->receipt_printer_invoice?$company_data->receipt_printer_invoice:'');
+        $printer_id = $this->session->userdata('printer_id');
+        $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
         $type = $printer->type;
         $printer_ip_address = $printer->printer_ip_address;
         $printer_port = $printer->printer_port;
@@ -4502,7 +4508,9 @@ class Sale extends Cl_Controller {
         // Obtener la configuración de la impresora
         $company_id = $this->session->userdata('company_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-        $printer = getPrinterInfo(isset($company_data->receipt_printer_kot) && $company_data->receipt_printer_kot ? $company_data->receipt_printer_kot : '');
+        // $printer = getPrinterInfo(isset($company_data->receipt_printer_kot) && $company_data->receipt_printer_kot ? $company_data->receipt_printer_kot : '');
+        $printer_id = $this->session->userdata('printer_id');
+        $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
         $path = @$printer->path;
     
         // Ancho de la etiqueta (58mm para etiquetas pequeñas)
@@ -4624,7 +4632,9 @@ class Sale extends Cl_Controller {
         // Obtener la configuración de la impresora
         $company_id = $this->session->userdata('company_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-        $printer = getPrinterInfo(isset($company_data->receipt_printer_bill) && $company_data->receipt_printer_bill ? $company_data->receipt_printer_bill : '');
+        // $printer = getPrinterInfo(isset($company_data->receipt_printer_bill) && $company_data->receipt_printer_bill ? $company_data->receipt_printer_bill : '');
+        $printer_id = $this->session->userdata('printer_id');
+        $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
         $path = @$printer->path;
     
         $print_format = $company_data->print_format_bill;
@@ -4634,6 +4644,10 @@ class Sale extends Cl_Controller {
             $width = 58;
         }
     
+        // echo '<pre>';
+        // var_dump($printer); 
+        // echo '<pre>';
+        
         // Crear el objeto de solicitud de impresión
         $printRequest = [
             'printer' => $path, // Nombre de la impresora

@@ -764,6 +764,16 @@ foreach ($notifications as $single_notification){
         #numbers_button i {
             transition: all 0.3s ease;
         }
+        
+        .number_action_button {
+            width: 22.5%;
+            height: 40px;
+            font-size: 15px;
+            margin: 0;
+            border-radius: 5px;
+            color: white;
+            background-color:rgb(0 107 125) !important
+        }
     </style>
 </head>
 
@@ -1409,7 +1419,7 @@ foreach ($notifications as $single_notification){
                 </div>
             </div>
             <div class="main_right <?php echo escape_output($is_self_order_class) ? 'online_order':'' ?>">
-                <form autocomplete="off" class="search-category-form" id="search_form">
+                <form autocomplete="off" class="search-category-form" id="search_form" onsubmit="return false;">
                     <?php  if(isFoodCourt() && $this->session->userdata('role') != 'Admin'):?>
                     <div class="search-category-item">
                         <div class="item">
@@ -3241,11 +3251,18 @@ foreach ($notifications as $single_notification){
                         </div>
                     </div>
                 </div>
-                <div class="create_invoice_close_order_in_order_details" id="order_details_post_invoice_buttons">
+                <!-- <div class="create_invoice_close_order_in_order_details" id="order_details_post_invoice_buttons">
                     <button class="no-need-for-waiter txt_38" id="order_details_create_invoice_close_order_button"><i
                                 class="fas fa-file-invoice"></i>
                         <?php echo lang('create_invoice_close'); ?></button>
-                </div>
+                </div> -->
+                
+                <button class="number_action_button" id="pagar_orden_button" data-sale_no="">Finalizar y Pagar</button>
+                
+                <button  class="number_action_button" id="editar_orden_button"  data-sale_no=""><i class="fas fa-edit"></i>  Modificar </button>
+
+                <button class="number_action_button"  id="print_bill_orden_button"  data-sale_no=""><i class="fas fa-print"></i>  Imprimir </button>
+
                 <button class="txt_38" id="order_details_close_button"><?php echo lang('close'); ?></button>
             </div>
         </div>
@@ -3659,7 +3676,7 @@ foreach ($notifications as $single_notification){
             <div class="btn__box">
                 <button type="button" id="cancel_discount_modal" class="cancel">
                     <i class="fal fa-times"></i> <?php echo lang('cancel'); ?></button>
-                <button  id="finalize_order_button"><i class="fas fa-file-invoice"></i>  <?php echo lang('submit'); ?></button>
+                <button  id="finalize_order_button"><i class="fas fa-file-invoice"></i>  Finalizar</button>
             </div>
         </div>
     </div>

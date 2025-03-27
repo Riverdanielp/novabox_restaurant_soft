@@ -1,6 +1,7 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-$base = "irestoraplus";
+// $base = "irestoraplus";
+$base = "restaurant-soft_miabuela";
 
 $active_group = 'default';
 $query_builder = TRUE;
