@@ -47,7 +47,7 @@
 	.navbar-area .nav-container {
 	    background-color: transparent;
 	    padding: 18px 15px;
-	    transition: all 0.4s;
+	    transition: all 0.1s;
 	}
 	.single-pricing-inner .price-header h4 {
 		font-size: 28px;

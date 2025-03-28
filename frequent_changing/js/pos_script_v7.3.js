@@ -923,7 +923,7 @@
    
       function checkInternetConnectionNew(){
           $.ajax({
-              url: base_url,  
+              url: base_url + 'Checkconn',  
               method: 'GET',
               cache: false,
               success: function() {
@@ -1410,7 +1410,7 @@
   
       setInterval(function () {
           checkInternetConnectionNew();
-      }, 2000);
+      }, 5000);
   
       $(document).on("click", "#sync_online", function (e) {
           push_online_sync();
@@ -11076,7 +11076,7 @@ $(document).on("keyup", "#search", function (e) {
       let total_items_in_cart_with_quantity = 0;
       let qty_div = $(".single_order .first_portion").find('.qty_item_custom');
         qty_div.each(function (i, obj) {
-          console.log(parseInt($(this).html()));
+        //   console.log(parseInt($(this).html()));
         total_items_in_cart_with_quantity+=parseInt($(this).html());
       });
   
@@ -13681,6 +13681,8 @@ $(document).on("keyup", "#search", function (e) {
             }
         });
     } 
+    let currentOccupiedNumbers = {}; 
+
     function new_notification_interval() {
       $.ajax({
         url: base_url + "Sale/get_new_notifications_ajax",
@@ -13793,13 +13795,18 @@ $(document).on("keyup", "#search", function (e) {
                 let outlet_id_indexdb = $("#outlet_id_indexdb").val();
                 let company_id_indexdb = $("#company_id_indexdb").val();
 
+                let processedOrders = {}; // Objeto para rastrear órdenes ya procesadas
+
+                // Procesar get_waiter_orders
                 for (let key1 in get_waiter_orders) {
                     order = get_waiter_orders[key1];
                     let order_info = jQuery.parseJSON(order.self_order_content);
                     order_info.sale_date = getCurrentDate();
                     let sale_no_new = order_info.sale_no;
-                    let order_object = JSON.stringify(order_info);
-             
+                    
+                    // Registrar la orden como procesada
+                    processedOrders[sale_no_new] = true;
+                    
                     let is_exist = false;
                     $(".running_order_order_number").each(function() {
                         let running_order_order_number = $(this).text();
@@ -13807,11 +13814,13 @@ $(document).on("keyup", "#search", function (e) {
                             is_exist = true;
                         }
                     });
-                    if(is_exist==false){
-                        add_sale_by_ajax('',order_object,outlet_id_indexdb,company_id_indexdb,sale_no_new,"","","");
-                        //call for print KOT only for Waiter App Order.
-                        if(order_info.waiter_app_status=="Yes"){
-                          push_online_for_kitchen(order.self_order_content,'',sale_no_new,1);
+                    
+                    if(!is_exist){
+                        let order_object = JSON.stringify(order_info);
+                        add_sale_by_ajax('', order_object, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+                        
+                        if(order_info.waiter_app_status == "Yes"){
+                            push_online_for_kitchen(order.self_order_content, '', sale_no_new, 1);
                         }
                     }
                     setOrderPulled(order.id);
@@ -13860,19 +13869,69 @@ $(document).on("keyup", "#search", function (e) {
             
                 let get_all_running_order_for_new_pc = response.get_all_running_order_for_new_pc;
             
+                // Procesar get_all_running_order_for_new_pc
                 for (let key_order in get_all_running_order_for_new_pc) {
                     order = get_all_running_order_for_new_pc[key_order];
                     let sale_no_new = order.sale_no;
-            
-                    let order_id = "order_" + get_plan_string(sale_no_new);
-            
-                    if (!$("#" + order_id).length) {
-                        add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
-                        // toastr['success']((sale_no_new + " " + pulled_successfully), '');
-                        console.log(sale_no_new + " " + pulled_successfully);
-                    } else {
+                    
+                    // Verificar si la orden ya fue procesada
+                    if (!processedOrders[sale_no_new]) {
+                        let order_id = "order_" + get_plan_string(sale_no_new);
+                        
+                        if (!$("#" + order_id).length) {
+                            add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+                            // console.log(sale_no_new + " " + pulled_successfully);
+                        }
                     }
                 }
+                
+            // Procesar números ocupados (nueva funcionalidad integrada)
+            if (response.occupied_numbers) {
+                let newOccupiedNumbers = {};
+                let occupiedNumbers = response.occupied_numbers;
+                
+                // 1. Marcar números ocupados que vienen del servidor
+                occupiedNumbers.forEach(num => {
+                    newOccupiedNumbers[num.id] = true;
+                    
+                    const button = $(`.number_buttons[data-number="${num.id}"]`);
+                    
+                    if (button.length && !button.hasClass('btn-danger')) {
+                        button
+                            .removeClass('btn-success')
+                            .addClass('btn-danger')
+                            .attr('data-sale_id', num.sale_id || '')
+                            .attr('data-sale_no', num.sale_no || '')
+                            .attr('data-user_id', num.user_id || '');
+                        
+                        // Animación para cambios
+                        button.css('transform', 'scale(1.2)');
+                        setTimeout(() => button.css('transform', 'scale(1)'), 300);
+                    }
+                });
+                
+                // 2. Verificar números que estaban ocupados pero ahora están disponibles
+                for (const numId in currentOccupiedNumbers) {
+                    if (!newOccupiedNumbers[numId]) {
+                        const button = $(`.number_buttons[data-number="${numId}"]`);
+                        
+                        if (button.length) {
+                            button
+                                .removeClass('btn-danger')
+                                .addClass('btn-success')
+                                .attr('data-sale_id', '')
+                                .attr('data-sale_no', '')
+                                .attr('data-user_id', '');
+                            
+                            // Animación para cambios
+                            button.css('transform', 'scale(1.2)');
+                            setTimeout(() => button.css('transform', 'scale(1)'), 300);
+                        }
+                    }
+                }
+                
+                currentOccupiedNumbers = newOccupiedNumbers;
+            }
             },
             error: function () {
   
@@ -13891,12 +13950,12 @@ $(document).on("keyup", "#search", function (e) {
         refresh_orders_left();
       }, 7000);
     }
-      //waiter_order_module
-      setTimeout(function () {
-          if(checkInternetConnection()){
-              new_notification_interval();
-          }
-      }, 1000);
+    //   //waiter_order_module
+    //   setTimeout(function () {
+    //       if(checkInternetConnection()){
+    //           new_notification_interval();
+    //       }
+    //   }, 1000);
     all_time_interval_operation();
       function checkPercentage1(value) {
           if(value){
@@ -20280,83 +20339,83 @@ $(document).on("keyup", "#search", function (e) {
     window.addEventListener('online', syncPendingKitchenOrders);
 
 
-    // Función para animar cambios de estado
-    
-    let previousNumbersState = {};
+    // // Objeto para rastrear el estado actual de los números ocupados
+    // let currentOccupiedNumbers = {};
 
-function updateNumbersInterval() {
-    $.ajax({
-        url: base_url + "Sale/getUpdatedNumbers",
-        method: "POST",
-        dataType: 'json',
-        data: {
-            csrf_irestoraplus: csrf_value_,
-        },
-        success: function(response) {
-            let currentState = {};
-            let hasChanges = false;
-            
-            // Construir estado actual
-            response.forEach(num => {
-                currentState[num.id] = {
-                    sale_id: num.sale_id,
-                    sale_no: num.sale_no,
-                    user_id: num.user_id
-                };
+    // function updateNumbersInterval() {
+    //     $.ajax({
+    //         url: base_url + "Sale/getUpdatedNumbers",
+    //         method: "POST",
+    //         dataType: 'json',
+    //         data: {
+    //             csrf_irestoraplus: csrf_value_,
+    //         },
+    //         success: function(occupiedNumbers) {
+    //             // Objeto temporal para los nuevos números ocupados
+    //             let newOccupiedNumbers = {};
                 
-                // Verificar si hay cambios
-                if (!previousNumbersState[num.id] || 
-                    previousNumbersState[num.id].sale_id !== num.sale_id) {
-                    hasChanges = true;
-                }
-            });
-            
-            // Solo actualizar si hay cambios
-            if (hasChanges) {
-                updateNumberButtons(response);
-                previousNumbersState = currentState;
-            }
-        },
-        error: function() {
-            console.error('Error al actualizar números');
-        }
-    });
-}
+    //             // 1. Procesar los números ocupados recibidos del servidor
+    //             occupiedNumbers.forEach(num => {
+    //                 newOccupiedNumbers[num.id] = true;
+                    
+    //                 // Seleccionar el botón correspondiente
+    //                 const button = $(`.number_buttons[data-number="${num.id}"]`);
+                    
+    //                 // Solo actualizar si el botón existe y no estaba ya marcado como ocupado
+    //                 if (button.length && !button.hasClass('btn-danger')) {
+    //                     button
+    //                         .removeClass('btn-success')
+    //                         .addClass('btn-danger')
+    //                         .attr('data-sale_id', num.sale_id || '')
+    //                         .attr('data-sale_no', num.sale_no || '')
+    //                         .attr('data-user_id', num.user_id || '');
+                        
+    //                     animateNumberChange(button);
+    //                 }
+    //             });
+                
+    //             // 2. Verificar números que estaban ocupados pero ahora están disponibles
+    //             for (const numId in currentOccupiedNumbers) {
+    //                 if (!newOccupiedNumbers[numId]) {
+    //                     const button = $(`.number_buttons[data-number="${numId}"]`);
+                        
+    //                     // Restablecer a estado disponible (verde)
+    //                     if (button.length) {
+    //                         button
+    //                             .removeClass('btn-danger')
+    //                             .addClass('btn-success')
+    //                             .attr('data-sale_id', '')
+    //                             .attr('data-sale_no', '')
+    //                             .attr('data-user_id', '');
+                            
+    //                         animateNumberChange(button);
+    //                     }
+    //                 }
+    //             }
+                
+    //             // Actualizar el estado actual
+    //             currentOccupiedNumbers = newOccupiedNumbers;
+    //         },
+    //         error: function() {
+    //             console.error('Error al actualizar números');
+    //         }
+    //     });
+    // }
 
-function updateNumberButtons(numbers) {
-    const container = $('.table-responsive .d-flex');
-    container.empty(); // Limpiar contenedor
-    
-    if (numbers.length === 0) {
-        container.append('<h5>Aun no existen números</h5>');
-        return;
-    }
-    
-    numbers.forEach(number => {
-        const button = $('<button>')
-            .addClass('btn btn-lg number_buttons')
-            .addClass(number.sale_id ? 'btn-danger' : 'btn-success')
-            .attr('data-sale_id', number.sale_id || '')
-            .attr('data-sale_no', number.sale_no || '')
-            .attr('data-user_id', number.user_id || '')
-            .attr('data-number', number.id)
-            .attr('data-name', number.name)
-            .text(number.name);
-        
-        container.append(button);
-    });
-}
-    
+    // function animateNumberChange(button) {
+    //     button.css('transform', 'scale(1.2)');
+    //     setTimeout(function() {
+    //         button.css('transform', 'scale(1)');
+    //     }, 300);
+    // }
 
-    function animateNumberChange(button) {
-        button.css('transform', 'scale(1.2)');
-        setTimeout(function() {
-            button.css('transform', 'scale(1)');
-        }, 300);
-    }
-    updateNumbersInterval();
-    // Iniciar la actualización periódica (cada 5 segundos)
-    setInterval(updateNumbersInterval, 5000);
+    // // Iniciar la actualización periódica
+    // $(document).ready(function() {
+    //     updateNumbersInterval();
+    //     setInterval(updateNumbersInterval, 5000);
+    // });
+
+
 
 
 // // Manejar clic en botones de número

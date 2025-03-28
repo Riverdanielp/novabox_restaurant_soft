@@ -545,7 +545,7 @@ ul {
   position: relative;
   border: 0;
   font-size: 16px;
-  transition: all 0.5s ease;
+  transition: all 0.2s ease;
   font-weight: 600;
   border-radius: 4px;
 }
@@ -699,7 +699,7 @@ ul {
   line-height: 50px;
   border-radius: 30px;
   display: block;
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
 }
 .preloader-inner .cancel-preloader a:hover {
   background-color: var(--heading-color);
@@ -820,7 +820,7 @@ ul {
   height: 100%;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 100, 0));
   height: 65%;
-  transition: all 0.6s ease;
+  transition: all 0.2s ease;
   z-index: 0;
   opacity: 0.5;
 }
@@ -1230,7 +1230,7 @@ ul {
 
 .widget_catagory ul li {
   list-style: none;
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
   margin-bottom: 6px;
 }
 
@@ -1265,7 +1265,7 @@ ul {
 
 .widget_twitter ul li {
   list-style: none;
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
   margin-bottom: 6px;
   display: flex;
   border-bottom: 1px solid #d2d0d0;
@@ -1320,12 +1320,12 @@ ul {
   width: 100%;
   top: 0;
   z-index: 100;
-  transition: all 0.4s;
+  transition: all 0.2s;
 }
 .navbar-area .nav-container {
   background-color: transparent;
   padding: 24px 15px;
-  transition: all 0.4s;
+  transition: all 0.2s;
 }
 .navbar-area .nav-container .logo a {
   font-family: var(--heading-font);
@@ -1374,11 +1374,11 @@ ul {
   content: "";
   font-family: "fontawesome";
   transform: translateY(-50%);
-  transition: all 0.3s ease-in;
+  transition: all 0.2s ease-in;
   color: #fff;
 }
 .navbar-area .nav-container .navbar-collapse .navbar-nav li.menu-item-has-children:hover {
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
 }
 .navbar-area .nav-container .navbar-collapse .navbar-nav li.menu-item-has-children:hover > .sub-menu {
   visibility: visible;
@@ -1399,7 +1399,7 @@ ul {
   overflow: hidden;
   visibility: hidden;
   opacity: 0;
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
   border-radius: 0;
 }
 .navbar-area .nav-container .navbar-collapse .navbar-nav li.menu-item-has-children .sub-menu.border-bt0 {
@@ -1410,17 +1410,17 @@ ul {
   margin-left: 0;
   line-height: 22px;
   font-size: 15px;
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
 }
 .navbar-area .nav-container .navbar-collapse .navbar-nav li.menu-item-has-children .sub-menu li a {
   display: block;
   padding: 10px 20px;
   white-space: nowrap;
-  transition: all 0.3s;
+  transition: all 0.2s;
   color: #050a30;
   font-size: 13px;
   font-weight: 600;
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
 }
 .navbar-area .nav-container .navbar-collapse .navbar-nav li.menu-item-has-children .sub-menu li:hover {
   background: var(--main-color);
@@ -1471,7 +1471,7 @@ ul {
   opacity: 0;
   margin-right: -30px;
   visibility: hidden;
-  transition: all 0.3s ease 0s;
+  transition: all 0.2s ease 0s;
 }
 
 .menu-open {
@@ -2794,7 +2794,7 @@ ul {
   font-weight: 500;
   padding-right: 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   outline: 0;
 }
 .single-accordion .card-header h2 button:after {
@@ -2962,7 +2962,7 @@ ul {
 }
 .td-page-navigation .pagination .pagination-arrow a {
   border: 0;
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
 }
 .td-page-navigation .pagination .pagination-arrow a:hover {
   border: 0;
@@ -2977,7 +2977,7 @@ ul {
   line-height: 57px;
   text-align: center;
   text-decoration: none;
-  transition: all 0.4s ease;
+  transition: all 0.2s ease;
   display: block;
   color: rgba(255, 255, 255, 0.8);
   font-size: 18px;

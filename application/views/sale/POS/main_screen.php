@@ -565,7 +565,7 @@ foreach ($notifications as $single_notification){
     <!-- Favicon -->
     <link rel="shortcut icon" href="<?php echo escape_output($favicon) ?>" type="image/x-icon">
     <link rel="stylesheet" href="<?php echo base_url();?>assets/POS/css/datepicker.css?v=7.5">
-    <link rel="stylesheet" href="<?php echo base_url();?>assets/POS/css/animate.min.css?v=7.5">
+    <!-- <link rel="stylesheet" href="<?php echo base_url();?>assets/POS/css/animate.min.css?v=7.501"> -->
     <link rel="stylesheet" href="<?php echo base_url();?>assets/POS/css/lib/perfect-scrollbar/css/perfect-scrollbar.css?v=7.5">
 
     <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/custom_card_design_zak.css?v=7.5">
@@ -612,9 +612,9 @@ foreach ($notifications as $single_notification){
             position: absolute;
             right: 5px;
             top: 18px;
-            transform: rotate(180deg);
+            /* transform: rotate(180deg);
             z-index: 1;
-            transition: all 0.3s;
+            transition: all 0.3s; */
         }
         aside#pos__sidebar .pos__menu__list .sub__menu__list {
             list-style-type: none;

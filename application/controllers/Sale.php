@@ -3999,6 +3999,7 @@ class Sale extends Cl_Controller {
         $return_data['already_invoiced_orders'] = $already_invoiced_orders;
         // $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc($user_id);
         $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc_all();
+        $return_data['occupied_numbers'] = $this->getUpdatedNumbers();
 
         echo json_encode($return_data);
     }
@@ -4936,10 +4937,13 @@ class Sale extends Cl_Controller {
 
     public function getUpdatedNumbers() {
         $outlet_id = $this->session->userdata('outlet_id');
+        $this->db->select('id, sale_id, sale_no, user_id, name');
         $this->db->where("outlet_id", $outlet_id);
         $this->db->where("del_status", "Live");
+        $this->db->where("sale_id IS NOT NULL"); // Solo números ocupados
         $numbers = $this->db->get("tbl_numeros")->result();
         
-        echo json_encode($numbers);
+        return ($numbers);
+        // return json_encode($numbers);
     }
 }
