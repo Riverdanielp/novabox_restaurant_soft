@@ -1293,7 +1293,7 @@ class Sale extends Cl_Controller {
             $data['order_time'] = date("H:i:s",strtotime($order_details->order_time));
             $data['order_status'] = trim_checker($order_details->order_status);
             $data['table_id'] = trim_checker($order_details->table_id);
-            $data['is_merge'] = trim_checker($order_details->is_merge);
+            $data['is_merge'] = trim_checker(@$order_details->is_merge);
             $data['zatca_value'] = trim_checker($order_details->zatca_invoice_value);
             $data['number_slot'] = trim_checker($order_details->selected_number );
             $data['number_slot_name'] = trim_checker($order_details->selected_number_name );
@@ -2623,12 +2623,11 @@ class Sale extends Cl_Controller {
      * @param int
      */
     public function get_all_information_of_a_sale($sale_no){
-        $sales_information = $this->get_all_information_of_a_sale_kitchen($sale_no);
-    //    echo '<pre>';
-    //    var_dump($sales_information); 
-    //    echo '<pre>';
-       
-
+        $sales_information = getSaleDetails($sale_no); 
+        //$this->get_all_information_of_a_sale_kitchen($sale_no);
+        //    echo '<pre>';
+        //    var_dump($sales_information); 
+        //    echo '<pre>';
         $sales_information->selected_number = @$sales_information->number_slot;
         $sales_information->selected_number_name = @$sales_information->number_slot_name;
         $sales_information->sub_total = getAmtP(isset($sales_information->sub_total) && $sales_information->sub_total?$sales_information->sub_total:0);
@@ -2648,10 +2647,10 @@ class Sale extends Cl_Controller {
         } else {
             $sales_information->sub_total_discount_value = getAmtP(isset($sales_information->sub_total_discount_value) && $sales_information->sub_total_discount_value?$sales_information->sub_total_discount_value:0);
         }
-        $items_by_sales_id = $this->Sale_model->getAllItemsFromSalesDetailBySalesIdKitchen($sales_information->id);
+        $items_by_sales_id = getSaleDetailsItems($sales_information->id); //$this->Sale_model->getAllItemsFromSalesDetailBySalesIdKitchen($sales_information->id);
 
         foreach($items_by_sales_id as $single_item_by_sale_id){
-            $modifier_information = $this->Sale_model->getModifiersBySaleAndSaleDetailsIdKitchen($sales_information->id,$single_item_by_sale_id->sales_details_id);
+            $modifier_information = getSaleDetailsItemsModifier($single_item_by_sale_id->sales_details_id);
             $single_item_by_sale_id->modifiers = $modifier_information;
 
             $modifiers_id = '';

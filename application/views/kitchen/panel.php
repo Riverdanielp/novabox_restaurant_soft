@@ -50,7 +50,7 @@
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title><?php echo escape_output($site_name); ?></title>
-    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>frequent_changing/bar_panel/css/style.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>frequent_changing/bar_panel/css/style.css<?php echo VERS() ?>">
     <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>frequent_changing/bar_panel/css/sweetalert2.min.css">
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/bower_components/font-awesome/v5/all.min.css">
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/bower_components/select2/dist/css/select2.min.css">
@@ -130,6 +130,8 @@
     <input type="hidden" id="text_not_ready_ln" value="<?php echo lang('text_not_ready') ?>">
     <input type="hidden" id="text_ready_ln" value="<?php echo lang('text_ready') ?>">
     <input type="hidden" id="text_in_preparation_ln" value="<?php echo lang('text_in_preparation') ?>">
+    <input type="hidden" id="fullscreen_1" value="<?php echo lang('fullscreen_1'); ?>">
+    <input type="hidden" id="fullscreen_2" value="<?php echo lang('fullscreen_2'); ?>">
 
 
     <span class="ir_display_none" id="selected_order_for_refreshing_help"></span>
@@ -137,10 +139,10 @@
     <div class="wrapper fix">
         <div class="fix main_top">
             <div class="row" id="main_kitchen_header">
-                <div class="top_header col-sm-12 col-md-4">
+                <div class="top_header col-sm-12 col-md-2">
                     <h1><?php echo escape_output($kitchen->name); ?></h1>
                 </div>
-                <div class="top_menu col-sm-12 col-md-8 d-flex align-items-center justify-content-end">
+                <div class="top_menu col-sm-12 col-md-10 d-flex align-items-center justify-content-end">
                 <?php if($mode!='lcl'):?>
                     <?php $language=$this->session->userdata('language'); ?>
                     <?php echo form_open(base_url() . 'Authentication/setlanguage', $arrayName = array('id' => 'language')) ?>
@@ -176,8 +178,11 @@
 
                     <button id="notification_button" data-bs-toggle="modal" data-bs-target="#notification_list_modal" class="btn me-2 bg-blue-btn">
                         <i class="fa me-2 fa-bell"></i>
-                        <?php echo lang('notification'); ?> (<span
-                            id="notification_counter"><?php echo escape_output($notification_number); ?></span>)
+                        <?php echo lang('alert'); ?> (<span id="notification_counter"><?php echo escape_output($notification_number); ?></span>)
+                    </button>
+
+                    <button type="button" class="btn me-2 bg-blue-btn fullscreen" data-tippy-content="Pantalla completa">
+                        <i class="fas fa-expand-arrows-alt"></i>
                     </button>
 
                     <button id="help_button"  data-bs-toggle="modal" data-bs-target="#help_modal" class="btn me-2 bg-blue-btn">

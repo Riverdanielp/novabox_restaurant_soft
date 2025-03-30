@@ -373,77 +373,155 @@
         })
     }
       /**************Get Sales Information from indexedDB End *******************/
-      function displayOrderList(){
-          $("#order_details_holder").html('')
-          let order_list_left = '';
-          let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-          let sales_id = '';
-          objectStore.openCursor(null, 'prev').onsuccess = function(event) {
-              let cursor = event.target.result;
-              let i = 1;
-              if (cursor) {
-                  let orderData = cursor.value;
-                    // console.log('orderData',orderData);
-                  let orderInfo = orderData.order;
-                  let table_id = orderData.table_id;
-                  let rowData = JSON.parse(orderInfo);
-                //   console.log('rowData',rowData);
-                  let sales_id = cursor.value.sales_id;
+    //   function displayOrderList(){
+    //       $("#order_details_holder").html('')
+    //       let order_list_left = '';
+    //       let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
+    //       let sales_id = '';
+    //       objectStore.openCursor(null, 'prev').onsuccess = function(event) {
+    //           let cursor = event.target.result;
+    //           let i = 1;
+    //           if (cursor) {
+    //               let orderData = cursor.value;
+    //                 // console.log('orderData',orderData);
+    //               let orderInfo = orderData.order;
+    //               let table_id = orderData.table_id;
+    //               let rowData = JSON.parse(orderInfo);
+    //             //   console.log('rowData',rowData);
+    //               let sales_id = cursor.value.sales_id;
   
-                  let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
-                  let outlet_id = Number(orderData.outlet_id);
-                  let user_id = Number(orderData.user_id);
-                  let user_id_login = Number($("#user_id").val());
+    //               let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
+    //               let outlet_id = Number(orderData.outlet_id);
+    //               let user_id = Number(orderData.user_id);
+    //               let user_id_login = Number($("#user_id").val());
   
-                  if(user_id_login==user_id){
-                    let sale_no_plan = get_plan_string(rowData.sale_no);
-                      if (i == 1) {
-                          order_list_left += '<div data-dan="1" data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix txt_5" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
-                      } else {
-                          order_list_left += '<div data-dan="1" data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
-                      }
-                      order_list_left += '<div class="inside_single_order_container fix">';
-                      order_list_left += '<div class="single_order_content_holder_inside fix">';
-                      let number_selected = '';
-                      let waiter_name = rowData.waiter_name != "" && rowData.waiter_name!=undefined  && rowData.waiter_name!=null && rowData.waiter_name!="undefined" ? rowData.waiter_name : "";
-                      let customer_name = rowData.customer_name != null ? rowData.customer_name : "";
-                      let selected_number = rowData.selected_number != null ? rowData.selected_number : "";
-                      let selected_number_name = rowData.selected_number_name != null ? rowData.selected_number_name : "";
-                      let tables_booked = "";
+    //               if(user_id_login==user_id){
+    //                 let sale_no_plan = get_plan_string(rowData.sale_no);
+    //                   if (i == 1) {
+    //                       order_list_left += '<div data-dan="1" data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix txt_5" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
+    //                   } else {
+    //                       order_list_left += '<div data-dan="1" data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
+    //                   }
+    //                   order_list_left += '<div class="inside_single_order_container fix">';
+    //                   order_list_left += '<div class="single_order_content_holder_inside fix">';
+    //                   let number_selected = '';
+    //                   let waiter_name = rowData.waiter_name != "" && rowData.waiter_name!=undefined  && rowData.waiter_name!=null && rowData.waiter_name!="undefined" ? rowData.waiter_name : "";
+    //                   let customer_name = rowData.customer_name != null ? rowData.customer_name : "";
+    //                   let selected_number = rowData.selected_number != null ? rowData.selected_number : "";
+    //                   let selected_number_name = rowData.selected_number_name != null ? rowData.selected_number_name : "";
+    //                   let tables_booked = "";
   
-                      if (rowData.orders_table_text) {
-                          tables_booked =  rowData.orders_table_text;
-                      } else {
-                          tables_booked = "No";
-                      }
-                      let order_type = "";
-                      if(rowData !== null) {
-                          if (rowData.order_type == 1) {
-                              order_type = inv_dine;
-                          } else if (rowData.order_type == 2) {
-                              order_type = inv_take_away;
-                          } else if (rowData.order_type == 3) {
-                              order_type = inv_delivery;
-                          }
-                      }
+    //                   if (rowData.orders_table_text) {
+    //                       tables_booked =  rowData.orders_table_text;
+    //                   } else {
+    //                       tables_booked = "No";
+    //                   }
+    //                   let order_type = "";
+    //                   if(rowData !== null) {
+    //                       if (rowData.order_type == 1) {
+    //                           order_type = inv_dine;
+    //                       } else if (rowData.order_type == 2) {
+    //                           order_type = inv_take_away;
+    //                       } else if (rowData.order_type == 3) {
+    //                           order_type = inv_delivery;
+    //                       }
+    //                   }
  
   
-                      order_list_left += '<p class="oder_list_class"><b>#' + selected_number_name + ' </b>'+' <span data-added_offline_status="'+orderData.added_offline_status+'" class="running_order_order_number">' + rowData.sale_no + "</span></p>";
-                      order_list_left += '<span id="open_orders_order_status_' + sales_id + '" class="ir_display_none">' + rowData.order_status + '</span> <p><span title="' + customer_name + '" class="running_order_customer_name">' + customer_name + '</span></p> <i class="far fa-chevron-right running_order_right_arrow" id="running_order_right_arrow_' + sales_id + '"></i>';
-                      order_list_left += '<p class="oder_list_class">'+lang_order_type+': <span class="running_order_order_number_">' + order_type + "</span></p>";
-                      order_list_left += '<p>'+lang_table+': <span class="running_order_table_name">' + tables_booked + "</span></p>";
-                      order_list_left += '<p>'+lang_waiter+': <span class="running_order_waiter_name">' + waiter_name + "</span></p>";
-                      order_list_left += "</div>";
-                      order_list_left += "</div>";
-                      order_list_left += "<div class='order_details' style='display:none'>"+orderInfo+"</div></div>";
+    //                   order_list_left += '<p class="oder_list_class"><b>#' + selected_number_name + ' </b>'+' <span data-added_offline_status="'+orderData.added_offline_status+'" class="running_order_order_number">' + rowData.sale_no + "</span></p>";
+    //                   order_list_left += '<span id="open_orders_order_status_' + sales_id + '" class="ir_display_none">' + rowData.order_status + '</span> <p><span title="' + customer_name + '" class="running_order_customer_name">' + customer_name + '</span></p> <i class="far fa-chevron-right running_order_right_arrow" id="running_order_right_arrow_' + sales_id + '"></i>';
+    //                   order_list_left += '<p class="oder_list_class">'+lang_order_type+': <span class="running_order_order_number_">' + order_type + "</span></p>";
+    //                   order_list_left += '<p>'+lang_table+': <span class="running_order_table_name">' + tables_booked + "</span></p>";
+    //                   order_list_left += '<p>'+lang_waiter+': <span class="running_order_waiter_name">' + waiter_name + "</span></p>";
+    //                   order_list_left += "</div>";
+    //                   order_list_left += "</div>";
+    //                   order_list_left += "<div class='order_details' style='display:none'>"+orderInfo+"</div></div>";
 
-                      $("#order_details_holder").html(order_list_left);
-                      i++;
-                  }
-                  cursor.continue();
-              }
-          };
-      }
+    //                   $("#order_details_holder").html(order_list_left);
+    //                   i++;
+    //               }
+    //               cursor.continue();
+    //           }
+    //       };
+    //   }
+
+    
+    function displayOrderList() {
+        let order_details_holder = document.getElementById("order_details_holder");
+        order_details_holder.innerHTML = ''; // Limpiar antes de agregar nuevos datos
+        let fragment = document.createDocumentFragment();
+    
+        let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
+        objectStore.openCursor(null, 'prev').onsuccess = function (event) {
+            let cursor = event.target.result;
+            if (cursor) {
+                let orderData = cursor.value;
+                let orderInfo = orderData.order;
+                let rowData = JSON.parse(orderInfo);
+                let sales_id = cursor.value.sales_id;
+                let table_id = orderData.table_id || '';
+                let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
+                let user_id_login = Number($("#user_id").val());
+                let user_id = Number(orderData.user_id);
+                let sale_no_plan = get_plan_string(rowData.sale_no);
+    
+                if (user_id_login === user_id) {
+                    let orderElement = document.createElement("div");
+                    orderElement.className = "running_order_custom single_order fix txt_5";
+                    orderElement.setAttribute("data-sale-id", sales_id);
+                    orderElement.setAttribute("id", "order_" + sale_no_plan);
+                    orderElement.setAttribute("data-merge_id", cursor.value.merge_id || '');
+                    orderElement.setAttribute("data-selected", "unselected");
+                    orderElement.setAttribute("order_type", rowData.order_type || '');
+                    orderElement.setAttribute("data-sale_no", rowData.sale_no || '');
+                    orderElement.setAttribute("data-total_payable", rowData.total_payable || '');
+                    orderElement.setAttribute("data-table_id", table_id);
+    
+                    // Obtener valores seguros para evitar "undefined"
+                    let waiter_name = rowData.waiter_name ? rowData.waiter_name : "";
+                    let customer_name = rowData.customer_name ? rowData.customer_name : "";
+                    let selected_number_name = rowData.selected_number_name ? rowData.selected_number_name : "";
+                    let tables_booked = rowData.orders_table_text ? rowData.orders_table_text : "No";
+    
+                    let order_type = "";
+                    if (rowData.order_type == 1) {
+                        order_type = inv_dine;
+                    } else if (rowData.order_type == 2) {
+                        order_type = inv_take_away;
+                    } else if (rowData.order_type == 3) {
+                        order_type = inv_delivery;
+                    }
+    
+                    // Construcción del contenido HTML
+                    orderElement.innerHTML = `
+                        <div class="inside_single_order_container fix">
+                            <div class="single_order_content_holder_inside fix">
+                                <p class="oder_list_class">
+                                    <b>#${selected_number_name} </b>
+                                    <span data-added_offline_status="${orderData.added_offline_status}" class="running_order_order_number">${rowData.sale_no}</span>
+                                </p>
+                                <span id="open_orders_order_status_${sales_id}" class="ir_display_none">${rowData.order_status}</span>
+                                <p><span title="${customer_name}" class="running_order_customer_name">${customer_name}</span></p>
+                                <i class="far fa-chevron-right running_order_right_arrow" id="running_order_right_arrow_${sales_id}"></i>
+                                <p>${lang_order_type}: <span class="running_order_order_number_">${order_type}</span></p>
+                                <p>${lang_table}: <span class="running_order_table_name">${tables_booked}</span></p>
+                                <p>${lang_waiter}: <span class="running_order_waiter_name">${waiter_name}</span></p>
+                            </div>
+                        </div>
+                        <div class='order_details' style='display:none'>${orderInfo}</div>
+                    `;
+    
+                    fragment.appendChild(orderElement);
+                }
+                cursor.continue();
+            } else {
+                order_details_holder.appendChild(fragment);
+            }
+        };
+    }
+    
+    
+    
       function removePulledTableData(sale_no){
           $.ajax({
               url: base_url + "Sale/removePulledTableData",
@@ -922,6 +1000,13 @@
   
    
       function checkInternetConnectionNew(){
+        // if ($("#is_offline_system").val() != 1){
+        //     $("#online_status").removeClass("bg__red");
+        //     $("#online_status").addClass("bg__green");
+        //     $(".online_status_text").text(inv_online);
+        //     $(".online_status_counter").hide();
+        //     $("#is_offline_system").val(1);
+        // }
           $.ajax({
               url: base_url + 'Checkconn',  
               method: 'GET',
@@ -1025,11 +1110,11 @@
               let tmp_footer_html = ``;
 
               tmp_header_html+=`<div class="text-center">`;
-              tmp_header_html+=`<h3>`+txt_kot+`: `+order.kitchen_name+`</h3>`;
+              tmp_header_html+=`<h5>`+txt_kot+`: `+order.kitchen_name+`</h5>`;
               tmp_header_html+=`
                                       `+inv_p_table+`
-                                      <h4 style="margin: 0px"> `+inv_order_type+`: `+order_type+`</h4>
-                                      <h4 style="margin: 0px"> `+inv_order_number+`: `+order.sale_no_p+`</h4>
+                                      <h5 style="margin: 0px"> `+inv_order_type+`: `+order_type+`</h5>
+                                      <h5 style="margin: 0px"> `+inv_order_number+`: `+order.sale_no_p+`</h5>
                                       <p>
                                       <b>`+inv_customer+`: </b>`+order.customer_name+` &nbsp;`
                                       +inv_p_waiter+`
@@ -1666,7 +1751,7 @@
       /*inline css use for offline printing of invoice, bill*/
       let style_print = `<style>
                 body {
-                          font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+                          font-family: "Poppins", sans-serif;
                           font-size: 14px;
                           line-height: 1.42857143;
                           color: black;
@@ -1946,8 +2031,8 @@
               let header_txt1 =`<div class="text-center">`;
               let header_txt =`
                                         `+inv_p_table+`
-                                        <h4 style="margin: 0px"> `+inv_order_type+`: `+order_type+`</h4>
-                                        <h4 style="margin: 0px"> `+inv_order_number+`: `+order.sale_no+`</h4>
+                                        <h5 style="margin: 0px"> `+inv_order_type+`: `+order_type+`</h5>
+                                        <h5 style="margin: 0px"> `+inv_order_number+`: `+order.sale_no+`</h5>
                                       <p>
                                       <b>`+inv_customer+`: </b>`+order.customer_name+` &nbsp;`
                                       +inv_p_waiter+`
@@ -4603,7 +4688,8 @@
                 if (status == "veg" && foundItems[key].veg_item_status == "yes") {
                     if (foundItems[key].parent_id == '0') {
                         searched_category_items_to_show +=
-                            '<div class="single_item animate__animated animate__flipInX"   data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"    data-price_delivery="' + foundItems[key].price_delivery + '"  id="item_' +
+                            '<div class="single_item animate__animated animate__flipInX"   data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
+                            '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"    data-price_delivery="' + foundItems[key].price_delivery + '"  data-veg_status="yes"  id="item_' +
                             foundItems[key].item_id +
                             '">';
                         searched_category_items_to_show +=
@@ -4628,7 +4714,7 @@
                 ) {
                     if (foundItems[key].parent_id == '0') {
                         searched_category_items_to_show +=
-                            '<div class="single_item animate__animated animate__flipInX"  data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"   data-price_delivery="' + foundItems[key].price_delivery + '"  id="item_' +
+                            '<div class="single_item animate__animated animate__flipInX"  data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '" data-veg_status="no"   data-price_delivery="' + foundItems[key].price_delivery + '"  id="item_' +
                             foundItems[key].item_id +
                             '">';
                         searched_category_items_to_show +=
@@ -4719,116 +4805,195 @@
     //   });
 
     // Modificar el evento keyup del buscador para manejar Enter
+// $(document).on("keyup", "#search", function (e) {
+//     let searched_string = $(this).val().trim();
+    
+//     // Si se presiona Enter
+//     if (e.keyCode === 13 && searched_string) {
+//         e.preventDefault(); // Prevenir comportamiento por defecto
+        
+//         // Buscar producto por código exacto
+//         let foundItem = window.items.find(item => 
+//             item.item_code && item.item_code.trim().toLowerCase() === searched_string.toLowerCase()
+//         );
+        
+//         if (foundItem) {
+//             // Simular click en el producto encontrado
+//             $(`#item_${foundItem.item_id}`).click();
+//             // Limpiar el buscador después de agregar
+//             $(this).val('');
+//             // Mostrar todos los items nuevamente
+//             show_all_items();
+//         } else {
+//             // Si no se encuentra, mantener el comportamiento actual de búsqueda
+//             let foundItems = searchItemAndConstructGallery(searched_string);
+//             let searched_category_items_to_show = 
+//                 '<div id="searched_item_found" class="specific_category_items_holder 002">';
+            
+//             for (let key in foundItems) {
+//                 if (foundItems.hasOwnProperty(key)) {
+//                     if (foundItems[key].parent_id == '0') {
+//                         searched_category_items_to_show +=
+//                             '<div class="single_item animate__animated animate__flipInX"  data-price="' + 
+//                             foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
+//                             '"    data-is_variation="' + foundItems[key].is_variation + 
+//                             '"  data-parent_id="' + foundItems[key].parent_id + 
+//                             '"   data-price_delivery="' + foundItems[key].price_delivery + 
+//                             '"  id="item_' + foundItems[key].item_id + '">';
+//                         searched_category_items_to_show +=
+//                             '<img src="' + foundItems[key].image + '" alt="" width="141">';
+//                         searched_category_items_to_show +=
+//                             '<p class="item_name" data-tippy-content="' +
+//                             foundItems[key].item_name + '">' +
+//                             foundItems[key].item_name + "</p>";
+//                         searched_category_items_to_show +=
+//                             '<p class="item_price">' + inv_currency + " " +
+//                             foundItems[key].price + "</p>";
+//                         searched_category_items_to_show +=
+//                             '<span class="item_vat_percentage ir_display_none">' +
+//                             foundItems[key].vat_percentage + "</span>";
+//                         searched_category_items_to_show += "</div>";
+//                     }
+//                 }
+//             }
+            
+//             searched_category_items_to_show += "<div>";
+//             $("#searched_item_found").remove();
+//             $(".specific_category_items_holder").fadeOut(0);
+//             $(".category_items").prepend(searched_category_items_to_show);
+            
+//             if(food_menu_tooltip=="show"){
+//                 tippy(".item_name", {
+//                     placement: "bottom-start",
+//                 });
+//             }
+//         }
+//     } else if (searched_string) {
+//         // Comportamiento normal de búsqueda mientras se escribe
+//         let foundItems = searchItemAndConstructGallery(searched_string);
+//         let searched_category_items_to_show = 
+//             '<div id="searched_item_found" class="specific_category_items_holder 002">';
+        
+//         for (let key in foundItems) {
+//             if (foundItems.hasOwnProperty(key)) {
+//                 if (foundItems[key].parent_id == '0') {
+//                     searched_category_items_to_show +=
+//                         '<div class="single_item animate__animated animate__flipInX"  data-price="' + 
+//                         foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
+//                         '"    data-is_variation="' + foundItems[key].is_variation + 
+//                         '"  data-parent_id="' + foundItems[key].parent_id + 
+//                         '"   data-price_delivery="' + foundItems[key].price_delivery + 
+//                         '"  id="item_' + foundItems[key].item_id + '">';
+//                     searched_category_items_to_show +=
+//                         '<img src="' + foundItems[key].image + '" alt="" width="141">';
+//                     searched_category_items_to_show +=
+//                         '<p class="item_name" data-tippy-content="' +
+//                         foundItems[key].item_name + '">' +
+//                         foundItems[key].item_name + "</p>";
+//                     searched_category_items_to_show +=
+//                         '<p class="item_price">' + inv_currency + " " +
+//                         foundItems[key].price + "</p>";
+//                     searched_category_items_to_show +=
+//                         '<span class="item_vat_percentage ir_display_none">' +
+//                         foundItems[key].vat_percentage + "</span>";
+//                     searched_category_items_to_show += "</div>";
+//                 }
+//             }
+//         }
+        
+//         searched_category_items_to_show += "<div>";
+//         $("#searched_item_found").remove();
+//         $(".specific_category_items_holder").fadeOut(0);
+//         $(".category_items").prepend(searched_category_items_to_show);
+        
+//         if(food_menu_tooltip=="show"){
+//             tippy(".item_name", {
+//                 placement: "bottom-start",
+//             });
+//         }
+//     } else {
+//         show_all_items();
+//     }
+// });
+
+let searchTimeout; // Para el debounce
+
 $(document).on("keyup", "#search", function (e) {
+    clearTimeout(searchTimeout);
     let searched_string = $(this).val().trim();
     
     // Si se presiona Enter
     if (e.keyCode === 13 && searched_string) {
         e.preventDefault(); // Prevenir comportamiento por defecto
-        
+
         // Buscar producto por código exacto
-        let foundItem = window.items.find(item => 
+        let foundItem = window.items.find(item =>
             item.item_code && item.item_code.trim().toLowerCase() === searched_string.toLowerCase()
         );
-        
+
         if (foundItem) {
             // Simular click en el producto encontrado
             $(`#item_${foundItem.item_id}`).click();
-            // Limpiar el buscador después de agregar
-            $(this).val('');
-            // Mostrar todos los items nuevamente
-            show_all_items();
+            $(this).val(''); // Limpiar el buscador después de agregar
+            show_all_items(); // Mostrar todos los items nuevamente
         } else {
-            // Si no se encuentra, mantener el comportamiento actual de búsqueda
-            let foundItems = searchItemAndConstructGallery(searched_string);
-            let searched_category_items_to_show = 
-                '<div id="searched_item_found" class="specific_category_items_holder 002">';
-            
-            for (let key in foundItems) {
-                if (foundItems.hasOwnProperty(key)) {
-                    if (foundItems[key].parent_id == '0') {
-                        searched_category_items_to_show +=
-                            '<div class="single_item animate__animated animate__flipInX"  data-price="' + 
-                            foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
-                            '"    data-is_variation="' + foundItems[key].is_variation + 
-                            '"  data-parent_id="' + foundItems[key].parent_id + 
-                            '"   data-price_delivery="' + foundItems[key].price_delivery + 
-                            '"  id="item_' + foundItems[key].item_id + '">';
-                        searched_category_items_to_show +=
-                            '<img src="' + foundItems[key].image + '" alt="" width="141">';
-                        searched_category_items_to_show +=
-                            '<p class="item_name" data-tippy-content="' +
-                            foundItems[key].item_name + '">' +
-                            foundItems[key].item_name + "</p>";
-                        searched_category_items_to_show +=
-                            '<p class="item_price">' + inv_currency + " " +
-                            foundItems[key].price + "</p>";
-                        searched_category_items_to_show +=
-                            '<span class="item_vat_percentage ir_display_none">' +
-                            foundItems[key].vat_percentage + "</span>";
-                        searched_category_items_to_show += "</div>";
-                    }
-                }
-            }
-            
-            searched_category_items_to_show += "<div>";
-            $("#searched_item_found").remove();
-            $(".specific_category_items_holder").fadeOut(0);
-            $(".category_items").prepend(searched_category_items_to_show);
-            
-            if(food_menu_tooltip=="show"){
-                tippy(".item_name", {
-                    placement: "bottom-start",
-                });
-            }
-        }
-    } else if (searched_string) {
-        // Comportamiento normal de búsqueda mientras se escribe
-        let foundItems = searchItemAndConstructGallery(searched_string);
-        let searched_category_items_to_show = 
-            '<div id="searched_item_found" class="specific_category_items_holder 002">';
-        
-        for (let key in foundItems) {
-            if (foundItems.hasOwnProperty(key)) {
-                if (foundItems[key].parent_id == '0') {
-                    searched_category_items_to_show +=
-                        '<div class="single_item animate__animated animate__flipInX"  data-price="' + 
-                        foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
-                        '"    data-is_variation="' + foundItems[key].is_variation + 
-                        '"  data-parent_id="' + foundItems[key].parent_id + 
-                        '"   data-price_delivery="' + foundItems[key].price_delivery + 
-                        '"  id="item_' + foundItems[key].item_id + '">';
-                    searched_category_items_to_show +=
-                        '<img src="' + foundItems[key].image + '" alt="" width="141">';
-                    searched_category_items_to_show +=
-                        '<p class="item_name" data-tippy-content="' +
-                        foundItems[key].item_name + '">' +
-                        foundItems[key].item_name + "</p>";
-                    searched_category_items_to_show +=
-                        '<p class="item_price">' + inv_currency + " " +
-                        foundItems[key].price + "</p>";
-                    searched_category_items_to_show +=
-                        '<span class="item_vat_percentage ir_display_none">' +
-                        foundItems[key].vat_percentage + "</span>";
-                    searched_category_items_to_show += "</div>";
-                }
-            }
-        }
-        
-        searched_category_items_to_show += "<div>";
-        $("#searched_item_found").remove();
-        $(".specific_category_items_holder").fadeOut(0);
-        $(".category_items").prepend(searched_category_items_to_show);
-        
-        if(food_menu_tooltip=="show"){
-            tippy(".item_name", {
-                placement: "bottom-start",
-            });
+            updateSearchResults(searched_string);
         }
     } else {
-        show_all_items();
+        searchTimeout = setTimeout(() => {
+            if (searched_string) {
+                updateSearchResults(searched_string);
+            } else {
+                show_all_items();
+            }
+        }, 200); // Esperamos 200ms antes de ejecutar la búsqueda
     }
 });
+
+// Función optimizada para construir los resultados
+function updateSearchResults(searchText) {
+    let foundItems = searchItemAndConstructGallery(searchText);
+    let container = document.createElement("div");
+    container.id = "searched_item_found";
+    container.className = "specific_category_items_holder 002";
+
+    for (let key in foundItems) {
+        let veg_status = "no";
+        if (foundItems[key].veg_item_status == "yes") {
+            veg_status = "yes";
+        }
+        if (foundItems[key].parent_id == '0') {
+            let item = foundItems[key];
+            let itemDiv = document.createElement("div");
+            itemDiv.className = "single_item animate__animated animate__flipInX";
+            itemDiv.dataset.price = item.price;
+            itemDiv.dataset.price_take = item.price_take;
+            itemDiv.dataset.is_variation = item.is_variation;
+            itemDiv.dataset.parent_id = item.parent_id;
+            itemDiv.dataset.price_delivery = item.price_delivery;
+            itemDiv.dataset.veg_status = veg_status;
+            itemDiv.id = `item_${item.item_id}`;
+
+            itemDiv.innerHTML = `
+                <img src="${item.image}" alt="" width="141">
+                <p class="item_name" data-tippy-content="${item.item_name}">${item.item_name}</p>
+                <p class="item_price">${inv_currency} ${item.price}</p>
+                <span class="item_vat_percentage ir_display_none">${item.vat_percentage}</span>
+            `;
+
+            container.appendChild(itemDiv);
+        }
+    }
+
+    // Actualizar el DOM de forma eficiente
+    $("#searched_item_found").remove();
+    $(".specific_category_items_holder").fadeOut(0);
+    $(".category_items").prepend(container);
+
+    if (food_menu_tooltip == "show") {
+        tippy(".item_name", { placement: "bottom-start" });
+    }
+}
 
 
 
@@ -5282,19 +5447,35 @@ $(document).on("keyup", "#search", function (e) {
                 let status_continue = true;
                 let if_exist = Number($("#item_quantity_table_"+item_id).html());
   
-                if(when_clicking_on_item_in_pos==2){
-                  if(if_exist && if_exist!=undefined){
-                      $("#increase_item_table_"+item_id).click();
-                      //do calculation on table
-                      status_continue = false;
-                  }
-                }else if (when_clicking_on_item_in_pos==1){
-                    if(if_exist && if_exist!=undefined){
-                        $("#edit_item_"+item_id).click();
+                let veg_status = $(this).attr("data-veg_status"); // Obtener el estado veg_status
+
+                if (when_clicking_on_item_in_pos == 2) {
+                    if (if_exist && if_exist != undefined && veg_status !== "yes") {
+                        $("#increase_item_table_" + item_id).click();
+                        //do calculation on table
+                        status_continue = false;
+                    }
+                } else if (when_clicking_on_item_in_pos == 1) {
+                    if (if_exist && if_exist != undefined && veg_status !== "yes") {
+                        $("#edit_item_" + item_id).click();
                         //do calculation on table
                         status_continue = false;
                     }
                 }
+
+                // if(when_clicking_on_item_in_pos==2){
+                //   if(if_exist && if_exist!=undefined){
+                //       $("#increase_item_table_"+item_id).click();
+                //       //do calculation on table
+                //       status_continue = false;
+                //   }
+                // }else if (when_clicking_on_item_in_pos==1){
+                //     if(if_exist && if_exist!=undefined){
+                //         $("#edit_item_"+item_id).click();
+                //         //do calculation on table
+                //         status_continue = false;
+                //     }
+                // }
                 //get tax information
                 let tax_information = "";
                 /*added_new_zakir*/
@@ -6282,10 +6463,14 @@ $(document).on("keyup", "#search", function (e) {
             '<div id="searched_item_found" class="specific_category_items_holder 003">';
   
           for (let key in foundItems) {
+            let veg_status = "no";
+            if (foundItems[key].veg_item_status == "yes") {
+                veg_status = "yes";
+            }
             if (foundItems.hasOwnProperty(key)) {
                 if(foundItems[key].parent_id=='0'){
                     searched_category_items_to_show +=
-                        '<div class="single_item animate__animated animate__flipInX"  data-price="'+foundItems[key].price+'"  data-price_take="'+foundItems[key].price_take+'"   data-is_variation="'+foundItems[key].is_variation+'"  data-parent_id="'+foundItems[key].parent_id+'"   data-price_delivery="'+foundItems[key].price_delivery+'"  id="item_' +
+                        '<div class="single_item animate__animated animate__flipInX"  data-price="'+foundItems[key].price+'"  data-price_take="'+foundItems[key].price_take+'"   data-is_variation="'+foundItems[key].is_variation+'"  data-parent_id="'+foundItems[key].parent_id+'"   data-price_delivery="'+foundItems[key].price_delivery+ '" data-veg_status="' + veg_status +'"  id="item_' +
                 foundItems[key].item_id +
                 '">';
               searched_category_items_to_show +=
@@ -6325,9 +6510,13 @@ $(document).on("keyup", "#search", function (e) {
   
                 for (let key in foundItems) {
                     if (foundItems.hasOwnProperty(key)) {
+                        let veg_status = "no";
+                        if (foundItems[key].veg_item_status == "yes") {
+                            veg_status = "yes";
+                        }
                         if(foundItems[key].parent_id=='0' && foundItems[key].product_type==2){
                             searched_category_items_to_show +=
-                                '<div class="single_item animate__animated animate__flipInX"  data-price="'+foundItems[key].price+'"  data-price_take="'+foundItems[key].price_take+'"   data-is_variation="'+foundItems[key].is_variation+'"  data-parent_id="'+foundItems[key].parent_id+'"   data-price_delivery="'+foundItems[key].price_delivery+'"  id="item_' +
+                                '<div class="single_item animate__animated animate__flipInX"  data-price="'+foundItems[key].price+'"  data-price_take="'+foundItems[key].price_take+'"   data-is_variation="'+foundItems[key].is_variation+'"  data-parent_id="'+foundItems[key].parent_id+'"   data-price_delivery="'+foundItems[key].price_delivery+'" data-veg_status="' + veg_status +'"  id="item_' +
                                 foundItems[key].item_id +
                                 '">';
                             searched_category_items_to_show +=
@@ -6518,6 +6707,7 @@ $(document).on("keyup", "#search", function (e) {
               }
           }
       }
+
       function deleteOrderForWaiter(sale_no){
           let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
           objectStore.openCursor().onsuccess = function(event) {
@@ -6536,6 +6726,7 @@ $(document).on("keyup", "#search", function (e) {
               }
           }
       }
+
       $(document).on("click", "#cancel_order_button", function (e) {
           let pos_2 = Number($("#pos_2").val());
           if(pos_2){
@@ -12739,7 +12930,19 @@ $(document).on("keyup", "#search", function (e) {
            getSelectedOrderDetailsRecentSale(sale_no).then(function(order_info){
                 call_print_invoice(order_info,inv_qr_code_enable_status);
             });
-        } else {
+        } else if (print_type_invoice == "printer_app") {
+            $.ajax({
+                url: base_url + "Sale/printer_app_invoice/" + sale_no,
+                method: "GET",
+                success: function(base64) {
+                    console.log(base64);
+                    window.location.href = 'print://' + base64;
+                },
+                error: function() {
+                    alert("Error al generar el ticket para la impresora.");
+                }
+            });
+          } else {
             $("#finalize_order_modal").removeClass("active");
             $(".pos__modal__overlay").fadeOut(300);
             getSelectedOrderDetailsRecentSale(sale_no).then(function(order_info){
@@ -13681,282 +13884,504 @@ $(document).on("keyup", "#search", function (e) {
             }
         });
     } 
+
+
+
+
+
+
+
+
+
+    // let currentOccupiedNumbers = {}; 
+
+    // function new_notification_interval() {
+    //   $.ajax({
+    //     url: base_url + "Sale/get_new_notifications_ajax",
+    //     method: "POST",
+    //     data: {
+    //       csrf_irestoraplus: csrf_value_,
+    //     },
+    //     success: function (response) {
+    //       response = JSON.parse(response);
+    //       let notification_counter_update = response.length;
+    //       let notification_counter_previous = $("#notification_counter").html();
+    //       $("#notification_counter").html(notification_counter_update);
+    //       if (notification_counter_update > notification_counter_previous) {
+    //         setTimeout(function () {
+    //           $("#notification_button").css("background-color", "#dc3545");
+    //           $("#notification_button").css("color", "#fff");
+    //         }, 500);
+    //         setTimeout(function () {
+    //           $("#notification_button").css("background-color", "#ccc");
+    //           $("#notification_button").css("color", "buttontext");
+    //         }, 1000);
+    //         setTimeout(function () {
+    //           $("#notification_button").css("background-color", "#dc3545");
+    //           $("#notification_button").css("color", "#fff");
+    //         }, 1500);
+    //         setTimeout(function () {
+    //           $("#notification_button").css("background-color", "#ccc");
+    //           $("#notification_button").css("color", "buttontext");
+    //         }, 2000);
+    //         setTimeout(function () {
+    //           $("#notification_button").css("background-color", "#dc3545");
+    //           $("#notification_button").css("color", "#fff");
+    //         }, 2500);
+    //         setTimeout(function () {
+    //           $("#notification_button").css("background-color", "#ccc");
+    //           $("#notification_button").css("color", "buttontext");
+    //         }, 3000);
+    //         setTimeout(function () {
+    //           $("#notification_button").css("background-color", 'unset');
+    //           $("#notification_button").css("color", '#22bfe9');
+    //         }, 3500);
+    //           let is_self_order = $("#is_self_order").val();
+    //           let is_online_order = $("#is_online_order").val();
+    //           if(is_self_order!="Yes"){
+    //               if(is_online_order!="Yes"){
+    //                   bell_new_order.play();
+    //               }
+    //           }
+    //       }
+  
+    //       // let i = 1;
+    //       let notifications_list = "";
+    //       for (let key in response) {
+    //         let this_notification = response[key];
+    //         notifications_list +=
+    //           '<div class="single_row_notification fix" id="single_notification_row_' +
+    //           this_notification.id +
+    //           '">';
+    //         notifications_list +=
+    //           '<div class="fix single_notification_check_box">';
+    //         notifications_list +=
+    //           '<input class="single_notification_checkbox" type="checkbox" id="single_notification_' +
+    //           this_notification.id +
+    //           '" value="' +
+    //           this_notification.id +
+    //           '">';
+    //         notifications_list += "</div>";
+    //         notifications_list +=
+    //           '<div class="fix single_notification">' +
+    //           this_notification.notification +
+    //           "</div>";
+    //         notifications_list += '<div class="fix single_serve_button">';
+    //         notifications_list +=
+    //           '<button class="single_serve_b" id="notification_serve_button_' +
+    //           this_notification.id +
+    //           '">Servir/Tomar/Entregar</button>';
+    //         notifications_list += "</div>";
+    //         notifications_list += "</div>";
+    //       }
+    //       $("#notification_list_holder").html(notifications_list);
+    //     },
+    //     error: function () {
+  
+    //     },
+    //   });
+    //     //waiter_order_module
+    //     push_online();
+    //     let sale_no_all = '';
+    //     $(".running_order_order_number").each(function() {
+    //         let running_order_order_number = $(this).text();
+    //         let added_offline_status = Number($(this).attr("data-added_offline_status"));
+    //         if(added_offline_status==2){
+    //             sale_no_all+=running_order_order_number;
+    //             sale_no_all+=",";
+    //         }
+    //     });
+  
+    //     $.ajax({
+    //         url: base_url + "Sale/getWaiterOrders",
+    //         method: "POST",
+    //         dataType:'json',
+    //         async:false,
+    //         data: {
+    //             sale_no_all: sale_no_all,
+    //             csrf_irestoraplus: csrf_value_,
+    //         },
+    //         success: function (response) {
+    //             let order = '';
+    //             let get_waiter_orders = (response.get_waiter_orders);
+    //             let outlet_id_indexdb = $("#outlet_id_indexdb").val();
+    //             let company_id_indexdb = $("#company_id_indexdb").val();
+
+    //             let processedOrders = {}; // Objeto para rastrear órdenes ya procesadas
+
+    //             // Procesar get_waiter_orders
+    //             for (let key1 in get_waiter_orders) {
+    //                 order = get_waiter_orders[key1];
+    //                 let order_info = jQuery.parseJSON(order.self_order_content);
+    //                 order_info.sale_date = getCurrentDate();
+    //                 let sale_no_new = order_info.sale_no;
+                    
+    //                 // Registrar la orden como procesada
+    //                 processedOrders[sale_no_new] = true;
+                    
+    //                 let is_exist = false;
+    //                 $(".running_order_order_number").each(function() {
+    //                     let running_order_order_number = $(this).text();
+    //                     if(running_order_order_number == sale_no_new){
+    //                         is_exist = true;
+    //                     }
+    //                 });
+                    
+    //                 if(!is_exist){
+    //                     let order_object = JSON.stringify(order_info);
+    //                     add_sale_by_ajax('', order_object, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+                        
+    //                     if(order_info.waiter_app_status == "Yes"){
+    //                         push_online_for_kitchen(order.self_order_content, '', sale_no_new, 1);
+    //                     }
+    //                 }
+    //                 setOrderPulled(order.id);
+    //             }
+    //             let get_waiter_invoice_orders = (response.get_waiter_invoice_orders);
+    //             for (let key1 in get_waiter_invoice_orders) {
+    //                 order = get_waiter_invoice_orders[key1];
+    //                 closeOrderForWaiter(order.sale_no);
+    //                 setOrderInvoicePulled(order.id);
+    //             }
+    //             let get_waiter_orders_for_update_sender = (response.get_waiter_orders_for_update_sender);
+    //             for (let key1 in get_waiter_orders_for_update_sender) {
+    //                 order = get_waiter_orders_for_update_sender[key1];
+    //                 updateOrderForWaiter(order.sale_no,order.self_order_content);
+    //                 setOrderInvoiceUpdated(order.id,1);
+    //             }
+    //             let get_waiter_orders_for_update_receiver = (response.get_waiter_orders_for_update_receiver);
+    //             for (let key1 in get_waiter_orders_for_update_receiver) {
+    //                 order = get_waiter_orders_for_update_receiver[key1];
+    //                 updateOrderForWaiter(order.sale_no,order.self_order_content);
+    //                 setOrderInvoiceUpdated(order.id,2);
+    //             }
+    //             let get_waiter_orders_for_delete_sender =   (response.get_waiter_orders_for_delete_sender);
+
+                 
+    //             if(get_waiter_orders_for_delete_sender){
+                  
+    //                 let get_waiter_orders_for_delete_sender_arr =   (response.get_waiter_orders_for_delete_sender).split(",");
+
+    //                 for (let key1 in get_waiter_orders_for_delete_sender_arr) {
+    //                     let sale_no_tmp = get_waiter_orders_for_delete_sender_arr[key1]; 
+    //                     if(sale_no_tmp){
+    //                         deleteOrderForWaiter(sale_no_tmp);
+    //                     }
+                        
+    //                 }
+
+    //             }
+    //             if(pre_or_post_payment!=2){
+    //                 let already_invoiced_orders = (response.already_invoiced_orders);
+    //                 for (let key1 in already_invoiced_orders) {
+    //                     order = already_invoiced_orders[key1];
+    //                     deleteOrderForWaiter(order.sale_no);
+    //                 }
+    //             }
+            
+    //             let get_all_running_order_for_new_pc = response.get_all_running_order_for_new_pc;
+            
+    //             // Procesar get_all_running_order_for_new_pc
+    //             for (let key_order in get_all_running_order_for_new_pc) {
+    //                 order = get_all_running_order_for_new_pc[key_order];
+    //                 let sale_no_new = order.sale_no;
+                    
+    //                 // Verificar si la orden ya fue procesada
+    //                 if (!processedOrders[sale_no_new]) {
+    //                     let order_id = "order_" + get_plan_string(sale_no_new);
+                        
+    //                     if (!$("#" + order_id).length) {
+    //                         add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+    //                         // console.log(sale_no_new + " " + pulled_successfully);
+    //                     }
+    //                 }
+    //             }
+                
+    //         // Procesar números ocupados (nueva funcionalidad integrada)
+    //         if (response.occupied_numbers) {
+    //             let newOccupiedNumbers = {};
+    //             let occupiedNumbers = response.occupied_numbers;
+                
+    //             // 1. Marcar números ocupados que vienen del servidor
+    //             occupiedNumbers.forEach(num => {
+    //                 newOccupiedNumbers[num.id] = true;
+                    
+    //                 const button = $(`.number_buttons[data-number="${num.id}"]`);
+                    
+    //                 if (button.length && !button.hasClass('btn-danger')) {
+    //                     button
+    //                         .removeClass('btn-success')
+    //                         .addClass('btn-danger')
+    //                         .attr('data-sale_id', num.sale_id || '')
+    //                         .attr('data-sale_no', num.sale_no || '')
+    //                         .attr('data-user_id', num.user_id || '');
+                        
+    //                     // Animación para cambios
+    //                     button.css('transform', 'scale(1.2)');
+    //                     setTimeout(() => button.css('transform', 'scale(1)'), 300);
+    //                 }
+    //             });
+                
+    //             // 2. Verificar números que estaban ocupados pero ahora están disponibles
+    //             for (const numId in currentOccupiedNumbers) {
+    //                 if (!newOccupiedNumbers[numId]) {
+    //                     const button = $(`.number_buttons[data-number="${numId}"]`);
+                        
+    //                     if (button.length) {
+    //                         button
+    //                             .removeClass('btn-danger')
+    //                             .addClass('btn-success')
+    //                             .attr('data-sale_id', '')
+    //                             .attr('data-sale_no', '')
+    //                             .attr('data-user_id', '');
+                            
+    //                         // Animación para cambios
+    //                         button.css('transform', 'scale(1.2)');
+    //                         setTimeout(() => button.css('transform', 'scale(1)'), 300);
+    //                     }
+    //                 }
+    //             }
+                
+    //             currentOccupiedNumbers = newOccupiedNumbers;
+    //         }
+    //         },
+    //         error: function () {
+  
+    //         },
+    //     });
+    // }
+    // function reset_time_interval() {
+    //   for (let i = 1; i < 99999; i++) window.clearInterval(i);
+    // }
+  
+    // function all_time_interval_operation() {
+    //   setInterval(function () {
+    //       if(checkInternetConnection()){
+    //           new_notification_interval();
+    //       }
+    //     refresh_orders_left();
+    //   }, 7000);
+    // }
+    // all_time_interval_operation();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     let currentOccupiedNumbers = {}; 
 
+
     function new_notification_interval() {
-      $.ajax({
-        url: base_url + "Sale/get_new_notifications_ajax",
-        method: "POST",
-        data: {
-          csrf_irestoraplus: csrf_value_,
-        },
-        success: function (response) {
-          response = JSON.parse(response);
-          let notification_counter_update = response.length;
-          let notification_counter_previous = $("#notification_counter").html();
-          $("#notification_counter").html(notification_counter_update);
-          if (notification_counter_update > notification_counter_previous) {
-            setTimeout(function () {
-              $("#notification_button").css("background-color", "#dc3545");
-              $("#notification_button").css("color", "#fff");
-            }, 500);
-            setTimeout(function () {
-              $("#notification_button").css("background-color", "#ccc");
-              $("#notification_button").css("color", "buttontext");
-            }, 1000);
-            setTimeout(function () {
-              $("#notification_button").css("background-color", "#dc3545");
-              $("#notification_button").css("color", "#fff");
-            }, 1500);
-            setTimeout(function () {
-              $("#notification_button").css("background-color", "#ccc");
-              $("#notification_button").css("color", "buttontext");
-            }, 2000);
-            setTimeout(function () {
-              $("#notification_button").css("background-color", "#dc3545");
-              $("#notification_button").css("color", "#fff");
-            }, 2500);
-            setTimeout(function () {
-              $("#notification_button").css("background-color", "#ccc");
-              $("#notification_button").css("color", "buttontext");
-            }, 3000);
-            setTimeout(function () {
-              $("#notification_button").css("background-color", 'unset');
-              $("#notification_button").css("color", '#22bfe9');
-            }, 3500);
-              let is_self_order = $("#is_self_order").val();
-              let is_online_order = $("#is_online_order").val();
-              if(is_self_order!="Yes"){
-                  if(is_online_order!="Yes"){
-                      bell_new_order.play();
-                  }
-              }
-          }
-  
-          // let i = 1;
-          let notifications_list = "";
-          for (let key in response) {
-            let this_notification = response[key];
-            notifications_list +=
-              '<div class="single_row_notification fix" id="single_notification_row_' +
-              this_notification.id +
-              '">';
-            notifications_list +=
-              '<div class="fix single_notification_check_box">';
-            notifications_list +=
-              '<input class="single_notification_checkbox" type="checkbox" id="single_notification_' +
-              this_notification.id +
-              '" value="' +
-              this_notification.id +
-              '">';
-            notifications_list += "</div>";
-            notifications_list +=
-              '<div class="fix single_notification">' +
-              this_notification.notification +
-              "</div>";
-            notifications_list += '<div class="fix single_serve_button">';
-            notifications_list +=
-              '<button class="single_serve_b" id="notification_serve_button_' +
-              this_notification.id +
-              '">Servir/Tomar/Entregar</button>';
-            notifications_list += "</div>";
-            notifications_list += "</div>";
-          }
-          $("#notification_list_holder").html(notifications_list);
-        },
-        error: function () {
-  
-        },
-      });
-        //waiter_order_module
-        push_online();
-        let sale_no_all = '';
-        $(".running_order_order_number").each(function() {
-            let running_order_order_number = $(this).text();
-            let added_offline_status = Number($(this).attr("data-added_offline_status"));
-            if(added_offline_status==2){
-                sale_no_all+=running_order_order_number;
-                sale_no_all+=",";
+        $.ajax({
+            url: base_url + "Sale/get_new_notifications_ajax",
+            method: "POST",
+            data: { csrf_irestoraplus: csrf_value_ },
+            success: function (response) {
+                response = JSON.parse(response);
+                let notification_counter_update = response.length;
+                let notification_counter_previous = Number($("#notification_counter").html());
+    
+                if (notification_counter_update !== notification_counter_previous) {
+                    $("#notification_counter").html(notification_counter_update);
+    
+                    if (notification_counter_update > notification_counter_previous) {
+                        animateNotificationButton();
+                        playNotificationSound();
+                    }
+                }
+    
+                let notifications_list = response.map(notification => 
+                    `<div class="single_row_notification fix" id="single_notification_row_${notification.id}">
+                        <div class="fix single_notification_check_box">
+                            <input class="single_notification_checkbox" type="checkbox" id="single_notification_${notification.id}" value="${notification.id}">
+                        </div>
+                        <div class="fix single_notification">${notification.notification}</div>
+                        <div class="fix single_serve_button">
+                            <button class="single_serve_b" id="notification_serve_button_${notification.id}">Servir/Tomar/Entregar</button>
+                        </div>
+                    </div>`).join("");
+    
+                $("#notification_list_holder").html(notifications_list);
             }
         });
-  
+    
+        processWaiterOrders();
+    }
+    
+    function animateNotificationButton() {
+        let button = $("#notification_button");
+        let colors = ["#dc3545", "#ccc"];
+        let index = 0;
+        
+        function toggleColor() {
+            if (index < colors.length * 3) { // Alterna 3 veces
+                button.css({ "background-color": colors[index % 2], "color": index % 2 === 0 ? "#fff" : "buttontext" });
+                index++;
+                requestAnimationFrame(toggleColor);
+            } else {
+                button.css({ "background-color": "unset", "color": "#22bfe9" });
+            }
+        }
+        requestAnimationFrame(toggleColor);
+    }
+    
+    function playNotificationSound() {
+        let is_self_order = $("#is_self_order").val();
+        let is_online_order = $("#is_online_order").val();
+        if (is_self_order !== "Yes" && is_online_order !== "Yes") {
+            bell_new_order.play();
+        }
+    }
+    
+    function processWaiterOrders() {
+        let sale_no_all = $(".running_order_order_number").map(function () {
+            return $(this).attr("data-added_offline_status") == 2 ? $(this).text() : null;
+        }).get().join(",");
+    
         $.ajax({
             url: base_url + "Sale/getWaiterOrders",
             method: "POST",
-            dataType:'json',
-            async:false,
-            data: {
-                sale_no_all: sale_no_all,
-                csrf_irestoraplus: csrf_value_,
-            },
+            dataType: 'json',
+            data: { sale_no_all, csrf_irestoraplus: csrf_value_ },
             success: function (response) {
-                let order = '';
-                let get_waiter_orders = (response.get_waiter_orders);
                 let outlet_id_indexdb = $("#outlet_id_indexdb").val();
                 let company_id_indexdb = $("#company_id_indexdb").val();
-
-                let processedOrders = {}; // Objeto para rastrear órdenes ya procesadas
-
-                // Procesar get_waiter_orders
-                for (let key1 in get_waiter_orders) {
-                    order = get_waiter_orders[key1];
-                    let order_info = jQuery.parseJSON(order.self_order_content);
-                    order_info.sale_date = getCurrentDate();
+                let processedOrders = {};
+    
+                response.get_waiter_orders.forEach(order => {
+                    let order_info = JSON.parse(order.self_order_content);
                     let sale_no_new = order_info.sale_no;
-                    
+    
                     // Registrar la orden como procesada
                     processedOrders[sale_no_new] = true;
-                    
-                    let is_exist = false;
-                    $(".running_order_order_number").each(function() {
-                        let running_order_order_number = $(this).text();
-                        if(running_order_order_number == sale_no_new){
-                            is_exist = true;
-                        }
-                    });
-                    
-                    if(!is_exist){
-                        let order_object = JSON.stringify(order_info);
-                        add_sale_by_ajax('', order_object, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
-                        
-                        if(order_info.waiter_app_status == "Yes"){
+                    if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
+                        add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+                        if (order_info.waiter_app_status === "Yes") {
                             push_online_for_kitchen(order.self_order_content, '', sale_no_new, 1);
                         }
                     }
                     setOrderPulled(order.id);
-                }
-                let get_waiter_invoice_orders = (response.get_waiter_invoice_orders);
-                for (let key1 in get_waiter_invoice_orders) {
-                    order = get_waiter_invoice_orders[key1];
+                });
+    
+                response.get_waiter_invoice_orders.forEach(order => {
                     closeOrderForWaiter(order.sale_no);
                     setOrderInvoicePulled(order.id);
+                });
+    
+                response.get_waiter_orders_for_update_sender.forEach(order => {
+                    updateOrderForWaiter(order.sale_no, order.self_order_content);
+                    setOrderInvoiceUpdated(order.id, 1);
+                });
+    
+                response.get_waiter_orders_for_update_receiver.forEach(order => {
+                    updateOrderForWaiter(order.sale_no, order.self_order_content);
+                    setOrderInvoiceUpdated(order.id, 2);
+                });
+    
+                if (response.get_waiter_orders_for_delete_sender) {
+                    response.get_waiter_orders_for_delete_sender.split(",").forEach(sale_no_tmp => {
+                        if (sale_no_tmp) deleteOrderForWaiter(sale_no_tmp);
+                    });
                 }
-                let get_waiter_orders_for_update_sender = (response.get_waiter_orders_for_update_sender);
-                for (let key1 in get_waiter_orders_for_update_sender) {
-                    order = get_waiter_orders_for_update_sender[key1];
-                    updateOrderForWaiter(order.sale_no,order.self_order_content);
-                    setOrderInvoiceUpdated(order.id,1);
-                }
-                let get_waiter_orders_for_update_receiver = (response.get_waiter_orders_for_update_receiver);
-                for (let key1 in get_waiter_orders_for_update_receiver) {
-                    order = get_waiter_orders_for_update_receiver[key1];
-                    updateOrderForWaiter(order.sale_no,order.self_order_content);
-                    setOrderInvoiceUpdated(order.id,2);
-                }
-                let get_waiter_orders_for_delete_sender =   (response.get_waiter_orders_for_delete_sender);
-
-                 
-                if(get_waiter_orders_for_delete_sender){
-                  
-                    let get_waiter_orders_for_delete_sender_arr =   (response.get_waiter_orders_for_delete_sender).split(",");
-
-                    for (let key1 in get_waiter_orders_for_delete_sender_arr) {
-                        let sale_no_tmp = get_waiter_orders_for_delete_sender_arr[key1]; 
-                        if(sale_no_tmp){
-                            deleteOrderForWaiter(sale_no_tmp);
-                        }
-                        
-                    }
-
-                }
-                if(pre_or_post_payment!=2){
-                    let already_invoiced_orders = (response.already_invoiced_orders);
-                    for (let key1 in already_invoiced_orders) {
-                        order = already_invoiced_orders[key1];
+    
+                if (pre_or_post_payment != 2) {
+                    response.already_invoiced_orders.forEach(order => {
                         deleteOrderForWaiter(order.sale_no);
-                    }
+                    });
                 }
-            
-                let get_all_running_order_for_new_pc = response.get_all_running_order_for_new_pc;
-            
-                // Procesar get_all_running_order_for_new_pc
-                for (let key_order in get_all_running_order_for_new_pc) {
-                    order = get_all_running_order_for_new_pc[key_order];
+    
+                response.get_all_running_order_for_new_pc.forEach(order => {
                     let sale_no_new = order.sale_no;
-                    
-                    // Verificar si la orden ya fue procesada
                     if (!processedOrders[sale_no_new]) {
-                        let order_id = "order_" + get_plan_string(sale_no_new);
-                        
-                        if (!$("#" + order_id).length) {
+                        if (!$(`#order_${get_plan_string(sale_no_new)}`).length) {
                             add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
-                            // console.log(sale_no_new + " " + pulled_successfully);
                         }
-                    }
-                }
-                
-            // Procesar números ocupados (nueva funcionalidad integrada)
-            if (response.occupied_numbers) {
-                let newOccupiedNumbers = {};
-                let occupiedNumbers = response.occupied_numbers;
-                
-                // 1. Marcar números ocupados que vienen del servidor
-                occupiedNumbers.forEach(num => {
-                    newOccupiedNumbers[num.id] = true;
-                    
-                    const button = $(`.number_buttons[data-number="${num.id}"]`);
-                    
-                    if (button.length && !button.hasClass('btn-danger')) {
-                        button
-                            .removeClass('btn-success')
-                            .addClass('btn-danger')
-                            .attr('data-sale_id', num.sale_id || '')
-                            .attr('data-sale_no', num.sale_no || '')
-                            .attr('data-user_id', num.user_id || '');
-                        
-                        // Animación para cambios
-                        button.css('transform', 'scale(1.2)');
-                        setTimeout(() => button.css('transform', 'scale(1)'), 300);
                     }
                 });
-                
-                // 2. Verificar números que estaban ocupados pero ahora están disponibles
-                for (const numId in currentOccupiedNumbers) {
-                    if (!newOccupiedNumbers[numId]) {
-                        const button = $(`.number_buttons[data-number="${numId}"]`);
-                        
-                        if (button.length) {
-                            button
-                                .removeClass('btn-danger')
-                                .addClass('btn-success')
-                                .attr('data-sale_id', '')
-                                .attr('data-sale_no', '')
-                                .attr('data-user_id', '');
-                            
-                            // Animación para cambios
-                            button.css('transform', 'scale(1.2)');
-                            setTimeout(() => button.css('transform', 'scale(1)'), 300);
-                        }
-                    }
-                }
-                
-                currentOccupiedNumbers = newOccupiedNumbers;
+    
+                updateOccupiedNumbers(response.occupied_numbers);
             }
-            },
-            error: function () {
-  
-            },
         });
     }
+    
+    function updateOccupiedNumbers(occupiedNumbers) {
+        let newOccupiedNumbers = {};
+    
+        occupiedNumbers.forEach(num => {
+            newOccupiedNumbers[num.id] = true;
+            let button = $(`.number_buttons[data-number="${num.id}"]`);
+            if (button.length && !button.hasClass('btn-danger')) {
+                button.removeClass('btn-success').addClass('btn-danger')
+                    .attr({ 'data-sale_id': num.sale_id || '', 'data-sale_no': num.sale_no || '', 'data-user_id': num.user_id || '' })
+                    .css('transform', 'scale(1.2)');
+                setTimeout(() => button.css('transform', 'scale(1)'), 300);
+            }
+        });
+    
+        for (const numId in currentOccupiedNumbers) {
+            if (!newOccupiedNumbers[numId]) {
+                let button = $(`.number_buttons[data-number="${numId}"]`);
+                if (button.length) {
+                    button.removeClass('btn-danger').addClass('btn-success')
+                        .attr({ 'data-sale_id': '', 'data-sale_no': '', 'data-user_id': '' })
+                        .css('transform', 'scale(1.2)');
+                    setTimeout(() => button.css('transform', 'scale(1)'), 300);
+                }
+            }
+        }
+    
+        currentOccupiedNumbers = newOccupiedNumbers;
+    }
+    
     function reset_time_interval() {
-      for (let i = 1; i < 99999; i++) window.clearInterval(i);
+        let highestId = setTimeout(() => { }, 0);
+        for (let i = 1; i <= highestId; i++) window.clearInterval(i);
     }
-  
+    
     function all_time_interval_operation() {
-      setInterval(function () {
-          if(checkInternetConnection()){
-              new_notification_interval();
-          }
-        refresh_orders_left();
-      }, 7000);
+        setInterval(() => {
+            if (checkInternetConnection()) new_notification_interval();
+            refresh_orders_left();
+        }, 10000);
     }
+    
+    all_time_interval_operation();
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     //   //waiter_order_module
     //   setTimeout(function () {
     //       if(checkInternetConnection()){
     //           new_notification_interval();
     //       }
     //   }, 1000);
-    all_time_interval_operation();
+
+    
       function checkPercentage1(value) {
           if(value){
               if (value.indexOf("%") > -1) {

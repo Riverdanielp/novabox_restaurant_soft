@@ -46,7 +46,7 @@ class Numbers extends Cl_Controller {
         $numbers = $this->db->get("tbl_numeros")->result();
     
         $current_count = count($numbers);
-        $active_numbers = array_filter($numbers, fn($n) => $n->del_status == "Live");
+        $active_numbers = array_filter(is_array($numbers) ? $numbers : [], fn($n) => $n->del_status == "Live");
         $active_count = count($active_numbers);
     
         // Si la cantidad solicitada es menor a los números activos, desactivar los sobrantes

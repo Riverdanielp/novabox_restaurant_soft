@@ -50,7 +50,8 @@
                         <tr>
                             <td class="ir_txt_center"><?php echo escape_output($i--); ?></td>
                             <td><?php echo escape_output($kitchen->name) ?></td>    
-                            <td><a target="_blank" href="<?php echo base_url()?>Kitchen/panel/<?php echo d($kitchen->id,1) ?>" class="new-btn d-inline-flex width_151"> <i data-feather="corner-down-right"></i> <?php echo lang('open_kitchen_panel'); ?></a></td>
+                            <!-- target="_blank" -->
+                            <td><a  href="<?php echo base_url()?>Kitchen/panel/<?php echo d($kitchen->id,1) ?>" class="new-btn d-inline-flex width_151"> <i data-feather="corner-down-right"></i> <?php echo lang('open_kitchen_panel'); ?></a></td>
                             <td><?php echo escape_output($kitchen->categories) ?></td>
                             <td><?php echo escape_output(getPrinter($kitchen->printer_id)) ?></td>
 

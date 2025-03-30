@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5304';
+    return '?v=7.53055';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -220,6 +220,26 @@ function getSaleDetails($sale_no) {
     $CI->db->where('del_status', "Live");
     $CI->db->where('sale_no', $sale_no);
     $main_row =  $CI->db->get()->row();
+    return $main_row;
+
+}
+function getSaleDetailsItems($sale_id,) {
+    $CI = & get_instance();
+    $CI->db->select('*');
+    $CI->db->from('tbl_sales_details');
+    $CI->db->where('del_status', "Live");
+    $CI->db->where('sales_id', $sale_id);
+    $main_row =  $CI->db->get()->result();
+    return $main_row;
+
+}
+
+function getSaleDetailsItemsModifier($sales_details_id) {
+    $CI = & get_instance();
+    $CI->db->select('*');
+    $CI->db->from('tbl_sales_details_modifiers');
+    $CI->db->where('sales_details_id', $sales_details_id);
+    $main_row =  $CI->db->get()->result();
     return $main_row;
 
 }

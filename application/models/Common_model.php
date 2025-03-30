@@ -1505,27 +1505,23 @@ class Common_model extends CI_Model {
      */
     public function getWaiterOrdersForDeleteSender() {
         $sale_no_all = escape_output($_POST['sale_no_all']);
-        $sale_no_string = '';
-        if($sale_no_all){
-            $expload = explode(",",$sale_no_all);
-            foreach($expload as $ky=>$value){
-                if($value){
-                    $data_sale = getKitchenSaleDetailsBySaleNo($value);
-                    if($data_sale){
-
-                    }else{
-                        $sale_no_string.=$value;
-                        if($ky<(sizeof($expload))-1){
-                            $sale_no_string.=",";
-                        }
+        $sale_no_array = [];
+    
+        if ($sale_no_all) {
+            $explode = explode(",", $sale_no_all);
+            foreach ($explode as $sale_no) {
+                if ($sale_no) {
+                    $data_sale = getKitchenSaleDetailsBySaleNo($sale_no);
+                    if (!$data_sale) { // Si la venta NO existe en la base de datos, se debe eliminar del dispositivo
+                        $sale_no_array[] = $sale_no;
                     }
-                    
                 }
             }
         }
-        
-        return $sale_no_string;
+    
+        return implode(",", $sale_no_array); // Devuelve los sale_no separados por coma
     }
+    
     /**
      * check get Waiter Orders For Delete Receiver
      * @access public

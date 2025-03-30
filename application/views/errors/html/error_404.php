@@ -5,7 +5,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
     <head>
         <meta charset="utf-8">
         <title>404 Page Not Found</title>
-        <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/error_custom.css">
+        <link rel="stylesheet" href="<?php //echo base_url(); ?>./frequent_changing/css/error_custom.css">
     </head>
     <body>
         <div id="container">

@@ -23,8 +23,8 @@ body {
 }
 body {
   background-color: #f0f5f9;
-  /* font-family: "Poppins", sans-serif; */
-  font-family: "Montserrat", Helvetica, Arial sans-serif;
+  font-family: "Poppins", sans-serif;
+  /* font-family: "Montserrat", Helvetica, Arial sans-serif; */
   color: #495057;
   margin: 0px;
 }
@@ -2753,7 +2753,7 @@ textarea:focus {
   margin: 0px 0px 0 0px;
   height: calc(100% - 10px);
   position: relative;
-  overflow: hidden;
+  overflow: scroll;
 }
 
 .order_table_holder .order_table_header_row {
@@ -2807,7 +2807,7 @@ textarea:focus {
 
 .order_table_holder .order_holder {
   position: relative;
-  height: calc(100% - 10px);
+  height: calc(90% - 10px);
 }
 
 .order_table_holder .order_holder .single_order {

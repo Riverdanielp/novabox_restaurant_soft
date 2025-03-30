@@ -1114,7 +1114,7 @@ $(document).ready(function () {
                 let order_list_left = "";
                 let i = 1;
                 for (let key in response) {
-                  console.log(response[key]);
+                  // console.log(response[key]);
                     let items_tmp = response[key].items;
                     if(items_tmp.length){
                         let order_name = "";
@@ -1435,6 +1435,58 @@ $(document).ready(function () {
             });
         }
     }
+
+    function toggleFullscreen(elem) {
+      elem = elem || document.documentElement;
+      if (
+        !document.fullscreenElement &&
+        !document.mozFullScreenElement &&
+        !document.webkitFullscreenElement &&
+        !document.msFullscreenElement
+      ) {
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+          elem.msRequestFullscreen();
+        } else if (elem.mozRequestFullScreen) {
+          elem.mozRequestFullScreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+    
+    $(document).on("click", ".fullscreen", function (e) {
+      toggleFullscreen();
+      $(this).attr("data-tippy-content", "");
+  
+      if ($(this).find("i").hasClass("fa-expand-arrows-alt")) {
+        $(this)
+          .find("i")
+          .removeClass("fa-expand-arrows-alt")
+          .addClass("fa-times");
+        $(this).attr("data-tippy-content", fullscreen_2);
+      } else {
+        $(this)
+          .find("i")
+          .removeClass("fa-times")
+          .addClass("fa-expand-arrows-alt");
+        $(this).attr("data-tippy-content", fullscreen_1);
+      }
+      tippy(".fullscreen", {
+        animation: "scale",
+      });
+    });
 
 
 });

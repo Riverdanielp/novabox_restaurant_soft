@@ -160,7 +160,7 @@ foreach($food_menus as $single_menus){
         $item_name_c = "item_name_tippy";
     }
     //construct new single item content
-    $menu_to_show .= '<div class="single_item animate__animated animate__flipInX" data-price="'.$sale_price.'"  data-price_take="'.$sale_price_take.'"  data-price_delivery="'.$sale_price_delivery.'" data-is_variation="'.$is_variation.'"  id="item_'.$single_menus->id.'">';
+    $menu_to_show .= '<div class="single_item animate__animated animate__flipInX" data-price="'.$sale_price.'"  data-price_take="'.$sale_price_take.'"  data-price_delivery="'.$sale_price_delivery.'" data-is_variation="'.$is_variation.'" data-veg_status="'.$veg_status1.'"  id="item_'.$single_menus->id.'">';
     $menu_to_show .= '<img src="'.$image_path.'" alt="" width="142">';
         $menu_to_show .= '<p class="item_name '.$item_name_c.'" data-tippy-content="'.$single_menus->name.'">'.$single_menus->name.'</p>';
     $menu_to_show .= '<p class="item_price">'.$this->session->userdata('currency').' <span id="price_'.$single_menus->id.'">'.getAmtP($sale_price).'</span></p>';
@@ -566,7 +566,7 @@ foreach ($notifications as $single_notification){
     <link rel="shortcut icon" href="<?php echo escape_output($favicon) ?>" type="image/x-icon">
     <link rel="stylesheet" href="<?php echo base_url();?>assets/POS/css/datepicker.css?v=7.5">
     <!-- <link rel="stylesheet" href="<?php echo base_url();?>assets/POS/css/animate.min.css?v=7.501"> -->
-    <link rel="stylesheet" href="<?php echo base_url();?>assets/POS/css/lib/perfect-scrollbar/css/perfect-scrollbar.css?v=7.5">
+    <!-- <link rel="stylesheet" href="<?php echo base_url();?>assets/POS/css/lib/perfect-scrollbar/css/perfect-scrollbar.css?v=7.5"> -->
 
     <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/custom_card_design_zak.css?v=7.5">
     <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.css?v=7.5">
@@ -992,7 +992,7 @@ foreach ($notifications as $single_notification){
                         <a href="#" id="online_status" class="bg__green"><span class="online_status_counter display_none">(0)</span><span class="online_status_text"><?php echo lang('online'); ?></span></a>
                     </li>
                     <li><a href="#" data-status="veg"
-                            class="veg_bev_item bg__green"><?php echo lang('vegetarian_items'); ?></a></li>
+                            class="veg_bev_item bg__green" style="display: none;"><?php echo lang('vegetarian_items'); ?></a></li>
                     <li><a href="#" data-status="bev"
                             class="veg_bev_item bg__grey"><?php echo lang('beverage_items'); ?></a></li>
                     <li><a href="#" data-status="combo" id="combo_item"

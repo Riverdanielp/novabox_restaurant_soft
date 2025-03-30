@@ -14,13 +14,13 @@
 
 @media (max-width: 767px) {
     .order_table_holder .order_holder .single_order .single_order_column .fa-pencil-alt{
-        font-size:30px !important;
+        font-size:20px !important;
     }
 }
 
 @media (max-width: 1301px) and (min-width: 768px) {
     .order_table_holder .order_holder .single_order .single_order_column .fa-pencil-alt{
-        font-size:30px !important;
+        font-size:20px !important;
     }
 }
 .logout_btn_online_order_css{
