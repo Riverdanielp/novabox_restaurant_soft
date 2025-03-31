@@ -448,7 +448,6 @@
     
     function displayOrderList() {
         let order_details_holder = document.getElementById("order_details_holder");
-        order_details_holder.innerHTML = ''; // Limpiar antes de agregar nuevos datos
         let fragment = document.createDocumentFragment();
     
         let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
@@ -515,6 +514,7 @@
                 }
                 cursor.continue();
             } else {
+                order_details_holder.innerHTML = ''; // Limpiar antes de agregar nuevos datos
                 order_details_holder.appendChild(fragment);
             }
         };
@@ -726,7 +726,7 @@
           request.onsuccess = function(event) {
               $("#open_invoice_date_hidden").val(getCurrentDate());
               if (waiter_app_status == "Yes") {
-                  $("#show_running_order").click();
+                //   $("#show_running_order").click();
               }
   
               $(".datepicker_custom").datepicker({
@@ -12190,7 +12190,7 @@ function updateSearchResults(searchText) {
           $(".old_added_table").remove();
           $(".new_book_to_table").remove();
       }
-    function add_sale_by_ajax(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='',action_type='',is_merge='') {
+    function add_sale_by_ajax(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='',action_type='',is_merge='',clear_holder=true) {
           //reset previous update sale id
         $("#update_sale_id").val("");
         let sale = JSON.parse(order_object);
@@ -12223,27 +12223,33 @@ function updateSearchResults(searchText) {
   
                 let request = db.transaction("future_sales", "readwrite").objectStore("future_sales").add(order_info);
   
-                request.onsuccess = function(event) {
-                    $("#open_invoice_date_hidden").val(getCurrentDate());
-                    if (waiter_app_status == "Yes") {
-                        $("#show_running_order").click();
-                    }
-  
-                    $(".datepicker_custom").datepicker({
-                        autoclose: true,
-                        format: "yyyy-mm-dd",
-                        startDate: "0",
-                        todayHighlight: true,
-                    }).datepicker("update", getCurrentDate());
-                 
-                    //add order tables if available any
-                    add_order_table(sale.orders_table,sale_no_new);
-                    clearFooterCartCalculation();
-                    displayOrderList();
-                    setTimeout(function(){
-                        createAnimation(sale_no_new);
-                    }, 1000);
-                };
+                // if (clear_holder === true){
+                    request.onsuccess = function(event) {
+                        $("#open_invoice_date_hidden").val(getCurrentDate());
+                        if (waiter_app_status == "Yes") {
+                            // $("#show_running_order").click();
+                        }
+    
+                        $(".datepicker_custom").datepicker({
+                            autoclose: true,
+                            format: "yyyy-mm-dd",
+                            startDate: "0",
+                            todayHighlight: true,
+                        }).datepicker("update", getCurrentDate());
+                    
+                        //add order tables if available any
+                        add_order_table(sale.orders_table,sale_no_new);
+                        if (clear_holder === true){
+                            clearFooterCartCalculation();
+                        }
+                        displayOrderList();
+                        if (clear_holder === true){
+                            setTimeout(function(){
+                                createAnimation(sale_no_new);
+                            }, 1000);
+                        }
+                    };
+                // }
   
                 request.onerror = function(event) {
                     alert("Unable to add data\r\nOrder is aready exist in your database!");
@@ -12267,13 +12273,18 @@ function updateSearchResults(searchText) {
                             let request = cursor.update(updateData);
                             request.onsuccess = function() {
                             }
-                            //add order tables if available any
-                            add_order_table(sale.orders_table,sale_no_new);
-                            clearFooterCartCalculation();
-                            displayOrderList();
-                            setTimeout(function(){
-                                createAnimation(sale_no_new);
-                            }, 1000);
+                            
+                                //add order tables if available any
+                                add_order_table(sale.orders_table,sale_no_new);
+                            if (clear_holder === true){
+                                clearFooterCartCalculation();
+                            }
+                                displayOrderList();
+                                if (clear_holder === true){
+                                    setTimeout(function(){
+                                        createAnimation(sale_no_new);
+                                    }, 1000);
+                                }
                         }
                         cursor.continue();
                     }
@@ -12297,48 +12308,57 @@ function updateSearchResults(searchText) {
                     is_invoice: 1,
                 };
                 let request = db.transaction("sales", "readwrite").objectStore("sales").add(order_info);
-                request.onsuccess = function(event) {
-                    $("#open_invoice_date_hidden").val(getCurrentDate());
-                    if (waiter_app_status == "Yes") {
-                        $("#show_running_order").click();
-                    }
-  
-                    $(".datepicker_custom").datepicker({
-                        autoclose: true,
-                        format: "yyyy-mm-dd",
-                        startDate: "0",
-                        todayHighlight: true,
-                    }).datepicker("update", getCurrentDate());
-  
-                  
-                    //add order tables if available any
-                    add_order_table(sale.orders_table,sale_no_new);
-  
-                    clearFooterCartCalculation();
-                    displayOrderList();
-                    
-                    $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
-                    $("#last_future_sale_id").val(sale_no_new);
-  
-                    setTimeout(function(){
-                        let is_direct_sale_check = Number($("#is_direct_sale_check").val());
-                        if(action_type==2 && pre_or_post_payment!=2){
-                            $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
-                        }else{
-                            if(pre_or_post_payment==2 || is_direct_sale_check==1){
-                                $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
-                                $("#create_invoice_and_close").click();
-                                $(".invoice_btn_class").eq(1).click();
-                            }
+                
+                // if (clear_holder === true){
+                    request.onsuccess = function(event) {
+                        $("#open_invoice_date_hidden").val(getCurrentDate());
+                        if (waiter_app_status == "Yes") {
+                            // $("#show_running_order").click();
                         }
-  
-                    }, 1000);
-  
-                    setTimeout(function(){
-                        createAnimation(sale_no_new);
-                    }, 1100);
-  
-                };
+    
+                        $(".datepicker_custom").datepicker({
+                            autoclose: true,
+                            format: "yyyy-mm-dd",
+                            startDate: "0",
+                            todayHighlight: true,
+                        }).datepicker("update", getCurrentDate());
+    
+                    
+                        //add order tables if available any
+                        add_order_table(sale.orders_table,sale_no_new);
+    
+                        if (clear_holder === true){
+                            clearFooterCartCalculation();
+                        }
+                            displayOrderList();
+                        
+                        $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
+                        $("#last_future_sale_id").val(sale_no_new);
+    
+                        // if (clear_holder === true){
+                            setTimeout(function(){
+                                let is_direct_sale_check = Number($("#is_direct_sale_check").val());
+                                if(action_type==2 && pre_or_post_payment!=2){
+                                    $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
+                                }else{
+                                    if(pre_or_post_payment==2 || is_direct_sale_check==1){
+                                        $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
+                                        $("#create_invoice_and_close").click();
+                                        $(".invoice_btn_class").eq(1).click();
+                                    }
+                                }
+        
+                            }, 1000);
+        
+                            if (clear_holder === true){
+                                setTimeout(function(){
+                                    createAnimation(sale_no_new);
+                                }, 1100);
+                            }
+                        // }
+    
+                    };
+                // }
   
                 request.onerror = function(event) {
                     alert("Unable to add data\r\nOrder is already exist in your database!");
@@ -12364,13 +12384,19 @@ function updateSearchResults(searchText) {
                             request.onsuccess = function() {
                             }
                             //add order tables if available any
-                            add_order_table(sale.orders_table,sale_no_new);
-                            clearFooterCartCalculation();
-                            displayOrderList();
-  
-                            setTimeout(function(){
-                                createAnimation(sale_no_new);
-                            }, 1000);
+                            // if (clear_holder === true){
+                                add_order_table(sale.orders_table,sale_no_new);
+                                if (clear_holder === true){
+                                    clearFooterCartCalculation();
+                                }
+                                displayOrderList();
+    
+                                if (clear_holder === true){
+                                    setTimeout(function(){
+                                        createAnimation(sale_no_new);
+                                    }, 1000);
+                                }
+                            // }
                         }
   
                         cursor.continue();
@@ -12379,7 +12405,9 @@ function updateSearchResults(searchText) {
             }
         }
         //clear table
-        $(".order_table_holder .order_holder").empty();
+        if (clear_holder === true){
+            $(".order_table_holder .order_holder").empty();
+        }
     }
     function add_sale_by_ajax_kot_print(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='') {
           //reset previous update sale id
@@ -13376,6 +13404,11 @@ function updateSearchResults(searchText) {
     }
  
     function get_details_of_a_particular_order_for_modal(sale_no) {
+        
+            $('#editar_orden_button').data('sale_no', sale_no);
+            $('#print_bill_orden_button').data('sale_no', sale_no);
+            $('#pagar_orden_button').data('sale_no', sale_no);
+        
           let res = getSelectedOrderDetails(sale_no).then(function(data){
               let response = jQuery.parseJSON(data);
               console.log(response)
@@ -14266,9 +14299,9 @@ function updateSearchResults(searchText) {
                     // Registrar la orden como procesada
                     processedOrders[sale_no_new] = true;
                     if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
-                        add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+                        add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "",false);
                         if (order_info.waiter_app_status === "Yes") {
-                            push_online_for_kitchen(order.self_order_content, '', sale_no_new, 1);
+                            // push_online_for_kitchen(order.self_order_content, '', sale_no_new, 1);
                         }
                     }
                     setOrderPulled(order.id);
@@ -14305,7 +14338,7 @@ function updateSearchResults(searchText) {
                     let sale_no_new = order.sale_no;
                     if (!processedOrders[sale_no_new]) {
                         if (!$(`#order_${get_plan_string(sale_no_new)}`).length) {
-                            add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
+                            add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "",false);
                         }
                     }
                 });
@@ -20956,9 +20989,9 @@ $(document).on('click', '.number_buttons', function() {
     // Verificar si el botón está rojo (ocupado)
     if ($button.hasClass('btn-danger') && saleId) {
         // Guardar el saleNo en los botones de acción
-        $('#editar_orden_button').data('sale_no', saleNo);
-        $('#print_bill_orden_button').data('sale_no', saleNo);
-        $('#pagar_orden_button').data('sale_no', saleNo);
+        // $('#editar_orden_button').data('sale_no', saleNo);
+        // $('#print_bill_orden_button').data('sale_no', saleNo);
+        // $('#pagar_orden_button').data('sale_no', saleNo);
         
         $("#dp_modal_cancel_button").click();
         // Mostrar detalles de la orden en el modal (emulando el doble clic)

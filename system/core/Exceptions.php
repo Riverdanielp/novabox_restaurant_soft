@@ -132,7 +132,7 @@ class CI_Exceptions {
 		// By default we log this, but allow a dev to skip it
 		if ($log_error)
 		{
-			log_message('error', $heading.': '.$page);
+			log_message('info', $heading.': '.$page);
 		}
 
 		echo $this->show_error($heading, $message, 'error_404', 404);

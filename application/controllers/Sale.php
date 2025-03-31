@@ -2433,7 +2433,7 @@ class Sale extends Cl_Controller {
                     $data['multi_currency'] = $multi_currency;
                     $data['multi_currency_rate'] = $multi_currency_rate;
                     $data['currency_type'] = $currency_type;
-                    $data['date_time'] = date('Y-m-d H:i:s',strtotime($order_details->date_time));
+                    $data['date_time'] = date('Y-m-d H:i:s'); //date('Y-m-d H:i:s',strtotime($order_details->date_time));
                     $data['sale_id'] = $sales_id;
                     $data['counter_id'] = $this->session->userdata('counter_id');
                     $data['user_id'] = $this->session->userdata('user_id');
@@ -2454,7 +2454,7 @@ class Sale extends Cl_Controller {
                             $this->db->update('tbl_sales_details', $previous_id_update_array);
                         }
                         $data['amount'] = $value->amount;
-                        $data['date_time'] = date('Y-m-d H:i:s',strtotime($order_details->date_time));
+                        $data['date_time'] = date('Y-m-d H:i:s'); //date('Y-m-d H:i:s',strtotime($order_details->date_time));
                         $data['sale_id'] = $sales_id;
                         $data['counter_id'] = $this->session->userdata('counter_id');
                         $data['user_id'] = $this->session->userdata('user_id');
@@ -2623,11 +2623,12 @@ class Sale extends Cl_Controller {
      * @param int
      */
     public function get_all_information_of_a_sale($sale_no){
-        $sales_information = getSaleDetails($sale_no); 
-        //$this->get_all_information_of_a_sale_kitchen($sale_no);
-        //    echo '<pre>';
-        //    var_dump($sales_information); 
-        //    echo '<pre>';
+        $sales_information = $this->get_all_information_of_a_sale_kitchen($sale_no);
+    //    echo '<pre>';
+    //    var_dump($sales_information); 
+    //    echo '<pre>';
+       
+
         $sales_information->selected_number = @$sales_information->number_slot;
         $sales_information->selected_number_name = @$sales_information->number_slot_name;
         $sales_information->sub_total = getAmtP(isset($sales_information->sub_total) && $sales_information->sub_total?$sales_information->sub_total:0);
@@ -2647,10 +2648,10 @@ class Sale extends Cl_Controller {
         } else {
             $sales_information->sub_total_discount_value = getAmtP(isset($sales_information->sub_total_discount_value) && $sales_information->sub_total_discount_value?$sales_information->sub_total_discount_value:0);
         }
-        $items_by_sales_id = getSaleDetailsItems($sales_information->id); //$this->Sale_model->getAllItemsFromSalesDetailBySalesIdKitchen($sales_information->id);
+        $items_by_sales_id = $this->Sale_model->getAllItemsFromSalesDetailBySalesIdKitchen($sales_information->id);
 
         foreach($items_by_sales_id as $single_item_by_sale_id){
-            $modifier_information = getSaleDetailsItemsModifier($single_item_by_sale_id->sales_details_id);
+            $modifier_information = $this->Sale_model->getModifiersBySaleAndSaleDetailsIdKitchen($sales_information->id,$single_item_by_sale_id->sales_details_id);
             $single_item_by_sale_id->modifiers = $modifier_information;
 
             $modifiers_id = '';
@@ -3235,7 +3236,7 @@ class Sale extends Cl_Controller {
                 $data['multi_currency'] = $multi_currency;
                 $data['multi_currency_rate'] = $multi_currency_rate;
                 $data['currency_type'] = $currency_type;
-                $data['date_time'] = $sale->date_time;
+                $data['date_time'] = date('Y-m-d H:i:s'); //$sale->date_time;
                 $data['sale_id'] = $sale->id;
                 $data['counter_id'] = $this->session->userdata('counter_id');
                 $data['user_id'] = $this->session->userdata('user_id');
@@ -3255,7 +3256,7 @@ class Sale extends Cl_Controller {
                             $this->db->update('tbl_sales_details', $previous_id_update_array);
                         }
                     $data['amount'] = $value->amount;
-                    $data['date_time'] = $sale->date_time;
+                    $data['date_time'] = date('Y-m-d H:i:s'); //$sale->date_time;
                     $data['sale_id'] = $sale->id;
                     $data['counter_id'] = $this->session->userdata('counter_id');
                     $data['user_id'] = $this->session->userdata('user_id');
@@ -4364,28 +4365,29 @@ class Sale extends Cl_Controller {
     
         // Obtener la información de la venta
         $sale = $data['info'];
-        $order_type = '';
-        if ($sale->order_type == 1) {
-            $order_type = 'A';
-        } elseif ($sale->order_type == 2) {
-            $order_type = 'B';
-        } elseif ($sale->order_type == 3) {
-            $order_type = 'C';
-        }
+        // $order_type = '';
+        // if ($sale->order_type == 1) {
+        //     $order_type = 'A';
+        // } elseif ($sale->order_type == 2) {
+        //     $order_type = 'B';
+        // } elseif ($sale->order_type == 3) {
+        //     $order_type = 'C';
+        // }
     
         // Crear el contenido del ticket
         $content = [
             // Encabezado de la empresa
-            ['type' => 'title', 'align' => 'center', 'text' => $company['name']],
+            ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
             ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
             ['type' => 'separator'],
     
             // Información de la venta
-            ['type' => 'text', 'align' => 'left', 'text' => 'Orden N°: ' . $order_type . ' ' . $sale->sale_no],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale->selected_number_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))],
             ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->user_name],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
             ['type' => 'separator'],
     
             // Detalles de los productos
@@ -4491,7 +4493,7 @@ class Sale extends Cl_Controller {
     
                     // Encabezado de la etiqueta
                     $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'N° Pedido: ' . $sale->id];
-                    $content[] = ['type' => 'title', 'align' => 'center', 'text' => $sale->customer_name];
+                    $content[] = ['type' => 'text', 'align' => 'center', 'text' => $sale->customer_name];
                     $content[] = ['type' => 'subtitle', 'align' => 'center', 'text' => $row->menu_name];
                     $content[] = ['type' => 'text', 'align' => 'center', 'text' => $i . '/' . $total_qty];
                     $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Fecha: ' . date($this->session->userdata('date_format') . ' H:i:s', strtotime($sale->date_time))];
@@ -4565,16 +4567,18 @@ class Sale extends Cl_Controller {
         // Crear el contenido del ticket
         $content = [
             // Encabezado de la empresa
-            ['type' => 'title', 'align' => 'center', 'text' => $company['name']],
+            ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
             ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
             ['type' => 'separator'],
     
             // Información de la venta
-            ['type' => 'text', 'align' => 'center', 'text' => 'ORDEN N°: ' . $order_type . ' ' . $sale->sale_no],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale->selected_number_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))],
             ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->user_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
             ['type' => 'separator'],
         ];
     
@@ -4685,7 +4689,7 @@ class Sale extends Cl_Controller {
         // Crear el contenido del ticket
         $content = [
             // Encabezado del KOT
-            ['type' => 'title', 'align' => 'center', 'text' => 'KOT'],
+            ['type' => 'text', 'align' => 'center', 'text' => 'KOT'],
             ['type' => 'text', 'align' => 'center', 'text' => 'Orden N°: ' . $kot_info->order_number],
             ['type' => 'text', 'align' => 'center', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($kot_info->order_date))],
             ['type' => 'text', 'align' => 'center', 'text' => 'Cliente: ' . $kot_info->customer_name],
@@ -4775,7 +4779,7 @@ class Sale extends Cl_Controller {
         // Crear el contenido del ticket
         $content = [
             // Encabezado del BOT
-            ['type' => 'title', 'align' => 'center', 'text' => 'BOT'],
+            ['type' => 'text', 'align' => 'center', 'text' => 'BOT'],
             ['type' => 'text', 'align' => 'center', 'text' => 'Orden N°: ' . $kot_info->order_number],
             ['type' => 'text', 'align' => 'center', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($kot_info->order_date))],
             ['type' => 'text', 'align' => 'center', 'text' => 'Cliente: ' . $kot_info->customer_name],

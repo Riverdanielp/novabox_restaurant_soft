@@ -1166,6 +1166,10 @@ $(document).ready(function () {
                             parseFloat(splitted_width) * parseFloat(total_kitchen_type_done_items)
                         ).toFixed(2);
 
+                        let comanda_name =
+                            response[key].number_slot_name != null ? response[key].number_slot_name : "";
+                        let usuario_name =
+                            response[key].full_name != null ? response[key].full_name : "";
                         let table_name =
                             response[key].table_name != null ? response[key].table_name : "";
                         let waiter_name =
@@ -1192,6 +1196,10 @@ $(document).ready(function () {
                         minute = minute.length == 1 ? "0" + minute : minute;
                         second = second.length == 1 ? "0" + second : second;
 
+                        let table_name_txt = '';
+                        if (tables_booked > 0){
+                            table_name_txt = table +': ' + tables_booked;
+                        }
                         if (total_kitchen_type_items != total_kitchen_type_done_items) {
                             order_list_left +=
                                 '<div class="fix floatleft single_order" data-order-type="' +
@@ -1204,9 +1212,9 @@ $(document).ready(function () {
                             order_list_left +=
                                 '<div class="header_portion light-blue-background fix">';
                             order_list_left += '<div class="fix floatleft" style="width:70%;">';
-                            order_list_left +='<p class="order_number table_no">'+table+': ' + tables_booked + '</p>';
+                            order_list_left +='<p class="order_number table_no"><b>#' + comanda_name + '</b> - ' + order_name + '</p>';
+                            order_list_left += '<p class="order_number sale_no"> ' + usuario_name +  "</p> ";
                             order_list_left += '<p class="order_number customer_name">'+response[key].customer_name+'</p>';
-                            order_list_left += '<p class="order_number sale_no">'+sale_no+': ' + order_name + "</p> ";
                             order_list_left += "</div>";
                             order_list_left += '<div class="fix floatleft" style="width:30%;">';
                             order_list_left += '<p class="order_duration  order_number order_type"><span>'+order_type+'</span></p>';
