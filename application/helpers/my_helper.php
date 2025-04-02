@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5316';
+    return '?v=7.5326';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -2760,9 +2760,9 @@ function getCustomerDueReceive($customer_id){
     return $information->amount;
 }
 /**
- * getSupplierDuePayment
+ * getOutletById
  * @access public
- * @return float
+ * @return object
  * @param int
  */
 
@@ -2775,6 +2775,13 @@ function getOutletById($outlet_id){
         return false;
     }
 }
+
+/**
+ * getSupplierDuePayment
+ * @access public
+ * @return float
+ * @param int
+ */
 function getSupplierDuePayment($supplier_id){
     $CI = & get_instance();
     $information = $CI->db->query("SELECT sum(amount) as amount FROM tbl_supplier_payments where `supplier_id`='$supplier_id' and del_status='Live'")->row();

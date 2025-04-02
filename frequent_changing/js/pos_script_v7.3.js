@@ -448,6 +448,12 @@
     
     function displayOrderList() {
         let order_details_holder = document.getElementById("order_details_holder");
+        
+        // 1. Guardar el estado actual antes de cualquier modificación
+        let currentlySelectedOrder = document.querySelector(".single_order[data-selected='selected']");
+        let selectedSaleNo = currentlySelectedOrder ? currentlySelectedOrder.getAttribute("data-sale_no") : null;
+        let isPaymentModalOpen = $("#order_payment_modal").hasClass("active");
+
         let fragment = document.createDocumentFragment();
     
         let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
@@ -470,7 +476,15 @@
                     orderElement.setAttribute("data-sale-id", sales_id);
                     orderElement.setAttribute("id", "order_" + sale_no_plan);
                     orderElement.setAttribute("data-merge_id", cursor.value.merge_id || '');
-                    orderElement.setAttribute("data-selected", "unselected");
+                    
+                    if (rowData.sale_no === selectedSaleNo) {
+                        orderElement.setAttribute("data-selected", "selected");
+                    } else if (rowData.sale_no === selectedSaleNo) {
+                        orderElement.setAttribute("data-selected", "selected");
+                    } else {
+                        orderElement.setAttribute("data-selected", "unselected");
+                    }
+                    // orderElement.setAttribute("data-selected", "unselected");
                     orderElement.setAttribute("order_type", rowData.order_type || '');
                     orderElement.setAttribute("data-sale_no", rowData.sale_no || '');
                     orderElement.setAttribute("data-total_payable", rowData.total_payable || '');
@@ -516,6 +530,10 @@
             } else {
                 order_details_holder.innerHTML = ''; // Limpiar antes de agregar nuevos datos
                 order_details_holder.appendChild(fragment);
+                // 4. Restaurar eventos necesarios
+                if (selectedSaleNo) {
+                    $(`#order_${get_plan_string(selectedSaleNo)}`).attr('data-selected', 'selected');
+                }
             }
         };
     }
@@ -1000,43 +1018,43 @@
   
    
       function checkInternetConnectionNew(){
-        // if ($("#is_offline_system").val() != 1){
-        //     $("#online_status").removeClass("bg__red");
-        //     $("#online_status").addClass("bg__green");
-        //     $(".online_status_text").text(inv_online);
-        //     $(".online_status_counter").hide();
-        //     $("#is_offline_system").val(1);
-        // }
-          $.ajax({
-              url: base_url + 'Checkconn',  
-              method: 'GET',
-              cache: false,
-              success: function() {
-                  $("#online_status").removeClass("bg__red");
-                  $("#online_status").addClass("bg__green");
-                  $(".online_status_text").text(inv_online);
-                  $(".online_status_counter").hide();
-                  $("#is_offline_system").val(1);
-              },
-              error: function() {
-                  $("#online_status").removeClass("bg__green");
-                  $("#online_status").addClass("bg__red");
-                  $(".online_status_text").text(inv_offline);
-                  let online_status_counter = ($(".online_status_counter").attr('data-total'));
-                  let sales_currently_in_local = online_status_counter+" "+$("#sales_currently_in_local").val();
+        if ($("#is_offline_system").val() != 1){
+            $("#online_status").removeClass("bg__red");
+            $("#online_status").addClass("bg__green");
+            $(".online_status_text").text(inv_online);
+            $(".online_status_counter").hide();
+            $("#is_offline_system").val(1);
+        }
+        //   $.ajax({
+        //       url: base_url + 'Checkconn',  
+        //       method: 'GET',
+        //       cache: false,
+        //       success: function() {
+        //           $("#online_status").removeClass("bg__red");
+        //           $("#online_status").addClass("bg__green");
+        //           $(".online_status_text").text(inv_online);
+        //           $(".online_status_counter").hide();
+        //           $("#is_offline_system").val(1);
+        //       },
+        //       error: function() {
+        //           $("#online_status").removeClass("bg__green");
+        //           $("#online_status").addClass("bg__red");
+        //           $(".online_status_text").text(inv_offline);
+        //           let online_status_counter = ($(".online_status_counter").attr('data-total'));
+        //           let sales_currently_in_local = online_status_counter+" "+$("#sales_currently_in_local").val();
   
-                  tippy(".online_status_text", {
-                      content:
-                      `<div style="text-align:center"><span>` +
-                      sales_currently_in_local +
-                      `</span></div>`,
-                      allowHTML: true,
-                      animation: "scale",
-                  });
-                  $(".online_status_counter").show();
-                  $("#is_offline_system").val(0);
-              }
-            });
+        //           tippy(".online_status_text", {
+        //               content:
+        //               `<div style="text-align:center"><span>` +
+        //               sales_currently_in_local +
+        //               `</span></div>`,
+        //               allowHTML: true,
+        //               animation: "scale",
+        //           });
+        //           $(".online_status_counter").show();
+        //           $("#is_offline_system").val(0);
+        //       }
+        //     });
       }
   
       function checkInternetConnection(){
@@ -1258,7 +1276,9 @@
        
    
           if(need_print_popup!=1){     
+            console.log('need_print_popup!=1');
             if(no_print!=1){
+                console.log('no_print!=1');
                 reset_finalize_modal();
                 let popup = window.open("", "popup","width=100","height=600");
                 popup.document.write(invoice_print);
@@ -1307,6 +1327,10 @@
                     toastr['error']((data.invoice_msg), ''); 
                 }else{
                     if(is_print){
+                        // Verificar si hay tickets de cocina para imprimir
+                        if (data.printer_app_qty && data.printer_app_qty > 0 && sale_no) {
+                            printKitchenTickets(sale_no);
+                        }
                         let content_data_direct_print = data.content_data_direct_print;
                         for (let key in content_data_direct_print) {
                             if(content_data_direct_print[key].ipvfour_address){
@@ -1491,7 +1515,7 @@
               push_online();
           }
           remove_more_20();
-      }, 10000);
+      }, 7000);
   
       setInterval(function () {
           checkInternetConnectionNew();
@@ -1984,12 +2008,15 @@
       function remove_kot_invoice(sale_no){
         let outlet_id = $("#outlet_id_indexdb").val();
         let order_no_outlet_update = sale_no + '' + outlet_id;
-        let object_kot = JSON.parse(localStorage['kot_invoice']); // Parse the stored object
-        if (object_kot[order_no_outlet_update] !== '' && object_kot[order_no_outlet_update] !== undefined) {
-            // Remove the key from the object
-            delete object_kot[order_no_outlet_update];
-            // Update the localStorage
-            localStorage['kot_invoice'] = JSON.stringify(object_kot);
+        
+        if (localStorage.getItem('kot_invoice') !== null) {
+            let object_kot = JSON.parse(localStorage['kot_invoice']); // Parse the stored object
+            if (object_kot[order_no_outlet_update] !== '' && object_kot[order_no_outlet_update] !== undefined) {
+                // Remove the key from the object
+                delete object_kot[order_no_outlet_update];
+                // Update the localStorage
+                localStorage['kot_invoice'] = JSON.stringify(object_kot);
+            }
         }
     }
       function print_kot_print(order_info,kot_print) {
@@ -3437,7 +3464,7 @@
           },
           success: function (response) {
             response = JSON.parse(response);
-            console.log(response)
+            // console.log(response)
             let order_type = "";
             let order_type_id = 0;
             $("#hold_waiter_id").html(response.waiter_id);
@@ -3728,7 +3755,7 @@
             //get all info of recent sale based on sale_id
             getSelectedOrderDetailsRecentSale(sale_no).then(function(data){
                 let response = jQuery.parseJSON(data);
-                console.log(response)
+                // console.log(response)
                 let order_type = "";
                 let order_type_id = 0;
                 let invoice_type = "";
@@ -3991,7 +4018,7 @@
                 }
   
                 $("#total_payable_last_10").html(
-                    Number(response.total_payable).toFixed(ir_precision)
+                    formatNumberToCurrency(response.total_payable) //.toFixed(ir_precision)
                 );
                 $("#recent_sale_modal_details_vat").html(
                     Number(total_vat_show).toFixed(ir_precision)
@@ -4416,9 +4443,10 @@
                                           $("#payment_list_div").html('');
   
                                           $("#order_payment_modal_name").html(response.customer_name);
-                                          $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
+                                          $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
+                                          $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
                                           $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-                                          $("#finalize_total_due").html(response.total_payable);
+                                          $("#finalize_total_due").html(formatNumberToCurrency(response.total_payable));
                                           $("#selected_invoice_sale_customer").val(response.customer_id);
                                           $("#pay_amount_invoice_input").val(response.total_payable);
   
@@ -4478,9 +4506,9 @@
                                   $(".empty_title").show();
                                   $("#payment_list_div").html('');
   
-                                  $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
+                                  $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
                                   $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-                                  $("#finalize_total_due").html(response.total_payable);
+                                  $("#finalize_total_due").html(formatNumberToCurrency(response.total_payable));
                                   $("#selected_invoice_sale_customer").val(response.customer_id);
                                   $("#pay_amount_invoice_input").val(response.total_payable);
   
@@ -4560,7 +4588,7 @@
         remove_last_two_digit_without_percentage(given_amount, $(this));
   
         given_amount = $(this).val() != "" ? $(this).val() : 0;
-        let total_payable = $("#finalize_total_payable").html();
+        let total_payable = parseCurrencyToNumber($("#finalize_total_payable").html());
         let total_change = (
           parseFloat(given_amount) - parseFloat(total_payable)
         ).toFixed(ir_precision);
@@ -4703,7 +4731,7 @@
                             '<p class="item_price">' +
                             inv_currency +
                             " " +
-                            foundItems[key].price +
+                            formatNumberToCurrency(foundItems[key].price) +
                             "</p>";
   
                         searched_category_items_to_show += "</div>";
@@ -4729,7 +4757,7 @@
                             '<p class="item_price">' +
                             inv_currency +
                             " " +
-                            foundItems[key].price +
+                            formatNumberToCurrency(foundItems[key].price) +
                             "</p>";
   
                         searched_category_items_to_show += "</div>";
@@ -4752,170 +4780,7 @@
       function getOrderTime() {
           return (Number(Math.floor(Math.random() * (6 - 1 + 1) + 3))).toFixed(ir_precision);
       }
-      //when anything is searched
-    //   $(document).on("keyup", "#search", function (e) {
-    //     // if (e.keyCode == 13) {
-    //     let searched_string = $(this).val().trim();
-    //     if (searched_string) {
-    //       let foundItems = searchItemAndConstructGallery(searched_string);
-    //       let searched_category_items_to_show =
-    //         '<div id="searched_item_found" class="specific_category_items_holder 002">';
-    //       for (let key in foundItems) {
-    //           if (foundItems.hasOwnProperty(key)) {
-    //               if (foundItems[key].parent_id == '0') {
-    //                   searched_category_items_to_show +=
-    //                       '<div class="single_item animate__animated animate__flipInX"  data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"   data-price_delivery="' + foundItems[key].price_delivery + '"  id="item_' +
-    //                       foundItems[key].item_id +
-    //                       '">';
-    //                   searched_category_items_to_show +=
-    //                       '<img src="' + foundItems[key].image + '" alt="" width="141">';
-    //                   searched_category_items_to_show +=
-    //                       '<p class="item_name" data-tippy-content="' +
-    //                       foundItems[key].item_name +
-    //                       '">' +
-    //                       foundItems[key].item_name +
-    //                       "</p>";
-    //                   searched_category_items_to_show +=
-    //                       '<p class="item_price">' +
-    //                       inv_currency +
-    //                       " " +
-    //                       foundItems[key].price +
-    //                       "</p>";
-    //                   searched_category_items_to_show +=
-    //                       '<span class="item_vat_percentage ir_display_none">' +
-    //                       foundItems[key].vat_percentage +
-    //                       "</span>";
-    //                   searched_category_items_to_show += "</div>";
-    //               }
-    //           }
-    //       }
-    //       searched_category_items_to_show += "<div>";
-    //       $("#searched_item_found").remove();
-    //       $(".specific_category_items_holder").fadeOut(0);
-    //       $(".category_items").prepend(searched_category_items_to_show);
-    //       // }
-    //         if(food_menu_tooltip=="show"){
-    //             tippy(".item_name", {
-    //                 placement: "bottom-start",
-    //             });
-    //         }
-    //     } else {
-    //         show_all_items();
-    //     }
-    //   });
-
-    // Modificar el evento keyup del buscador para manejar Enter
-// $(document).on("keyup", "#search", function (e) {
-//     let searched_string = $(this).val().trim();
-    
-//     // Si se presiona Enter
-//     if (e.keyCode === 13 && searched_string) {
-//         e.preventDefault(); // Prevenir comportamiento por defecto
-        
-//         // Buscar producto por código exacto
-//         let foundItem = window.items.find(item => 
-//             item.item_code && item.item_code.trim().toLowerCase() === searched_string.toLowerCase()
-//         );
-        
-//         if (foundItem) {
-//             // Simular click en el producto encontrado
-//             $(`#item_${foundItem.item_id}`).click();
-//             // Limpiar el buscador después de agregar
-//             $(this).val('');
-//             // Mostrar todos los items nuevamente
-//             show_all_items();
-//         } else {
-//             // Si no se encuentra, mantener el comportamiento actual de búsqueda
-//             let foundItems = searchItemAndConstructGallery(searched_string);
-//             let searched_category_items_to_show = 
-//                 '<div id="searched_item_found" class="specific_category_items_holder 002">';
-            
-//             for (let key in foundItems) {
-//                 if (foundItems.hasOwnProperty(key)) {
-//                     if (foundItems[key].parent_id == '0') {
-//                         searched_category_items_to_show +=
-//                             '<div class="single_item animate__animated animate__flipInX"  data-price="' + 
-//                             foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
-//                             '"    data-is_variation="' + foundItems[key].is_variation + 
-//                             '"  data-parent_id="' + foundItems[key].parent_id + 
-//                             '"   data-price_delivery="' + foundItems[key].price_delivery + 
-//                             '"  id="item_' + foundItems[key].item_id + '">';
-//                         searched_category_items_to_show +=
-//                             '<img src="' + foundItems[key].image + '" alt="" width="141">';
-//                         searched_category_items_to_show +=
-//                             '<p class="item_name" data-tippy-content="' +
-//                             foundItems[key].item_name + '">' +
-//                             foundItems[key].item_name + "</p>";
-//                         searched_category_items_to_show +=
-//                             '<p class="item_price">' + inv_currency + " " +
-//                             foundItems[key].price + "</p>";
-//                         searched_category_items_to_show +=
-//                             '<span class="item_vat_percentage ir_display_none">' +
-//                             foundItems[key].vat_percentage + "</span>";
-//                         searched_category_items_to_show += "</div>";
-//                     }
-//                 }
-//             }
-            
-//             searched_category_items_to_show += "<div>";
-//             $("#searched_item_found").remove();
-//             $(".specific_category_items_holder").fadeOut(0);
-//             $(".category_items").prepend(searched_category_items_to_show);
-            
-//             if(food_menu_tooltip=="show"){
-//                 tippy(".item_name", {
-//                     placement: "bottom-start",
-//                 });
-//             }
-//         }
-//     } else if (searched_string) {
-//         // Comportamiento normal de búsqueda mientras se escribe
-//         let foundItems = searchItemAndConstructGallery(searched_string);
-//         let searched_category_items_to_show = 
-//             '<div id="searched_item_found" class="specific_category_items_holder 002">';
-        
-//         for (let key in foundItems) {
-//             if (foundItems.hasOwnProperty(key)) {
-//                 if (foundItems[key].parent_id == '0') {
-//                     searched_category_items_to_show +=
-//                         '<div class="single_item animate__animated animate__flipInX"  data-price="' + 
-//                         foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
-//                         '"    data-is_variation="' + foundItems[key].is_variation + 
-//                         '"  data-parent_id="' + foundItems[key].parent_id + 
-//                         '"   data-price_delivery="' + foundItems[key].price_delivery + 
-//                         '"  id="item_' + foundItems[key].item_id + '">';
-//                     searched_category_items_to_show +=
-//                         '<img src="' + foundItems[key].image + '" alt="" width="141">';
-//                     searched_category_items_to_show +=
-//                         '<p class="item_name" data-tippy-content="' +
-//                         foundItems[key].item_name + '">' +
-//                         foundItems[key].item_name + "</p>";
-//                     searched_category_items_to_show +=
-//                         '<p class="item_price">' + inv_currency + " " +
-//                         foundItems[key].price + "</p>";
-//                     searched_category_items_to_show +=
-//                         '<span class="item_vat_percentage ir_display_none">' +
-//                         foundItems[key].vat_percentage + "</span>";
-//                     searched_category_items_to_show += "</div>";
-//                 }
-//             }
-//         }
-        
-//         searched_category_items_to_show += "<div>";
-//         $("#searched_item_found").remove();
-//         $(".specific_category_items_holder").fadeOut(0);
-//         $(".category_items").prepend(searched_category_items_to_show);
-        
-//         if(food_menu_tooltip=="show"){
-//             tippy(".item_name", {
-//                 placement: "bottom-start",
-//             });
-//         }
-//     } else {
-//         show_all_items();
-//     }
-// });
-
+      
 let searchTimeout; // Para el debounce
 
 $(document).on("keyup", "#search", function (e) {
@@ -4977,7 +4842,7 @@ function updateSearchResults(searchText) {
             itemDiv.innerHTML = `
                 <img src="${item.image}" alt="" width="141">
                 <p class="item_name" data-tippy-content="${item.item_name}">${item.item_name}</p>
-                <p class="item_price">${inv_currency} ${item.price}</p>
+                <p class="item_price">${inv_currency} ${formatNumberToCurrency(item.price)}</p>
                 <span class="item_vat_percentage ir_display_none">${item.vat_percentage}</span>
             `;
 
@@ -6485,7 +6350,7 @@ function updateSearchResults(searchText) {
                 '<p class="item_price">' +
                 inv_currency +
                 " " +
-                foundItems[key].price +
+                formatNumberToCurrency(foundItems[key].price) +
                 "</p>";
               searched_category_items_to_show += "</div>";
             }
@@ -6531,7 +6396,7 @@ function updateSearchResults(searchText) {
                                 '<p class="item_price">' +
                                 inv_currency +
                                 " " +
-                                foundItems[key].price +
+                                formatNumberToCurrency(foundItems[key].price) +
                                 "</p>";
                             searched_category_items_to_show += "</div>";
                         }
@@ -7461,7 +7326,7 @@ function updateSearchResults(searchText) {
                               phone_text_ +
                               "</div>";
                           last_10_orders +=
-                              '<div class="third_column column fix">' + (rowData.orders_table_text!=undefined?rowData.orders_table_text:'No') + "</div>";
+                              '<div class="third_column column fix">#' + (rowData.selected_number_name!=undefined?rowData.selected_number_name:'') + "</div>";
                           last_10_orders += "</div>";
       
                           i++;
@@ -8493,9 +8358,10 @@ function updateSearchResults(searchText) {
               let total_vat = parseFloat($("#show_vat_modal").html()).toFixed(
                   ir_precision
               );
-              let total_payable = parseFloat($("#total_payable").html()).toFixed(
-                  ir_precision
-              );
+              let total_payable = parseCurrencyToNumber($("#total_payable").html());
+            //   parseFloat($("# total_payable").html()).toFixed(
+            //       ir_precision
+            //   );
               let total_item_discount_amount = parseFloat(
                   $("#total_item_discount").html()
               ).toFixed(ir_precision);
@@ -8577,6 +8443,17 @@ function updateSearchResults(searchText) {
                   placeOrderSound.play();
                   return false;
               }
+              
+                  
+              const comanda_required = document.getElementById('comanda_required').value;
+              if (comanda_required == 2){
+                  if(!($("#selected_number").val() > 0)){
+                      $("#numbers_button").click();
+                      toastr['error'](('Seleccione un número de comanda para continuar!'), 'Nro. de Comanda Obligatoria');
+                      return false;
+                  }
+              }
+
               if (
                   sub_total_discount_value.length > 0 &&
                   sub_total_discount_value.substr(sub_total_discount_value.length - 1) ==
@@ -8652,6 +8529,7 @@ function updateSearchResults(searchText) {
                           return false;
                       }
                   }
+
                   let delivery_partner_id = '';
                   if(order_type == 3){
                       delivery_partner_id = $("input[name='delivery_partner_id']:checked").val();
@@ -9008,7 +8886,7 @@ function updateSearchResults(searchText) {
                           push_online_for_kitchen(order_info,'',sale_no_new,1);
                       }
                   }
-  
+                  clearButtonNumber();
                   $(".dine_in_button").css("border", "unset");
                   $(".take_away_button").css("border", "unset");
                   $(".delivery_button").css("border", "unset");
@@ -9050,9 +8928,10 @@ function updateSearchResults(searchText) {
               let total_vat = parseFloat($("#show_vat_modal").html()).toFixed(
                   ir_precision
               );
-              let total_payable = parseFloat($("#total_payable").html()).toFixed(
-                  ir_precision
-              );
+              let total_payable = parseCurrencyToNumber($("#total_payable").html());
+            //   parseFloat($("# total_payable").html()).toFixed(
+            //       ir_precision
+            //   );
               let total_item_discount_amount = parseFloat(
                   $("#total_item_discount").html()
               ).toFixed(ir_precision);
@@ -9596,7 +9475,7 @@ function updateSearchResults(searchText) {
               },
               success: function (response) {
                 response = JSON.parse(response);
-                $("#finalize_total_payable").html(response.total_payable);
+                $("#finalize_total_payable").html(formatNumberToCurrency(response.total_payable));
                 $("#finalize_total_payable").attr('data-original_payable',response.total_payable);
                 $("#pay_amount_invoice_input").val(response.total_payable);
                 $("#finalize_order_modal").addClass("active");
@@ -9624,8 +9503,10 @@ function updateSearchResults(searchText) {
           }
         }
       );
+      let isProcessingPayment = false; // Variable global
+
       $(document).on("click", "#finalize_order_button", function (e) {
-        let due_amount_invoice_input = Number($("#finalize_total_due").html());
+        let due_amount_invoice_input = parseCurrencyToNumber($("#finalize_total_due").html());
         let customer_id = $("#selected_invoice_sale_customer").val();
         let status = true;
         if (customer_id == 1) {
@@ -9728,8 +9609,8 @@ function updateSearchResults(searchText) {
                 payment_info += "]";
   
                 let payment_object = JSON.stringify(payment_info);
-                paid_amount = $("#finalize_total_paid").html();
-                due_amount = $("#finalize_total_due").html();
+                paid_amount = parseCurrencyToNumber($("#finalize_total_paid").html());
+                due_amount = parseCurrencyToNumber($("#finalize_total_due").html());
                 let is_multi_currency = $("#is_multi_currency").val();
                 let multi_currency_rate = $("#multi_currency_rate").val();
                 let multi_currency = $("#multi_currency").val();
@@ -10037,6 +9918,7 @@ function updateSearchResults(searchText) {
                         }
                     }
                 }
+                clearButtonNumber(sale_no);
             }
   
           } else {
@@ -10290,9 +10172,10 @@ function updateSearchResults(searchText) {
     //update all price of modal
       function update_all_total_price() {
           //get item quantity
-          let item_quantity = Number($("#item_quantity_modal").val()).toFixed(
-              ir_precision
-          );
+          let item_quantity = Number($("#item_quantity_modal").val());
+        //   .toFixed(
+        //       ir_precision
+        //   );
           //get item unit price
           let item_unit_price = parseFloat($("#modal_item_price").html()).toFixed(
               ir_precision
@@ -10475,7 +10358,7 @@ function updateSearchResults(searchText) {
                         '<p class="item_price">' +
                         inv_currency +
                         " " +
-                        foundItems[key].price +
+                        formatNumberToCurrency(foundItems[key].price) +
                         "</p>";
                     searched_category_items_to_show +=
                         '<span class="item_vat_percentage ir_display_none">' +
@@ -10670,9 +10553,10 @@ function updateSearchResults(searchText) {
         let total_vat = parseFloat($("#all_items_vat").html()).toFixed(
           ir_precision
         );
-        let total_payable = parseFloat($("#total_payable").html()).toFixed(
-          ir_precision
-        );
+        let total_payable = parseCurrencyToNumber($("#total_payable").html());
+        // parseFloat($("# total_payable").html()).toFixed(
+        //   ir_precision
+        // );
         let total_item_discount_amount = parseFloat(
           $("#total_item_discount").html()
         ).toFixed(ir_precision);
@@ -11232,7 +11116,7 @@ function updateSearchResults(searchText) {
       adjust_middle_side_cart_list();
     });
     function calculate_create_invoice_modal() {
-      let total_payable = $("#finalize_total_payable").html();
+      let total_payable = parseCurrencyToNumber($("#finalize_total_payable").html());
       let paid_amount =
         $("#pay_amount_invoice_input").val() != ""
           ? $("#pay_amount_invoice_input").val()
@@ -11497,7 +11381,8 @@ function updateSearchResults(searchText) {
   
       $("#rounding_amount_hidden").val(Number(rounding_txt_value).toFixed(ir_precision));
       $("#rounding_amount").html(rounding_txt);
-      $("#total_payable").html(Number(rounding_value[0]).toFixed(ir_precision));
+      $("#total_payable").html(formatNumberToCurrency(rounding_value[0]));
+    //   $("# total_payable").html(Number(rounding_value[0]).toFixed(ir_precision));
   
       if(checkInternetConnection()){
           put_cart_content();
@@ -12192,10 +12077,14 @@ function updateSearchResults(searchText) {
       }
     function add_sale_by_ajax(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='',action_type='',is_merge='',clear_holder=true) {
           //reset previous update sale id
-        $("#update_sale_id").val("");
+        if (clear_holder === true){
+            $("#update_sale_id").val("");
+        }
         let sale = JSON.parse(order_object);
-        $("#place_edit_order").html(place_order);
-          removeLastAddedOrderTables();
+        if (clear_holder === true){
+            $("#place_edit_order").html(place_order);
+            removeLastAddedOrderTables();
+        }
           let added_offline_status = 1;
         if(checkInternetConnection()){
             added_offline_status = 2;
@@ -12331,11 +12220,12 @@ function updateSearchResults(searchText) {
                             clearFooterCartCalculation();
                         }
                             displayOrderList();
-                        
-                        $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
-                        $("#last_future_sale_id").val(sale_no_new);
+                        if (clear_holder === true){
+                            $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
+                            $("#last_future_sale_id").val(sale_no_new);
+                        }
     
-                        // if (clear_holder === true){
+                        if (clear_holder === true){
                             setTimeout(function(){
                                 let is_direct_sale_check = Number($("#is_direct_sale_check").val());
                                 if(action_type==2 && pre_or_post_payment!=2){
@@ -12355,7 +12245,7 @@ function updateSearchResults(searchText) {
                                     createAnimation(sale_no_new);
                                 }, 1100);
                             }
-                        // }
+                        }
     
                     };
                 // }
@@ -12780,8 +12670,8 @@ function updateSearchResults(searchText) {
         payment_info += "]";
   
         let payment_object = JSON.stringify(payment_info);
-        paid_amount = $("#finalize_total_paid").html();
-        due_amount = $("#finalize_total_due").html();
+        paid_amount = parseCurrencyToNumber($("#finalize_total_paid").html());
+        due_amount = parseCurrencyToNumber($("#finalize_total_due").html());
   
         let is_multi_currency = $("#is_multi_currency").val();
         let multi_currency = $("#multi_currency").val();
@@ -12844,8 +12734,8 @@ function updateSearchResults(searchText) {
          sub_total_discount_finalize = Number(sub_total_discount_finalize);
   
         let payment_object = JSON.stringify(payment_info);
-        paid_amount = $("#finalize_total_paid").html();
-        due_amount = $("#finalize_total_due").html();
+        paid_amount = parseCurrencyToNumber($("#finalize_total_paid").html());
+        due_amount = parseCurrencyToNumber($("#finalize_total_due").html());
   
         let is_multi_currency = $("#is_multi_currency").val();
         let multi_currency = $("#multi_currency").val();
@@ -13272,7 +13162,7 @@ function updateSearchResults(searchText) {
             $("#tips_amount").val((0).toFixed(ir_precision));
           }
   
-          $("#total_payable").html(response.total_payable);
+          $("#total_payable").html(formatNumberToCurrency(response.total_payable));
           $("#charge_type").val(response.charge_type).change();
           //do calculation on table
           do_addition_of_item_and_modifiers_price();
@@ -13411,8 +13301,9 @@ function updateSearchResults(searchText) {
         
           let res = getSelectedOrderDetails(sale_no).then(function(data){
               let response = jQuery.parseJSON(data);
-              console.log(response)
+            //   console.log(response)
               if(response !== null) {
+                console.log(response);order_details_type
                   let order_type = "";
                   let order_type_id = 0;
                   let order_number = "";
@@ -13423,6 +13314,7 @@ function updateSearchResults(searchText) {
                   $("#order_details_table_id").html(response.table_id);
                   $("#order_details_table_name").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'No'));
                   $("#open_invoice_date_hidden").val(response.sale_date);
+                  $("#comanda_numero_name").html((response.selected_number_name!=undefined && response.selected_number_name?response.selected_number_name:''));
                   $(".datepicker_custom")
                       .datepicker({
                           autoclose: true,
@@ -13433,11 +13325,11 @@ function updateSearchResults(searchText) {
                       .datepicker("update", response.sale_date);
   
                   if (response.order_type == 1) {
-                      order_type = "Dine In";
+                      order_type = "Mesa";
                       order_type_id = 1;
                       order_number = response.sale_no;
                   } else if (response.order_type == 2) {
-                      order_type = "Take Away";
+                      order_type = "Para Llevar";
                       order_type_id = 2;
                       order_number = response.sale_no;
                   } else if (response.order_type == 3) {
@@ -13499,7 +13391,7 @@ function updateSearchResults(searchText) {
                           '<span class="item_price_without_discount_hold ir_display_none" id="order_details_item_price_without_discount_' +
                           this_item.food_menu_id +
                           '">' +
-                          this_item.menu_price_without_discount +
+                          formatNumberToCurrency(this_item.menu_price_without_discount) +
                           "</span>";
                       draw_table_for_order_details +=
                           '<div class="single_order_column_hold first_column column fix"><span id="order_details_item_name_table_' +
@@ -13513,7 +13405,8 @@ function updateSearchResults(searchText) {
                           ' <span id="order_details_item_price_table_' +
                           this_item.food_menu_id +
                           '">' +
-                          Number(this_item.menu_unit_price).toFixed(ir_precision) +
+                        //   .toFixed(ir_precision)
+                        formatNumberToCurrency(this_item.menu_unit_price) +
                           "</span></div>";
                       draw_table_for_order_details +=
                           '<div class="single_order_column_hold third_column column fix"><span class="qty_item_custom" id="order_details_item_quantity_table_' +
@@ -13533,7 +13426,8 @@ function updateSearchResults(searchText) {
                           ' <span id="order_details_item_total_price_table_' +
                           this_item.food_menu_id +
                           '">' +
-                          Number(this_item.menu_price_with_discount).toFixed(ir_precision) +
+                        //   .toFixed(ir_precision)
+                          formatNumberToCurrency(this_item.menu_price_with_discount) +
                           "</span></div>";
                       draw_table_for_order_details += "</div>";
                       if (this_item.menu_combo_items != "" && this_item.menu_combo_items!=undefined  && this_item.menu_combo_items!=null && this_item.menu_combo_items!="undefined") {
@@ -13560,7 +13454,7 @@ function updateSearchResults(searchText) {
                               '<span id="order_details_item_modifiers_price_table_' +
                               this_item.food_menu_id +
                               '" class="ir_display_none">' +
-                              selected_modifiers_price +
+                              formatNumberToCurrency(selected_modifiers_price) +
                               "</span>";
                           draw_table_for_order_details +=
                               '<div class="single_order_column_hold ir_display_none first_column column fix"><span class="modifier_txt_custom" id="order_details_item_modifiers_table_' +
@@ -13574,7 +13468,7 @@ function updateSearchResults(searchText) {
                               ' <span id="order_details_item_modifiers_price_table_' +
                               this_item.food_menu_id +
                               '">' +
-                              modifiers_price +
+                              formatNumberToCurrency(modifiers_price) +
                               "</span></div>";
                           for (let mod_key in modifier_names_custom) {
                               let tmp_mod_name_m_n = modifier_names_custom[mod_key];
@@ -13667,9 +13561,10 @@ function updateSearchResults(searchText) {
                       $("#tips_amount_order_details").html((0).toFixed(ir_precision));
                   }
   
-                  $("#total_payable_order_details").html(
-                      Number(response.total_payable).toFixed(ir_precision)
-                  );
+                  $("#total_payable_order_details").html(formatNumberToCurrency(Number(response.total_payable)));
+                //   $("#total_payable_order_details").html(
+                //       Number(response.total_payable).toFixed(ir_precision)
+                //   );
   
                   $("#order_detail_modal").addClass("active");
                   $(".pos__modal__overlay").fadeIn(200);
@@ -13704,7 +13599,7 @@ function updateSearchResults(searchText) {
 
             let res = getSelectedOrderDetails(sale_no).then(function(data){
                 let response = jQuery.parseJSON(data);
-                console.log(response);
+                // console.log(response);
                 if(response !== null) {
                     selectNumber(response.selected_number, response.selected_number_name);
                     arrange_info_on_the_cart_to_modify(response);
@@ -13919,299 +13814,6 @@ function updateSearchResults(searchText) {
     } 
 
 
-
-
-
-
-
-
-
-    // let currentOccupiedNumbers = {}; 
-
-    // function new_notification_interval() {
-    //   $.ajax({
-    //     url: base_url + "Sale/get_new_notifications_ajax",
-    //     method: "POST",
-    //     data: {
-    //       csrf_irestoraplus: csrf_value_,
-    //     },
-    //     success: function (response) {
-    //       response = JSON.parse(response);
-    //       let notification_counter_update = response.length;
-    //       let notification_counter_previous = $("#notification_counter").html();
-    //       $("#notification_counter").html(notification_counter_update);
-    //       if (notification_counter_update > notification_counter_previous) {
-    //         setTimeout(function () {
-    //           $("#notification_button").css("background-color", "#dc3545");
-    //           $("#notification_button").css("color", "#fff");
-    //         }, 500);
-    //         setTimeout(function () {
-    //           $("#notification_button").css("background-color", "#ccc");
-    //           $("#notification_button").css("color", "buttontext");
-    //         }, 1000);
-    //         setTimeout(function () {
-    //           $("#notification_button").css("background-color", "#dc3545");
-    //           $("#notification_button").css("color", "#fff");
-    //         }, 1500);
-    //         setTimeout(function () {
-    //           $("#notification_button").css("background-color", "#ccc");
-    //           $("#notification_button").css("color", "buttontext");
-    //         }, 2000);
-    //         setTimeout(function () {
-    //           $("#notification_button").css("background-color", "#dc3545");
-    //           $("#notification_button").css("color", "#fff");
-    //         }, 2500);
-    //         setTimeout(function () {
-    //           $("#notification_button").css("background-color", "#ccc");
-    //           $("#notification_button").css("color", "buttontext");
-    //         }, 3000);
-    //         setTimeout(function () {
-    //           $("#notification_button").css("background-color", 'unset');
-    //           $("#notification_button").css("color", '#22bfe9');
-    //         }, 3500);
-    //           let is_self_order = $("#is_self_order").val();
-    //           let is_online_order = $("#is_online_order").val();
-    //           if(is_self_order!="Yes"){
-    //               if(is_online_order!="Yes"){
-    //                   bell_new_order.play();
-    //               }
-    //           }
-    //       }
-  
-    //       // let i = 1;
-    //       let notifications_list = "";
-    //       for (let key in response) {
-    //         let this_notification = response[key];
-    //         notifications_list +=
-    //           '<div class="single_row_notification fix" id="single_notification_row_' +
-    //           this_notification.id +
-    //           '">';
-    //         notifications_list +=
-    //           '<div class="fix single_notification_check_box">';
-    //         notifications_list +=
-    //           '<input class="single_notification_checkbox" type="checkbox" id="single_notification_' +
-    //           this_notification.id +
-    //           '" value="' +
-    //           this_notification.id +
-    //           '">';
-    //         notifications_list += "</div>";
-    //         notifications_list +=
-    //           '<div class="fix single_notification">' +
-    //           this_notification.notification +
-    //           "</div>";
-    //         notifications_list += '<div class="fix single_serve_button">';
-    //         notifications_list +=
-    //           '<button class="single_serve_b" id="notification_serve_button_' +
-    //           this_notification.id +
-    //           '">Servir/Tomar/Entregar</button>';
-    //         notifications_list += "</div>";
-    //         notifications_list += "</div>";
-    //       }
-    //       $("#notification_list_holder").html(notifications_list);
-    //     },
-    //     error: function () {
-  
-    //     },
-    //   });
-    //     //waiter_order_module
-    //     push_online();
-    //     let sale_no_all = '';
-    //     $(".running_order_order_number").each(function() {
-    //         let running_order_order_number = $(this).text();
-    //         let added_offline_status = Number($(this).attr("data-added_offline_status"));
-    //         if(added_offline_status==2){
-    //             sale_no_all+=running_order_order_number;
-    //             sale_no_all+=",";
-    //         }
-    //     });
-  
-    //     $.ajax({
-    //         url: base_url + "Sale/getWaiterOrders",
-    //         method: "POST",
-    //         dataType:'json',
-    //         async:false,
-    //         data: {
-    //             sale_no_all: sale_no_all,
-    //             csrf_irestoraplus: csrf_value_,
-    //         },
-    //         success: function (response) {
-    //             let order = '';
-    //             let get_waiter_orders = (response.get_waiter_orders);
-    //             let outlet_id_indexdb = $("#outlet_id_indexdb").val();
-    //             let company_id_indexdb = $("#company_id_indexdb").val();
-
-    //             let processedOrders = {}; // Objeto para rastrear órdenes ya procesadas
-
-    //             // Procesar get_waiter_orders
-    //             for (let key1 in get_waiter_orders) {
-    //                 order = get_waiter_orders[key1];
-    //                 let order_info = jQuery.parseJSON(order.self_order_content);
-    //                 order_info.sale_date = getCurrentDate();
-    //                 let sale_no_new = order_info.sale_no;
-                    
-    //                 // Registrar la orden como procesada
-    //                 processedOrders[sale_no_new] = true;
-                    
-    //                 let is_exist = false;
-    //                 $(".running_order_order_number").each(function() {
-    //                     let running_order_order_number = $(this).text();
-    //                     if(running_order_order_number == sale_no_new){
-    //                         is_exist = true;
-    //                     }
-    //                 });
-                    
-    //                 if(!is_exist){
-    //                     let order_object = JSON.stringify(order_info);
-    //                     add_sale_by_ajax('', order_object, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
-                        
-    //                     if(order_info.waiter_app_status == "Yes"){
-    //                         push_online_for_kitchen(order.self_order_content, '', sale_no_new, 1);
-    //                     }
-    //                 }
-    //                 setOrderPulled(order.id);
-    //             }
-    //             let get_waiter_invoice_orders = (response.get_waiter_invoice_orders);
-    //             for (let key1 in get_waiter_invoice_orders) {
-    //                 order = get_waiter_invoice_orders[key1];
-    //                 closeOrderForWaiter(order.sale_no);
-    //                 setOrderInvoicePulled(order.id);
-    //             }
-    //             let get_waiter_orders_for_update_sender = (response.get_waiter_orders_for_update_sender);
-    //             for (let key1 in get_waiter_orders_for_update_sender) {
-    //                 order = get_waiter_orders_for_update_sender[key1];
-    //                 updateOrderForWaiter(order.sale_no,order.self_order_content);
-    //                 setOrderInvoiceUpdated(order.id,1);
-    //             }
-    //             let get_waiter_orders_for_update_receiver = (response.get_waiter_orders_for_update_receiver);
-    //             for (let key1 in get_waiter_orders_for_update_receiver) {
-    //                 order = get_waiter_orders_for_update_receiver[key1];
-    //                 updateOrderForWaiter(order.sale_no,order.self_order_content);
-    //                 setOrderInvoiceUpdated(order.id,2);
-    //             }
-    //             let get_waiter_orders_for_delete_sender =   (response.get_waiter_orders_for_delete_sender);
-
-                 
-    //             if(get_waiter_orders_for_delete_sender){
-                  
-    //                 let get_waiter_orders_for_delete_sender_arr =   (response.get_waiter_orders_for_delete_sender).split(",");
-
-    //                 for (let key1 in get_waiter_orders_for_delete_sender_arr) {
-    //                     let sale_no_tmp = get_waiter_orders_for_delete_sender_arr[key1]; 
-    //                     if(sale_no_tmp){
-    //                         deleteOrderForWaiter(sale_no_tmp);
-    //                     }
-                        
-    //                 }
-
-    //             }
-    //             if(pre_or_post_payment!=2){
-    //                 let already_invoiced_orders = (response.already_invoiced_orders);
-    //                 for (let key1 in already_invoiced_orders) {
-    //                     order = already_invoiced_orders[key1];
-    //                     deleteOrderForWaiter(order.sale_no);
-    //                 }
-    //             }
-            
-    //             let get_all_running_order_for_new_pc = response.get_all_running_order_for_new_pc;
-            
-    //             // Procesar get_all_running_order_for_new_pc
-    //             for (let key_order in get_all_running_order_for_new_pc) {
-    //                 order = get_all_running_order_for_new_pc[key_order];
-    //                 let sale_no_new = order.sale_no;
-                    
-    //                 // Verificar si la orden ya fue procesada
-    //                 if (!processedOrders[sale_no_new]) {
-    //                     let order_id = "order_" + get_plan_string(sale_no_new);
-                        
-    //                     if (!$("#" + order_id).length) {
-    //                         add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "");
-    //                         // console.log(sale_no_new + " " + pulled_successfully);
-    //                     }
-    //                 }
-    //             }
-                
-    //         // Procesar números ocupados (nueva funcionalidad integrada)
-    //         if (response.occupied_numbers) {
-    //             let newOccupiedNumbers = {};
-    //             let occupiedNumbers = response.occupied_numbers;
-                
-    //             // 1. Marcar números ocupados que vienen del servidor
-    //             occupiedNumbers.forEach(num => {
-    //                 newOccupiedNumbers[num.id] = true;
-                    
-    //                 const button = $(`.number_buttons[data-number="${num.id}"]`);
-                    
-    //                 if (button.length && !button.hasClass('btn-danger')) {
-    //                     button
-    //                         .removeClass('btn-success')
-    //                         .addClass('btn-danger')
-    //                         .attr('data-sale_id', num.sale_id || '')
-    //                         .attr('data-sale_no', num.sale_no || '')
-    //                         .attr('data-user_id', num.user_id || '');
-                        
-    //                     // Animación para cambios
-    //                     button.css('transform', 'scale(1.2)');
-    //                     setTimeout(() => button.css('transform', 'scale(1)'), 300);
-    //                 }
-    //             });
-                
-    //             // 2. Verificar números que estaban ocupados pero ahora están disponibles
-    //             for (const numId in currentOccupiedNumbers) {
-    //                 if (!newOccupiedNumbers[numId]) {
-    //                     const button = $(`.number_buttons[data-number="${numId}"]`);
-                        
-    //                     if (button.length) {
-    //                         button
-    //                             .removeClass('btn-danger')
-    //                             .addClass('btn-success')
-    //                             .attr('data-sale_id', '')
-    //                             .attr('data-sale_no', '')
-    //                             .attr('data-user_id', '');
-                            
-    //                         // Animación para cambios
-    //                         button.css('transform', 'scale(1.2)');
-    //                         setTimeout(() => button.css('transform', 'scale(1)'), 300);
-    //                     }
-    //                 }
-    //             }
-                
-    //             currentOccupiedNumbers = newOccupiedNumbers;
-    //         }
-    //         },
-    //         error: function () {
-  
-    //         },
-    //     });
-    // }
-    // function reset_time_interval() {
-    //   for (let i = 1; i < 99999; i++) window.clearInterval(i);
-    // }
-  
-    // function all_time_interval_operation() {
-    //   setInterval(function () {
-    //       if(checkInternetConnection()){
-    //           new_notification_interval();
-    //       }
-    //     refresh_orders_left();
-    //   }, 7000);
-    // }
-    // all_time_interval_operation();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     let currentOccupiedNumbers = {}; 
 
 
@@ -14351,6 +13953,7 @@ function updateSearchResults(searchText) {
     function updateOccupiedNumbers(occupiedNumbers) {
         let newOccupiedNumbers = {};
     
+        // Marcar los nuevos números ocupados y actualizar sus estilos
         occupiedNumbers.forEach(num => {
             newOccupiedNumbers[num.id] = true;
             let button = $(`.number_buttons[data-number="${num.id}"]`);
@@ -14362,20 +13965,20 @@ function updateSearchResults(searchText) {
             }
         });
     
-        for (const numId in currentOccupiedNumbers) {
+        // Recorrer TODOS los botones en pantalla y restaurar los que no están ocupados
+        $(".number_buttons").each(function () {
+            let numId = $(this).attr("data-number");
             if (!newOccupiedNumbers[numId]) {
-                let button = $(`.number_buttons[data-number="${numId}"]`);
-                if (button.length) {
-                    button.removeClass('btn-danger').addClass('btn-success')
-                        .attr({ 'data-sale_id': '', 'data-sale_no': '', 'data-user_id': '' })
-                        .css('transform', 'scale(1.2)');
-                    setTimeout(() => button.css('transform', 'scale(1)'), 300);
-                }
+                $(this).removeClass('btn-danger').addClass('btn-success')
+                    .attr({ 'data-sale_id': '', 'data-sale_no': '', 'data-user_id': '' });
+                    // .css('transform', 'scale(1.2)');
+                setTimeout(() => $(this).css('transform', 'scale(1)'), 300);
             }
-        }
+        });
     
         currentOccupiedNumbers = newOccupiedNumbers;
     }
+    
     
     function reset_time_interval() {
         let highestId = setTimeout(() => { }, 0);
@@ -14385,34 +13988,13 @@ function updateSearchResults(searchText) {
     function all_time_interval_operation() {
         setInterval(() => {
             if (checkInternetConnection()) new_notification_interval();
-            refresh_orders_left();
-        }, 10000);
+            // refresh_orders_left();
+        }, 5000);
     }
     
     all_time_interval_operation();
     
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //   //waiter_order_module
-    //   setTimeout(function () {
-    //       if(checkInternetConnection()){
-    //           new_notification_interval();
-    //       }
-    //   }, 1000);
 
     
       function checkPercentage1(value) {
@@ -14820,7 +14402,7 @@ function updateSearchResults(searchText) {
         $("#tips_amount").val((0).toFixed(ir_precision));
       }
   
-      $("#total_payable").html(response.total_payable);
+      $("#total_payable").html(formatNumberToCurrency(response.total_payable));
       $("#charge_type").val(response.charge_type).change();
       $(".order_holder").prepend(
         '<span data-sale-no="' +
@@ -17825,7 +17407,7 @@ function updateSearchResults(searchText) {
           let sub_total = parseFloat($("#sub_total_show").html()).toFixed(ir_precision);
           let discounted_sub_total_amount = pOrAmount($("#show_discount_amount").html());
           let total_vat = parseFloat($("#show_vat_modal").html()).toFixed(ir_precision);
-          let total_payable = parseFloat($("#total_payable").html()).toFixed(ir_precision);
+          let total_payable = parseCurrencyToNumber($("#total_payable").html()); //parseFloat($("# total_payable").html()).toFixed(ir_precision);
           let total_tips = parseFloat($("#show_tips_amount").html()).toFixed(ir_precision);
           let total_discount_amount = parseFloat($("#all_items_discount").html()).toFixed(ir_precision);
           let delivery_charge =
@@ -18214,12 +17796,12 @@ function updateSearchResults(searchText) {
     
   
       function cal_finalize_modal(is_ignore){
-          let finalize_total_payable = Number($("#finalize_total_payable").html());
+          let finalize_total_payable = parseCurrencyToNumber($("#finalize_total_payable").html());
           let is_multi_currency = Number($("#is_multi_currency").val());
   
           let tmp_total = 0;
           $(".payment_list_amount").each(function (i, obj) {
-              let this_txt = Number($(this).text());
+              let this_txt = parseCurrencyToNumber($(this).text());
               tmp_total+=this_txt;
           });
   
@@ -18228,12 +17810,12 @@ function updateSearchResults(searchText) {
               tmp_total = finalize_total_payable;
           }
   
-          $("#finalize_total_paid").html(tmp_total.toFixed(ir_precision));
-          $("#finalize_total_due").html((finalize_total_payable - tmp_total).toFixed(ir_precision));
+          $("#finalize_total_paid").html(formatNumberToCurrency(tmp_total));
+          $("#finalize_total_due").html(formatNumberToCurrency(finalize_total_payable - tmp_total));
   
           let default_remaining_cash = (finalize_total_payable - tmp_total) && (finalize_total_payable - tmp_total)>0?(finalize_total_payable - tmp_total):0;
           $(".set_default_quick_cach").attr("data-amount",(default_remaining_cash).toFixed(ir_precision));
-          $(".set_default_quick_cach").html((default_remaining_cash).toFixed(ir_precision));
+          $(".set_default_quick_cach").html(formatNumberToCurrency(default_remaining_cash));
       }
       function setAnimation() {
           let imgToDrag = $("#cash_img").eq(0);
@@ -18311,9 +17893,10 @@ function updateSearchResults(searchText) {
                                           $("#payment_list_div").html('');
   
                                           $("#order_payment_modal_name").html(response.customer_name);
-                                          $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
+                                          $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
+                                          $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
                                           $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-                                          $("#finalize_total_due").html(response.total_payable);
+                                          $("#finalize_total_due").html(formatNumberToCurrency(response.total_payable));
                                           $("#selected_invoice_sale_customer").val(response.customer_id);
                                           $("#pay_amount_invoice_input").val(response.total_payable);
   
@@ -18380,9 +17963,10 @@ function updateSearchResults(searchText) {
                                   $("#payment_list_div").html('');
   
                                   $("#order_payment_modal_name").html(response.customer_name);
-                                  $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
+                                  $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
+                                  $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
                                   $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-                                  $("#finalize_total_due").html(response.total_payable);
+                                  $("#finalize_total_due").html(formatNumberToCurrency(response.total_payable));
                                   $("#selected_invoice_sale_customer").val(response.customer_id);
                                   $("#pay_amount_invoice_input").val(response.total_payable);
   
@@ -18595,14 +18179,15 @@ function updateSearchResults(searchText) {
                   let res = getSelectedOrderDetails(sale_no).then(function(data){
                       let response = jQuery.parseJSON(data);
                       if(response !== null) {
-                        console.log(response);
+                        // console.log(response);
                           $(".empty_title").show();
                           $("#payment_list_div").html('');
   
                           $("#order_payment_modal_name").html(response.customer_name);
-                          $("#finalize_total_payable").html(Number(response.total_payable).toFixed(ir_precision));
+                          $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
+                          $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
                           $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-                          $("#finalize_total_due").html(Number(response.total_payable).toFixed(ir_precision));
+                          $("#finalize_total_due").html(formatNumberToCurrency(Number(response.total_payable)));
                           $("#selected_invoice_sale_customer").val(response.customer_id);
                           $("#pay_amount_invoice_input").val(Number(response.total_payable).toFixed(ir_precision));
                           $("#current_sale_no").val(response.sale_no);
@@ -18729,13 +18314,13 @@ function updateSearchResults(searchText) {
   
       function set_finalize_discount(){
         let sub_total_discount_finalize = Number($("#sub_total_discount_finalize").val());
-        let finalize_total_paid = Number($("#finalize_total_paid").val());
+        let finalize_total_paid = formatNumberToCurrency($("#finalize_total_paid").val());
         let finalize_total_payable = Number($("#finalize_total_payable").attr('data-original_payable'));
   
         let new_finalize_amount = (finalize_total_payable - sub_total_discount_finalize).toFixed(ir_precision);
         let new_due = ((finalize_total_payable - sub_total_discount_finalize)-finalize_total_paid).toFixed(ir_precision);
   
-        $("#finalize_total_payable").html(new_finalize_amount);
+        $("#finalize_total_payable").html(formatNumberToCurrency(new_finalize_amount));
   
   
         let cart_modal_total_discount_all_text = Number($("#cart_modal_total_discount_all_text").attr('data-original_discount'));
@@ -18743,7 +18328,7 @@ function updateSearchResults(searchText) {
   
           let conversion_rate  = Number($("#multi_currency").find(':selected').attr('data-multi_currency'));
           if(conversion_rate){
-              $("#finalize_total_paid").html(new_finalize_amount);
+              $("#finalize_total_paid").html((formatNumberToCurrencynew_finalize_amount));
               //set multi currency value
               let total_mul_amount = (conversion_rate*new_finalize_amount).toFixed(2);
               if(total_mul_amount){
@@ -18752,7 +18337,7 @@ function updateSearchResults(searchText) {
                   $("#multi_currency_amount").val('');
               }
           }else{
-              $("#finalize_total_due").html(new_due);
+              $("#finalize_total_due").html(formatNumberToCurrency(new_due));
           }
       }
       $(document).on("keyup", "#sub_total_discount_finalize", function (e) {
@@ -18807,7 +18392,7 @@ function updateSearchResults(searchText) {
           $(".set_payment").each(function (i, obj) {
               let id = Number($(this).attr("data-id"));
               if($(this).hasClass('active')){
-                  let finalize_total_payable = Number($("#finalize_total_due").text());
+                  let finalize_total_payable = parseCurrencyToNumber($("#finalize_total_due").text());
                   if(finalize_total_payable==amount){
                       let check_exist = false;
                       let payment_id = 0 ;
@@ -18840,7 +18425,7 @@ function updateSearchResults(searchText) {
           if (isNaN(this_value)) {
               $(this).val("");
           }
-          let finalize_total_payable = Number($("#finalize_total_due").text());
+          let finalize_total_payable = parseCurrencyToNumber($("#finalize_total_due").text());
           let change_amount = (this_value - finalize_total_payable);
               change_amount = change_amount && change_amount>0?change_amount:0;
           if(this_value==''){
@@ -18867,7 +18452,7 @@ function updateSearchResults(searchText) {
               let amount_txt = $("#amount_txt").val();
               let loyalty_point_txt = $("#loyalty_point_txt").val();
   
-              let finalize_total_payable = Number($("#finalize_total_payable").html());
+              let finalize_total_payable = parseCurrencyToNumber($("#finalize_total_payable").html());
               let loyalty_rate = Number($("#loyalty_rate").val());
   
               if(Number(id)!=5){
@@ -18909,9 +18494,9 @@ function updateSearchResults(searchText) {
                       $(".amount_txt").html(loyalty_point_txt);
                       $("#finalize_amount_input").attr("placeholder",loyalty_point_txt);
   
-                      let finalize_total_due_ = Number($("#finalize_total_due").html());
+                      let finalize_total_due_ = parseCurrencyToNumber($("#finalize_total_due").html());
                       let tool_tip_loyalty_point =  $("#tool_tip_loyalty_point").val();
-                      $(".set_default_quick_cach").html(((1/loyalty_rate) * finalize_total_due_).toFixed(ir_precision)+" &nbsp;&nbsp;<span data-tippy-content='"+tool_tip_loyalty_point+"' class='tool_tip_loyalty_point fa fa-info'></span>");
+                      $(".set_default_quick_cach").html(formatNumberToCurrency((1/loyalty_rate) * finalize_total_due_)+" &nbsp;&nbsp;<span data-tippy-content='"+tool_tip_loyalty_point+"' class='tool_tip_loyalty_point fa fa-info'></span>");
                       $(".set_default_quick_cach").attr('data-amount',((1/loyalty_rate) * finalize_total_due_).toFixed(ir_precision));
   
                       tippy(".tool_tip_loyalty_point", {
@@ -19039,7 +18624,7 @@ function updateSearchResults(searchText) {
               amount = sum;
               $("#finalize_amount_input").val(amount.toFixed(ir_precision));
   
-              $(this).html(this_amount+' <span class="badge_custom">'+total_count+'</span>');
+              $(this).html(formatNumberToCurrency(this_amount)+' <span class="badge_custom">'+total_count+'</span>');
           }else{
               $("#finalize_amount_input").val(amount.toFixed(ir_precision));
   
@@ -19058,14 +18643,14 @@ function updateSearchResults(searchText) {
               let id = ($(this).text());
               if($(this).hasClass('active')){
                   if(id=="Cash"){
-                      let finalize_total_payable = Number($("#finalize_total_due").text());
+                      let finalize_total_payable = parseCurrencyToNumber($("#finalize_total_due").text());
                       let finalize_given_amount_input = Number($("#finalize_given_amount_input").val());
                       let change_amount = (finalize_given_amount_input - finalize_total_payable);
                       $("#finalize_change_amount_input").val((change_amount && change_amount>0?change_amount:0).toFixed(ir_precision));
   
                       let finalize_change_amount_input = Number($("#finalize_change_amount_input").val());
                       if(finalize_change_amount_input){
-                          amount = Number($("#finalize_total_due").text());
+                          amount = parseCurrencyToNumber($("#finalize_total_due").text());
                           $("#finalize_amount_input").val(amount.toFixed(ir_precision));
                       }
                   }
@@ -19139,7 +18724,7 @@ function updateSearchResults(searchText) {
                     let html = '<li class="payment_list_counter" data-usage_point="'+usage_point+'" data-payment_name="'+payment_name+'" data-payment_id="'+payment_id+'" data-amount="'+finalize_amount_input.toFixed(ir_precision)+'">\n' +
                         '                                                    <span class="payment-type-name">'+payment_name+'</span>\n' +
                         '                                                    <div>\n' +
-                        '                                                        '+currency+'<span class="payment_list_amount">'+finalize_amount_input.toFixed(ir_precision)+'</span>\n' +
+                        '                                                        '+currency+'<span class="payment_list_amount">'+formatNumberToCurrency(finalize_amount_input)+'</span>\n' +
                         '                                                        <i class="fas fa-times-circle remove_paid_item"></i>\n' +
                         '                                                    </div>\n' +
                         '                                                </li>';
@@ -19157,7 +18742,7 @@ function updateSearchResults(searchText) {
                                     $("#hidden_change_amount").val($("#finalize_change_amount_input").val());
   
                                     let finalize_given_amount_input = Number($("#finalize_given_amount_input").val());
-                                    let finalize_total_payable = Number($("#finalize_total_due").text());
+                                    let finalize_total_payable = parseCurrencyToNumber($("#finalize_total_due").text());
   
                                     if(finalize_total_payable<finalize_given_amount_input){
                                         $(".set_no_access").addClass('no_access');
@@ -19207,7 +18792,7 @@ function updateSearchResults(searchText) {
       function cal_multi_currency(){
           let conversion_rate  = Number($("#multi_currency").find(':selected').attr('data-multi_currency'));
           $("#multi_currency_rate").val(conversion_rate);
-          let finalize_total_payable  = Number($("#finalize_total_payable").html());
+          let finalize_total_payable  = parseCurrencyToNumber($("#finalize_total_payable").html());
           let total_mul_amount = (conversion_rate*finalize_total_payable).toFixed(2);
           if(total_mul_amount){
               $("#multi_currency_amount").val(total_mul_amount);
@@ -19961,9 +19546,9 @@ function updateSearchResults(searchText) {
                 $(".empty_title").show();
                 $("#payment_list_div").html('');
   
-                $("#finalize_total_payable").html(Number(total_payable).toFixed(ir_precision));
+                $("#finalize_total_payable").html(formatNumberToCurrency(Number(total_payable)));
                 $("#finalize_total_payable").attr('data-original_payable',Number(total_payable).toFixed(ir_precision));
-                $("#finalize_total_due").html(total_payable);
+                $("#finalize_total_due").html(formatNumberToCurrency(total_payable));
                 $("#selected_invoice_sale_customer").val(customer_id);
                 $("#pay_amount_invoice_input").val(total_payable);
   
@@ -20572,10 +20157,14 @@ function updateSearchResults(searchText) {
     
     // Función para limpiar la selección
     function clearNumberSelection() {
+        const comanda_required = document.getElementById('comanda_required').value;
         $('.number_buttons').removeClass('selected');
         $('#selected_number').val('');
         $('#selected_number_name').val('');
         updateMainButton(); 
+        if (comanda_required == 2){
+            $("#numbers_button").click();
+        }
     }
     
     // Inicializar con cualquier selección previa
@@ -20602,7 +20191,7 @@ function updateSearchResults(searchText) {
             // Mostrar icono predeterminado y ocultar el de selección
             $('#numbers_button .default-icon').show();
             $('#numbers_button .selected-icon').hide();
-            $('#numbers_button .button-text').text('Números');
+            $('#numbers_button .button-text').text('Comandas');
         }
     }
  
@@ -20791,203 +20380,31 @@ function updateSearchResults(searchText) {
     
 
     // Verificar cada 30 segundos si hay pedidos pendientes
-    setInterval(syncPendingKitchenOrders, 10000);
+    setInterval(syncPendingKitchenOrders, 7000);
 
     // También verificar cuando se detecta conexión
     window.addEventListener('online', syncPendingKitchenOrders);
 
-
-    // // Objeto para rastrear el estado actual de los números ocupados
-    // let currentOccupiedNumbers = {};
-
-    // function updateNumbersInterval() {
-    //     $.ajax({
-    //         url: base_url + "Sale/getUpdatedNumbers",
-    //         method: "POST",
-    //         dataType: 'json',
-    //         data: {
-    //             csrf_irestoraplus: csrf_value_,
-    //         },
-    //         success: function(occupiedNumbers) {
-    //             // Objeto temporal para los nuevos números ocupados
-    //             let newOccupiedNumbers = {};
-                
-    //             // 1. Procesar los números ocupados recibidos del servidor
-    //             occupiedNumbers.forEach(num => {
-    //                 newOccupiedNumbers[num.id] = true;
-                    
-    //                 // Seleccionar el botón correspondiente
-    //                 const button = $(`.number_buttons[data-number="${num.id}"]`);
-                    
-    //                 // Solo actualizar si el botón existe y no estaba ya marcado como ocupado
-    //                 if (button.length && !button.hasClass('btn-danger')) {
-    //                     button
-    //                         .removeClass('btn-success')
-    //                         .addClass('btn-danger')
-    //                         .attr('data-sale_id', num.sale_id || '')
-    //                         .attr('data-sale_no', num.sale_no || '')
-    //                         .attr('data-user_id', num.user_id || '');
-                        
-    //                     animateNumberChange(button);
-    //                 }
-    //             });
-                
-    //             // 2. Verificar números que estaban ocupados pero ahora están disponibles
-    //             for (const numId in currentOccupiedNumbers) {
-    //                 if (!newOccupiedNumbers[numId]) {
-    //                     const button = $(`.number_buttons[data-number="${numId}"]`);
-                        
-    //                     // Restablecer a estado disponible (verde)
-    //                     if (button.length) {
-    //                         button
-    //                             .removeClass('btn-danger')
-    //                             .addClass('btn-success')
-    //                             .attr('data-sale_id', '')
-    //                             .attr('data-sale_no', '')
-    //                             .attr('data-user_id', '');
-                            
-    //                         animateNumberChange(button);
-    //                     }
-    //                 }
-    //             }
-                
-    //             // Actualizar el estado actual
-    //             currentOccupiedNumbers = newOccupiedNumbers;
-    //         },
-    //         error: function() {
-    //             console.error('Error al actualizar números');
-    //         }
-    //     });
-    // }
-
-    // function animateNumberChange(button) {
-    //     button.css('transform', 'scale(1.2)');
-    //     setTimeout(function() {
-    //         button.css('transform', 'scale(1)');
-    //     }, 300);
-    // }
-
-    // // Iniciar la actualización periódica
-    // $(document).ready(function() {
-    //     updateNumbersInterval();
-    //     setInterval(updateNumbersInterval, 5000);
-    // });
-
-
-
-
-// // Manejar clic en botones de número
-// $(document).on('click', '.number_buttons', function() {
-//     const $button = $(this);
-//     const numberId = $button.data('number');
-//     const numberName = $button.data('name');
-//     const saleId = $button.data('sale_id');
-//     const saleNo = $button.data('sale_no');
-    
-//     // Deseleccionar todos los botones
-//     $('.number_buttons').removeClass('selected');
-    
-//     // Seleccionar el botón clickeado
-//     $button.addClass('selected');
-    
-//     // Verificar si el botón está rojo (ocupado)
-//     if ($button.hasClass('btn-danger') && saleId) {
-//         $('#editar_orden_button').data('sale_no', saleNo);
-//         $('#print_bill_orden_button').data('sale_no', saleNo);
-//         // Abrir modal de pago para este número ocupado
-//         openPaymentModalForNumber(saleNo);
-//     } else {
-//         // Botón verde - función normal
-//         $('#selected_number').val(numberId);
-//         $('#selected_number_name').val(numberName);
-        
-//         // Actualizar el botón principal
-//         updateMainButton(numberName);
-//         $("#dp_modal_cancel_button").click();
-//     }
-// });
-
-// // Función mejorada para abrir el modal de pago
-// function openPaymentModalForNumber(saleNo) {
-//     // 1. Deseleccionar todas las órdenes
-//     $('.single_order').attr('data-selected', 'unselected');
-    
-//     // 2. Seleccionar la orden correspondiente
-//     const $order = $(`[data-sale_no="${saleNo}"]`);
-//     if ($order.length) {
-//         $order.attr('data-selected', 'selected');
-        
-//         // Pequeña pausa para asegurar la selección
-//         setTimeout(() => {
-//             // Verificar si es pre_or_post_payment == 2
-//             if(pre_or_post_payment == 2) {
-//                 getSelectedOrderDetails(saleNo).then(function(data){
-//                     let is_invoice = data.is_invoice;
-//                     if (is_invoice == 2) {
-//                         let invoiced_error = $("#invoiced_error").val();
-//                         toastr['error']((invoiced_error + "!"), '');
-//                     } else {
-//                         // Hacer clic en el botón real
-//                         $("#create_invoice_and_close").click();
-//                     }
-//                 });
-//             } else {
-//                 // Hacer clic en el botón real
-//                 $("#create_invoice_and_close").click();
-//             }
-//         }, 100);
-//     } else {
-//         toastr['error']('No se encontró la orden correspondiente', 'Error');
-//     }
-// }
-// // Función para emular el botón de modificar orden
-// function openModifyOrderForNumber(saleNo) {
-//     // 1. Deseleccionar todas las órdenes
-//     $('.single_order').attr('data-selected', 'unselected');
-    
-//     // 2. Seleccionar la orden correspondiente
-//     const $order = $(`[data-sale_no="${saleNo}"]`);
-//     if ($order.length) {
-//         $order.attr('data-selected', 'selected');
-        
-//         // Pequeña pausa para asegurar la selección
-//         setTimeout(() => {
-//             // Hacer clic en el botón real de modificar
-//             $("#modify_order").click();
-//         }, 100);
-//     } else {
-//         toastr['error']('No se encontró la orden correspondiente', 'Error');
-//     }
-// }
-
-// // Asignar esta función a tu botón personalizado
-// $(document).on('click', '#editar_orden_button', function() {
-//     // Obtener el saleNo del botón o de donde lo tengas almacenado
-//     const saleNo = $(this).data('sale_no'); // Asegúrate de que tu botón tenga data-sale_no
-    
-//     if (saleNo) {
-//         openModifyOrderForNumber(saleNo);
-//     } else {
-//         toastr['error']('No se pudo identificar la orden a modificar', 'Error');
-//     }
-// });
-
-// Manejar clic en botones de número
 $(document).on('click', '.number_buttons', function() {
     const $button = $(this);
-    const numberId = $button.data('number');
-    const numberName = $button.data('name');
-    const saleId = $button.data('sale_id');
-    const saleNo = $button.data('sale_no');
+    // const numberId = $button.data('number');
+    // const numberName = $button.data('name');
+    // const saleId = $button.data('sale_id');
+    // const saleNo = $button.data('sale_no');
     
+    // Obtener el valor actualizado de los atributos
+    let numberId = $button.attr('data-number');
+    let numberName = $button.attr('data-name');
+    let saleId = $button.attr('data-sale_id');
+    let saleNo = $button.attr('data-sale_no');
+
     // Deseleccionar todos los botones
     $('.number_buttons').removeClass('selected');
     
     // Seleccionar el botón clickeado
     $button.addClass('selected');
-    
-    // Verificar si el botón está rojo (ocupado)
-    if ($button.hasClass('btn-danger') && saleId) {
+    // Verificar si el botón está rojo (ocupado) $button.hasClass('btn-danger') &&
+    if (saleNo) {
         // Guardar el saleNo en los botones de acción
         // $('#editar_orden_button').data('sale_no', saleNo);
         // $('#print_bill_orden_button').data('sale_no', saleNo);
@@ -21009,11 +20426,12 @@ $(document).on('click', '.number_buttons', function() {
 
 // Función para mostrar los detalles de la orden en un modal
 function showOrderDetailsModal(saleNo) {
+    // console.log('showOrderDetailsModal',saleNo);
     // 1. Deseleccionar todas las órdenes
     $('.single_order').attr('data-selected', 'unselected');
     
     // 2. Seleccionar la orden correspondiente
-    const $order = $(`[data-sale_no="${saleNo}"]`);
+    let $order = $(`.single_order[data-sale_no="${saleNo}"]`);
     if ($order.length) {
         $order.attr('data-selected', 'selected');
         
@@ -21024,6 +20442,9 @@ function showOrderDetailsModal(saleNo) {
         }, 100);
     } else {
         toastr['error']('No se encontró la orden correspondiente', 'Error');
+        // console.log('No se encontró la orden correspondiente','showOrderDetailsModal');
+        // console.log('$order',$order);
+        // console.log($order.length);
     }
 }
 
@@ -21033,7 +20454,7 @@ function openPaymentModalForNumber(saleNo) {
     $('.single_order').attr('data-selected', 'unselected');
     
     // 2. Seleccionar la orden correspondiente
-    const $order = $(`[data-sale_no="${saleNo}"]`);
+    let $order = $(`.single_order[data-sale_no="${saleNo}"]`);
     if ($order.length) {
         $order.attr('data-selected', 'selected');
         
@@ -21061,6 +20482,7 @@ function openPaymentModalForNumber(saleNo) {
         }, 100);
     } else {
         toastr['error']('No se encontró la orden correspondiente', 'Error');
+        console.log('No se encontró la orden correspondiente','openPaymentModalForNumber');
     }
 }
 
@@ -21070,7 +20492,7 @@ function openModifyOrderForNumber(saleNo) {
     $('.single_order').attr('data-selected', 'unselected');
     
     // 2. Seleccionar la orden correspondiente
-    const $order = $(`[data-sale_no="${saleNo}"]`);
+    let $order = $(`.single_order[data-sale_no="${saleNo}"]`);
     if ($order.length) {
         $order.attr('data-selected', 'selected');
         
@@ -21083,6 +20505,7 @@ function openModifyOrderForNumber(saleNo) {
         }, 100);
     } else {
         toastr['error']('No se encontró la orden correspondiente', 'Error');
+        console.log('No se encontró la orden correspondiente','openModifyOrderForNumber');
     }
 }
 
@@ -21115,7 +20538,7 @@ function openPrintBillForNumber(saleNo) {
     $('.single_order').attr('data-selected', 'unselected');
     
     // 2. Seleccionar la orden correspondiente
-    const $order = $(`[data-sale_no="${saleNo}"]`);
+    let $order = $(`.single_order[data-sale_no="${saleNo}"]`);
     if ($order.length) {
         $order.attr('data-selected', 'selected');
         

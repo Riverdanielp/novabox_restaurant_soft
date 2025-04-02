@@ -163,7 +163,7 @@ foreach($food_menus as $single_menus){
     $menu_to_show .= '<div class="single_item animate__animated animate__flipInX" data-price="'.$sale_price.'"  data-price_take="'.$sale_price_take.'"  data-price_delivery="'.$sale_price_delivery.'" data-is_variation="'.$is_variation.'" data-veg_status="'.$veg_status1.'"  id="item_'.$single_menus->id.'">';
     $menu_to_show .= '<img src="'.$image_path.'" alt="" width="142">';
         $menu_to_show .= '<p class="item_name '.$item_name_c.'" data-tippy-content="'.$single_menus->name.'">'.$single_menus->name.'</p>';
-    $menu_to_show .= '<p class="item_price">'.$this->session->userdata('currency').' <span id="price_'.$single_menus->id.'">'.getAmtP($sale_price).'</span></p>';
+    $menu_to_show .= '<p class="item_price">'.$this->session->userdata('currency').' <span id="price_'.$single_menus->id.'">'.getAmtPCustom($sale_price).'</span></p>';
     $menu_to_show .= '</div>';
     //if its the last content and there is no more category then set exit to last category
     if($is_new_category==false && $total_menus==$i){
@@ -393,25 +393,25 @@ if($check_walk_in_customer==1 && $customers_option==""){
 $waiters_option = '';
 $default_waiter_id = 0;
 $outlet = getOutletById($this->session->userdata('outlet_id'));
+$role = $this->session->userdata('designation');
+$user_id = $this->session->userdata('user_id');
 foreach ($waiters as $waiter){
     $selected = "";
-    $role = $this->session->userdata('role');
-    $user_id = $this->session->userdata('user_id');
     if(str_rot13($language_manifesto)=="eriutoeri"):
         $default_waiter = $outlet->default_waiter;
     else:
         $default_waiter = $getCompanyInfo->default_waiter;
     endif;
 
-    if($waiter->id==$default_waiter){
-        $selected = "selected";
-        $default_waiter_id = $waiter->id;
+    if(isset($role) && $role == "Waiter"){
+        if($waiter->id==$user_id){
+            $selected = "selected";
+            $default_waiter_id = $user_id;
+        }
     }else{
-        if(isset($role) && $role!="Admin"){
-            if($waiter->id==$user_id){
-                $selected = "selected";
-                $default_waiter_id = $user_id;
-            }
+        if($waiter->id==$default_waiter){
+            $selected = "selected";
+            $default_waiter_id = $waiter->id;
         }
     }
     if($waiter->full_name=='Default Waiter'){
@@ -422,6 +422,17 @@ foreach ($waiters as $waiter){
 
 }
 
+// echo '<pre>';
+// var_dump($this->session->userdata()); 
+// var_dump($role); 
+// var_dump($user_id); 
+// var_dump($default_waiter); 
+// var_dump($selected); 
+// var_dump($default_waiter_id); 
+// echo '<pre>';
+
+// echo '////////////////////////////// AUXILIAR ////////////////////////////////////';
+// return;
 /********************************************************************************************************************
  * End This section is to construct table modal's content****************************************************************
  ********************************************************************************************************************
@@ -756,7 +767,7 @@ foreach ($notifications as $single_notification){
             color: white !important;
         }
         #numbers_button {
-            display: flex;
+            /* display: flex; */
             align-items: center;
             gap: 8px;
         }
@@ -1246,7 +1257,7 @@ foreach ($notifications as $single_notification){
                                     }
                             ?>
                             <button class="selected__btn_c  <?php echo escape_output($is_self_order_class) ?> dine_in_button" data-id="dine_in_button"
-                                data-selected="<?php echo escape_output($selected)?>">
+                                data-selected="<?php echo escape_output($selected)?>" style="display: none;">
                                 <i class="fal fa-table"></i> <?php echo lang('dine'); ?>
                             </button>
 
@@ -1287,7 +1298,7 @@ foreach ($notifications as $single_notification){
                             <button class="" id="numbers_button">
                                 <i class="fa fa-list-ol"></i> 
                                 <i class="far fa-check-square selected-icon" style="display: none;"></i>
-                                <span class="button-text">Números</span>
+                                <span class="button-text">Comandas</span>
                                 
                             </button>
                         </div>
@@ -2289,7 +2300,9 @@ foreach ($notifications as $single_notification){
 
             <footer class="pos__modal__footer">
                 <div class="left_box left_bottom">
+                    <br>
                     <button class="floatright" id="dp_modal_cancel_button">Cancelar</button>
+                    <button class="floatright" id="clear_number_selection">Deseleccionar Comanda</button>
                 </div>
             </footer>
 
@@ -2325,7 +2338,7 @@ foreach ($notifications as $single_notification){
                                 <div class="first_column column"><?php echo lang('hold_number'); ?></div>
                                 <div class="second_column column"><?php echo lang('customer'); ?>
                                     (<?php echo lang('phone'); ?>)</div>
-                                <div class="third_column column"><?php echo lang('table'); ?></div>
+                                <div class="third_column column">Comanda</div>
                             </div>
                             <div class="scrollbar-macosx">
                                 <div class="detail_holder draft-sale">
@@ -2482,7 +2495,7 @@ foreach ($notifications as $single_notification){
                                 <div class="first_column column"><?php echo lang('sale_no'); ?></div>
                                 <div class="second_column column"><?php echo lang('customer'); ?>
                                     (<?php echo lang('phone'); ?>)</div>
-                                <div class="third_column column"><?php echo lang('table'); ?></div>
+                                <div class="third_column column">Comanda</div>
                             </div>
                             <div class="scrollbar-macosx">
                                 <div class="detail_holder recent-sales">
@@ -3181,18 +3194,26 @@ foreach ($notifications as $single_notification){
                                 <span id="order_details_type_id" class="ir_display_none"></span>
                                 <span class="ir_font_bold"><?php echo lang('order_number'); ?>: </span>
                                 <span id="order_details_order_number"></span>
+                                <span class="ir_font_bold">Comanda 
+                                #<i id="comanda_numero_name"></i>
+                                </span>
                             </div>
+                            <!-- <div class="table fix">
+                            </div> -->
                         </div>
                         <div class="waiter_customer_table fix">
                             <div class="waiter fix"><span class="ir_font_bold"><?php echo lang('waiter'); ?>:
                                 </span><span class="ir_display_none" id="order_details_waiter_id"></span><span
                                     id="order_details_waiter_name"></span></div>
                             <div class="customer fix"><span class="ir_font_bold"><?php echo lang('customer'); ?>:
-                                </span><span class="ir_display_none" id="order_details_customer_id"></span><span
-                                    id="order_details_customer_name"></span></div>
-                            <div class="table fix"><span class="ir_font_bold"><?php echo lang('table'); ?>:
-                                </span><span class="ir_display_none" id="order_details_table_id"></span><span
-                                    id="order_details_table_name"></span></div>
+                                </span><span class="ir_display_none" id="order_details_customer_id"></span>
+                                <span id="order_details_customer_name"></span></div>
+                            <div class="table fix">
+                                <span class="ir_font_bold"><?php echo lang('table'); ?>:
+                                </span>
+                                <span class="ir_display_none" id="order_details_table_id"></span>
+                                <span id="order_details_table_name"></span>
+                            </div>
                         </div>
                         <div class="item_modifier_details fix">
                             <div class="modifier_item_header fix">
@@ -3246,7 +3267,7 @@ foreach ($notifications as $single_notification){
                                     </div>
                                 </div>
                             </div>
-                            <h1 class="modal_payable"><?php echo lang('total_payable'); ?> <span
+                            <h1 class="modal_payable"><?php echo lang('total_payable'); ?> <?php echo $this->session->userdata('currency') ?><span
                                     id="total_payable_order_details"><?php echo getAmtP(0)?></span></h1>
                         </div>
                     </div>
@@ -3491,6 +3512,7 @@ foreach ($notifications as $single_notification){
         <div class="modal-content">
 
             <h1 id="modal_item_name"><?php echo lang('Finalize'); ?> <?php echo lang('sale'); ?>
+                            <span id="order_payment_modal_comanda"></span>
                             <span id="order_payment_modal_name"></span>
                 <a href="javascript:void(0)" class="alertCloseIcon">
                     <i class="fal fa-times"></i>
@@ -3651,7 +3673,7 @@ foreach ($notifications as $single_notification){
                                                 if(isset($denominations) && $denominations):
                                                     foreach ($denominations as $value):
                                                             ?>
-                                                            <li><a  data-is_denomination="yes"  data-amount="<?=escape_output($value->amount)?>" class="set_no_access get_quick_cash" href="#"><?php echo escape_output($value->amount)?></a></li>
+                                                            <li><a  data-is_denomination="yes"  data-amount="<?=escape_output($value->amount)?>" class="set_no_access get_quick_cash" href="#"><?php echo getAmtPCustom($value->amount)?></a></li>
                                                             <?php
                                                     endforeach;
                                                 endif;

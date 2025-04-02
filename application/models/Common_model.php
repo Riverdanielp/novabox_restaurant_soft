@@ -1184,7 +1184,9 @@ class Common_model extends CI_Model {
         $this->db->where("sales_id", $sales_id);
         $this->db->where("tbl_printers.outlet_id", $outlet_id);
         $this->db->where("tbl_kitchen_sales_details.outlet_id", $outlet_id);
-        if($type==2){
+        if($type==3){
+            $this->db->where("tbl_printers.printing_choice", "printer_app");
+        }else if($type==2){
             $this->db->where("tbl_printers.printing_choice", "direct_print");
         }else{
             $this->db->where("tbl_printers.printing_choice", "web_browser_popup");

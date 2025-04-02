@@ -132,6 +132,7 @@ class Outlet extends Cl_Controller {
                 $outlet_info['phone'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('phone')));
                 $outlet_info['email'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('email')));
                 $outlet_info['online_order_module'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('online_order_module')));
+                $outlet_info['comanda_required'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('comanda_required')));
                 if(str_rot13($language_manifesto)=="eriutoeri"):
                     $outlet_info['default_waiter'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('default_waiter')));
                     $outlet_info['active_status'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('active_status')));
@@ -278,6 +279,7 @@ class Outlet extends Cl_Controller {
         $outlet_session['phone'] = $outlet_details->phone;
         $outlet_session['email'] = $outlet_details->email;
         $outlet_session['online_order_module'] = $outlet_details->online_order_module;
+        $outlet_session['comanda_required'] = $outlet_details->comanda_required;
 
         if(str_rot13($language_manifesto)=="eriutoeri"):
             $outlet_session['default_waiter'] = $outlet_details->default_waiter;

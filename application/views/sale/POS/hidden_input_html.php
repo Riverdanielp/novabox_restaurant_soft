@@ -8,9 +8,10 @@ $language_manifesto = $this->session->userdata('language_manifesto');
 $waiter_app_status=isset($waiter_app_status) && $waiter_app_status?$waiter_app_status:'';
 $default_waiter_id = 0;
 $outlet = getOutletById($this->session->userdata('outlet_id'));
+$role = $this->session->userdata('designation');
+$user_id = $this->session->userdata('user_id');
+
 foreach ($waiters as $waiter){
-    $role = $this->session->userdata('role');
-    $user_id = $this->session->userdata('user_id');
 
     if(str_rot13($language_manifesto)=="eriutoeri"):
         $default_waiter = $outlet->default_waiter;
@@ -18,16 +19,15 @@ foreach ($waiters as $waiter){
         $default_waiter = $getCompanyInfo->default_waiter;
     endif;
 
-    if($waiter->id==$default_waiter){
-        $default_waiter_id = $waiter->id;
+    if(isset($role) && $role == "Waiter"){
+        if($waiter->id==$user_id){
+            $default_waiter_id = $user_id;
+        }
     }else{
-        if(isset($role) && $role!="Admin"){
-            if($waiter->id==$user_id){
-                $default_waiter_id = $user_id;
-            }
+        if($waiter->id==$default_waiter){
+            $default_waiter_id = $waiter->id;
         }
     }
-
 }
 
 
@@ -54,12 +54,15 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="tax_is_gst" value="<?php echo escape_output($this->session->userdata('tax_is_gst'))?>">
 <input type="hidden" id="decimals_separator" value="<?php echo escape_output($this->session->userdata('decimals_separator'))?>">
 <input type="hidden" id="thousands_separator" value="<?php echo escape_output($this->session->userdata('thousands_separator'))?>">
+<input type="hidden" id="ir_precision" value="<?php echo escape_output($getCompanyInfo->precision)?>">
+<input type="hidden" id="comanda_required" value="<?php echo escape_output($outlet->comanda_required)?>">
+
+
 <input type="hidden" id="currency_position" value="<?php echo escape_output($this->session->userdata('currency_position'))?>">
 <input type="hidden" id="same_or_diff_state" value="">
 <input type="hidden" id="username_short" value="<?php echo escape_output($this->session->userdata('code_short'))?>">
 <input type="hidden" id="hidden_currency" value="<?php echo escape_output($this->session->userdata('currency'))?>">
 <input type="hidden" id="food_menu_tooltip" value="<?php echo escape_output($this->session->userdata('food_menu_tooltip'))?>">
-<input type="hidden" id="ir_precision" value="<?php echo escape_output($getCompanyInfo->precision)?>">
 <input type="hidden" id="when_clicking_on_item_in_pos" value="<?php echo escape_output($getCompanyInfo->when_clicking_on_item_in_pos)?>">
 <input type="hidden" id="default_order_type" value="<?php echo escape_output($this->session->userdata('default_order_type'))?>">
 <input type="hidden" id="is_loyalty_enable" value="<?php echo escape_output($this->session->userdata('is_loyalty_enable'))?>">
@@ -374,3 +377,98 @@ $self_order_table_id = $this->session->userdata('self_order_table_id');
 <input type="hidden" id="pulled_successfully" value="<?php echo lang('pulled_successfully'); ?>">
 <input type="hidden" id="this_order_engage" value="<?php echo lang('this_order_engage'); ?>">
 <input type="hidden" id="zatca_invoice_value" value="">
+
+<script>
+// Función que formatea un número como cadena de moneda
+function formatNumberToCurrency(number) {
+    // console.log(number);
+  // Obtenemos los valores de los inputs ocultos
+  const decimalsSeparator = document.getElementById('decimals_separator').value;
+  const thousandsSeparator = document.getElementById('thousands_separator').value;
+  const precision = parseInt(document.getElementById('ir_precision').value, 10);
+
+  number = Number(number);
+  // Convertimos el número a string con la precisión deseada
+  const fixedNumber = number.toFixed(precision);
+
+  // Separamos la parte entera y la parte decimal
+  let [integerPart, fractionPart] = fixedNumber.split('.');
+
+  // Aplicamos el separador de miles a la parte entera
+  integerPart = integerPart.split("").reverse().join("")
+    .replace(/(\d{3})(?=\d)/g, "$1" + thousandsSeparator)
+    .split("").reverse().join("");
+
+  // Reconstruimos la cadena final usando el separador de decimales
+  const formatted = fractionPart ? integerPart + decimalsSeparator + fractionPart : integerPart;
+  return formatted;
+}
+
+// Función que convierte una cadena de moneda en un número
+function parseCurrencyToNumber(formattedString) {
+  const decimalsSeparator = document.getElementById('decimals_separator').value;
+  const thousandsSeparator = document.getElementById('thousands_separator').value;
+
+  // Eliminamos el separador de miles
+  let cleanedString = formattedString.split(thousandsSeparator).join('');
+  // Reemplazamos el separador de decimales por el punto para que parseFloat lo interprete correctamente
+  if (decimalsSeparator !== '.') {
+    cleanedString = cleanedString.replace(decimalsSeparator, '.');
+  }
+
+  // Convertimos la cadena a número
+  const number = parseFloat(cleanedString);
+  return number;
+}
+
+function clearButtonNumber(sale_no = null){
+    const comanda_required = document.getElementById('comanda_required').value;
+    if (sale_no != null){
+        $(".number_buttons").each(function () {
+            let numId = $(this).attr("data-sale_no");
+            if (numId == sale_no) {
+                $(this).removeClass('btn-danger').addClass('btn-success')
+                    .attr({ 'data-sale_id': '', 'data-sale_no': '', 'data-user_id': '' });
+                    // .css('transform', 'scale(1.2)');
+                setTimeout(() => $(this).css('transform', 'scale(1)'), 300);
+            }
+        });
+    }
+    if (comanda_required == 2){
+        $("#numbers_button").click();
+    }
+}
+function printKitchenTickets(sale_no) {
+    let base_url = $("base").attr("data-base");
+    $.ajax({
+        url: base_url + "Sale/printer_app_kot/" + sale_no,
+        method: "GET",
+        dataType: 'json',
+        success: function(printersArray) {
+            if (printersArray && printersArray.length > 0) {
+                // Función para imprimir secuencialmente
+                function printSequentially(index) {
+                    if (index < printersArray.length) {
+                        console.log('Imprimiendo ticket de cocina ' + (index + 1));
+                        window.location.href = 'print://' + printersArray[index];
+                        
+                        // Esperar un breve momento antes de imprimir el siguiente
+                        setTimeout(function() {
+                            printSequentially(index + 1);
+                        }, 500); // 500ms de espera entre impresiones
+                    }
+                }
+                
+                // Iniciar el proceso de impresión secuencial
+                printSequentially(0);
+            } else {
+                console.warn('No se recibieron tickets de cocina para imprimir');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error al generar tickets de cocina:', error);
+            alert("Error al generar los tickets para la cocina.");
+        }
+    });
+}
+</script>

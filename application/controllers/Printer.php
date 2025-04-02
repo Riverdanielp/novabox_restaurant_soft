@@ -133,7 +133,9 @@ class Printer extends Cl_Controller {
                 $data['print_format'] = htmlspecialcharscustom($this->input->post('print_format'));
                 $data['inv_qr_code_enable_status'] = htmlspecialcharscustom($this->input->post('inv_qr_code_status'));
                 $data['open_cash_drawer_when_printing_invoice'] = htmlspecialcharscustom($this->input->post('open_cash_drawer_when_printing_invoice'));
-                if($printing_choice=="web_browser_popup"){
+                
+                if($printing_choice=="printer_app"){
+                }elseif($printing_choice=="web_browser_popup"){
                     $data['path'] = '';
                     $data['profile_'] = '';
                     $data['printer_ip_address'] = '';

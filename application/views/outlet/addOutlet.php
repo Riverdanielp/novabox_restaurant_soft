@@ -152,6 +152,25 @@
                             endif;
                             ?>
 
+                            <div class="mb-3 col-sm-12 col-md-3 col-lg-3">
+                                <div class="form-group">
+                                    <label> Comanda de Números Obligatoria  </label>
+                                    <select tabindex="7" class="form-control select2" name="comanda_required"
+                                            id="comanda_required">
+                                        <option
+                                            <?= isset($outlet_information) && $outlet_information->comanda_required== "1" ? 'selected' : '' ?>
+                                                value="1"><?php echo lang('no')?></option>
+                                        <option
+                                            <?= isset($outlet_information) && $outlet_information->comanda_required== "2" ? 'selected' : '' ?>
+                                                value="2"><?php echo lang('yes')?></option>
+                                    </select>
+                                </div>
+                                <?php if (form_error('comanda_required')) { ?>
+                                    <div class="callout callout-danger my-2">
+                                        <?php echo form_error('comanda_required'); ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
                         
                         <div class="mb-3 col-sm-12 col-md-3 col-lg-3">
                                     <div class="form-group">

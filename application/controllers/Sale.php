@@ -1215,26 +1215,6 @@ class Sale extends Cl_Controller {
             $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
 
 
-
-            // Verificar si el número ya está asignado a otra orden
-            // if (isset($order_details->selected_number) && $order_details->selected_number > 0) {
-            //     $existing_sale = $this->db->select('sale_id')
-            //                             ->where('id', $order_details->selected_number)
-            //                             ->where('sale_id !=', $sale_d->id) // Excluir la orden actual si es una actualización
-            //                             ->where('sale_id IS NOT NULL')
-            //                             ->get('tbl_numeros')
-            //                             ->row();
-                
-            //     if ($existing_sale) {
-            //         $return_data['invoice_status'] = '1';
-            //         $return_data['invoice_msg'] = 'El número seleccionado ya está asignado a otra orden';
-            //         echo json_encode($return_data);
-            //         return;
-            //     }
-            // }
-
-
-
             $data = array();
             $data['customer_id'] = trim_checker($order_details->customer_id);
             $data['counter_id'] = trim_checker($order_details->counter_id);
@@ -1538,7 +1518,9 @@ class Sale extends Cl_Controller {
                 $this->db->trans_commit();
                 $printers_popup_print = $this->Common_model->getOrderedPrinter($sale_id,1);
                 $printers_direct_print = $this->Common_model->getOrderedPrinter($sale_id,2);
+                $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id,3);
                 $is_printing_return = 1;
+                $printer_app_qty = 0;
                 foreach ($printers_popup_print as $ky=>$value){
                     if(isset($value->id) && $value->id){
                         $is_printing_return++;
@@ -1684,6 +1666,18 @@ class Sale extends Cl_Controller {
                     }
                 }
 
+                foreach ($printers_printer_app as $ky=>$value){
+                    
+                    if(isset($value->id) && $value->id){
+                        $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id,$value->id);
+                        if (!empty($sale_items)) {
+                            foreach ($sale_items as $row) {
+                                $printer_app_qty++;
+                            }
+                        }
+                    }
+                }
+
                     $company_id = $this->session->userdata('company_id');
                     $company = $this->Common_model->getDataById($company_id, "tbl_companies");
                     $web_type = $company->printing_kot;
@@ -1709,6 +1703,8 @@ class Sale extends Cl_Controller {
                             $return_data['printer_server_url'] = getIPv4WithFormat($company->print_server_url_kot);
                             $return_data['content_data_popup_print'] = $printers_popup_print;
                             $return_data['content_data_direct_print'] = $printers_direct_print;
+                            $return_data['content_data_printer_app'] = $printers_printer_app;
+                            $return_data['printer_app_qty'] = $printer_app_qty;
                             $return_data['print_type'] = "KOT";
                             $return_data['status'] = $return_status;
                             $return_data['sale_id'] = $sale_id;
@@ -2142,7 +2138,7 @@ class Sale extends Cl_Controller {
         $check_existing = getSaleDetailsBySaleNo($sale_no);
         $select_kitchen_row = getKitchenSaleDetailsBySaleNo($sale_no);
 
-        $kitchen_sale = $this->db->select('number_slot')
+        $kitchen_sale = $this->db->select('number_slot,number_slot_name')
         ->where('sale_no', $sale_no)
         ->get('tbl_kitchen_sales')
         ->row();
@@ -2152,6 +2148,8 @@ class Sale extends Cl_Controller {
         }
         $data = array();
         $data['self_order_content'] = $this->input->post('orders');
+        $data['number_slot'] = (isset($kitchen_sale) && $kitchen_sale->number_slot) ? $kitchen_sale->number_slot : '';
+        $data['number_slot_name'] = (isset($kitchen_sale) && $kitchen_sale->number_slot_name) ? $kitchen_sale->number_slot_name : '';
         $data['customer_id'] = trim_checker($order_details->customer_id);
         $data['counter_id'] = trim_checker($order_details->counter_id);
         $data['delivery_partner_id'] = trim_checker($order_details->delivery_partner_id);
@@ -2624,13 +2622,14 @@ class Sale extends Cl_Controller {
      */
     public function get_all_information_of_a_sale($sale_no){
         $sales_information = $this->get_all_information_of_a_sale_kitchen($sale_no);
+    //     echo 'get_all_information_of_a_sale';
     //    echo '<pre>';
     //    var_dump($sales_information); 
     //    echo '<pre>';
        
 
-        $sales_information->selected_number = @$sales_information->number_slot;
-        $sales_information->selected_number_name = @$sales_information->number_slot_name;
+        @$sales_information->selected_number = $sales_information->number_slot ?? '';
+        @$sales_information->selected_number_name = $sales_information->number_slot_name ?? '';
         $sales_information->sub_total = getAmtP(isset($sales_information->sub_total) && $sales_information->sub_total?$sales_information->sub_total:0);
         $sales_information->paid_amount = getAmtP(isset($sales_information->paid_amount) && $sales_information->paid_amount?$sales_information->paid_amount:0);
         $sales_information->due_amount = getAmtP(isset($sales_information->due_amount) && $sales_information->due_amount?$sales_information->due_amount:0);
@@ -2708,7 +2707,13 @@ class Sale extends Cl_Controller {
      */
     public function get_all_information_of_a_sale_modify($sales_id){
         $sales_information = $this->Sale_model->getSaleBySaleId($sales_id);
+    //     echo 'get_all_information_of_a_sale_modify';
+    //    echo '<pre>';
+    //    var_dump($sales_information); 
+    //    echo '<pre>';
        
+        $sales_information[0]->selected_number = isset($sales_information[0]->number_slot) && $sales_information[0]->number_slot?$sales_information[0]->number_slot:'';
+        $sales_information[0]->selected_number_name = isset($sales_information[0]->number_slot_name) && $sales_information[0]->number_slot_name?$sales_information[0]->number_slot_name:'';
         $sales_information[0]->sub_total = getAmtP(isset($sales_information[0]->sub_total) && $sales_information[0]->sub_total?$sales_information[0]->sub_total:0);
         $sales_information[0]->paid_amount = getAmtP(isset($sales_information[0]->paid_amount) && $sales_information[0]->paid_amount?$sales_information[0]->paid_amount:0);
         $sales_information[0]->due_amount = getAmtP(isset($sales_information[0]->due_amount) && $sales_information[0]->due_amount?$sales_information[0]->due_amount:0);
@@ -4298,17 +4303,17 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
             ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
 
             // Información de la venta
             ['type' => 'text', 'align' => 'left', 'text' => 'FOLIO #' . $sale['id']],
             ['type' => 'text', 'align' => 'left', 'text' => 'FECHA: ' . $sale['created_at']],
             ['type' => 'text', 'align' => 'left', 'text' => 'ATIENDE: ' . $sale['user_id']],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
 
             // Detalles de los productos
             ['type' => 'text', 'align' => 'left', 'text' => 'Producto               Cant     Importe'],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
         ];
 
         // Agregar cada producto al contenido
@@ -4319,12 +4324,12 @@ class Sale extends Cl_Controller {
         }
 
         // Totales
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'ARTICULOS: ' . $sale['items']];
         $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'TOTAL: $' . number_format($sale['total'], 2)];
         $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'EFECTIVO: $' . number_format($sale['cash'], 2)];
         $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'CAMBIO: $' . number_format($sale['change'], 2)];
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
 
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Gracias por su compra'];
@@ -4348,7 +4353,7 @@ class Sale extends Cl_Controller {
         echo "<script>window.location.href = 'print://$base64';</script>";
     }
 
-    public function printer_app_invoice($sales_id) {
+    public function printer_app_invoice_old($sales_id) {
         $sales_id = $this->custom->encrypt_decrypt($sales_id, 'decrypt');
         $outlet_id = $this->session->userdata('outlet_id');
         $data = array();
@@ -4380,7 +4385,7 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
             ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
     
             // Información de la venta
             ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
@@ -4388,45 +4393,45 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))],
             ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
     
             // Detalles de los productos
             ['type' => 'extremos', 'textLeft' => 'Descripcion', 'textRight' => 'Importe'],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
         ];
     
         // Agregar cada producto al contenido
         foreach ($data['details'] as $row) {
-            $menu_unit_price = formatPrice($row->menu_unit_price);
+            $menu_unit_price = getAmtPCustom($row->menu_unit_price);
             $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->menu_name];
-            $content[] = ['type' => 'extremos', 'textLeft' => $row->qty . ' x ' . $menu_unit_price, 'textRight' => formatPrice($row->menu_price_without_discount)];
+            $content[] = ['type' => 'extremos', 'textLeft' => $row->qty . ' x ' . $menu_unit_price, 'textRight' => getAmtPCustom($row->menu_price_without_discount)];
     
             // Agregar modificadores si existen
             if (count($row->modifiers) > 0) {
                 foreach ($row->modifiers as $modifier) {
-                    $content[] = ['type' => 'extremos', 'textLeft' => ' + ' . $modifier->name, 'textRight' => formatPrice($modifier->modifier_price)];
+                    $content[] = ['type' => 'extremos', 'textLeft' => ' + ' . $modifier->name, 'textRight' => getAmtPCustom($modifier->modifier_price)];
                 }
             }
         }
     
         // Totales
-        $content[] = ['type' => 'separator'];
-        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: $' . formatPrice($sale->sub_total)];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
         if ($sale->total_discount_amount && $sale->total_discount_amount != "0.00") {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Descuento: $' . formatPrice($sale->total_discount_amount)];
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Descuento: ' . getAmtPCustom($sale->total_discount_amount)];
         }
         if ($sale->delivery_charge && $sale->delivery_charge != "0.00") {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Serv. Delivery: $' . getPlanTextOrP($sale->delivery_charge)];
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Serv. Delivery: ' . getPlanTextOrP($sale->delivery_charge)];
         }
         if ($this->session->userdata('collect_tax') == 'Yes' && $sale->sale_vat_objects != NULL) {
             foreach (json_decode($sale->sale_vat_objects) as $single_tax) {
                 if ($single_tax->tax_field_amount && $single_tax->tax_field_amount != "0.00") {
-                    $content[] = ['type' => 'text', 'align' => 'right', 'text' => $single_tax->tax_field_type . ': $' . formatPrice($single_tax->tax_field_amount)];
+                    $content[] = ['type' => 'text', 'align' => 'right', 'text' => $single_tax->tax_field_type . ': ' . getAmtPCustom($single_tax->tax_field_amount)];
                 }
             }
         }
-        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'TOTAL: $' . formatPrice($sale->total_payable)];
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'TOTAL: ' . getAmtPCustom($sale->total_payable)];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
     
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
@@ -4497,7 +4502,7 @@ class Sale extends Cl_Controller {
                     $content[] = ['type' => 'subtitle', 'align' => 'center', 'text' => $row->menu_name];
                     $content[] = ['type' => 'text', 'align' => 'center', 'text' => $i . '/' . $total_qty];
                     $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Fecha: ' . date($this->session->userdata('date_format') . ' H:i:s', strtotime($sale->date_time))];
-                    // $content[] = ['type' => 'separator']; // Separador entre etiquetas
+                    // $content[] = ['type' => 'text', 'align' => 'center', 'text' => '']; // Separador entre etiquetas
     
                     // Si no es la última etiqueta, agregar un salto de página
                     // if ($i < $total_qty) {
@@ -4541,8 +4546,19 @@ class Sale extends Cl_Controller {
         echo $base64;
     }
 
-    public function printer_app_bill($sale_id) {
-        $data['sale_object'] = $this->get_all_information_of_a_sale($sale_id);
+    public function printer_app_invoice($sale_no) {
+        $sale_details = getSaleDetails($sale_no);
+        if (empty($sale_details)) {
+            $sale_id = '';
+            $sale_info = $this->get_all_information_of_a_sale($sale_no);
+        } else {
+            $sale_id = $sale_details->id;
+            $sale_info = $this->get_all_information_of_a_sale_modify($sale_id);
+        }
+        if (empty($sale_info)) {
+            return;
+        }
+        $data['sale_object'] = $sale_info;
         $sale = $data['sale_object'];
     
         // Obtener la información de la empresa
@@ -4570,7 +4586,7 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
             ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
     
             // Información de la venta
             ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
@@ -4579,53 +4595,53 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->user_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
         ];
     
         // Detalles de los productos
         $content[] = ['type' => 'extremos', 'textLeft' => 'Descripción', 'textRight' => 'Importe'];
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
     
         if (isset($sale->items)) {
             $totalItems = 0;
             foreach ($sale->items as $row) {
                 $totalItems += $row->qty;
-                $menu_unit_price = formatPrice($row->menu_unit_price);
+                $menu_unit_price = getAmtPCustom($row->menu_unit_price);
                 $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->menu_name];
-                $content[] = ['type' => 'extremos', 'textLeft' => $row->qty . ' x ' . $menu_unit_price, 'textRight' => formatPrice($row->menu_price_without_discount)];
+                $content[] = ['type' => 'extremos', 'textLeft' => $row->qty . ' x ' . $menu_unit_price, 'textRight' => getAmtPCustom($row->menu_price_without_discount)];
     
                 // Agregar modificadores si existen
                 if (count($row->modifiers) > 0) {
                     foreach ($row->modifiers as $modifier) {
-                        $content[] = ['type' => 'extremos', 'textLeft' => ' + ' . $modifier->name, 'textRight' => formatPrice($modifier->modifier_price)];
+                        $content[] = ['type' => 'extremos', 'textLeft' => ' + ' . $modifier->name, 'textRight' => getAmtPCustom($modifier->modifier_price)];
                     }
                 }
             }
         }
     
         // Totales
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Total Items: ' . $totalItems];
-        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: $' . formatPrice($sale->sub_total)];
+        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
     
         if ($sale->total_discount_amount && $sale->total_discount_amount != "0.00") {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Descuento: $' . formatPrice($sale->total_discount_amount)];
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Descuento: ' . getAmtPCustom($sale->total_discount_amount)];
         }
     
         if ($sale->delivery_charge && $sale->delivery_charge != "0.00") {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Serv. Delivery: $' . getPlanTextOrP($sale->delivery_charge)];
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Serv. Delivery: ' . getPlanTextOrP($sale->delivery_charge)];
         }
     
         if ($this->session->userdata('collect_tax') == 'Yes' && $sale->sale_vat_objects != NULL) {
             foreach (json_decode($sale->sale_vat_objects) as $single_tax) {
                 if ($single_tax->tax_field_amount && $single_tax->tax_field_amount != "0.00") {
-                    $content[] = ['type' => 'text', 'align' => 'right', 'text' => $single_tax->tax_field_type . ': $' . formatPrice($single_tax->tax_field_amount)];
+                    $content[] = ['type' => 'text', 'align' => 'right', 'text' => $single_tax->tax_field_type . ': ' . getAmtPCustom($single_tax->tax_field_amount)];
                 }
             }
         }
     
-        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'TOTAL: $' . formatPrice($sale->total_payable)];
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'TOTAL: ' . getAmtPCustom($sale->total_payable)];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
     
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
@@ -4669,8 +4685,273 @@ class Sale extends Cl_Controller {
         // Devolver el contenido codificado
         echo $base64;
     }
-
-    public function printer_app_kot($temp_kot_id) {
+    public function printer_app_bill($sale_id) {
+        // $sale_info = $this->get_all_information_of_a_sale($sale_id);
+        // if (empty($sale_info)) {
+        //     $sale_info = $this->get_all_information_of_a_sale_modify($sale_id);
+        // }
+        $data['sale_object'] = $this->get_all_information_of_a_sale($sale_id);
+        $sale = $data['sale_object'];
+    
+        // Obtener la información de la empresa
+        $company = [
+            'name' => $this->session->userdata('outlet_name'),
+            'address' => $this->session->userdata('address'),
+            'phone' => $this->session->userdata('phone'),
+            'invoice_logo' => $this->session->userdata('invoice_logo'),
+            'footer' => $this->session->userdata('invoice_footer'),
+        ];
+    
+        // Obtener la información de la venta
+        $order_type = '';
+        if ($sale->order_type == 1) {
+            $order_type = 'A';
+        } elseif ($sale->order_type == 2) {
+            $order_type = 'B';
+        } elseif ($sale->order_type == 3) {
+            $order_type = 'C';
+        }
+    
+        // Crear el contenido del ticket
+        $content = [
+            // Encabezado de la empresa
+            ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
+            ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
+            ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+    
+            // Información de la venta
+            ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale->selected_number_name],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->user_name],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+        ];
+    
+        // Detalles de los productos
+        $content[] = ['type' => 'extremos', 'textLeft' => 'Descripción', 'textRight' => 'Importe'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+    
+        if (isset($sale->items)) {
+            $totalItems = 0;
+            foreach ($sale->items as $row) {
+                $totalItems += $row->qty;
+                $menu_unit_price = getAmtPCustom($row->menu_unit_price);
+                $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->menu_name];
+                $content[] = ['type' => 'extremos', 'textLeft' => $row->qty . ' x ' . $menu_unit_price, 'textRight' => getAmtPCustom($row->menu_price_without_discount)];
+    
+                // Agregar modificadores si existen
+                if (count($row->modifiers) > 0) {
+                    foreach ($row->modifiers as $modifier) {
+                        $content[] = ['type' => 'extremos', 'textLeft' => ' + ' . $modifier->name, 'textRight' => getAmtPCustom($modifier->modifier_price)];
+                    }
+                }
+            }
+        }
+    
+        // Totales
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Total Items: ' . $totalItems];
+        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
+    
+        if ($sale->total_discount_amount && $sale->total_discount_amount != "0.00") {
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Descuento: ' . getAmtPCustom($sale->total_discount_amount)];
+        }
+    
+        if ($sale->delivery_charge && $sale->delivery_charge != "0.00") {
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Serv. Delivery: ' . getPlanTextOrP($sale->delivery_charge)];
+        }
+    
+        if ($this->session->userdata('collect_tax') == 'Yes' && $sale->sale_vat_objects != NULL) {
+            foreach (json_decode($sale->sale_vat_objects) as $single_tax) {
+                if ($single_tax->tax_field_amount && $single_tax->tax_field_amount != "0.00") {
+                    $content[] = ['type' => 'text', 'align' => 'right', 'text' => $single_tax->tax_field_type . ': ' . getAmtPCustom($single_tax->tax_field_amount)];
+                }
+            }
+        }
+    
+        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'TOTAL: ' . getAmtPCustom($sale->total_payable)];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+    
+        // Pie del ticket
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'cut'];
+    
+        // Obtener la configuración de la impresora
+        $company_id = $this->session->userdata('company_id');
+        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
+        // $printer = getPrinterInfo(isset($company_data->receipt_printer_bill) && $company_data->receipt_printer_bill ? $company_data->receipt_printer_bill : '');
+        $printer_id = $this->session->userdata('printer_id');
+        $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
+        $path = @$printer->path;
+    
+        $print_format = $company_data->print_format_bill;
+        if($print_format=="80mm"){
+            $width = 80;
+        } else {
+            $width = 58;
+        }
+    
+        // echo '<pre>';
+        // var_dump($printer); 
+        // echo '<pre>';
+        
+        // Crear el objeto de solicitud de impresión
+        $printRequest = [
+            'printer' => $path, // Nombre de la impresora
+            'width' => $width, // Ancho de impresión (80mm)
+            'content' => filterArrayRecursivelyEscPos($content)
+        ];
+    
+        // Convertir a JSON
+        $data = json_encode($printRequest);
+        // echo '<pre>';
+        // var_dump($printRequest); 
+        // echo '<pre>';
+        
+        // Comprimir y codificar en Base64
+        $compressed = gzdeflate($data, 9);
+        $base64 = base64_encode($compressed);
+    
+        // Devolver el contenido codificado
+        echo $base64;
+    }
+    public function printer_app_kot($sale_no) {
+        $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
+        if (empty($sale_d)) {
+            $sale_id = '';
+            return;
+        } else {
+            $sale_id = $sale_d->id;
+            $printers_array = [];
+            $sale_object = $this->get_all_information_of_a_sale($sale_no);
+            $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id,3);
+            
+            foreach ($printers_printer_app as $ky=>$value){
+                if(isset($value->id) && $value->id){
+                    $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id,$value->id);
+                    
+                    // Obtener modificadores para cada ítem
+                    foreach($sale_items as $single_item_by_sale_id){
+                        $modifier_information = $this->Sale_model->getModifiersBySaleAndSaleDetailsIdKitchenAuto($sale_id,$single_item_by_sale_id->sales_details_id);
+                        $single_item_by_sale_id->modifiers = $modifier_information;
+                    }
+                    
+                    // Crear el contenido del ticket de cocina
+                    $content = [
+                        // Encabezado de la empresa (solo nombre)
+                        ['type' => 'text', 'align' => 'center', 'text' => $this->session->userdata('outlet_name')],
+                        ['type' => 'text', 'align' => 'center', 'text' => 'TICKET DE COCINA'],
+                        ['type' => 'text', 'align' => 'center', 'text' => ''],
+                        
+                        // Información de la venta
+                        ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale_object->sale_no],
+                        ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale_object->selected_number_name],
+                        ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale_object->sale_date)) . ' ' . date('H:i', strtotime($sale_object->order_time))],
+                        ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale_object->customer_name],
+                        ['type' => 'text', 'align' => 'left', 'text' => 'Mesero: ' . $sale_object->waiter_name],
+                        ['type' => 'text', 'align' => 'center', 'text' => ''],
+                        
+                        // Encabezado de items
+                        // ['type' => 'text', 'align' => 'center', 'text' => 'Cant  Descripción'],
+                        ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'],
+                    ];
+                    
+                    // Detalles de los productos con sus modificadores
+                    if (!empty($sale_items)) {
+                        foreach ($sale_items as $row) {
+                            $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->qty . '    ' . $row->menu_name];
+                            
+                            // Agregar modificadores si existen
+                            if (!empty($row->modifiers)) {
+                                foreach ($row->modifiers as $modifier) {
+                                    $content[] = ['type' => 'text', 'align' => 'left', 'text' => '   + ' . $modifier->name];
+                                }
+                            }
+                            
+                            // Agregar nota del item si existe
+                            if (!empty($row->item_note)) {
+                                $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Nota: ' . $row->item_note];
+                            }
+                            
+                            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '---'];
+                        }
+                    }
+                    
+                    // Pie del ticket
+                    $content[] = ['type' => 'text', 'align' => 'center', 'text' => '******************************'];
+                    $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Impreso: ' . date('H:i')];
+                    $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+                    $content[] = ['type' => 'cut'];
+                    
+                    // Configuración de la impresora
+                    $company_id = $this->session->userdata('company_id');
+                    $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
+                    // $printer = getPrinterInfo($value->id); // Usar la impresora específica de cocina
+                    $path = $value->path;
+                    
+                    $print_format = $value->print_format; // Formato estándar para tickets de cocina
+                    $width = ($print_format == "80mm") ? 80 : 58;
+                    
+                    // Crear el objeto de solicitud de impresión
+                    $printRequest = [
+                        'printer' => $path,
+                        'width' => $width,
+                        'content' => filterArrayRecursivelyEscPos($content)
+                    ];
+                    
+                    // Convertir a JSON, comprimir y codificar en Base64
+                    $data = json_encode($printRequest);
+                    $compressed = gzdeflate($data, 9);
+                    $base64 = base64_encode($compressed);
+                    
+                    // echo '<pre>';
+                    // var_dump($value); 
+                    // var_dump($printRequest); 
+                    // echo '<pre>';
+                    // Devolver el contenido codificado
+                    // echo $base64;
+                    $printers_array[] = $base64;
+                }
+            }
+            echo json_encode($printers_array);
+        }
+        return;
+    }
+    public function printer_app_kot_old($sale_no) {
+        $sale_object = $this->get_all_information_of_a_sale($sale_no);
+        echo '<pre>';
+        var_dump($sale_object); 
+        echo '<pre>';
+        
+        $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
+        if (empty($sale_d)) {
+            $sale_id = '';
+            return;
+            // $sale_info = $this->get_all_information_of_a_sale($sale_no);
+        } else {
+            $sale_id = $sale_d->id;
+            $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id,3);
+            // echo '<pre>';
+            // var_dump($printers_printer_app); 
+            // echo '<pre>';
+            
+            foreach ($printers_printer_app as $ky=>$value){
+                if(isset($value->id) && $value->id){
+                    $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id,$value->id);
+                    echo '<pre>';
+                    var_dump($sale_items); 
+                    echo '<pre>';
+                    
+                }
+            }
+            // $sale_info = $this->get_all_information_of_a_sale_modify($sale_id);
+        }
+        return;
         $data['temp_kot_info'] = $this->Sale_model->get_temp_kot($temp_kot_id);
 
         if (!$data['temp_kot_info']) {
@@ -4697,11 +4978,11 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'center', 'text' => 'Mesero: ' . $kot_info->waiter_name],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tipo de Orden: ' . $kot_info->order_type],
             ['type' => 'text', 'align' => 'center', 'text' => 'Notas: ' . $kot_info->notas],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
     
             // Detalles de los productos
             ['type' => 'extremos', 'textLeft' => 'Descripción', 'textRight' => 'Cantidad'],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
         ];
     
         // Agregar cada producto al contenido
@@ -4719,9 +5000,9 @@ class Sale extends Cl_Controller {
         }
     
         // Totales
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Total Items: ' . $totalItems];
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
     
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $this->session->userdata('invoice_footer')];	
@@ -4786,11 +5067,11 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'center', 'text' => 'Mesa: ' . (isset($kot_info->table_name) ? $kot_info->table_name : 'N/A')],
             ['type' => 'text', 'align' => 'center', 'text' => 'Mesero: ' . $kot_info->waiter_name],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tipo de Orden: ' . $kot_info->order_type],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
     
             // Detalles de los productos
             ['type' => 'extremos', 'textLeft' => 'Descripción', 'textRight' => 'Cantidad'],
-            ['type' => 'separator'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
         ];
     
         // Agregar cada producto al contenido
@@ -4808,9 +5089,9 @@ class Sale extends Cl_Controller {
         }
     
         // Totales
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Total Items: ' . $totalItems];
-        $content[] = ['type' => 'separator'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
     
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $this->session->userdata('invoice_footer')];
@@ -4878,7 +5159,7 @@ class Sale extends Cl_Controller {
                 $item = [
                     'name' => $row->menu_name,
                     'quantity' => $row->qty,
-                    'price' => formatPrice($row->menu_price_without_discount),
+                    'price' => getAmtPCustom($row->menu_price_without_discount),
                 ];
     
                 // Agregar modificadores si existen
@@ -4887,7 +5168,7 @@ class Sale extends Cl_Controller {
                     foreach ($row->modifiers as $modifier) {
                         $item['modifiers'][] = [
                             'name' => $modifier->name,
-                            'price' => formatPrice($modifier->modifier_price),
+                            'price' => getAmtPCustom($modifier->modifier_price),
                         ];
                     }
                 }
@@ -4902,11 +5183,11 @@ class Sale extends Cl_Controller {
             'phone' => $sale->customer_phone, // Asegúrate de que el campo 'phone' esté disponible en $sale
             'order_number' => $order_type . ' ' . $sale->sale_no,
             'items' => $items,
-            'subtotal' => formatPrice($sale->sub_total),
-            'total_discount' => formatPrice($sale->total_discount_amount),
-            'delivery_charge' => formatPrice($sale->delivery_charge),
+            'subtotal' => getAmtPCustom($sale->sub_total),
+            'total_discount' => getAmtPCustom($sale->total_discount_amount),
+            'delivery_charge' => getAmtPCustom($sale->delivery_charge),
             'total_tax' => 0, // Inicializar el total de impuestos
-            'total_payable' => formatPrice($sale->total_payable),
+            'total_payable' => getAmtPCustom($sale->total_payable),
             'company_name' => $company['name'],
             'company_phone' => $company['phone'],
         ];
@@ -4919,7 +5200,7 @@ class Sale extends Cl_Controller {
                     $total_tax += $single_tax->tax_field_amount;
                 }
             }
-            $response['total_tax'] = formatPrice($total_tax);
+            $response['total_tax'] = getAmtPCustom($total_tax);
         }
     
         // Devolver la respuesta en formato JSON
@@ -4930,8 +5211,8 @@ class Sale extends Cl_Controller {
         // Ejemplo de uso
         $precio = 12345.678;
 
-        $formateado = formatPrice($precio); // "12,345.68"
-        $sinFormato = unformatPrice($formateado); // 12345.68
+        $formateado = getAmtPCustom($precio); // "12,345.68"
+        $sinFormato = ($formateado); // 12345.68
 
         echo "Formateado: $formateado\n"; // "12,345.68"
         echo "<br>";
