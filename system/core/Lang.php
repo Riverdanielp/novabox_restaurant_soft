@@ -154,7 +154,7 @@ class CI_Lang {
 
 		if ( ! isset($lang) OR ! is_array($lang))
 		{
-			log_message('error', 'Language file contains no data: language/'.$idiom.'/'.$langfile);
+			log_message('info', 'Language file contains no data: language/'.$idiom.'/'.$langfile);
 
 			if ($return === TRUE)
 			{
@@ -193,7 +193,7 @@ class CI_Lang {
 		// Because killer robots like unicorns!
 		if ($value === FALSE && $log_errors === TRUE)
 		{
-			// log_message('error', 'Could not find the language line "'.$line.'"');
+			log_message('info', 'Could not find the language line "'.$line.'"');
 		}
 
 		return $value;

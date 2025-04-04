@@ -573,7 +573,7 @@
                                 <li data-access="view-280" class="menu_assign_class" data-menu__cid="irp_32"><a class="child-menu" href="<?php echo base_url()?>table/tableLayoutSetting">
                                 <?php echo lang('table_layout_setting'); ?></a></li>
                                 <li data-access="view-280" class="menu_assign_class" data-menu__cid="irp_32"><a class="child-menu" href="<?php echo base_url()?>numbers/numbers">
-                                Números</a></li>
+                                Números </a></li>
  
                                 <!-- End Sub Menu -->
                             </ul>

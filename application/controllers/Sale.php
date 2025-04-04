@@ -1303,6 +1303,7 @@ class Sale extends Cl_Controller {
                 $data['is_update_sender'] = 1;
                 $data['is_update_receiver'] = 1;
                 $data['is_update_receiver_admin'] = 1;
+                $data['last_update'] = gmdate('Y-m-d H:i:s');
 
                 
                 // Limpiar número anterior si existe
@@ -2469,35 +2470,35 @@ class Sale extends Cl_Controller {
         if ($this->db->trans_status() === FALSE) {
             $this->db->trans_rollback();
         } else {
-            $send_sms_status = isset($order_details->send_sms_status) && $order_details->send_sms_status?$order_details->send_sms_status:'';
-            if($send_sms_status==1){
-                $customer = getCustomerData(trim_checker($order_details->customer_id));
-                $outlet_name = $this->session->userdata('outlet_name');
-                $sms_content = "Hi ".$customer->name.", thank you for visiting '.$outlet_name.'. Total bill of your order on '.$order_details->date_time.' is ".getAmtCustom($order_details->total_payable).". Paid amount is: ".getAmtCustom($order_details->paid_amount).", Due Amount is: ".getAmtCustom($order_details->due_amount)."
-            We hope to see you again!";
-                if($customer->phone){
-                    smsSendOnly($sms_content,$customer->phone);
-                }
-            }
-            if($select_kitchen_row){
-                $pre_or_post_payment = $this->session->userdata('pre_or_post_payment');
-                if($pre_or_post_payment==1){
-                    $this->db->delete("tbl_kitchen_sales_details", array("sales_id" => $select_kitchen_row->id));
-                    $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
-                    $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
-                }
-            }
-            
-            if($kitchen_sale && $kitchen_sale->number_slot > 0) {
-            // Liberar el número en tbl_numeros
-            $this->db->where('id', $kitchen_sale->number_slot)
+            $this->db->where('sale_no', $sale_no)
                 ->update('tbl_numeros', [
                     'sale_id' => NULL,
                     'sale_no' => NULL,
                     "user_id" => NULL
                 ]);
+            // if($kitchen_sale && $kitchen_sale->number_slot > 0) {
+            //     // Liberar el número en tbl_numeros
 
+            // }
+            // $send_sms_status = isset($order_details->send_sms_status) && $order_details->send_sms_status?$order_details->send_sms_status:'';
+            // if($send_sms_status==1){
+            //     $customer = getCustomerData(trim_checker($order_details->customer_id));
+            //     $outlet_name = $this->session->userdata('outlet_name');
+            //     $sms_content = "Hi ".$customer->name.", thank you for visiting '.$outlet_name.'. Total bill of your order on '.$order_details->date_time.' is ".getAmtCustom($order_details->total_payable).". Paid amount is: ".getAmtCustom($order_details->paid_amount).", Due Amount is: ".getAmtCustom($order_details->due_amount)."
+            // We hope to see you again!";
+            //     if($customer->phone){
+            //         smsSendOnly($sms_content,$customer->phone);
+            //     }
+            // }
+            if($select_kitchen_row){
+                // $pre_or_post_payment = $this->session->userdata('pre_or_post_payment');
+                // if($pre_or_post_payment==1){
+                    $this->db->delete("tbl_kitchen_sales_details", array("sales_id" => $select_kitchen_row->id));
+                    $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
+                    $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
+                // }
             }
+            
             echo escape_output($sale_id_offline);
             $this->db->trans_commit();
         }
@@ -3988,6 +3989,13 @@ class Sale extends Cl_Controller {
      */
     public function getWaiterOrders(){
         $return_data = array();
+        
+        // 1. Obtenemos el último sync del frontend (puede ser NULL en primera carga)
+        $last_sync = $this->input->post('last_sync');
+        
+        // 2. Configuramos la hora actual del servidor (UTC)
+        $return_data['server_time'] = gmdate('Y-m-d H:i:s');
+
         $get_waiter_orders = $this->Common_model->getWaiterOrders();
         $get_waiter_invoice_orders = $this->Common_model->getWaiterInvoiceOrders();
         $get_waiter_orders_for_update_sender = $this->Common_model->getWaiterOrdersForUpdateSender();
@@ -3999,7 +4007,8 @@ class Sale extends Cl_Controller {
         $return_data['get_waiter_orders'] = $get_waiter_orders;
         $return_data['get_waiter_invoice_orders'] = $get_waiter_invoice_orders;
         $return_data['get_waiter_orders_for_update_sender'] = $get_waiter_orders_for_update_sender;
-        $return_data['get_waiter_orders_for_update_receiver'] = $get_waiter_orders_for_update_receiver;
+        // $return_data['get_waiter_orders_for_update_receiver'] = $get_waiter_orders_for_update_receiver;
+        $return_data['get_waiter_orders_for_update_receiver'] = $this->Common_model->getFilteredUpdates($last_sync);
         $return_data['get_waiter_orders_for_delete_sender'] = $get_waiter_orders_for_delete_sender; 
         $return_data['already_invoiced_orders'] = $already_invoiced_orders;
         // $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc($user_id);

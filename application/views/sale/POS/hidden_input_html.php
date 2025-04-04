@@ -56,6 +56,7 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="thousands_separator" value="<?php echo escape_output($this->session->userdata('thousands_separator'))?>">
 <input type="hidden" id="ir_precision" value="<?php echo escape_output($getCompanyInfo->precision)?>">
 <input type="hidden" id="comanda_required" value="<?php echo escape_output($outlet->comanda_required)?>">
+<input type="hidden" id="user_designation" value="<?php echo $this->session->userdata('designation') ?>">
 
 
 <input type="hidden" id="currency_position" value="<?php echo escape_output($this->session->userdata('currency_position'))?>">

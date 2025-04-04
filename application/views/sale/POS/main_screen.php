@@ -2272,7 +2272,7 @@ foreach ($notifications as $single_notification){
         <!-- Modal content -->
         <div class="modal-content" id="editCustomer1">
             <h1>
-                Numeros
+                Números
                 <a href="javascript:void(0)" class="alertCloseIcon">
                     <i class="fal fa-times"></i>
                 </a>

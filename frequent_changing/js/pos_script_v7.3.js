@@ -457,9 +457,11 @@
         let fragment = document.createDocumentFragment();
     
         let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
+        // console.log('objectStore',objectStore);
         objectStore.openCursor(null, 'prev').onsuccess = function (event) {
             let cursor = event.target.result;
             if (cursor) {
+                // console.log(cursor.value);
                 let orderData = cursor.value;
                 let orderInfo = orderData.order;
                 let rowData = JSON.parse(orderInfo);
@@ -13303,7 +13305,7 @@ function updateSearchResults(searchText) {
               let response = jQuery.parseJSON(data);
             //   console.log(response)
               if(response !== null) {
-                console.log(response);order_details_type
+                // console.log(response);order_details_type
                   let order_type = "";
                   let order_type_id = 0;
                   let order_number = "";
@@ -13816,7 +13818,6 @@ function updateSearchResults(searchText) {
 
     let currentOccupiedNumbers = {}; 
 
-
     function new_notification_interval() {
         $.ajax({
             url: base_url + "Sale/get_new_notifications_ajax",
@@ -13853,32 +13854,9 @@ function updateSearchResults(searchText) {
     
         processWaiterOrders();
     }
-    
-    function animateNotificationButton() {
-        let button = $("#notification_button");
-        let colors = ["#dc3545", "#ccc"];
-        let index = 0;
-        
-        function toggleColor() {
-            if (index < colors.length * 3) { // Alterna 3 veces
-                button.css({ "background-color": colors[index % 2], "color": index % 2 === 0 ? "#fff" : "buttontext" });
-                index++;
-                requestAnimationFrame(toggleColor);
-            } else {
-                button.css({ "background-color": "unset", "color": "#22bfe9" });
-            }
-        }
-        requestAnimationFrame(toggleColor);
-    }
-    
-    function playNotificationSound() {
-        let is_self_order = $("#is_self_order").val();
-        let is_online_order = $("#is_online_order").val();
-        if (is_self_order !== "Yes" && is_online_order !== "Yes") {
-            bell_new_order.play();
-        }
-    }
-    
+    // let lastServerSync = localStorage.getItem('lastKitchenSync') || null;
+    let lastServerSync = null;
+
     function processWaiterOrders() {
         let sale_no_all = $(".running_order_order_number").map(function () {
             return $(this).attr("data-added_offline_status") == 2 ? $(this).text() : null;
@@ -13888,8 +13866,15 @@ function updateSearchResults(searchText) {
             url: base_url + "Sale/getWaiterOrders",
             method: "POST",
             dataType: 'json',
-            data: { sale_no_all, csrf_irestoraplus: csrf_value_ },
+            data: { 
+                sale_no_all: sale_no_all,
+                last_sync: lastServerSync, // Enviamos la última hora conocida
+                csrf_irestoraplus: csrf_value_
+            }, // data: { sale_no_all, csrf_irestoraplus: csrf_value_ },
             success: function (response) {
+                // Guardamos la hora del servidor para la próxima sincronización
+                lastServerSync = response.server_time;
+                // localStorage.setItem('lastKitchenSync', response.server_time);
                 let outlet_id_indexdb = $("#outlet_id_indexdb").val();
                 let company_id_indexdb = $("#company_id_indexdb").val();
                 let processedOrders = {};
@@ -13948,6 +13933,31 @@ function updateSearchResults(searchText) {
                 updateOccupiedNumbers(response.occupied_numbers);
             }
         });
+    }
+    
+    function animateNotificationButton() {
+        let button = $("#notification_button");
+        let colors = ["#dc3545", "#ccc"];
+        let index = 0;
+        
+        function toggleColor() {
+            if (index < colors.length * 3) { // Alterna 3 veces
+                button.css({ "background-color": colors[index % 2], "color": index % 2 === 0 ? "#fff" : "buttontext" });
+                index++;
+                requestAnimationFrame(toggleColor);
+            } else {
+                button.css({ "background-color": "unset", "color": "#22bfe9" });
+            }
+        }
+        requestAnimationFrame(toggleColor);
+    }
+    
+    function playNotificationSound() {
+        let is_self_order = $("#is_self_order").val();
+        let is_online_order = $("#is_online_order").val();
+        if (is_self_order !== "Yes" && is_online_order !== "Yes") {
+            bell_new_order.play();
+        }
     }
     
     function updateOccupiedNumbers(occupiedNumbers) {
@@ -20511,6 +20521,8 @@ function openModifyOrderForNumber(saleNo) {
 
 // Asignar eventos a los botones de acción en el modal de detalles
 $(document).on('click', '#editar_orden_button', function() {
+    $("#order_detail_modal").removeClass("active");
+    $(".pos__modal__overlay").fadeOut(300);
     $("order_details_close_button").click();
     const saleNo = $(this).data('sale_no');
     if (saleNo) {

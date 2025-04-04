@@ -1478,7 +1478,15 @@ class Common_model extends CI_Model {
         $company_id = $this->session->userdata('company_id');
         $user_id = $this->session->userdata('user_id');
         $outlet_id = $this->session->userdata('outlet_id');
-        $result = $this->db->query("SELECT id,sale_no,self_order_content FROM `tbl_kitchen_sales` WHERE sale_no not in (select distinct sale_no FROM tbl_sales WHERE del_status='Live' AND outlet_id='$outlet_id' AND company_id='$company_id') AND del_status='Live'  AND is_update_sender=1 AND company_id='$company_id' AND outlet_id='$outlet_id' AND user_id='$user_id'")->result();
+        $result = $this->db->query("SELECT id,sale_no,self_order_content 
+                    FROM `tbl_kitchen_sales` 
+                    WHERE sale_no 
+                    not in (select distinct sale_no FROM tbl_sales WHERE del_status='Live' AND outlet_id='$outlet_id' AND company_id='$company_id') 
+                    AND del_status='Live'  
+                    AND is_update_sender=1 
+                    AND company_id='$company_id' 
+                    AND outlet_id='$outlet_id' 
+                    AND user_id='$user_id'")->result();
         return $result;
     }
     /**
@@ -1490,15 +1498,48 @@ class Common_model extends CI_Model {
         $company_id = $this->session->userdata('company_id');
         $user_id = $this->session->userdata('user_id');
         $outlet_id = $this->session->userdata('outlet_id');
-        $role = $this->session->userdata('role');
+        // $role = $this->session->userdata('role');
       
-        if($role=="Admin"){
-            $result = $this->db->query("SELECT id,sale_no,self_order_content FROM `tbl_kitchen_sales` WHERE sale_no not in (select distinct sale_no FROM tbl_sales WHERE del_status='Live' AND outlet_id='$outlet_id' AND company_id='$company_id') AND del_status='Live'  AND is_update_receiver_admin=1 AND company_id='$company_id' AND outlet_id='$outlet_id' AND order_receiving_id_admin='$user_id'")->result();
-        }else{
-            $result = $this->db->query("SELECT id,sale_no,self_order_content FROM `tbl_kitchen_sales` WHERE sale_no not in (select distinct sale_no FROM tbl_sales WHERE del_status='Live' AND outlet_id='$outlet_id' AND company_id='$company_id') AND del_status='Live'  AND is_update_receiver=1 AND company_id='$company_id' AND outlet_id='$outlet_id' AND order_receiving_id='$user_id'")->result();
-        }
+        $query = $this->db->query("SELECT id, sale_no, self_order_content 
+            FROM tbl_kitchen_sales 
+            WHERE sale_no not in (select distinct sale_no FROM tbl_sales WHERE del_status='Live' AND outlet_id='$outlet_id' AND company_id='$company_id') 
+            AND del_status = 'Live' 
+            AND is_update_receiver = 1 
+            AND company_id = '$company_id' 
+            AND outlet_id = '$outlet_id' 
+        ");
+        return $query->result();
+        // if($role=="Admin"){
+        //     // AND order_receiving_id = '$user_id'
+        //     $result = $this->db->query("SELECT id,sale_no,self_order_content 
+        //     FROM `tbl_kitchen_sales` 
+        //     WHERE sale_no not in (select distinct sale_no FROM tbl_sales WHERE del_status='Live' AND outlet_id='$outlet_id' AND company_id='$company_id') 
+        //     AND del_status='Live'  AND is_update_receiver_admin=1 AND company_id='$company_id' AND outlet_id='$outlet_id' AND order_receiving_id_admin='$user_id'")->result();
+        // }else{
+        //     $result = $this->db->query("SELECT id,sale_no,self_order_content FROM `tbl_kitchen_sales` WHERE sale_no not in (select distinct sale_no FROM tbl_sales WHERE del_status='Live' AND outlet_id='$outlet_id' AND company_id='$company_id') AND del_status='Live'  AND is_update_receiver=1 AND company_id='$company_id' AND outlet_id='$outlet_id' AND order_receiving_id='$user_id'")->result();
+        // }
 
-        return $result;
+        // return $result;
+    }
+    
+    function getFilteredUpdates($last_sync = null) {
+        $company_id = $this->session->userdata('company_id');
+        $outlet_id = $this->session->userdata('outlet_id');
+        
+        // $where = " is_update_receiver = 1";$last_sync ? " AND
+        $where = '';
+        if ($last_sync != null) {
+            $where =  "AND last_update >= '$last_sync'";
+        }
+        
+        return $this->db->query("SELECT id, sale_no, self_order_content 
+            FROM tbl_kitchen_sales 
+            WHERE sale_no not in (select distinct sale_no FROM tbl_sales WHERE del_status='Live' AND outlet_id='$outlet_id' AND company_id='$company_id') 
+            $where
+            AND del_status = 'Live' 
+            AND company_id = '$company_id'
+            AND outlet_id = '$outlet_id'
+        ")->result();
     }
     /**
      * check get Waiter Orders For Delete Sender

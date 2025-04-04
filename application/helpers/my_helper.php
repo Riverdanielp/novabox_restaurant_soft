@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5326';
+    return '?v=7.533';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -1485,8 +1485,21 @@ function get_all_running_order_for_new_pc_all() {
     $sale_no_all = escape_output($_POST['sale_no_all']);
     $company_id = $CI->session->userdata('company_id');
     $outlet_id = $CI->session->userdata('outlet_id');
-    $total_users = $CI->db->query("SELECT id,sale_no,self_order_content FROM tbl_kitchen_sales where Not FIND_IN_SET(`sale_no`, '$sale_no_all') AND company_id='$company_id' AND outlet_id='$outlet_id' AND del_status='Live'")->result();
-    return $total_users;
+
+    // Excluye órdenes que ya están en tbl_sales
+    $query = $CI->db->query("
+        SELECT ks.id, ks.sale_no, ks.self_order_content 
+        FROM tbl_kitchen_sales ks
+        LEFT JOIN tbl_sales s ON ks.sale_no = s.sale_no
+        WHERE 
+            NOT FIND_IN_SET(ks.sale_no, '$sale_no_all') 
+            AND ks.company_id = '$company_id' 
+            AND ks.outlet_id = '$outlet_id' 
+            AND ks.del_status = 'Live'
+            AND s.id IS NULL
+    ");  // Solo si no existe en tbl_sales
+
+    return $query->result();
 }
 
 function getOrderReceivingId($id) {
