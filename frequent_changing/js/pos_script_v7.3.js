@@ -10453,6 +10453,7 @@ function updateSearchResults(searchText) {
                           function () {
                               $(".order_holder").empty();
                               let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
+                            //   updateOrderAjax(saleNo);
                               $("#update_sale_id").val(sale_no);
                               get_details_of_a_particular_order(sale_no);
                               setTimeout(function () {
@@ -10485,6 +10486,7 @@ function updateSearchResults(searchText) {
             .length > 0
         ) {
             let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
+            updateOrderAjax(saleNo);
           get_details_of_a_particular_order_for_modal(sale_no);
         } else {
             toastr['error']((please_select_open_order), '');
@@ -20397,10 +20399,6 @@ function updateSearchResults(searchText) {
 
 $(document).on('click', '.number_buttons', function() {
     const $button = $(this);
-    // const numberId = $button.data('number');
-    // const numberName = $button.data('name');
-    // const saleId = $button.data('sale_id');
-    // const saleNo = $button.data('sale_no');
     
     // Obtener el valor actualizado de los atributos
     let numberId = $button.attr('data-number');
@@ -20415,16 +20413,10 @@ $(document).on('click', '.number_buttons', function() {
     $button.addClass('selected');
     // Verificar si el botón está rojo (ocupado) $button.hasClass('btn-danger') &&
     if (saleNo) {
-        // Guardar el saleNo en los botones de acción
-        // $('#editar_orden_button').data('sale_no', saleNo);
-        // $('#print_bill_orden_button').data('sale_no', saleNo);
-        // $('#pagar_orden_button').data('sale_no', saleNo);
-        
         $("#dp_modal_cancel_button").click();
         // Mostrar detalles de la orden en el modal (emulando el doble clic)
         showOrderDetailsModal(saleNo);
     } else {
-        // Botón verde - función normal
         $('#selected_number').val(numberId);
         $('#selected_number_name').val(numberName);
         
@@ -20434,8 +20426,26 @@ $(document).on('click', '.number_buttons', function() {
     }
 });
 
+function updateOrderAjax(saleNo) {
+    $.ajax({
+        url: base_url + "Sale/updateOrderForWaiter",
+        method: "POST",
+        dataType: 'json',
+        data: { 
+            sale_no: saleNo,
+            csrf_irestoraplus: csrf_value_
+        },
+        success: function (response) {
+            // console.log(response.order);
+            let order = response.order;
+            updateOrderForWaiter(order.sale_no, order.self_order_content);
+            setOrderInvoiceUpdated(order.id, 2);
+        }
+    });
+}
 // Función para mostrar los detalles de la orden en un modal
 function showOrderDetailsModal(saleNo) {
+    updateOrderAjax(saleNo);
     // console.log('showOrderDetailsModal',saleNo);
     // 1. Deseleccionar todas las órdenes
     $('.single_order').attr('data-selected', 'unselected');
@@ -20452,9 +20462,6 @@ function showOrderDetailsModal(saleNo) {
         }, 100);
     } else {
         toastr['error']('No se encontró la orden correspondiente', 'Error');
-        // console.log('No se encontró la orden correspondiente','showOrderDetailsModal');
-        // console.log('$order',$order);
-        // console.log($order.length);
     }
 }
 

@@ -1522,6 +1522,19 @@ class Common_model extends CI_Model {
         // return $result;
     }
     
+    function getOrderBySaleNo($sale_no) {
+        $company_id = $this->session->userdata('company_id');
+        $outlet_id = $this->session->userdata('outlet_id');
+        
+        return $this->db->query("SELECT id, sale_no, self_order_content 
+            FROM tbl_kitchen_sales 
+            WHERE sale_no = '$sale_no'
+            AND del_status = 'Live' 
+            AND company_id = '$company_id'
+            AND outlet_id = '$outlet_id'
+        ")->row();
+    }
+
     function getFilteredUpdates($last_sync = null) {
         $company_id = $this->session->userdata('company_id');
         $outlet_id = $this->session->userdata('outlet_id');

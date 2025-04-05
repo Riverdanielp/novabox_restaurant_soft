@@ -3987,6 +3987,21 @@ class Sale extends Cl_Controller {
      * @return object
      * @param no
      */
+    public function updateOrderForWaiter(){
+        $return_data = array();
+        
+        // 1. Obtenemos el último sync del frontend (puede ser NULL en primera carga)
+        $sale_no = $this->input->post('sale_no');
+        $return_data['order'] = $this->Common_model->getOrderBySaleNo($sale_no);
+        echo json_encode($return_data);
+    }
+
+    /**
+     * get Waiter Orders
+     * @access public
+     * @return object
+     * @param no
+     */
     public function getWaiterOrders(){
         $return_data = array();
         
@@ -4601,7 +4616,7 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
             ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale->selected_number_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->user_name],
+            // ['type' => 'text', 'align' => 'left', 'text' => 'Usuario: ' . $sale->user_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
             ['type' => 'text', 'align' => 'center', 'text' => ''],
@@ -4630,7 +4645,7 @@ class Sale extends Cl_Controller {
     
         // Totales
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Total Items: ' . $totalItems];
+        // $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Total Items: ' . $totalItems];
         $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
     
         if ($sale->total_discount_amount && $sale->total_discount_amount != "0.00") {
@@ -4733,7 +4748,7 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
             ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale->selected_number_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->user_name],
+            // ['type' => 'text', 'align' => 'left', 'text' => 'Usuario: ' . $sale->user_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name],
             ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
             ['type' => 'text', 'align' => 'center', 'text' => ''],
@@ -4762,7 +4777,7 @@ class Sale extends Cl_Controller {
     
         // Totales
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Total Items: ' . $totalItems];
+        // $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Total Items: ' . $totalItems];
         $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
     
         if ($sale->total_discount_amount && $sale->total_discount_amount != "0.00") {
@@ -5228,15 +5243,49 @@ class Sale extends Cl_Controller {
         echo "Desformateado: $sinFormato\n"; // 12345.68
     }
 
+    // public function getUpdatedNumbers() {
+    //     $outlet_id = $this->session->userdata('outlet_id');
+    //     $this->db->select('id, sale_id, sale_no, user_id, name');
+    //     $this->db->where("outlet_id", $outlet_id);
+    //     $this->db->where("del_status", "Live");
+    //     $this->db->where("sale_id IS NOT NULL"); // Solo números ocupados
+    //     $numbers = $this->db->get("tbl_numeros")->result();
+        
+    //     return ($numbers);
+    //     // return json_encode($numbers);
+    // }
     public function getUpdatedNumbers() {
         $outlet_id = $this->session->userdata('outlet_id');
+        
+        // Primero: Liberar números que ya tienen ventas concretadas
+        $this->db->select('n.id, n.sale_id, n.sale_no, n.user_id, n.name');
+        $this->db->from('tbl_numeros n');
+        $this->db->join('tbl_sales s', 'n.sale_no = s.sale_no AND s.outlet_id = n.outlet_id AND s.del_status = "Live"', 'left');
+        $this->db->where("n.outlet_id", $outlet_id);
+        $this->db->where("n.del_status", "Live");
+        $this->db->where("n.sale_id IS NOT NULL"); // Solo números ocupados
+        $this->db->where("s.id IS NOT NULL"); // Que tengan venta existente
+        
+        $numbersToFree = $this->db->get()->result();
+        
+        // Liberar los números que cumplen la condición
+        if (!empty($numbersToFree)) {
+            $idsToFree = array_column($numbersToFree, 'id');
+            $this->db->where_in('id', $idsToFree);
+            $this->db->update('tbl_numeros', array(
+                'sale_id' => NULL,
+                'sale_no' => NULL,
+                'user_id' => NULL
+            ));
+        }
+        
+        // Segundo: Obtener los números ocupados actuales (incluyendo los recién liberados)
         $this->db->select('id, sale_id, sale_no, user_id, name');
         $this->db->where("outlet_id", $outlet_id);
         $this->db->where("del_status", "Live");
         $this->db->where("sale_id IS NOT NULL"); // Solo números ocupados
         $numbers = $this->db->get("tbl_numeros")->result();
         
-        return ($numbers);
-        // return json_encode($numbers);
+        return $numbers;
     }
 }
