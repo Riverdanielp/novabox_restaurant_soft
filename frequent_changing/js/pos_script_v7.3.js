@@ -13937,6 +13937,52 @@ function updateSearchResults(searchText) {
         });
     }
     
+    
+    function updateOccupiedNumbers(occupiedNumbers) {
+        let newOccupiedNumbers = {};
+        let currentSelectedNumber = $('#selected_number').val();
+        let needToClearSelection = false;
+    
+        // Marcar los nuevos números ocupados y actualizar sus estilos
+        occupiedNumbers.forEach(num => {
+            newOccupiedNumbers[num.id] = true;
+            let button = $(`.number_buttons[data-number="${num.id}"]`);
+            if (button.length) {
+                button.removeClass('btn-success').addClass('btn-danger')
+                    .attr({ 
+                        'data-sale_id': num.sale_id || '', 
+                        'data-sale_no': num.sale_no || '', 
+                        'data-user_id': num.user_id || '' 
+                    });
+                    // .css('transform', 'scale(1.2)');
+                // setTimeout(() => button.css('transform', 'scale(1)'), 300);
+                
+                // Verificar si el número seleccionado localmente ahora está ocupado por otro usuario
+                if (num.id == currentSelectedNumber) {
+                    needToClearSelection = true;
+                }
+            }
+        });
+    
+        // Si el número seleccionado está ahora ocupado por otro, limpiar la selección
+        if (needToClearSelection) {
+            clearNumberSelection();
+            toastr['error'](('El número seleccionado ha sido tomado por otro usuario. Por favor seleccione otro.'), 'Comanda ya Ocupada!'); 
+        }
+    
+        // Recorrer TODOS los botones en pantalla y restaurar los que no están ocupados
+        $(".number_buttons").each(function () {
+            let numId = $(this).attr("data-number");
+            if (!newOccupiedNumbers[numId]) {
+                $(this).removeClass('btn-danger').addClass('btn-success')
+                    .attr({ 'data-sale_id': '', 'data-sale_no': '', 'data-user_id': '' });
+            }
+        });
+    
+        currentOccupiedNumbers = newOccupiedNumbers;
+    }
+    
+    
     function animateNotificationButton() {
         let button = $("#notification_button");
         let colors = ["#dc3545", "#ccc"];
@@ -13961,37 +14007,7 @@ function updateSearchResults(searchText) {
             bell_new_order.play();
         }
     }
-    
-    function updateOccupiedNumbers(occupiedNumbers) {
-        let newOccupiedNumbers = {};
-    
-        // Marcar los nuevos números ocupados y actualizar sus estilos
-        occupiedNumbers.forEach(num => {
-            newOccupiedNumbers[num.id] = true;
-            let button = $(`.number_buttons[data-number="${num.id}"]`);
-            if (button.length && !button.hasClass('btn-danger')) {
-                button.removeClass('btn-success').addClass('btn-danger')
-                    .attr({ 'data-sale_id': num.sale_id || '', 'data-sale_no': num.sale_no || '', 'data-user_id': num.user_id || '' })
-                    .css('transform', 'scale(1.2)');
-                setTimeout(() => button.css('transform', 'scale(1)'), 300);
-            }
-        });
-    
-        // Recorrer TODOS los botones en pantalla y restaurar los que no están ocupados
-        $(".number_buttons").each(function () {
-            let numId = $(this).attr("data-number");
-            if (!newOccupiedNumbers[numId]) {
-                $(this).removeClass('btn-danger').addClass('btn-success')
-                    .attr({ 'data-sale_id': '', 'data-sale_no': '', 'data-user_id': '' });
-                    // .css('transform', 'scale(1.2)');
-                setTimeout(() => $(this).css('transform', 'scale(1)'), 300);
-            }
-        });
-    
-        currentOccupiedNumbers = newOccupiedNumbers;
-    }
-    
-    
+
     function reset_time_interval() {
         let highestId = setTimeout(() => { }, 0);
         for (let i = 1; i <= highestId; i++) window.clearInterval(i);
