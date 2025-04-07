@@ -2312,6 +2312,81 @@ foreach ($notifications as $single_notification){
 
     <!-- end Numbers modal -->
 
+    
+    <!-- PRE-IMPRESA Modal -->
+     
+    <div id="pre_impresa_modal" class="modal" style="z-index: 101;">
+        <!-- Modal content -->
+        <div class="modal-content" id="pre_impresa_modal_content">
+            <h1>
+                Imprimir Factura Pre-Impresa
+                <a href="javascript:void(0)" class="alertCloseIcon">
+                    <i class="fal fa-times"></i>
+                </a>
+            </h1>
+
+            <div class="customer_add_modal_info_holder">
+                <div class="content">
+                    <div class="left-item b" style="  width: calc(98% / 2);">
+                        <div class="customer_section">
+                            <p class="input_level">Fecha: <span class="ir_color_red">*</span></p>
+                            <input type="date" class="add_customer_modal_input" id="preimpresa_fecha" required>
+                        </div>
+                        
+                        <div class="customer_section">
+                            <p class="input_level">RUC: <span class="ir_color_red">*</span></p>
+                            <input type="text" class="add_customer_modal_input" id="preimpresa_ruc" required>
+                        </div>
+                        
+                        <div class="customer_section">
+                            <p class="input_level">Nombre: <span class="ir_color_red">*</span></p>
+                            <input type="text" class="add_customer_modal_input" id="preimpresa_nombre" required>
+                        </div>
+                        
+                        <div class="customer_section">
+                            <p class="input_level">Dirección: <span class="ir_color_red">*</span></p>
+                            <input type="text" class="add_customer_modal_input" id="preimpresa_direccion" required>
+                        </div>
+                    </div>
+
+                    <div class="right-item b" style="  width: calc(98% / 2);">
+                        <div class="customer_section">
+                            <p class="input_level">Total: <span class="ir_color_red">*</span></p>
+                            <input type="text" class="add_customer_modal_input" id="preimpresa_total" readonly required>
+                        </div>
+                        
+                        <div class="customer_section">
+                            <p class="input_level">Tipo: <span class="ir_color_red">*</span></p>
+                            <select class="add_customer_modal_input" id="preimpresa_tipo" required>
+                                <option value="Almuerzo">Almuerzo</option>
+                                <option value="Desayuno">Desayuno</option>
+                                <option value="Cena">Cena</option>
+                                <option value="Especifico">Específico</option>
+                            </select>
+                        </div>
+                        
+                        <div class="customer_section" id="preimpresa_especifico_container" style="display: none;">
+                            <p class="input_level">Especifique: <span class="ir_color_red">*</span></p>
+                            <input type="text" class="add_customer_modal_input" id="preimpresa_especifico">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="pos__modal__footer">
+                <div class="left_box left_bottom">
+                    <br>
+                    <button class="floatright" id="dp_modal_cancel_button">Cancelar</button>
+                    <button class="floatright bg-blue-btn" id="preimpresa_imprimir_button">Imprimir</button>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- end PRE-IMPRESA modal -->
+
+
+
     <!-- The sale hold modal -->
     <div id="show_sale_hold_modal" class="modal">
         <div class="modal-content" id="modal_content_hold_sales">
@@ -2608,6 +2683,10 @@ foreach ($notifications as $single_notification){
                                         <div class="single_button_holder">
                                             <button class="no-need-for-waiter"
                                                 id="last_ten_print_invoice_button"><?php echo lang('print_invoice'); ?></button>
+                                        </div>
+                                        <div class="single_button_holder">
+                                            <button class="no-need-for-waiter"
+                                                id="last_ten_print_preimpreso_button">Factura Pre-impresa</button>
                                         </div>
                                         <div class="single_button_holder">
                                             <button id="last_ten_delete_button"
@@ -4816,6 +4895,18 @@ foreach ($notifications as $single_notification){
             });
         </script>
 
+    <script>
+        // Mostrar/ocultar campo de texto específico según selección
+        $(document).on("change", "#preimpresa_tipo", function() {
+            if($(this).val() === "Especifico") {
+                $("#preimpresa_especifico_container").show();
+                $("#preimpresa_especifico").prop("required", true);
+            } else {
+                $("#preimpresa_especifico_container").hide();
+                $("#preimpresa_especifico").prop("required", false);
+            }
+        });
+    </script>
     <!--for datatable-->
     <script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jquery.dataTables.min.js?v=7.5"></script>

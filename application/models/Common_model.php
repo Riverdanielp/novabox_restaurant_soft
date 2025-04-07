@@ -1149,7 +1149,7 @@ class Common_model extends CI_Model {
      * @access public
      * @param string
      */
-    public function getAllKitchenItemsAuto($sales_id,$printer_id){
+    public function getAllKitchenItemsAuto($sales_id,$printer_id,$is_print = 'all'){
         $this->db->select("tbl_kitchen_sales_details.menu_name,tbl_kitchen_sales_details.qty,tbl_kitchen_sales_details.food_menu_id,tbl_kitchen_sales_details.tmp_qty,tbl_kitchen_sales_details.menu_combo_items,tbl_kitchen_sales_details.menu_note as item_note,tbl_kitchen_sales_details.id as sales_details_id,tbl_kitchen_sales_details.is_print,tbl_printers.id as printer_id");
         $this->db->from('tbl_kitchen_sales_details');
         $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id', 'left');
@@ -1158,7 +1158,9 @@ class Common_model extends CI_Model {
         $this->db->join('tbl_printers', 'tbl_printers.id = tbl_kitchens.printer_id', 'left');
         $this->db->where("sales_id", $sales_id);
         $this->db->where("tbl_printers.id", $printer_id);
-        $this->db->where("tbl_kitchen_sales_details.is_print", 1);
+        if ($is_print != 'all'){
+            $this->db->where("tbl_kitchen_sales_details.is_print", $is_print);
+        }
         $this->db->where("tbl_kitchen_categories.del_status", "Live");
         $this->db->order_by('tbl_kitchen_sales_details.id', 'ASC');
         $this->db->group_by('tbl_kitchen_sales_details.id');

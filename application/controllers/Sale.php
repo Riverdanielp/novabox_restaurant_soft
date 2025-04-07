@@ -1433,6 +1433,7 @@ class Sale extends Cl_Controller {
                     $item_data['sales_id'] = $sale_id;
                     $item_data['user_id'] = $this->session->userdata('user_id');
                     $item_data['outlet_id'] = $this->session->userdata('outlet_id');
+                    $item_data['is_print'] = 0;
                     if($order_details->customer_id!=1){
                         $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
                     }
@@ -1447,10 +1448,10 @@ class Sale extends Cl_Controller {
                         if(isset($check_exist_item) && $check_exist_item){
                             $sales_details_id = $check_exist_item->id;
                             if($item->qty!=$check_exist_item->qty){
-                                $item_data['is_print'] = 1;
+                                // $item_data['is_print'] = 1;
                                 $updated_notifications = $this->Common_model->getOrderedKitchens($sale_id);
                                 foreach ($updated_notifications as $k=>$kitchen){
-                                    $notification_message = 'Order:'.$sale_no.' has been modified. Modified item: '.$item->menu_name.", Modified item qty:".$item->qty;
+                                    $notification_message = 'La Orden:'.$sale_no.' fue modificada. Item Modificado: '.$item->menu_name.", Cant:".$item->qty;
                                     $bar_kitchen_notification_data = array();
                                     $bar_kitchen_notification_data['notification'] = $notification_message;
                                     $bar_kitchen_notification_data['sale_id'] = $sale_id;
@@ -1679,47 +1680,304 @@ class Sale extends Cl_Controller {
                     }
                 }
 
-                    $company_id = $this->session->userdata('company_id');
-                    $company = $this->Common_model->getDataById($company_id, "tbl_companies");
-                    $web_type = $company->printing_kot;
+                $company_id = $this->session->userdata('company_id');
+                $company = $this->Common_model->getDataById($company_id, "tbl_companies");
+                $web_type = $company->printing_kot;
 
-                    $return_status = true;
-                    $kitchens = $this->Common_model->checkPrinterForKOT($sale_id);
-                    $status_message = '';
-                    if($kitchens){
-                        foreach ($kitchens as $kitchen){
-                            if($kitchen->id){
-                            }else{
-                                $base_url = base_url()."Kitchen/panel/".$kitchen->kitchen_id;
-                                $status_message.="<a target='_blank' style='text-decoration: none' href='$base_url'>KOT print failed of ".$kitchen->kitchen_name." because the printer is not connected. You may go to the kitchen panel or click here to got to kitchen panel</a>";
-                                $status_message.="|||";
-                                $return_status = false;
-                            }
+                $return_status = true;
+                $kitchens = $this->Common_model->checkPrinterForKOT($sale_id);
+                $status_message = '';
+                if($kitchens){
+                    foreach ($kitchens as $kitchen){
+                        if($kitchen->id){
+                        }else{
+                            $base_url = base_url()."Kitchen/panel/".$kitchen->kitchen_id;
+                            $status_message.="<a target='_blank' style='text-decoration: none' href='$base_url'>KOT print failed of ".$kitchen->kitchen_name." because the printer is not connected. You may go to the kitchen panel or click here to got to kitchen panel</a>";
+                            $status_message.="|||";
+                            $return_status = false;
                         }
                     }
-                    if($web_type=="web_browser_popup"){
+                }
+                if($web_type=="web_browser_popup"){
 
-                    }else{
-                        if($this->session->has_userdata('is_online_order')!="Yes" && !isFoodCourt()){
-                            $return_data['printer_server_url'] = getIPv4WithFormat($company->print_server_url_kot);
-                            $return_data['content_data_popup_print'] = $printers_popup_print;
-                            $return_data['content_data_direct_print'] = $printers_direct_print;
-                            $return_data['content_data_printer_app'] = $printers_printer_app;
-                            $return_data['printer_app_qty'] = $printer_app_qty;
-                            $return_data['print_type'] = "KOT";
-                            $return_data['status'] = $return_status;
-                            $return_data['sale_id'] = $sale_id;
-                            $return_data['status_message'] = $status_message;
-                            $return_data['invoice_status'] = '';
-                            $return_data['invoice_msg'] = '';
-                            echo json_encode($return_data);
-                        }
+                }else{
+                    if($this->session->has_userdata('is_online_order')!="Yes" && !isFoodCourt()){
+                        $return_data['printer_server_url'] = getIPv4WithFormat($company->print_server_url_kot);
+                        $return_data['content_data_popup_print'] = $printers_popup_print;
+                        $return_data['content_data_direct_print'] = $printers_direct_print;
+                        $return_data['content_data_printer_app'] = $printers_printer_app;
+                        $return_data['printer_app_qty'] = $printer_app_qty;
+                        $return_data['print_type'] = "KOT";
+                        $return_data['status'] = $return_status;
+                        $return_data['sale_id'] = $sale_id;
+                        $return_data['status_message'] = $status_message;
+                        $return_data['invoice_status'] = '';
+                        $return_data['invoice_msg'] = '';
+                        echo json_encode($return_data);
                     }
-                    }
-                    }
+                }
+            }
+        }
         
 
     }
+
+    public function getPrintDataForOrder() {
+        $sale_no = $this->input->post('sale_no');
+        
+        // Obtener los datos de la orden (sin modificarla)
+        $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
+        $sale_id = $sale_d->id;
+        
+        // Decodificar el contenido de la orden para obtener los detalles
+        $order_details = json_decode($sale_d->self_order_content);
+        
+        // Preparar datos básicos de la venta
+        $data = [
+            'sale_date' => $sale_d->sale_date,
+            'order_time' => $sale_d->order_time
+        ];
+        
+        // Obtener datos de impresión usando la función helper
+        $printData = $this->preparePrintData($sale_id, $order_details, $data);
+        
+        // Preparar respuesta
+        $return_data = [
+            'printer_app_qty' => $printData['printer_app_qty'],
+            'content_data_popup_print' => $printData['printers_popup_print'],
+            'content_data_direct_print' => $printData['printers_direct_print'],
+            'print_type' => 'KOT',
+            'status' => $printData['return_status'],
+            'invoice_status' => '',
+            'invoice_msg' => ''
+        ];
+        
+        echo json_encode($return_data);
+    }
+
+
+    /**
+     * Prepara los datos de impresión para una orden existente
+     * @param int $sale_id ID de la venta
+     * @param object $order_details Detalles de la orden
+     * @param array $data Datos adicionales de la venta
+     * @return array Datos preparados para impresión
+     */
+    private function preparePrintData($sale_id, $order_details, $data) {
+        $printers_popup_print = $this->Common_model->getOrderedPrinter($sale_id, 1);
+        $printers_direct_print = $this->Common_model->getOrderedPrinter($sale_id, 2);
+        $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id, 3);
+        
+        $printer_app_qty = 0;
+        
+        // Procesar impresoras popup
+        foreach ($printers_popup_print as $ky => $value) {
+            if (isset($value->id) && $value->id) {
+                $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id, $value->id);
+                
+                foreach ($sale_items as $single_item_by_sale_id) {
+                    $modifier_information = $this->Sale_model->getModifiersBySaleAndSaleDetailsIdKitchenAuto($sale_id, $single_item_by_sale_id->sales_details_id);
+                    $single_item_by_sale_id->modifiers = $modifier_information;
+
+                    $modifiers_id = '';
+                    $modifiers_name = '';
+                    $modifiers_price = '';
+                    
+                    foreach ($modifier_information as $ky1 => $val) {
+                        $modifiers_id .= $val->modifier_id;
+                        $modifiers_name .= $val->name;
+                        $modifiers_price .= $val->modifier_price;
+
+                        if ($ky1 < (sizeof($modifier_information)) - 1) {
+                            $modifiers_id .= ",";
+                            $modifiers_name .= ",";
+                            $modifiers_price .= ",";
+                        }
+                    }
+                    
+                    $single_item_by_sale_id->modifiers_id = $modifiers_id;
+                    $single_item_by_sale_id->modifiers_name = $modifiers_name;
+                    $single_item_by_sale_id->modifiers_price = $modifiers_price;
+                }
+                
+                if ($sale_items) {
+                    $printers_popup_print[$ky]->ipvfour_address = "Yes";
+                    $order_type = '';
+                    
+                    if ($order_details->order_type == 1) {
+                        $order_type = lang('dine');
+                    } else if ($order_details->order_type == 2) {
+                        $order_type = lang('take_away');
+                    } else if ($order_details->order_type == 3) {
+                        $order_type = lang('delivery');
+                    }
+                    
+                    $printers_popup_print[$ky]->store_name = lang('KOT') . ":" . ($value->kitchen_name);
+                    $printers_popup_print[$ky]->sale_type = $order_type;
+                    $printers_popup_print[$ky]->sale_no_p = $order_details->sale_no;
+                    $printers_popup_print[$ky]->date = escape_output(date($this->session->userdata('date_format'), strtotime($data['sale_date'])));
+                    $printers_popup_print[$ky]->time_inv = $data['order_time'];
+                    $printers_popup_print[$ky]->sales_associate = $order_details->user_name;
+                    $printers_popup_print[$ky]->customer_name = $order_details->customer_name;
+                    $printers_popup_print[$ky]->customer_address = getCustomerAddress($order_details->customer_id);
+                    $printers_popup_print[$ky]->waiter_name = $order_details->waiter_name;
+                    $printers_popup_print[$ky]->customer_table = $order_details->orders_table_text;
+                    $printers_popup_print[$ky]->lang_order_type = lang('order_type');
+                    $printers_popup_print[$ky]->lang_Invoice_No = lang('Invoice_No');
+                    $printers_popup_print[$ky]->lang_date = lang('date');
+                    $printers_popup_print[$ky]->lang_Sales_Associate = lang('Sales_Associate');
+                    $printers_popup_print[$ky]->lang_customer = lang('customer');
+                    $printers_popup_print[$ky]->lang_address = lang('address');
+                    $printers_popup_print[$ky]->lang_gst_number = lang('gst_number');
+                    $printers_popup_print[$ky]->lang_waiter = lang('waiter');
+                    $printers_popup_print[$ky]->lang_table = lang('table');
+                    $printers_popup_print[$ky]->items = $sale_items;
+                } else {
+                    $printers_popup_print[$ky]->ipvfour_address = "";
+                }
+            }
+        }
+
+        // Procesar impresoras directas
+        foreach ($printers_direct_print as $ky => $value) {
+            if (isset($value->id) && $value->id) {
+                $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id, $value->id);
+                
+                foreach ($sale_items as $single_item_by_sale_id) {
+                    $modifier_information = $this->Sale_model->getModifiersBySaleAndSaleDetailsIdKitchenAuto($sale_id, $single_item_by_sale_id->sales_details_id);
+                    $single_item_by_sale_id->modifiers = $modifier_information;
+                    
+                    $modifiers_id = '';
+                    $modifiers_name = '';
+                    $modifiers_price = '';
+                    
+                    foreach ($modifier_information as $ky1 => $val) {
+                        $modifiers_id .= $val->modifier_id;
+                        $modifiers_name .= $val->name;
+                        $modifiers_price .= $val->modifier_price;
+
+                        if ($ky1 < (sizeof($modifier_information)) - 1) {
+                            $modifiers_id .= ",";
+                            $modifiers_name .= ",";
+                            $modifiers_price .= ",";
+                        }
+                    }
+                    
+                    $single_item_by_sale_id->modifiers_id = $modifiers_id;
+                    $single_item_by_sale_id->modifiers_name = $modifiers_name;
+                    $single_item_by_sale_id->modifiers_price = $modifiers_price;
+                }
+                
+                if ($sale_items) {
+                    $printers_direct_print[$ky]->ipvfour_address = getIPv4WithFormat($value->ipvfour_address);
+                    $order_type = '';
+                    
+                    if ($order_details->order_type == 1) {
+                        $order_type = lang('dine');
+                    } else if ($order_details->order_type == 2) {
+                        $order_type = lang('take_away');
+                    } else if ($order_details->order_type == 3) {
+                        $order_type = lang('delivery');
+                    }
+                    
+                    $printers_direct_print[$ky]->store_name = lang('KOT') . ":" . ($value->kitchen_name);
+                    $printers_direct_print[$ky]->sale_type = $order_type;
+                    $printers_direct_print[$ky]->sale_no_p = $order_details->sale_no;
+                    $printers_direct_print[$ky]->date = escape_output(date($this->session->userdata('date_format'), strtotime($data['sale_date'])));
+                    $printers_direct_print[$ky]->time_inv = $data['order_time'];
+                    $printers_direct_print[$ky]->sales_associate = $order_details->user_name;
+                    $printers_direct_print[$ky]->customer_name = $order_details->customer_name;
+                    $printers_direct_print[$ky]->customer_address = getCustomerAddress($order_details->customer_id);
+                    $printers_direct_print[$ky]->waiter_name = $order_details->waiter_name;
+                    $printers_direct_print[$ky]->customer_table = $order_details->orders_table_text;
+                    $printers_direct_print[$ky]->lang_order_type = lang('order_type');
+                    $printers_direct_print[$ky]->lang_Invoice_No = lang('Invoice_No');
+                    $printers_direct_print[$ky]->lang_date = lang('date');
+                    $printers_direct_print[$ky]->lang_Sales_Associate = lang('Sales_Associate');
+                    $printers_direct_print[$ky]->lang_customer = lang('customer');
+                    $printers_direct_print[$ky]->lang_address = lang('address');
+                    $printers_direct_print[$ky]->lang_gst_number = lang('gst_number');
+                    $printers_direct_print[$ky]->lang_waiter = lang('waiter');
+                    $printers_direct_print[$ky]->lang_table = lang('table');
+                    
+                    $items = "\n";
+                    $count = 1;
+                    
+                    foreach ($sale_items as $item) {
+                        if ($item->tmp_qty) {
+                            $items .= printLine(("#".$count." ".(getPlanData($item->menu_name))).": " .($item->tmp_qty), $value->characters_per_line)."\n";
+                            $count++;
+                            
+                            if ($item->menu_combo_items && $item->menu_combo_items != null) {
+                                $items .= (printText(lang('combo_txt') . ': ' . $item->menu_combo_items, $value->characters_per_line) . "\n");
+                            }
+                            
+                            if ($item->menu_note) {
+                                $items .= (printText(lang('note') . ': ' . $item->menu_note, $value->characters_per_line) . "\n");
+                            }
+                            
+                            if (count($item->modifiers) > 0) {
+                                foreach ($item->modifiers as $modifier) {
+                                    $items .= "   " . printLine((getPlanData($modifier->name)) . ": " . ($item->tmp_qty), ($value->characters_per_line - 3)) . "\n";
+                                }
+                            }
+                            
+                            $count++;
+                        }
+                    }
+                    
+                    $printers_direct_print[$ky]->items = $items;
+                } else {
+                    $printers_direct_print[$ky]->ipvfour_address = '';
+                }
+            }
+        }
+
+        // Procesar impresoras de app
+        foreach ($printers_printer_app as $ky => $value) {
+            if (isset($value->id) && $value->id) {
+                $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id, $value->id,0);
+                
+                if (!empty($sale_items)) {
+                    foreach ($sale_items as $row) {
+                        $printer_app_qty++;
+                    }
+                }
+            }
+        }
+
+        // Verificar estado de impresoras
+        $return_status = true;
+        $kitchens = $this->Common_model->checkPrinterForKOT($sale_id);
+        $status_message = '';
+        
+        if ($kitchens) {
+            foreach ($kitchens as $kitchen) {
+                if (!$kitchen->id) {
+                    $base_url = base_url() . "Kitchen/panel/" . $kitchen->kitchen_id;
+                    $status_message .= "<a target='_blank' style='text-decoration: none' href='$base_url'>KOT print failed of " . $kitchen->kitchen_name . " because the printer is not connected. You may go to the kitchen panel or click here to got to kitchen panel</a>";
+                    $status_message .= "|||";
+                    $return_status = false;
+                }
+            }
+        }
+
+        // Obtener configuración de la compañía
+        $company_id = $this->session->userdata('company_id');
+        $company = $this->Common_model->getDataById($company_id, "tbl_companies");
+        $web_type = $company->printing_kot;
+
+        return [
+            'printers_popup_print' => $printers_popup_print,
+            'printers_direct_print' => $printers_direct_print,
+            'printers_printer_app' => $printers_printer_app,
+            'printer_app_qty' => $printer_app_qty,
+            'return_status' => $return_status,
+            'status_message' => $status_message,
+            'company' => $company
+        ];
+    }
+
     public function pull_running_order(){
         /*This variable could not be escaped because this is json data*/
         $order = $this->input->post('order');
@@ -4844,7 +5102,12 @@ class Sale extends Cl_Controller {
         // Devolver el contenido codificado
         echo $base64;
     }
+
     public function printer_app_kot($sale_no) {
+        // Obtener el parámetro print_all (true por defecto si no se especifica)
+        $print_all = (isset($_GET['print_all']) && $_GET['print_all'] === 'true') ? true : false;
+        $is_print = ($print_all == true) ? 'all' : 0;
+        // log_message('error', json_encode($_GET['print_all']));
         $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
         if (empty($sale_d)) {
             $sale_id = '';
@@ -4855,12 +5118,37 @@ class Sale extends Cl_Controller {
             $sale_object = $this->get_all_information_of_a_sale($sale_no);
             $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id,3);
             
-            foreach ($printers_printer_app as $ky=>$value){
-                if(isset($value->id) && $value->id){
-                    $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id,$value->id);
+            foreach ($printers_printer_app as $ky=>$value) {
+                if(isset($value->id) && $value->id) {
+                    $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id,$value->id,$is_print);
+                    
+                    // Filtrar items si print_all es false
+                    $items_to_print = [];
+                    $items_count = 0;
+                    
+                    if (!$print_all) {
+                        foreach($sale_items as $single_item_by_sale_id) {
+                            if ($single_item_by_sale_id->is_print == 0) {
+                                $items_to_print[] = $single_item_by_sale_id;
+                                $items_count++;
+                                
+                                // Actualizar el estado de impresión
+                                $item_data['is_print'] = 1;
+                                $this->Common_model->updateInformation($item_data, $single_item_by_sale_id->sales_details_id, "tbl_kitchen_sales_details");
+                            }
+                        }
+                    } else {
+                        $items_to_print = $sale_items;
+                        $items_count = count($sale_items);
+                    }
+                    
+                    // Si no hay items para imprimir y no es print_all, saltar esta impresora
+                    if ($items_count == 0 && !$print_all) {
+                        continue;
+                    }
                     
                     // Obtener modificadores para cada ítem
-                    foreach($sale_items as $single_item_by_sale_id){
+                    foreach($items_to_print as $single_item_by_sale_id) {
                         $modifier_information = $this->Sale_model->getModifiersBySaleAndSaleDetailsIdKitchenAuto($sale_id,$single_item_by_sale_id->sales_details_id);
                         $single_item_by_sale_id->modifiers = $modifier_information;
                     }
@@ -4881,13 +5169,12 @@ class Sale extends Cl_Controller {
                         ['type' => 'text', 'align' => 'center', 'text' => ''],
                         
                         // Encabezado de items
-                        // ['type' => 'text', 'align' => 'center', 'text' => 'Cant  Descripción'],
                         ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'],
                     ];
                     
                     // Detalles de los productos con sus modificadores
-                    if (!empty($sale_items)) {
-                        foreach ($sale_items as $row) {
+                    if (!empty($items_to_print)) {
+                        foreach ($items_to_print as $row) {
                             $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->qty . '    ' . $row->menu_name];
                             
                             // Agregar modificadores si existen
@@ -4915,7 +5202,6 @@ class Sale extends Cl_Controller {
                     // Configuración de la impresora
                     $company_id = $this->session->userdata('company_id');
                     $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-                    // $printer = getPrinterInfo($value->id); // Usar la impresora específica de cocina
                     $path = $value->path;
                     
                     $print_format = $value->print_format; // Formato estándar para tickets de cocina
@@ -4933,225 +5219,14 @@ class Sale extends Cl_Controller {
                     $compressed = gzdeflate($data, 9);
                     $base64 = base64_encode($compressed);
                     
-                    // echo '<pre>';
-                    // var_dump($value); 
-                    // var_dump($printRequest); 
-                    // echo '<pre>';
-                    // Devolver el contenido codificado
-                    // echo $base64;
                     $printers_array[] = $base64;
                 }
             }
-            echo json_encode($printers_array);
-        }
-        return;
-    }
-    public function printer_app_kot_old($sale_no) {
-        $sale_object = $this->get_all_information_of_a_sale($sale_no);
-        echo '<pre>';
-        var_dump($sale_object); 
-        echo '<pre>';
-        
-        $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
-        if (empty($sale_d)) {
-            $sale_id = '';
-            return;
-            // $sale_info = $this->get_all_information_of_a_sale($sale_no);
-        } else {
-            $sale_id = $sale_d->id;
-            $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id,3);
-            // echo '<pre>';
-            // var_dump($printers_printer_app); 
-            // echo '<pre>';
             
-            foreach ($printers_printer_app as $ky=>$value){
-                if(isset($value->id) && $value->id){
-                    $sale_items = $this->Common_model->getAllKitchenItemsAuto($sale_id,$value->id);
-                    echo '<pre>';
-                    var_dump($sale_items); 
-                    echo '<pre>';
-                    
-                }
-            }
-            // $sale_info = $this->get_all_information_of_a_sale_modify($sale_id);
+            // Si no hay nada para imprimir, devolver array vacío
+            echo empty($printers_array) ? json_encode([]) : json_encode($printers_array);
         }
         return;
-        $data['temp_kot_info'] = $this->Sale_model->get_temp_kot($temp_kot_id);
-
-        if (!$data['temp_kot_info']) {
-            return;
-        };
-        
-        $kot_info = json_decode($data['temp_kot_info']->temp_kot_info);
-    
-        // Obtener la información de la empresa
-        $company = [
-            'name' => $this->session->userdata('outlet_name'),
-            'address' => $this->session->userdata('address'),
-            'phone' => $this->session->userdata('phone'),
-        ];
-    
-        // Crear el contenido del ticket
-        $content = [
-            // Encabezado del KOT
-            ['type' => 'text', 'align' => 'center', 'text' => 'KOT'],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Orden N°: ' . $kot_info->order_number],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($kot_info->order_date))],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Cliente: ' . $kot_info->customer_name],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Mesa: ' . (isset($kot_info->table_name) ? $kot_info->table_name : 'N/A')],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Mesero: ' . $kot_info->waiter_name],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Tipo de Orden: ' . $kot_info->order_type],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Notas: ' . $kot_info->notas],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-    
-            // Detalles de los productos
-            ['type' => 'extremos', 'textLeft' => 'Descripción', 'textRight' => 'Cantidad'],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-        ];
-    
-        // Agregar cada producto al contenido
-        if (isset($kot_info->items)) {
-            $totalItems = 0;
-            foreach ($kot_info->items as $row) {
-                $totalItems += $row->tmp_qty;
-                $content[] = ['type' => 'extremos', 'textLeft' => $row->kot_item_name, 'textRight' => $row->tmp_qty];
-    
-                // Agregar modificadores si existen
-                if (!empty($row->modifiers)) {
-                    $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Modificadores: ' . $row->modifiers];
-                }
-            }
-        }
-    
-        // Totales
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Total Items: ' . $totalItems];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-    
-        // Pie del ticket
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => $this->session->userdata('invoice_footer')];	
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'cut'];
-    
-        // Obtener la configuración de la impresora
-        $company_id = $this->session->userdata('company_id');
-        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-        $printer = getPrinterInfo(isset($company_data->receipt_printer_kot) && $company_data->receipt_printer_kot ? $company_data->receipt_printer_kot : '');
-        $path = @$printer->path;
-    
-        $print_format = $company_data->print_format_kot;
-        if($print_format=="80mm"){
-            $width = 80;
-        } else {
-            $width = 58;
-        }
-    
-        // Crear el objeto de solicitud de impresión
-        $printRequest = [
-            'printer' => $path, // Nombre de la impresora
-            'width' => $width, // Ancho de impresión (80mm)
-            'content' => filterArrayRecursivelyEscPos($content)
-        ];
-    
-        // Convertir a JSON
-        $data = json_encode($printRequest);
-
-        // Comprimir y codificar en Base64
-        $compressed = gzdeflate($data, 9);
-        $base64 = base64_encode($compressed);
-    
-        // Devolver el contenido codificado
-        echo $base64;
-    }
-
-    public function printer_app_bot($temp_kot_id) {
-        $data['temp_kot_info'] = $this->Sale_model->get_temp_kot($temp_kot_id);
-
-        if (!$data['temp_kot_info']) {
-            return;
-        };
-
-        $kot_info = json_decode($data['temp_kot_info']->temp_kot_info);
-    
-        // Obtener la información de la empresa
-        $company = [
-            'name' => $this->session->userdata('outlet_name'),
-            'address' => $this->session->userdata('address'),
-            'phone' => $this->session->userdata('phone'),
-        ];
-    
-        // Crear el contenido del ticket
-        $content = [
-            // Encabezado del BOT
-            ['type' => 'text', 'align' => 'center', 'text' => 'BOT'],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Orden N°: ' . $kot_info->order_number],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($kot_info->order_date))],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Cliente: ' . $kot_info->customer_name],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Mesa: ' . (isset($kot_info->table_name) ? $kot_info->table_name : 'N/A')],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Mesero: ' . $kot_info->waiter_name],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Tipo de Orden: ' . $kot_info->order_type],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-    
-            // Detalles de los productos
-            ['type' => 'extremos', 'textLeft' => 'Descripción', 'textRight' => 'Cantidad'],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-        ];
-    
-        // Agregar cada producto al contenido
-        if (isset($kot_info->items)) {
-            $totalItems = 0;
-            foreach ($kot_info->items as $row) {
-                $totalItems += $row->tmp_qty;
-                $content[] = ['type' => 'extremos', 'textLeft' => $row->bot_item_name, 'textRight' => $row->tmp_qty];
-    
-                // Agregar modificadores si existen
-                if (!empty($row->modifiers)) {
-                    $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Modificadores: ' . $row->modifiers];
-                }
-            }
-        }
-    
-        // Totales
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Total Items: ' . $totalItems];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-    
-        // Pie del ticket
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => $this->session->userdata('invoice_footer')];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'cut'];
-    
-        // Obtener la configuración de la impresora
-        $company_id = $this->session->userdata('company_id');
-        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-        $printer = getPrinterInfo(isset($company_data->receipt_printer_bot) && $company_data->receipt_printer_bot ? $company_data->receipt_printer_bot : '');
-        $path = @$printer->path;
-    
-        $print_format = $company_data->print_format_bot;
-        if($print_format=="80mm"){
-            $width = 80;
-        } else {
-            $width = 58;
-        }
-    
-        // Crear el objeto de solicitud de impresión
-        $printRequest = [
-            'printer' => $path, // Nombre de la impresora
-            'width' => $width, // Ancho de impresión (80mm)
-            'content' => filterArrayRecursivelyEscPos($content)
-        ];
-    
-        // Convertir a JSON
-        $data = json_encode($printRequest);
-    
-        // Comprimir y codificar en Base64
-        $compressed = gzdeflate($data, 9);
-        $base64 = base64_encode($compressed);
-    
-        // Devolver el contenido codificado
-        echo $base64;
     }
 
     public function get_order_details_for_whatsapp($sale_id) {
@@ -5287,5 +5362,19 @@ class Sale extends Cl_Controller {
         $numbers = $this->db->get("tbl_numeros")->result();
         
         return $numbers;
+    }
+
+    public function preimpreso($data_base64) {
+        // Decodificar los datos
+        $data_json = urldecode(base64_decode($data_base64));
+
+        $data = json_decode($data_json);
+        // echo '<pre>';
+        // var_dump($data); 
+        // echo '<pre>';
+        
+        
+        // Cargar vista con los datos
+        $this->load->view("preimpreso_1", $data);
     }
 }

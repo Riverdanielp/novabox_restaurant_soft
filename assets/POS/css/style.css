@@ -2679,6 +2679,77 @@ textarea:focus {
   width: calc(98% / 2);
 }
 
+
+
+#pre_impresa_modal .customer_add_modal_info_holder .customer_section {
+  margin: 0px 0px 5px 0px;
+}
+
+#pre_impresa_modal .customer_add_modal_info_holder .customer_section p {
+  font-size: 15px;
+  line-height: 23px;
+  margin: 0px;
+  font-weight: 500;
+  padding: 0px;
+}
+
+#pre_impresa_modal .customer_add_modal_info_holder .customer_section input {
+  height: 38px;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  padding: 5px;
+  border-radius: 5px;
+}
+#pre_impresa_modal
+.customer_add_modal_info_holder
+.customer_section
+.radio_class {
+  height: 12px;
+  width: unset;
+}
+.pointer_class {
+  cursor: pointer !important;
+}
+#pre_impresa_modal
+.customer_add_modal_info_holder
+.customer_section
+input:focus,
+#pre_impresa_modal
+.customer_add_modal_info_holder
+.customer_section
+textarea:focus {
+  outline: 3px solid rgba(33, 150, 243, 0.25);
+}
+
+#pre_impresa_modal .customer_add_modal_info_holder .customer_section textarea {
+  width: -webkit-fill-available;
+  width: -moz-available;
+  resize: none;
+  border: 1px solid #ced4da;
+  margin-top: 6px;
+  height: 48px;
+  border-radius: 5px;
+}
+
+#pre_impresa_modal {
+  max-width: 600px;
+}
+
+#pre_impresa_modal #pre_impresa_modal_content .customer_add_modal_info_holder .content {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+}
+
+#pre_impresa_modal #pre_impresa_modal_content .customer_add_modal_info_holder .content .b {
+  width: calc(98% / 2);
+}
+
+
+
 .background_order_started {
   position: absolute;
   z-index: 1;

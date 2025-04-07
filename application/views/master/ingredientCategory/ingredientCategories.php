@@ -12,12 +12,15 @@ if ($this->session->flashdata('exception')) {
 
 <section class="content-header">
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-auto">
             <h2 class="top-left-header"><?php echo lang('ingredient_categories'); ?> </h2>
             <input type="hidden" class="datatable_name" data-title="<?php echo lang('ingredient_categories'); ?>" data-id_name="datatable">
         </div>
-        <div class="col-md-6">
+        <div class="col-md-auto">
 
+                    <a data-access="add-207" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>ingredientCategory/addEditIngredientCategory">
+                        <i data-feather="plus"></i> <?php echo lang('Add'); ?> <?php echo lang('ingredient_category'); ?>
+                    </a>
         </div>
     </div>
 </section>

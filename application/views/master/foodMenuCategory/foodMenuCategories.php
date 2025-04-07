@@ -11,14 +11,14 @@
     ?>
     <section class="content-header">
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-auto">
                 <h2 class="top-left-header"><?php echo lang('food_menu_categories'); ?> </h2>
                 <input type="hidden" class="datatable_name" data-title="<?php echo lang('food_menu_categories'); ?>" data-id_name="datatable">
             </div>
-            <div class="col-md-offset-2 col-md-2">
-
-            </div>
-            <div class="col-md-offset-2 col-md-2">
+            <div class="col-md-auto">
+                <a data-access="add-229" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>foodMenuCategory/addEditFoodMenuCategory">
+                    <i data-feather="plus"></i> <?php echo lang('Add'); ?> <?php echo lang('food_menu_category'); ?>
+                </a>
                 <a class="btn_list m-right bg-blue-btn btn" href="<?php echo base_url() ?>foodMenuCategory/sortingForPOS">
                     <i class="fa fa-exchange"></i> &nbsp; <?php echo lang('ordering_for_pos'); ?></a>
             </div>

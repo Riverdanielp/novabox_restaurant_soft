@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5333';
+    return '?v=7.54';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -4311,4 +4311,69 @@ if (!function_exists('getOutletInfoById')) {
         $result =  $CI->db->get()->row();
         return $result;
     }
+}
+
+function numeroATexto($numero) {
+    $unidad = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
+    $decena = ['', 'diez', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
+    $centena = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
+    $especial = [11 => 'once', 12 => 'doce', 13 => 'trece', 14 => 'catorce', 15 => 'quince'];
+
+    if ($numero < 10) {
+        return $unidad[$numero];
+    } elseif ($numero < 20) {
+        if ($numero <= 15) {
+            return $especial[$numero];
+        } else {
+            return 'dieci' . $unidad[$numero % 10];
+        }
+    } elseif ($numero < 100) {
+        if ($numero % 10 == 0) {
+            return $decena[intval($numero / 10)];
+        } elseif ($numero < 30) {
+            return 'veinti' . $unidad[$numero % 10];
+        } else {
+            return $decena[intval($numero / 10)] . ' y ' . $unidad[$numero % 10];
+        }
+    } elseif ($numero < 1000) {
+        if ($numero == 100) {
+            return 'cien';
+        } else {
+            return $centena[intval($numero / 100)] . ' ' . numeroATexto($numero % 100);
+        }
+    } elseif ($numero < 1000000) {
+        if ($numero < 2000) {
+            return 'mil ' . numeroATexto($numero % 1000);
+        } else {
+            return numeroATexto(intval($numero / 1000)) . ' mil ' . ($numero % 1000 > 0 ? numeroATexto($numero % 1000) : '');
+        }
+    } elseif ($numero < 1000000000) {
+        if ($numero < 2000000) {
+            return 'un millón ' . ($numero % 1000000 > 0 ? numeroATexto($numero % 1000000) : '');
+        } else {
+            return numeroATexto(intval($numero / 1000000)) . ' millones ' . ($numero % 1000000 > 0 ? numeroATexto($numero % 1000000) : '');
+        }
+    }
+
+    return 'Número fuera de rango';
+}
+
+function numeroConDecimalesATexto($numero) {
+    $partes = explode('.', $numero);
+    if ($partes[0] < 0) {
+        $texto = 'negativo ' . numeroATexto($partes[0]);
+    } elseif ($partes[0] < 1 && $partes[0] >= 0) {
+        $texto = 'cero';
+    } else {
+        $texto = numeroATexto($partes[0]);
+    }
+
+    if (count($partes) > 1) {
+        $parteDecimal = rtrim($partes[1], '0');
+        if (!empty($parteDecimal)) {
+            $texto .= ' con ' . numeroATexto($parteDecimal);
+        }
+    }
+
+    return $texto;
 }

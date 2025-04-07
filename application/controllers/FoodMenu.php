@@ -1,20 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is FoodMenu Controller
-  ###########################################################
- */
-
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class FoodMenu extends Cl_Controller {
@@ -541,7 +525,7 @@ class FoodMenu extends Cl_Controller {
 
         if ($_FILES['photo']['name'] != "") {
             $config['upload_path'] = './images';
-            $config['allowed_types'] = 'jpg|jpeg|png';
+            $config['allowed_types'] = 'jpg|jpeg|png|webp';
             $config['max_size'] = '2048';
             $config['maintain_ratio'] = TRUE;
             $config['encrypt_name'] = TRUE;

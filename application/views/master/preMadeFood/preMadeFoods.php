@@ -14,14 +14,17 @@
 
     <section class="content-header">
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-auto">
                 <h2 class="top-left-header"><?php echo lang('premade_foods'); ?> </h2>
                 <input type="hidden" class="datatable_name" data-title="<?php echo lang('premade_foods'); ?>" data-id_name="datatable">
             </div>
-            <div class="col-md-offset-2 col-md-4">
+            <div class="col-md-auto">
 
                 <div class="btn_list m-right d-flex">
 
+                    <a data-access="add-325" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>PreMadeFood/addEditPreMadeFood">
+                        <i data-feather="plus"></i> <?php echo lang('Add'); ?> <?php echo lang('premade_food'); ?>
+                    </a>
 
                 </div>
             </div>

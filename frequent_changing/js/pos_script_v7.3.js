@@ -1293,6 +1293,13 @@
       }
   
       function push_online_for_kitchen(order_object,is_self_order,sale_no,is_print=0){
+            const userDesignation = $("#user_designation").val();
+            
+            // Si es mesero y se solicita impresión, no imprimir
+            if(is_print && userDesignation === "Waiter") {
+                is_print = 0;
+            }
+    
           $(".order_table_holder .order_holder").empty();
           let updated_sale_id = sale_no;
           $("#update_sale_id").val('');
@@ -1331,7 +1338,7 @@
                     if(is_print){
                         // Verificar si hay tickets de cocina para imprimir
                         if (data.printer_app_qty && data.printer_app_qty > 0 && sale_no) {
-                            printKitchenTickets(sale_no);
+                            printKitchenTickets(sale_no,false);
                         }
                         let content_data_direct_print = data.content_data_direct_print;
                         for (let key in content_data_direct_print) {
@@ -4240,6 +4247,80 @@
            toastr['error']((please_select_an_order), '');
         }
       });
+      $(document).on("click", "#last_ten_print_preimpreso_button", function (e) {
+        if ($(".single_last_ten_sale[data-selected=selected]").length > 0) {
+            let sale_no = $(".single_last_ten_sale[data-selected=selected]").attr("data-sale_no");
+            getSelectedOrderDetailsRecentSale(sale_no).then(function(data){
+                let order_info = jQuery.parseJSON(data);
+                console.log(order_info);
+                $("#pre_impresa_modal").addClass("active");
+                
+                // Rellenar los campos con los datos del pedido
+                $("#preimpresa_fecha").val(order_info.sale_date);
+                $("#preimpresa_ruc").val(order_info.customer_gst_number || "");
+                $("#preimpresa_nombre").val(order_info.customer_name || "Cliente Ocasional");
+                $("#preimpresa_direccion").val(order_info.customer_address || "");
+                $("#preimpresa_total").val(order_info.total_payable || "0");
+                
+            });
+        } else {
+            toastr['error']((please_select_an_order), '');
+        }
+    });
+    $(document).on("click", "#preimpresa_imprimir_button", function() {
+        // Obtener los datos del formulario
+        const fecha = $("#preimpresa_fecha").val();
+        const ruc = $("#preimpresa_ruc").val();
+        const nombre = $("#preimpresa_nombre").val();
+        const direccion = $("#preimpresa_direccion").val();
+        const total = $("#preimpresa_total").val();
+        const tipo = $("#preimpresa_tipo").val();
+        const especifico = $("#preimpresa_especifico").val();
+        
+        // Validar campos requeridos
+        if (!fecha || !ruc || !nombre || !direccion || !total || !tipo || (tipo === "Especifico" && !especifico)) {
+            toastr['error']('Por favor complete todos los campos requeridos', 'Error');
+            return;
+        }
+        
+        // Obtener el sale_no del pedido seleccionado
+        const sale_no = $(".single_last_ten_sale[data-selected=selected]").attr("data-sale_no");
+        
+        // Crear el array items con un solo elemento
+        const items = [{
+            quantity_purchased: 1, // Cantidad siempre 1
+            Producto: tipo === "Especifico" ? especifico : tipo, // Nombre del tipo o texto específico
+            item_unit_price: total, // Precio unitario = total
+            total: total // Total = total
+        }];
+        
+        // Construir objeto con los datos
+        const data = {
+            fecha: fecha,
+            ruc: ruc,
+            nombre: nombre,
+            direccion: direccion,
+            total: total,
+            tipo: tipo,
+            especifico: tipo === "Especifico" ? especifico : "",
+            sale_no: sale_no,
+            items: items // Incluimos el array items
+        };
+        
+        // Codificación segura en JavaScript
+        const dataJson = JSON.stringify(data);
+        const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
+        
+        // Construir URL con los parámetros
+        const url = base_url + 'sale/preimpreso/' + dataBase64;
+        
+        // Abrir ventana con la vista de CodeIgniter
+        window.open(url, '_blank', 'width=920,height=640,left=50,top=50,toolbar=yes');
+        
+        // Cerrar el modal
+        $("#pre_impresa_modal").removeClass("active");
+    });
+
       $(document).on("click", "#print_last_invoice", function (e) {
           let pos_13 = Number($("#pos_13").val());
           if(pos_13){
@@ -13818,6 +13899,7 @@ function updateSearchResults(searchText) {
     } 
 
 
+    // let lastServerSync = localStorage.getItem('lastKitchenSync') || null;
     let currentOccupiedNumbers = {}; 
 
     function new_notification_interval() {
@@ -13856,13 +13938,14 @@ function updateSearchResults(searchText) {
     
         processWaiterOrders();
     }
-    // let lastServerSync = localStorage.getItem('lastKitchenSync') || null;
     let lastServerSync = null;
 
     function processWaiterOrders() {
         let sale_no_all = $(".running_order_order_number").map(function () {
             return $(this).attr("data-added_offline_status") == 2 ? $(this).text() : null;
         }).get().join(",");
+        // Obtener el rol del usuario actual
+        const userDesignation = $("#user_designation").val();
     
         $.ajax({
             url: base_url + "Sale/getWaiterOrders",
@@ -13889,8 +13972,11 @@ function updateSearchResults(searchText) {
                     processedOrders[sale_no_new] = true;
                     if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
                         add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "",false);
-                        if (order_info.waiter_app_status === "Yes") {
-                            // push_online_for_kitchen(order.self_order_content, '', sale_no_new, 1);
+
+                        // Solo imprimir si NO es mesero
+                        if (userDesignation == "Cashier" || userDesignation == "Admin") {
+                            // Llamar a una nueva función que solo imprime sin modificar la BD
+                            printExistingOrder(sale_no_new, order.self_order_content);
                         }
                     }
                     setOrderPulled(order.id);
@@ -13909,6 +13995,10 @@ function updateSearchResults(searchText) {
                 response.get_waiter_orders_for_update_receiver.forEach(order => {
                     updateOrderForWaiter(order.sale_no, order.self_order_content);
                     setOrderInvoiceUpdated(order.id, 2);
+                    // Solo imprimir si NO es mesero
+                    if (userDesignation == "Cashier" || userDesignation == "Admin") {
+                        printExistingOrder(order.sale_no, order.self_order_content);
+                    }
                 });
     
                 if (response.get_waiter_orders_for_delete_sender) {
@@ -13928,6 +14018,11 @@ function updateSearchResults(searchText) {
                     if (!processedOrders[sale_no_new]) {
                         if (!$(`#order_${get_plan_string(sale_no_new)}`).length) {
                             add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "",false);
+                            // Solo imprimir si NO es mesero
+                            if (userDesignation == "Cashier" || userDesignation == "Admin") {
+                                // Llamar a una nueva función que solo imprime sin modificar la BD
+                                printExistingOrder(sale_no_new, order.self_order_content);
+                            }
                         }
                     }
                 });
@@ -13936,12 +14031,62 @@ function updateSearchResults(searchText) {
             }
         });
     }
+
+    function printExistingOrder(sale_no) {
+        // Verificar conexión a internet
+        if (!checkInternetConnection()) {
+            console.log('No hay conexión, no se puede imprimir');
+            return;
+        }
     
+        // Obtener los datos de impresión directamente desde el backend
+        $.ajax({
+            url: base_url + "Sale/getPrintDataForOrder",
+            method: "POST",
+            dataType: 'json',
+            data: {
+                sale_no: sale_no,
+                csrf_irestoraplus: csrf_value_
+            },
+            success: function(data) {
+                if(data.printer_app_qty && data.printer_app_qty > 0) {
+                    printKitchenTickets(sale_no,false);
+                }
+                
+                // Procesar impresión directa
+                let content_data_direct_print = data.content_data_direct_print;
+                for (let key in content_data_direct_print) {
+                    if(content_data_direct_print[key].ipvfour_address) {
+                        $.ajax({
+                            url: content_data_direct_print[key].ipvfour_address + "print_server/irestora_printer_server.php",
+                            method: "post",
+                            dataType: "json",
+                            data: {
+                                content_data: "["+(JSON.stringify(content_data_direct_print[key]))+"]",
+                                print_type: data.print_type,
+                            },
+                            success: function() {},
+                            error: function() {}
+                        });
+                    }
+                }
+    
+                // Procesar impresión popup
+                $("#kot_print").val(2);
+                print_kot_popup_print(data.content_data_popup_print, 1);
+            },
+            error: function() {
+                console.log('Error al obtener datos para impresión');
+            }
+        });
+    }
     
     function updateOccupiedNumbers(occupiedNumbers) {
         let newOccupiedNumbers = {};
         let currentSelectedNumber = $('#selected_number').val();
         let needToClearSelection = false;
+        let current_update_sale_id = $("#update_sale_id").val();
+        // console.log('current_update_sale_id',current_update_sale_id);
     
         // Marcar los nuevos números ocupados y actualizar sus estilos
         occupiedNumbers.forEach(num => {
@@ -13958,7 +14103,7 @@ function updateSearchResults(searchText) {
                 // setTimeout(() => button.css('transform', 'scale(1)'), 300);
                 
                 // Verificar si el número seleccionado localmente ahora está ocupado por otro usuario
-                if (num.id == currentSelectedNumber) {
+                if (num.id == currentSelectedNumber && num.sale_no != current_update_sale_id) {
                     needToClearSelection = true;
                 }
             }

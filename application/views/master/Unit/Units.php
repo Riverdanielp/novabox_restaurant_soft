@@ -13,12 +13,14 @@
 
     <section class="content-header">
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-auto">
                 <h2 class="top-left-header"><?php echo lang('units'); ?> </h2>
                 <input type="hidden" class="datatable_name" data-title="<?php echo lang('units'); ?>" data-id_name="datatable">
             </div>
-            <div class="col-md-offset-4 col-md-2">
-
+            <div class="col-md-auto">
+                    <a data-access="add-212" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>Unit/addEditUnit">
+                        <i data-feather="plus"></i> <?php echo lang('Add'); ?> <?php echo lang('Ingredient_Unit'); ?>
+                    </a>
             </div>
         </div>
     </section>

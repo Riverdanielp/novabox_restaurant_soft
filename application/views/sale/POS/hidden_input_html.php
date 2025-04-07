@@ -439,10 +439,11 @@ function clearButtonNumber(sale_no = null){
         $("#numbers_button").click();
     }
 }
-function printKitchenTickets(sale_no) {
+function printKitchenTickets(sale_no, print_all = true) {
     let base_url = $("base").attr("data-base");
+    let url = base_url + "Sale/printer_app_kot/" + sale_no + "?print_all=" + print_all;
     $.ajax({
-        url: base_url + "Sale/printer_app_kot/" + sale_no,
+        url: url,
         method: "GET",
         dataType: 'json',
         success: function(printersArray) {

@@ -19,6 +19,10 @@
                 <div class="col-md-offset-2 col-md-4">
                     
                     <div class="btn_list m-right d-flex">
+                            <a data-access="add-217" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>ingredient/addEditIngredient">
+                                <i data-feather="plus"></i> <?php echo lang('Add'); ?> <?php echo lang('ingredient'); ?>
+                            </a>
+                            
                             <a data-access="upload_ingredient-217" class="btn bg-blue-btn menu_assign_class" href="<?php echo base_url() ?>ingredient/uploadingredients">
                                 <i data-feather="upload"></i> <?php echo lang('upload_ingredient'); ?>
                             </a>

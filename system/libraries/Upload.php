@@ -903,7 +903,7 @@ class CI_Upload {
 		}
 
 		// Images get some additional checks
-		if (in_array($ext, array('gif', 'jpg', 'jpeg', 'jpe', 'png'), TRUE) && @getimagesize($this->file_temp) === FALSE)
+		if (in_array($ext, array('gif', 'jpg', 'jpeg', 'jpe', 'png', 'webp', 'avif'), TRUE) && @getimagesize($this->file_temp) === FALSE)
 		{
 			return FALSE;
 		}
@@ -1310,6 +1310,19 @@ class CI_Upload {
 					}
 				}
 			}
+		}
+		
+		if (extension_loaded('fileinfo')) {
+			$finfo = finfo_open(FILEINFO_MIME_TYPE);
+			$mime = finfo_file($finfo, $file['tmp_name']);
+			finfo_close($finfo);
+			
+			// Fix especial para AVIF
+			if ($mime === 'application/octet-stream' && preg_match('/\.avif$/i', $file['name'])) {
+				$mime = 'image/avif';
+			}
+			
+			return $mime;
 		}
 
 		// Fall back to mime_content_type(), if available (still better than $_FILES[$field]['type'])
