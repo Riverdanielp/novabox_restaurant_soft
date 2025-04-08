@@ -2344,8 +2344,8 @@ foreach ($notifications as $single_notification){
                         </div>
                         
                         <div class="customer_section">
-                            <p class="input_level">Dirección: <span class="ir_color_red">*</span></p>
-                            <input type="text" class="add_customer_modal_input" id="preimpresa_direccion" required>
+                            <p class="input_level">Dirección:</p>
+                            <input type="text" class="add_customer_modal_input" id="preimpresa_direccion">
                         </div>
                     </div>
 

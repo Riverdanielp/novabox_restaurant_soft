@@ -4278,7 +4278,7 @@
         const especifico = $("#preimpresa_especifico").val();
         
         // Validar campos requeridos
-        if (!fecha || !ruc || !nombre || !direccion || !total || !tipo || (tipo === "Especifico" && !especifico)) {
+        if (!fecha || !ruc || !nombre || !total || !tipo || (tipo === "Especifico" && !especifico)) {
             toastr['error']('Por favor complete todos los campos requeridos', 'Error');
             return;
         }

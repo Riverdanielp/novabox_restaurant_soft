@@ -14,20 +14,18 @@ $iva_10 = isset($total) ? (floatval($total) / 11) : 0;
 function item_recibo($cantidad,$concepto,$costo,$monto,$cuota_nros = []){ 
     return '
     <tr>
-        <td  style="width: 5%;text-align:center;"> 
+        <td  style="width: 20%;text-align:center;"> 
             '.($cantidad).' 
         </td>
-        <td  style="width: 56%;" class="border-bottom"> 
+        <td  style="width: 42%;" class="border-bottom"> 
             <em>' . $concepto. '</em>
         </td>
-        <td  style="width: 10%;text-align:center;" class="border-bottom"> 
+        <td  style="width: 18%;text-align:center;" class="border-bottom"> 
         ' . getAmtPCustom($costo) . '
         </td>
-        <td  style="width: 10%;" class="border-bottom"> 
+        <td  style="width: 5%;" class="border-bottom"> 
         </td>
-        <td  style="width: 10%;" class="border-bottom"> 
-        </td>
-        <td  style="width: 10%;text-align:right;" class="border-bottom"> 
+        <td  style="width: 15%;text-align:center;" class="border-bottom"> 
         ' . getAmtPCustom($monto) . '
         </td>
     </tr>
@@ -52,10 +50,10 @@ table th, td { font-size:11px; }
     <div>
         <table cellspacing="0" style="width: 100%;">
             <tr>
-                <td style="width: 63%;height: 48px;padding:5px;text-align:center;<?php echo $bordes ?><?php echo $font_size ?>"> 
+                <td style="width: 63%;height: 20px;padding:5px;text-align:center;<?php echo $bordes ?><?php echo $font_size ?>"> 
                     <strong style="font-size:14px;"></strong>
                 </td>
-                <td style="width: 37%;height: 48px;padding:5px;text-align:center;<?php echo $bordes ?><?php echo $font_size ?>"> 
+                <td style="width: 37%;height: 0px;padding:5px;text-align:center;<?php echo $bordes ?><?php echo $font_size ?>"> 
                     <strong style="font-size:14px;"></strong>
                 </td>
             </tr>
@@ -63,37 +61,34 @@ table th, td { font-size:11px; }
         
         <table cellspacing="0" style="width: 100%;" class="detalle">
             <tr style="height: 5px;">
-                <td style="width: 12%;height:8px;<?php echo $bordes ?>"> 
+                <td style="width: 40%;height:5px;<?php echo $bordes ?>"> 
                     <strong><?php echo $texto_relleno ?></strong>
                 </td>
-                <td style="width: 70%;<?php echo $bordes ?> " class="border-bottom"> 
+                <td style="width: 25%;<?php echo $bordes ?> " class="border-bottom"> 
                     <?php echo isset($fecha) ? date('d/m/Y', strtotime($fecha)) : date('d/m/Y') ?>
                 </td>
-                <td style="width: 10%;<?php echo $bordes ?> " class="border-bottom"> 
-                    <?php echo $contado ?>
+                <td style="width: 35%;<?php echo $bordes ?> " class="border-bottom"> 
+                    <strong><?php echo isset($ruc) ? htmlspecialchars($ruc) : '' ?></strong>
                 </td>
-                <td style="width: 8%;<?php echo $bordes ?> " class="border-bottom"> 
+                <!-- <td style="width: 8%;<?php echo $bordes ?> " class="border-bottom"> 
                     <?php echo $credito ?>
-                </td>
+                </td> -->
             </tr>
         </table>
         
         <table cellspacing="0" style="width: 100%;" class="detalle">
             <tr style="height: 5px;">
-                <td style="width: 12%;<?php echo $bordes ?>"> 
+                <td style="width: 40%;<?php echo $bordes ?>"> 
                     <strong><?php echo $texto_relleno ?></strong>
                 </td>
-                <td style="width: 73%;height: 5px;<?php echo $bordes ?> " class="border-bottom"> 
+                <td style="width: 60%;height: 5px;<?php echo $bordes ?> " class="border-bottom"> 
                     <em><?php echo isset($nombre) ? htmlspecialchars($nombre) : 'Cliente Ocasional' ?></em> <br>
                     <em><?php echo isset($direccion) ? htmlspecialchars($direccion) : '' ?></em> <br>
                 </td>
-                <td style="width: 15%;<?php echo $bordes ?>"> 
-                    <strong><?php echo isset($ruc) ? htmlspecialchars($ruc) : '' ?></strong>
-                </td>
             </tr>
         </table>
         
-        <table cellspacing="0" style="width: 100%;height: 23px;padding:0px;">
+        <table cellspacing="0" style="width: 100%;height: 50px;padding:0px;">
             <tr>
                 <td style="width: 5%;<?php echo $bordes ?>"></td>
                 <td style="width: 12%;<?php echo $bordes ?> " class="border-bottom"></td>
@@ -105,7 +100,7 @@ table th, td { font-size:11px; }
             </tr>
         </table>
             
-        <table cellspacing="0" style="width: 100%;height: 166px;max-height: 166px;padding:0px;">
+        <table cellspacing="0" style="width: 100%;height: 170px;max-height: 170px;padding:0px;">
             <tr>
                 <td>
                     <table cellspacing="0" style="width: 100%;padding:0px;">
@@ -136,11 +131,6 @@ table th, td { font-size:11px; }
                             <td style="width: 12%;<?php echo $bordes ?> " class="border-bottom"></td>
                             <td style="width: 44%;<?php echo $bordes ?> " class="border-bottom"></td>
                             <td style="width: 10%;text-align:center;<?php echo $bordes ?> " class="border-bottom"></td>
-                            <td style="width: 10%;<?php echo $bordes ?> " class="border-bottom">0</td>
-                            <td style="width: 10%;<?php echo $bordes ?> " class="border-bottom">0</td>
-                            <td style="width: 10%;text-align:right;<?php echo $bordes ?> " class="border-bottom">
-                                <?php echo isset($total) ? getAmtPCustom($total) : '0.00' ?>
-                            </td>
                         </tr>
                     </table>
                 </td>
@@ -149,12 +139,13 @@ table th, td { font-size:11px; }
 
         <table cellspacing="0" style="width: 100%;height: 15px;padding:0px;">
             <tr>
-                <td style="width: 1%;<?php echo $bordes ?> " class="border-bottom"></td>
-                <td style="width: 9%;<?php echo $bordes ?> " class="border-bottom">X</td>
-                <td style="width: 81%;<?php echo $bordes ?> " class="border-bottom">
+                <td style="width: 20%;<?php echo $bordes ?> " class="border-bottom"></td>
+                <td style="width: 55%;<?php echo $bordes ?> " class="border-bottom">
                     <?php echo isset($total) ? ucfirst(numeroConDecimalesATexto($total)) . '.' : 'Cero' ?>
                 </td>
-                <td style="width: 10%;text-align:right;<?php echo $bordes ?> " class="border-bottom">
+                <td style="width: 5%;text-align:center;<?php echo $bordes ?> " class="border-bottom">0</td>
+                <td style="width: 5%;text-align:center;<?php echo $bordes ?> " class="border-bottom">0</td>
+                <td style="width: 15%;text-align:center;<?php echo $bordes ?> " class="border-bottom">
                     <?php echo isset($total) ? getAmtPCustom($total) : '0.00' ?>
                 </td>
             </tr>
@@ -162,15 +153,20 @@ table th, td { font-size:11px; }
 
         <table cellspacing="0" style="width: 100%;height: 17px;padding:0px;">
             <tr>
-                <td style="width: 28%;<?php echo $bordes ?> " class="border-bottom"></td>
-                <td style="width: 30%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($iva_5) ?></td>
-                <td style="width: 28%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($iva_10) ?></td>
-                <td style="width: 15%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($iva_10) ?></td>
+                <td style="width: 25%;<?php echo $bordes ?> " class="border-bottom"></td>
+                <td style="width: 15%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($iva_5) ?></td>
+                <td style="width: 20%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($iva_10) ?></td>
+                <td style="width: 25%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($iva_10) ?></td>
+                <td style="width: 15%;text-align:center;<?php echo $bordes ?> " class="border-bottom">
+                    <?php echo isset($total) ? getAmtPCustom($total) : '0.00' ?>
+                </td>
             </tr>
         </table>
     </div>
-    <?php $espaciado = 72 - ($i * 3); ?>
+    <?php $espaciado = 55 - ($i * 12); ?>
+    <?php if ($i < 3) : ?>
     <div style="height: <?php echo $espaciado ?>px"></div>
+    <?php endif; ?>
 <?php endfor; ?>
 
 </page>	
@@ -190,8 +186,8 @@ table th, td { font-size:11px; }
                 window.close();
             });
     } else {
-        window.addEventListener('afterprint', (event) => {
-            window.close();
-        });
+        // window.addEventListener('afterprint', (event) => {
+        //     window.close();
+        // });
     }
 </script>
