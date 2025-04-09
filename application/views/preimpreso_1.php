@@ -163,7 +163,7 @@ table th, td { font-size:11px; }
             </tr>
         </table>
     </div>
-    <?php $espaciado = 55 - ($i * 12); ?>
+    <?php $espaciado = 45 - ($i * 15); ?>
     <?php if ($i < 3) : ?>
     <div style="height: <?php echo $espaciado ?>px"></div>
     <?php endif; ?>

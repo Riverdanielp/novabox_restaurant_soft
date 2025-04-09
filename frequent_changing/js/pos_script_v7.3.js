@@ -239,43 +239,146 @@
           });
       }
   
-      /**************indexedDB Initialization*******************/
-      if (!window.indexedDB) {
+    //   /**************indexedDB Initialization*******************/
+    //   if (!window.indexedDB) {
+    //     let indexdb_err = $("#indexdb_err").val();
+    //       toastr.options = {
+    //           positionClass:'toast-bottom-right'
+    //       };
+    //       toastr['error'](indexdb_err, '');
+    //   }
+  
+    //   let db;
+    //   let request = window.indexedDB.open("restaurantDB", 1);
+  
+    //   request.onsuccess = function(event) {
+    //       db = request.result;
+    //       displayOrderList();
+    //   }
+  
+    //   request.onerror = function(event) {
+  
+    //   };
+    //   request.onupgradeneeded = function(event) {
+    //         let db = event.target.result;
+    //         let objectStore = db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement:true});
+    //         let objectStore2 = db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement:true});
+    //         let objectStore3 = db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement:true});
+    //         let objectStore4 = db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement:true});
+    //         let objectStore5 = db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement:true});
+    //         let objectStore6 = db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement:false});
+    //   }
+
+    /**************indexedDB Initialization*******************/
+    if (!window.indexedDB) {
         let indexdb_err = $("#indexdb_err").val();
-          toastr.options = {
-              positionClass:'toast-bottom-right'
-          };
-          toastr['error'](indexdb_err, '');
-      }
-  
-      let db;
-      let request = window.indexedDB.open("restaurantDB", 1);
-  
-      request.onsuccess = function(event) {
-          db = request.result;
-          displayOrderList();
-      }
-  
-      request.onerror = function(event) {
-  
-      };
-      request.onupgradeneeded = function(event) {
-            let db = event.target.result;
-            let objectStore = db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement:true});
-            let objectStore2 = db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement:true});
-            let objectStore3 = db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement:true});
-            let objectStore4 = db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement:true});
-            let objectStore5 = db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement:true});
-            let objectStore6 = db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement:false});
+        toastr.options = {
+            positionClass: 'toast-bottom-right'
+        };
+        toastr['error'](indexdb_err, '');
+    }
+
+    // Definimos db en el ámbito global
+    let db;
+
+    // Función para eliminar la base de datos existente
+    function deleteDatabase() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.deleteDatabase("restaurantDB");
+            req.onsuccess = resolve;
+            req.onerror = reject;
+            req.onblocked = () => reject(new Error("Database deletion blocked"));
+        });
+    }
+
+    // Función para inicializar la base de datos
+    function initializeDatabase() {
+        return new Promise((resolve, reject) => {
+            let request = window.indexedDB.open("restaurantDB", 1);
             
-            // if (!db.objectStoreNames.contains('pending_kitchen_orders')) {
-            //     let store = db.createObjectStore('pending_kitchen_orders', {
-            //         keyPath: 'sale_no',
-            //         autoIncrement: false
-            //     });
-            //     store.createIndex('sale_no', 'sale_no', { unique: true });
-            // }
-      }
+            request.onsuccess = function(event) {
+                db = request.result; // Asignamos a la variable global db
+                resolve(db);
+            };
+            
+            request.onerror = function(event) {
+                reject(event.target.error);
+            };
+            
+            request.onupgradeneeded = function(event) {
+                let db = event.target.result;
+                // Eliminar object stores existentes si los hay
+                if (db.objectStoreNames.contains("sales")) db.deleteObjectStore("sales");
+                // if (db.objectStoreNames.contains("future_sales")) db.deleteObjectStore("future_sales");
+                // if (db.objectStoreNames.contains("recent_sales")) db.deleteObjectStore("recent_sales");
+                if (db.objectStoreNames.contains("order_tables")) db.deleteObjectStore("order_tables");
+                if (db.objectStoreNames.contains("invoice_date_table")) db.deleteObjectStore("invoice_date_table");
+                // if (db.objectStoreNames.contains("pending_kitchen_orders")) db.deleteObjectStore("pending_kitchen_orders");
+                
+                // Crear nuevos object stores
+                db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement: true});
+                db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement: true});
+                db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement: true});
+                db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement: true});
+                db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement: true});
+                db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement: false});
+            };
+        });
+    }
+
+    // Modificación de tus funciones para asegurar que db esté disponible
+    function getSelectedOrderDetails(sale_no_new) {
+        if (!db) {
+            return Promise.reject("Database not initialized");
+        }
+
+        return new Promise(function (resolve, reject) {
+            let transaction = db.transaction(['sales'], "readwrite");
+            let objectStore = transaction.objectStore("sales");
+            
+            objectStore.openCursor().onsuccess = function(event) {
+                let cursor = event.target.result;
+                if (cursor) {
+                    if(cursor.value.sale_no == sale_no_new) {
+                        let orderData = cursor.value;
+                        resolve(orderData.order);
+                    }
+                    cursor.continue();
+                }
+            };
+
+            transaction.onerror = function(event) {
+                reject(event.target.error);
+            };
+        });
+    }
+
+    // Repite el mismo patrón para las otras funciones (getSelectedOrderDetailsRecentSale, getSelectedOrderDetailsFutureSale, etc.)
+
+    // Proceso de inicialización al cargar la página
+    (async function initApp() {
+        try {
+            // Primero intentamos eliminar la base de datos existente
+            await deleteDatabase().catch(() => { 
+                console.log("No se pudo eliminar la base de datos existente, continuando...");
+            });
+            
+            // Luego inicializamos una nueva base de datos
+            await initializeDatabase();
+            
+            // Una vez inicializada, llamamos a displayOrderList
+            if (typeof displayOrderList === 'function') {
+                displayOrderList();
+            }
+            
+        } catch (error) {
+            console.error("Error al inicializar IndexedDB:", error);
+        }
+    })();
+
+
+
+
       function getSmsSeedStatus(){
           let sms_send_auto_checker = Number($("#sms_send_auto_checker").val());
           if ($("#check_send_sms").is(":checked")) {
@@ -372,79 +475,6 @@
             }
         })
     }
-      /**************Get Sales Information from indexedDB End *******************/
-    //   function displayOrderList(){
-    //       $("#order_details_holder").html('')
-    //       let order_list_left = '';
-    //       let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-    //       let sales_id = '';
-    //       objectStore.openCursor(null, 'prev').onsuccess = function(event) {
-    //           let cursor = event.target.result;
-    //           let i = 1;
-    //           if (cursor) {
-    //               let orderData = cursor.value;
-    //                 // console.log('orderData',orderData);
-    //               let orderInfo = orderData.order;
-    //               let table_id = orderData.table_id;
-    //               let rowData = JSON.parse(orderInfo);
-    //             //   console.log('rowData',rowData);
-    //               let sales_id = cursor.value.sales_id;
-  
-    //               let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
-    //               let outlet_id = Number(orderData.outlet_id);
-    //               let user_id = Number(orderData.user_id);
-    //               let user_id_login = Number($("#user_id").val());
-  
-    //               if(user_id_login==user_id){
-    //                 let sale_no_plan = get_plan_string(rowData.sale_no);
-    //                   if (i == 1) {
-    //                       order_list_left += '<div data-dan="1" data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix txt_5" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
-    //                   } else {
-    //                       order_list_left += '<div data-dan="1" data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix" data-merge_id="'+cursor.value.merge_id+'" data-selected="unselected"  order_type="'+rowData.order_type+'" data-sale_no="'+rowData.sale_no+'" data-total_payable="'+rowData.total_payable+'" data-table_id="'+table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sale_no_plan + '">';
-    //                   }
-    //                   order_list_left += '<div class="inside_single_order_container fix">';
-    //                   order_list_left += '<div class="single_order_content_holder_inside fix">';
-    //                   let number_selected = '';
-    //                   let waiter_name = rowData.waiter_name != "" && rowData.waiter_name!=undefined  && rowData.waiter_name!=null && rowData.waiter_name!="undefined" ? rowData.waiter_name : "";
-    //                   let customer_name = rowData.customer_name != null ? rowData.customer_name : "";
-    //                   let selected_number = rowData.selected_number != null ? rowData.selected_number : "";
-    //                   let selected_number_name = rowData.selected_number_name != null ? rowData.selected_number_name : "";
-    //                   let tables_booked = "";
-  
-    //                   if (rowData.orders_table_text) {
-    //                       tables_booked =  rowData.orders_table_text;
-    //                   } else {
-    //                       tables_booked = "No";
-    //                   }
-    //                   let order_type = "";
-    //                   if(rowData !== null) {
-    //                       if (rowData.order_type == 1) {
-    //                           order_type = inv_dine;
-    //                       } else if (rowData.order_type == 2) {
-    //                           order_type = inv_take_away;
-    //                       } else if (rowData.order_type == 3) {
-    //                           order_type = inv_delivery;
-    //                       }
-    //                   }
- 
-  
-    //                   order_list_left += '<p class="oder_list_class"><b>#' + selected_number_name + ' </b>'+' <span data-added_offline_status="'+orderData.added_offline_status+'" class="running_order_order_number">' + rowData.sale_no + "</span></p>";
-    //                   order_list_left += '<span id="open_orders_order_status_' + sales_id + '" class="ir_display_none">' + rowData.order_status + '</span> <p><span title="' + customer_name + '" class="running_order_customer_name">' + customer_name + '</span></p> <i class="far fa-chevron-right running_order_right_arrow" id="running_order_right_arrow_' + sales_id + '"></i>';
-    //                   order_list_left += '<p class="oder_list_class">'+lang_order_type+': <span class="running_order_order_number_">' + order_type + "</span></p>";
-    //                   order_list_left += '<p>'+lang_table+': <span class="running_order_table_name">' + tables_booked + "</span></p>";
-    //                   order_list_left += '<p>'+lang_waiter+': <span class="running_order_waiter_name">' + waiter_name + "</span></p>";
-    //                   order_list_left += "</div>";
-    //                   order_list_left += "</div>";
-    //                   order_list_left += "<div class='order_details' style='display:none'>"+orderInfo+"</div></div>";
-
-    //                   $("#order_details_holder").html(order_list_left);
-    //                   i++;
-    //               }
-    //               cursor.continue();
-    //           }
-    //       };
-    //   }
-
     
     function displayOrderList() {
         let order_details_holder = document.getElementById("order_details_holder");
@@ -694,36 +724,59 @@
       setTimeout(function () {
           removeInvoiceDate();
       }, 2000);
-  //added by shuvo
-  // purpose of this function is to print invoice by using data from indexeddb
-  
-  //added by shuvo
-  // purpose of this function is to delete data from sales table by using data from indexeddb
-      function delete_from_sale (sale_no) {
-          let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-  
-          objectStore.openCursor().onsuccess = function(event) {
-              let cursor = event.target.result;
-  
-              if (cursor) {
-                  if(cursor.value.sale_no == sale_no) {
-                      if(pre_or_post_payment==1){
-                          let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
-                      }else{
-                          let updateData = cursor.value;
-                          updateData.is_invoice = 2;
-                          let request = cursor.update(updateData);
-  
-                          displayOrderList();
-                      }
-                      request.onsuccess = function(event) {}
-                  }
-                  cursor.continue();
-              }
-          }
-          clearFooterCartCalculation();
-          displayOrderList();
-      };
+      
+        // purpose of this function is to delete data from sales table by using data from indexeddb
+        function delete_from_sale(sale_no) {
+            return new Promise((resolve, reject) => {
+                let transaction = db.transaction(['sales'], "readwrite");
+                let objectStore = transaction.objectStore("sales");
+                let operationCompleted = false;
+
+                transaction.oncomplete = function() {
+                    if (!operationCompleted) {
+                        clearFooterCartCalculation();
+                        displayOrderList();
+                        resolve();
+                    }
+                };
+
+                transaction.onerror = function(event) {
+                    reject(event.target.error);
+                };
+
+                objectStore.openCursor().onsuccess = function(event) {
+                    let cursor = event.target.result;
+                    if (cursor) {
+                        if (cursor.value.sale_no == sale_no) {
+                            let request;
+                            if (pre_or_post_payment == 1) {
+                                request = objectStore.delete(cursor.key);
+                            } else {
+                                let updateData = cursor.value;
+                                updateData.is_invoice = 2;
+                                request = cursor.update(updateData);
+                            }
+
+                            request.onsuccess = function() {
+                                operationCompleted = true;
+                                clearFooterCartCalculation();
+                                displayOrderList();
+                                resolve();
+                            };
+
+                            request.onerror = function(event) {
+                                reject(event.target.error);
+                            };
+                        } else {
+                            cursor.continue();
+                        }
+                    } else {
+                        // No se encontró la orden
+                        resolve();
+                    }
+                };
+            });
+        }
       /***
        * Purpose: This function add for new close order to recent sales table info store in IndexedDB
        * Added by: shuvo
@@ -4418,6 +4471,47 @@
           $(".pos__modal__overlay").fadeOut(300);
         }
       );
+
+      function printer_app_register_report() {
+            return new Promise((resolve) => {
+                $.ajax({
+                    url: base_url + "Sale/printer_app_register_report/",
+                    method: "GET",
+                    success: function(base64) {
+                        // Crear un iframe temporal para la impresión
+                        const iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.src = 'print://' + base64;
+                        document.body.appendChild(iframe);
+                        
+                        // Eliminar el iframe después de un tiempo y resolver la promesa
+                        setTimeout(() => {
+                            document.body.removeChild(iframe);
+                            resolve();
+                        }, 300);
+                    },
+                    error: function() {
+                        alert("Error al generar el ticket para la impresora.");
+                        resolve(); // Asegurar que siempre se resuelva
+                    }
+                });
+            });
+        }
+
+        $(document).on("click", "#register_printer_app", function (e) {
+                $.ajax({
+                    url: base_url + "Sale/printer_app_register_report/",
+                    method: "GET",
+                    success: function(base64) {
+                        console.log(base64);
+                        window.location.href = 'print://' + base64;
+                    },
+                    error: function() {
+                        alert("Error al generar el ticket para la impresora.");
+                    }
+                });
+            }
+        );
       $(document).on("click", "#create_bill_and_close", function (e) {
           let pos_12 = Number($("#pos_12").val());
           if(pos_12){
@@ -6633,47 +6727,84 @@ function updateSearchResults(searchText) {
               }
           }
       }
-      function updateOrderForWaiter(sale_no,content_html){
-          let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-          objectStore.openCursor().onsuccess = function(event) {
-              let cursor = event.target.result;
-              if (cursor) {
-                  let rowData = JSON.parse(cursor.value.order);
-                  let sale_no_local = rowData.sale_no;
-  
-                  if(sale_no_local == sale_no) {
-                      let updateData = cursor.value;
-                      updateData.order = content_html;
-                      let request = cursor.update(updateData);
-  
-                      request.onsuccess = function() {
-                          displayOrderList();
-                      }
-                  }
-  
-                  cursor.continue();
-              }
-          }
-      }
 
-      function deleteOrderForWaiter(sale_no){
-          let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-          objectStore.openCursor().onsuccess = function(event) {
-              let cursor = event.target.result;
-              if (cursor) {
-                  let rowData = JSON.parse(cursor.value.order);
-                  let sale_no_local = rowData.sale_no;
-                  if(sale_no_local == sale_no) {
-                      let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
-                      request.onsuccess = function(event) {
-                          displayOrderList();
-                      }
-                  }
-  
-                  cursor.continue();
-              }
-          }
-      }
+        async function updateOrderForWaiter(sale_no, content_html) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sales'], "readwrite");
+                const objectStore = transaction.objectStore("sales");
+                let updated = false;
+
+                objectStore.openCursor().onsuccess = function(event) {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        const rowData = JSON.parse(cursor.value.order);
+                        const sale_no_local = rowData.sale_no;
+
+                        if (sale_no_local == sale_no) {
+                            const updateData = cursor.value;
+                            updateData.order = content_html;
+                            const request = cursor.update(updateData);
+
+                            request.onsuccess = function() {
+                                updated = true;
+                                displayOrderList();
+                                resolve(true);
+                            };
+
+                            request.onerror = function() {
+                                reject(false);
+                            };
+                        } else {
+                            cursor.continue();
+                        }
+                    } else if (!updated) {
+                        resolve(false); // No se encontró la orden para actualizar
+                    }
+                };
+
+                transaction.onerror = function(event) {
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        async function deleteOrderForWaiter(sale_no) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['sales'], "readwrite");
+                const objectStore = transaction.objectStore("sales");
+                let deleted = false;
+
+                objectStore.openCursor().onsuccess = function(event) {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        const rowData = JSON.parse(cursor.value.order);
+                        const sale_no_local = rowData.sale_no;
+
+                        if (sale_no_local == sale_no) {
+                            const request = objectStore.delete(cursor.primaryKey);
+
+                            request.onsuccess = function() {
+                                deleted = true;
+                                displayOrderList();
+                                resolve(true);
+                            };
+
+                            request.onerror = function() {
+                                reject(false);
+                            };
+                        } else {
+                            cursor.continue();
+                        }
+                    } else if (!deleted) {
+                        resolve(false); // No se encontró la orden para eliminar
+                    }
+                };
+
+                transaction.onerror = function(event) {
+                    reject(event.target.error);
+                };
+            });
+        }
 
       $(document).on("click", "#cancel_order_button", function (e) {
           let pos_2 = Number($("#pos_2").val());
@@ -12160,8 +12291,15 @@ function updateSearchResults(searchText) {
           $(".old_added_table").remove();
           $(".new_book_to_table").remove();
       }
-    function add_sale_by_ajax(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='',action_type='',is_merge='',clear_holder=true) {
-          //reset previous update sale id
+    async function add_sale_by_ajax(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='',action_type='',is_merge='',clear_holder=true) {
+        
+        // Verificar primero si la orden ya existe
+        const orderExists = await checkIfOrderExists(sale_no_new);
+        if (orderExists && !update_sale_id) {
+            console.log(`La orden ${sale_no_new} ya existe, omitiendo...`);
+            return;
+        }
+      //reset previous update sale id
         if (clear_holder === true){
             $("#update_sale_id").val("");
         }
@@ -12218,9 +12356,9 @@ function updateSearchResults(searchText) {
                         }
                         displayOrderList();
                         if (clear_holder === true){
-                            setTimeout(function(){
-                                createAnimation(sale_no_new);
-                            }, 1000);
+                            // setTimeout(function(){
+                            //     createAnimation(sale_no_new);
+                            // }, 1000);
                         }
                     };
                 // }
@@ -12255,9 +12393,9 @@ function updateSearchResults(searchText) {
                             }
                                 displayOrderList();
                                 if (clear_holder === true){
-                                    setTimeout(function(){
-                                        createAnimation(sale_no_new);
-                                    }, 1000);
+                                    // setTimeout(function(){
+                                    //     createAnimation(sale_no_new);
+                                    // }, 1000);
                                 }
                         }
                         cursor.continue();
@@ -12326,9 +12464,9 @@ function updateSearchResults(searchText) {
                             }, 1000);
         
                             if (clear_holder === true){
-                                setTimeout(function(){
-                                    createAnimation(sale_no_new);
-                                }, 1100);
+                                // setTimeout(function(){
+                                //     createAnimation(sale_no_new);
+                                // }, 1100);
                             }
                         }
     
@@ -12367,9 +12505,9 @@ function updateSearchResults(searchText) {
                                 displayOrderList();
     
                                 if (clear_holder === true){
-                                    setTimeout(function(){
-                                        createAnimation(sale_no_new);
-                                    }, 1000);
+                                    // setTimeout(function(){
+                                    //     createAnimation(sale_no_new);
+                                    // }, 1000);
                                 }
                             // }
                         }
@@ -12384,6 +12522,33 @@ function updateSearchResults(searchText) {
             $(".order_table_holder .order_holder").empty();
         }
     }
+
+    // Función auxiliar para verificar si una orden existe
+    function checkIfOrderExists(sale_no) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['sales'], "readonly");
+            const objectStore = transaction.objectStore("sales");
+            let exists = false;
+
+            objectStore.openCursor().onsuccess = function(event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const rowData = JSON.parse(cursor.value.order);
+                    if (rowData.sale_no === sale_no) {
+                        exists = true;
+                    }
+                    cursor.continue();
+                } else {
+                    resolve(exists);
+                }
+            };
+
+            transaction.onerror = function(event) {
+                reject(event.target.error);
+            };
+        });
+    }
+
     function add_sale_by_ajax_kot_print(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='') {
           //reset previous update sale id
         let arr_kot_items = {};
@@ -13944,7 +14109,7 @@ function updateSearchResults(searchText) {
         let sale_no_all = $(".running_order_order_number").map(function () {
             return $(this).attr("data-added_offline_status") == 2 ? $(this).text() : null;
         }).get().join(",");
-        // Obtener el rol del usuario actual
+        
         const userDesignation = $("#user_designation").val();
     
         $.ajax({
@@ -13953,82 +14118,111 @@ function updateSearchResults(searchText) {
             dataType: 'json',
             data: { 
                 sale_no_all: sale_no_all,
-                last_sync: lastServerSync, // Enviamos la última hora conocida
+                last_sync: lastServerSync,
                 csrf_irestoraplus: csrf_value_
-            }, // data: { sale_no_all, csrf_irestoraplus: csrf_value_ },
-            success: function (response) {
-                // Guardamos la hora del servidor para la próxima sincronización
+            },
+            success: async function (response) {
                 lastServerSync = response.server_time;
-                // localStorage.setItem('lastKitchenSync', response.server_time);
                 let outlet_id_indexdb = $("#outlet_id_indexdb").val();
                 let company_id_indexdb = $("#company_id_indexdb").val();
                 let processedOrders = {};
     
-                response.get_waiter_orders.forEach(order => {
+                // Primero verificamos todas las órdenes existentes en IndexedDB
+                const existingOrders = await getAllExistingOrders();
+                
+                // Procesamos las nuevas órdenes del servidor
+                for (const order of response.get_waiter_orders) {
                     let order_info = JSON.parse(order.self_order_content);
                     let sale_no_new = order_info.sale_no;
-    
-                    // Registrar la orden como procesada
                     processedOrders[sale_no_new] = true;
-                    if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
-                        add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "",false);
-
-                        // Solo imprimir si NO es mesero
+    
+                    // Verificamos si la orden ya existe antes de agregarla
+                    if (!existingOrders.includes(sale_no_new)) {
+                        if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
+                            await add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
+                            
+                            if (userDesignation == "Cashier" || userDesignation == "Admin") {
+                                printExistingOrder(sale_no_new, order.self_order_content);
+                            }
+                        }
+                        setOrderPulled(order.id);
+                    }
+                }
+    
+                // Procesamos órdenes para actualización
+                for (const order of response.get_waiter_orders_for_update_receiver) {
+                    let order_info = JSON.parse(order.self_order_content);
+                    let sale_no_new = order_info.sale_no;
+                    
+                    // Actualizamos solo si la orden existe
+                    if (existingOrders.includes(sale_no_new)) {
+                        await updateOrderForWaiter(sale_no_new, order.self_order_content);
+                        setOrderInvoiceUpdated(order.id, 2);
+                        
                         if (userDesignation == "Cashier" || userDesignation == "Admin") {
-                            // Llamar a una nueva función que solo imprime sin modificar la BD
-                            printExistingOrder(sale_no_new, order.self_order_content);
+                            printExistingOrder(order.sale_no, order.self_order_content);
                         }
                     }
-                    setOrderPulled(order.id);
-                });
+                }
     
-                response.get_waiter_invoice_orders.forEach(order => {
-                    closeOrderForWaiter(order.sale_no);
-                    setOrderInvoicePulled(order.id);
-                });
-    
-                response.get_waiter_orders_for_update_sender.forEach(order => {
-                    updateOrderForWaiter(order.sale_no, order.self_order_content);
-                    setOrderInvoiceUpdated(order.id, 1);
-                });
-    
-                response.get_waiter_orders_for_update_receiver.forEach(order => {
-                    updateOrderForWaiter(order.sale_no, order.self_order_content);
-                    setOrderInvoiceUpdated(order.id, 2);
-                    // Solo imprimir si NO es mesero
-                    if (userDesignation == "Cashier" || userDesignation == "Admin") {
-                        printExistingOrder(order.sale_no, order.self_order_content);
-                    }
-                });
-    
+                // Procesamos órdenes para eliminar
                 if (response.get_waiter_orders_for_delete_sender) {
-                    response.get_waiter_orders_for_delete_sender.split(",").forEach(sale_no_tmp => {
-                        if (sale_no_tmp) deleteOrderForWaiter(sale_no_tmp);
-                    });
+                    for (const sale_no_tmp of response.get_waiter_orders_for_delete_sender.split(",")) {
+                        if (sale_no_tmp && existingOrders.includes(sale_no_tmp)) {
+                            await deleteOrderForWaiter(sale_no_tmp);
+                        }
+                    }
                 }
     
+                // Procesamos órdenes ya facturadas
                 if (pre_or_post_payment != 2) {
-                    response.already_invoiced_orders.forEach(order => {
-                        deleteOrderForWaiter(order.sale_no);
-                    });
+                    for (const order of response.already_invoiced_orders) {
+                        if (existingOrders.includes(order.sale_no)) {
+                            await deleteOrderForWaiter(order.sale_no);
+                        }
+                    }
                 }
     
-                response.get_all_running_order_for_new_pc.forEach(order => {
+                // Procesamos todas las órdenes en ejecución
+                for (const order of response.get_all_running_order_for_new_pc) {
                     let sale_no_new = order.sale_no;
-                    if (!processedOrders[sale_no_new]) {
+                    if (!processedOrders[sale_no_new] && !existingOrders.includes(sale_no_new)) {
                         if (!$(`#order_${get_plan_string(sale_no_new)}`).length) {
-                            add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "",false);
-                            // Solo imprimir si NO es mesero
+                            await add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
+                            
                             if (userDesignation == "Cashier" || userDesignation == "Admin") {
-                                // Llamar a una nueva función que solo imprime sin modificar la BD
                                 printExistingOrder(sale_no_new, order.self_order_content);
                             }
                         }
                     }
-                });
+                }
     
                 updateOccupiedNumbers(response.occupied_numbers);
             }
+        });
+    }
+    
+    // Función auxiliar para obtener todas las órdenes existentes en IndexedDB
+    function getAllExistingOrders() {
+        return new Promise((resolve, reject) => {
+            const orders = [];
+            const transaction = db.transaction(['sales'], "readonly");
+            const objectStore = transaction.objectStore("sales");
+            
+            objectStore.openCursor().onsuccess = function(event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const rowData = JSON.parse(cursor.value.order);
+                    orders.push(rowData.sale_no);
+                    cursor.continue();
+                } else {
+                    resolve(orders);
+                }
+            };
+            
+            transaction.onerror = function(event) {
+                reject(event.target.error);
+            };
         });
     }
 
@@ -14153,15 +14347,31 @@ function updateSearchResults(searchText) {
         }
     }
 
-    function reset_time_interval() {
-        let highestId = setTimeout(() => { }, 0);
-        for (let i = 1; i <= highestId; i++) window.clearInterval(i);
+    // Variable para controlar si ya hay una sincronización en curso
+    let isSyncing = false;
+
+    async function safeProcessWaiterOrders() {
+        if (isSyncing) {
+            console.log("Sincronización ya en curso, omitiendo...");
+            return;
+        }
+
+        isSyncing = true;
+        try {
+            await processWaiterOrders();
+        } catch (error) {
+            console.error("Error en la sincronización:", error);
+        } finally {
+            isSyncing = false;
+        }
     }
-    
+
+    // Modificar all_time_interval_operation para usar la versión segura
     function all_time_interval_operation() {
         setInterval(() => {
-            if (checkInternetConnection()) new_notification_interval();
-            // refresh_orders_left();
+            if (checkInternetConnection()) {
+                safeProcessWaiterOrders();
+            }
         }, 5000);
     }
     
@@ -14863,42 +15073,54 @@ function updateSearchResults(searchText) {
     }
     $.datable();
   
-    $(document).on("click", "#register_close", function (e) {
-        let pos_21 = Number($("#pos_21").val());
-        if(pos_21){
-            let csrf_name_ = $("#csrf_name_").val();
-            let csrf_value_ = $("#csrf_value_").val();
-            swal(
-                {
-                    title: warning + "!",
-                    text: txt_err_pos_2,
-                    confirmButtonColor: "#3c8dbc",
-                    confirmButtonText: ok,
-                    showCancelButton: true,
-                },
-                function () {
-                    $.ajax({
-                        url: base_url + "Sale/closeRegister",
-                        method: "POST",
-                        data: {
-                            csrf_name_: csrf_value_,
-                        },
-                        success: function (response) {
-                            toastr['error']((register_close), '');
-                            $("#close_register_button").hide();
+
+
+// Manejador del cierre de caja modificado
+$(document).on("click", "#register_close", function (e) {
+    let pos_21 = Number($("#pos_21").val());
+    if(pos_21){
+        let csrf_name_ = $("#csrf_name_").val();
+        let csrf_value_ = $("#csrf_value_").val();
+        swal(
+            {
+                title: warning + "!",
+                text: txt_err_pos_2,
+                confirmButtonColor: "#3c8dbc",
+                confirmButtonText: ok,
+                showCancelButton: true,
+            },
+            function () {
+                $.ajax({
+                    url: base_url + "Sale/closeRegister",
+                    method: "POST",
+                    data: {
+                        csrf_name_: csrf_value_,
+                    },
+                    success: async function (response) {
+                        // Esperar a que termine la impresión
+                        await printer_app_register_report();
+                        
+                        // Mostrar notificación
+                        toastr['error']((register_close), '');
+                        $("#close_register_button").hide();
+                        
+                        // Redireccionar después de un breve retraso
+                        setTimeout(() => {
                             window.location.href = base_url + "Register/openRegister";
-                        },
-                        error: function () {
-                            alert("error");
-                        },
-                    });
-                }
-            );
-        }else{
-            toastr['error']((menu_not_permit_access + "!"), '');
-        }
-  
-    });
+                        }, 500);
+                    },
+                    error: function () {
+                        alert("error");
+                    },
+                });
+            }
+        );
+    } else {
+        toastr['error']((menu_not_permit_access + "!"), '');
+    }
+});
+
+
     //initial the select2
     $(".select2").select2();
     /**

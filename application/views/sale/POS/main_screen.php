@@ -1411,10 +1411,10 @@ foreach ($notifications as $single_notification){
 
                                     <button id="cancel_button"><i class="fas fa-times"></i>
                                         <?php echo lang('cancel'); ?></button>
-                                    <button id="hold_sale" class="<?php echo escape_output($is_self_order_class) ?>"><i class="fas fa-hand-rock"></i>
+                                    <button id="hold_sale" class="<?php echo escape_output($is_self_order_class) ?>" <?php echo ($this->session->userdata('designation') == 'Waiter') ? 'style="display: none;"' : '' ?>><i class="fas fa-hand-rock"></i>
                                         <?php echo lang('hold'); ?></button>
 
-                                    <button data-type="1" class="<?php echo escape_output(isset($is_online_order) && $is_online_order=="Yes"?'self_order_skip':'')?> <?php echo escape_output(isset($is_self_order) && $is_self_order=="Yes"?'self_order_skip':'')?> placeOrderSound place_order_operation <?php echo isset($place_order_tooltip) && $place_order_tooltip=="show"?"btn_tip":'' ?>"  data-tippy-content="<?php echo lang('place_order_tooltip_txt'); ?>"><i
+                                    <button data-type="1" class="<?php echo escape_output(isset($is_online_order) && $is_online_order=="Yes"?'self_order_skip':'')?> <?php echo escape_output(isset($is_self_order) && $is_self_order=="Yes"?'self_order_skip':'')?> placeOrderSound place_order_operation <?php echo isset($place_order_tooltip) && $place_order_tooltip=="show"?"btn_tip":'' ?>"  data-tippy-content="<?php echo lang('place_order_tooltip_txt'); ?>" <?php echo ($this->session->userdata('designation') == 'Waiter') ? 'style="display: none;"' : '' ?>><i
                                             class="fas fa-utensils"></i> <span
                                            ><?php echo lang('direct_invoice'); ?></span></button>
 
@@ -2327,12 +2327,7 @@ foreach ($notifications as $single_notification){
 
             <div class="customer_add_modal_info_holder">
                 <div class="content">
-                    <div class="left-item b" style="  width: calc(98% / 2);">
-                        <div class="customer_section">
-                            <p class="input_level">Fecha: <span class="ir_color_red">*</span></p>
-                            <input type="date" class="add_customer_modal_input" id="preimpresa_fecha" required>
-                        </div>
-                        
+                    <div class="left-item b">
                         <div class="customer_section">
                             <p class="input_level">RUC: <span class="ir_color_red">*</span></p>
                             <input type="text" class="add_customer_modal_input" id="preimpresa_ruc" required>
@@ -2342,6 +2337,12 @@ foreach ($notifications as $single_notification){
                             <p class="input_level">Nombre: <span class="ir_color_red">*</span></p>
                             <input type="text" class="add_customer_modal_input" id="preimpresa_nombre" required>
                         </div>
+
+                        <div class="customer_section">
+                            <p class="input_level">Fecha: <span class="ir_color_red">*</span></p>
+                            <input type="date" class="add_customer_modal_input" id="preimpresa_fecha" required>
+                        </div>
+                        
                         
                         <div class="customer_section">
                             <p class="input_level">Dirección:</p>
@@ -2349,15 +2350,27 @@ foreach ($notifications as $single_notification){
                         </div>
                     </div>
 
-                    <div class="right-item b" style="  width: calc(98% / 2);">
+                    <div class="right-item b">
+                        <div class="customer_section">
+                            
+                            <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
+                                
+                            <button class="btn bg-blue-btn w-10" id="ruc_search_preimpreso"><i class="icon ti-search"></i>Buscar RUC</button>
+                            <br>
+                            <span id="ruc_message_preimpreso" class="mt-2 text-info">(Ingrese RUC y presione 'Enter')</span> 
+                            <br>
+
+                        </div>
+
                         <div class="customer_section">
                             <p class="input_level">Total: <span class="ir_color_red">*</span></p>
-                            <input type="text" class="add_customer_modal_input" id="preimpresa_total" readonly required>
+                            <input type="text" class="add_customer_modal_input" id="preimpresa_total" required>
                         </div>
                         
                         <div class="customer_section">
                             <p class="input_level">Tipo: <span class="ir_color_red">*</span></p>
                             <select class="add_customer_modal_input" id="preimpresa_tipo" required>
+                                <option value="Consumición">Consumición</option>
                                 <option value="Almuerzo">Almuerzo</option>
                                 <option value="Desayuno">Desayuno</option>
                                 <option value="Cena">Cena</option>
@@ -2945,6 +2958,7 @@ foreach ($notifications as $single_notification){
         <footer class="pos__modal__footer">
             <div class="right_box">
                 <button type="button"  id="register_close"><?php echo lang('close_register'); ?></button>
+                <button type="button"  id="register_printer_app">Printer App</button>
                 <button type="button" class="modal_hide_register"><?php echo lang('cancel'); ?></button>
             </div>
         </footer>
@@ -4835,65 +4849,125 @@ foreach ($notifications as $single_notification){
     }
     </script>
 
-<script>
-            document.getElementById("ruc_search").addEventListener("click", function() {
-                let rucInput = document.getElementById("customer_gst_number_modal").value;
-                
-                // Eliminar cualquier guion y tomar solo los números antes del guion
-                let ruc = rucInput.split('-')[0];
+    <script>
+        document.getElementById("ruc_search").addEventListener("click", function() {
+            let rucInput = document.getElementById("customer_gst_number_modal").value;
+            
+            // Eliminar cualquier guion y tomar solo los números antes del guion
+            let ruc = rucInput.split('-')[0];
 
-                // Obtener el contenedor del mensaje
-                let messageContainer = document.getElementById("ruc_message");
-                
-                // Limpiar el mensaje de error o éxito antes de hacer la búsqueda
-                messageContainer.textContent = "Buscando RUC..."; // Mensaje de búsqueda
-                messageContainer.classList.remove('text-danger', 'text-success');
-                messageContainer.classList.add('text-warning'); // Color de advertencia mientras buscamos
+            // Obtener el contenedor del mensaje
+            let messageContainer = document.getElementById("ruc_message");
+            
+            // Limpiar el mensaje de error o éxito antes de hacer la búsqueda
+            messageContainer.textContent = "Buscando RUC..."; // Mensaje de búsqueda
+            messageContainer.classList.remove('text-danger', 'text-success');
+            messageContainer.classList.add('text-warning'); // Color de advertencia mientras buscamos
 
-                // Si el RUC tiene más de 4 dígitos y no contiene guion, hacemos la solicitud
-                if (ruc.length > 4 && !rucInput.includes('-')) {
-                    // Crear un objeto FormData y añadir el ruc
-                    let formData = new FormData();
-                    formData.append("ruc", ruc);
+            // Si el RUC tiene más de 4 dígitos y no contiene guion, hacemos la solicitud
+            if (ruc.length > 4 && !rucInput.includes('-')) {
+                // Crear un objeto FormData y añadir el ruc
+                let formData = new FormData();
+                formData.append("ruc", ruc);
 
-                    // Realizar el fetch a la API de RUC con form-data
-                    fetch('https://ruc.novabox.work/consultas/ruc', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error || !data.ruc) {
-                            // Si no se encuentra el RUC, mostrar el mensaje de error
-                            messageContainer.textContent = "No se encontraron datos para este RUC.";
-                            messageContainer.classList.remove('text-warning', 'text-success');
-                            messageContainer.classList.add('text-danger'); // Mensaje en rojo
-                        } else {
-                            // Si se encuentra el RUC, completar los campos con los datos
-                            document.getElementById("customer_name_modal").value = data.nombre + ' ' + data.apellido || '';
-                            // Formatear el RUC con el dígito verificador y actualizar el campo
-                            let fullRuc = `${ruc}-${data.dv}`;
-                            document.getElementById("customer_gst_number_modal").value = fullRuc;
-
-                            // Mostrar el mensaje de éxito
-                            messageContainer.textContent = "RUC encontrado!";
-                            messageContainer.classList.remove('text-warning', 'text-danger');
-                            messageContainer.classList.add('text-success'); // Mensaje en verde
-                        }
-                    })
-                    .catch(error => {
-                        // En caso de error en la API
-                        messageContainer.textContent = "Error al obtener los datos.";
+                // Realizar el fetch a la API de RUC con form-data
+                fetch('https://ruc.novabox.work/consultas/ruc', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error || !data.ruc) {
+                        // Si no se encuentra el RUC, mostrar el mensaje de error
+                        messageContainer.textContent = "No se encontraron datos para este RUC.";
                         messageContainer.classList.remove('text-warning', 'text-success');
-                        messageContainer.classList.add('text-danger'); // Mensaje de error
-                    });
-                } else {
-                    // Si el RUC tiene menos de 5 caracteres, no se hace nada
-                    messageContainer.textContent = "(Ingrese RUC y presione 'Enter')";
-                    messageContainer.classList.remove('text-warning', 'text-danger', 'text-success');
-                }
-            });
-        </script>
+                        messageContainer.classList.add('text-danger'); // Mensaje en rojo
+                    } else {
+                        // Si se encuentra el RUC, completar los campos con los datos
+                        document.getElementById("customer_name_modal").value = data.nombre + ' ' + data.apellido || '';
+                        // Formatear el RUC con el dígito verificador y actualizar el campo
+                        let fullRuc = `${ruc}-${data.dv}`;
+                        document.getElementById("customer_gst_number_modal").value = fullRuc;
+
+                        // Mostrar el mensaje de éxito
+                        messageContainer.textContent = "RUC encontrado!";
+                        messageContainer.classList.remove('text-warning', 'text-danger');
+                        messageContainer.classList.add('text-success'); // Mensaje en verde
+                    }
+                })
+                .catch(error => {
+                    // En caso de error en la API
+                    messageContainer.textContent = "Error al obtener los datos.";
+                    messageContainer.classList.remove('text-warning', 'text-success');
+                    messageContainer.classList.add('text-danger'); // Mensaje de error
+                });
+            } else {
+                // Si el RUC tiene menos de 5 caracteres, no se hace nada
+                messageContainer.textContent = "(Ingrese RUC y presione 'Enter')";
+                messageContainer.classList.remove('text-warning', 'text-danger', 'text-success');
+            }
+        });
+    </script>
+
+<script>
+        document.getElementById("ruc_search_preimpreso").addEventListener("click", function() {
+            let rucInput = document.getElementById("preimpresa_ruc").value;
+            
+            // Eliminar cualquier guion y tomar solo los números antes del guion
+            let ruc = rucInput.split('-')[0];
+
+            // Obtener el contenedor del mensaje
+            let messageContainer = document.getElementById("ruc_message_preimpreso");
+            
+            // Limpiar el mensaje de error o éxito antes de hacer la búsqueda
+            messageContainer.textContent = "Buscando RUC..."; // Mensaje de búsqueda
+            messageContainer.classList.remove('text-danger', 'text-success');
+            messageContainer.classList.add('text-warning'); // Color de advertencia mientras buscamos
+
+            // Si el RUC tiene más de 4 dígitos y no contiene guion, hacemos la solicitud
+            if (ruc.length > 4 && !rucInput.includes('-')) {
+                // Crear un objeto FormData y añadir el ruc
+                let formData = new FormData();
+                formData.append("ruc", ruc);
+
+                // Realizar el fetch a la API de RUC con form-data
+                fetch('https://ruc.novabox.work/consultas/ruc', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error || !data.ruc) {
+                        // Si no se encuentra el RUC, mostrar el mensaje de error
+                        messageContainer.textContent = "No se encontraron datos para este RUC.";
+                        messageContainer.classList.remove('text-warning', 'text-success');
+                        messageContainer.classList.add('text-danger'); // Mensaje en rojo
+                    } else {
+                        // Si se encuentra el RUC, completar los campos con los datos
+                        document.getElementById("preimpresa_nombre").value = data.nombre + ' ' + data.apellido || '';
+                        // Formatear el RUC con el dígito verificador y actualizar el campo
+                        let fullRuc = `${ruc}-${data.dv}`;
+                        document.getElementById("preimpresa_ruc").value = fullRuc;
+
+                        // Mostrar el mensaje de éxito
+                        messageContainer.textContent = "RUC encontrado!";
+                        messageContainer.classList.remove('text-warning', 'text-danger');
+                        messageContainer.classList.add('text-success'); // Mensaje en verde
+                    }
+                })
+                .catch(error => {
+                    // En caso de error en la API
+                    messageContainer.textContent = "Error al obtener los datos.";
+                    messageContainer.classList.remove('text-warning', 'text-success');
+                    messageContainer.classList.add('text-danger'); // Mensaje de error
+                });
+            } else {
+                // Si el RUC tiene menos de 5 caracteres, no se hace nada
+                messageContainer.textContent = "(Ingrese RUC y presione 'Enter')";
+                messageContainer.classList.remove('text-warning', 'text-danger', 'text-success');
+            }
+        });
+    </script>
 
     <script>
         // Mostrar/ocultar campo de texto específico según selección

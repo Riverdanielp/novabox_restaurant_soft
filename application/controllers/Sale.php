@@ -4635,130 +4635,6 @@ class Sale extends Cl_Controller {
         echo "<script>window.location.href = 'print://$base64';</script>";
     }
 
-    public function printer_app_invoice_old($sales_id) {
-        $sales_id = $this->custom->encrypt_decrypt($sales_id, 'decrypt');
-        $outlet_id = $this->session->userdata('outlet_id');
-        $data = array();
-        $data['info'] =  $this->get_all_information_of_a_sale($sales_id); //$this->Sale_model->getSaleInfo($sales_id);
-        $data['details'] = $data['info']->items;
-    
-        // Obtener la información de la empresa
-        $company = [
-            'name' => $this->session->userdata('outlet_name'),
-            'address' => $this->session->userdata('address'),
-            'phone' => $this->session->userdata('phone'),
-            'footer' => $this->session->userdata('invoice_footer'),
-        ];
-    
-        // Obtener la información de la venta
-        $sale = $data['info'];
-        // $order_type = '';
-        // if ($sale->order_type == 1) {
-        //     $order_type = 'A';
-        // } elseif ($sale->order_type == 2) {
-        //     $order_type = 'B';
-        // } elseif ($sale->order_type == 3) {
-        //     $order_type = 'C';
-        // }
-    
-        // Crear el contenido del ticket
-        $content = [
-            // Encabezado de la empresa
-            ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
-            ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
-            ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-    
-            // Información de la venta
-            ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale->selected_number_name],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-    
-            // Detalles de los productos
-            ['type' => 'extremos', 'textLeft' => 'Descripcion', 'textRight' => 'Importe'],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-        ];
-    
-        // Agregar cada producto al contenido
-        foreach ($data['details'] as $row) {
-            $menu_unit_price = getAmtPCustom($row->menu_unit_price);
-            $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->menu_name];
-            $content[] = ['type' => 'extremos', 'textLeft' => $row->qty . ' x ' . $menu_unit_price, 'textRight' => getAmtPCustom($row->menu_price_without_discount)];
-    
-            // Agregar modificadores si existen
-            if (count($row->modifiers) > 0) {
-                foreach ($row->modifiers as $modifier) {
-                    $content[] = ['type' => 'extremos', 'textLeft' => ' + ' . $modifier->name, 'textRight' => getAmtPCustom($modifier->modifier_price)];
-                }
-            }
-        }
-    
-        // Totales
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
-        if ($sale->total_discount_amount && $sale->total_discount_amount != "0.00") {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Descuento: ' . getAmtPCustom($sale->total_discount_amount)];
-        }
-        if ($sale->delivery_charge && $sale->delivery_charge != "0.00") {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Serv. Delivery: ' . getPlanTextOrP($sale->delivery_charge)];
-        }
-        if ($this->session->userdata('collect_tax') == 'Yes' && $sale->sale_vat_objects != NULL) {
-            foreach (json_decode($sale->sale_vat_objects) as $single_tax) {
-                if ($single_tax->tax_field_amount && $single_tax->tax_field_amount != "0.00") {
-                    $content[] = ['type' => 'text', 'align' => 'right', 'text' => $single_tax->tax_field_type . ': ' . getAmtPCustom($single_tax->tax_field_amount)];
-                }
-            }
-        }
-        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'TOTAL: ' . getAmtPCustom($sale->total_payable)];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-    
-        // Pie del ticket
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'cut'];
-    
-        // Crear el objeto de solicitud de impresión
-        
-        //printer config
-        
-        $company_id = $this->session->userdata('company_id');
-        $outlet_id = $this->session->userdata('outlet_id');
-        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-        // $printer = getPrinterInfo(isset($company_data->receipt_printer_invoice) && $company_data->receipt_printer_invoice?$company_data->receipt_printer_invoice:'');
-        $printer_id = $this->session->userdata('printer_id');
-        $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
-        $type = $printer->type;
-        $printer_ip_address = $printer->printer_ip_address;
-        $printer_port = $printer->printer_port;
-        $path = @$printer->path;
-
-        $print_format = $company_data->print_format_invoice;
-        if($print_format=="80mm"){
-            $width = 80;
-        } else {
-            $width = 58;
-        }
-        $printRequest = [
-            'printer' => $path, //'POS80 Printer', // Nombre de la impresora
-            'width' => $width, // Ancho de impresión (58 o 80)
-            'content' => filterArrayRecursivelyEscPos($content)
-        ];
-    
-        // Convertir a JSON
-        $data = json_encode($printRequest);
-    
-        // Comprimir y codificar en Base64
-        $compressed = gzdeflate($data, 9);
-        $base64 = base64_encode($compressed);
-    
-        // Devolver el contenido codificado
-        echo $base64;
-    }
-
     public function printer_app_etiquetas($sale_id) {
         $data['sale_object'] = $this->get_all_information_of_a_sale($sale_id);
         $sale = $data['sale_object'];
@@ -4798,8 +4674,11 @@ class Sale extends Cl_Controller {
         $company_id = $this->session->userdata('company_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
         // $printer = getPrinterInfo(isset($company_data->receipt_printer_kot) && $company_data->receipt_printer_kot ? $company_data->receipt_printer_kot : '');
-        $printer_id = $this->session->userdata('printer_id');
-        $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
+        // $printer_id = $this->session->userdata('printer_id');
+        // $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
+        
+        $counter_details = $this->Common_model->getPrinterIdByCounterId($this->session->userdata('counter_id'));
+        $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
         $path = @$printer->path;
     
         // Ancho de la etiqueta (58mm para etiquetas pequeñas)
@@ -4935,8 +4814,11 @@ class Sale extends Cl_Controller {
         $company_id = $this->session->userdata('company_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
         // $printer = getPrinterInfo(isset($company_data->receipt_printer_bill) && $company_data->receipt_printer_bill ? $company_data->receipt_printer_bill : '');
-        $printer_id = $this->session->userdata('printer_id');
-        $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
+        // $printer_id = $this->session->userdata('printer_id');
+        // $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
+        
+        $counter_details = $this->Common_model->getPrinterIdByCounterId($this->session->userdata('counter_id'));
+        $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
         $path = @$printer->path;
     
         $print_format = $company_data->print_format_bill;
@@ -4967,6 +4849,7 @@ class Sale extends Cl_Controller {
         // Devolver el contenido codificado
         echo $base64;
     }
+
     public function printer_app_bill($sale_id) {
         // $sale_info = $this->get_all_information_of_a_sale($sale_id);
         // if (empty($sale_info)) {
@@ -5067,8 +4950,11 @@ class Sale extends Cl_Controller {
         $company_id = $this->session->userdata('company_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
         // $printer = getPrinterInfo(isset($company_data->receipt_printer_bill) && $company_data->receipt_printer_bill ? $company_data->receipt_printer_bill : '');
-        $printer_id = $this->session->userdata('printer_id');
-        $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
+        // $printer_id = $this->session->userdata('printer_id');
+        // $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
+        
+        $counter_details = $this->Common_model->getPrinterIdByCounterId($this->session->userdata('counter_id'));
+        $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
         $path = @$printer->path;
     
         $print_format = $company_data->print_format_bill;
@@ -5227,6 +5113,187 @@ class Sale extends Cl_Controller {
             echo empty($printers_array) ? json_encode([]) : json_encode($printers_array);
         }
         return;
+    }
+
+    public function printer_app_register_report() {
+        // Obtener los datos del informe de caja
+        $register_detail = $this->registerDetailCalculationToShow();
+        
+        // Obtener la información de la empresa
+        $company = [
+            'name' => $this->session->userdata('outlet_name'),
+            'address' => $this->session->userdata('address'),
+            'phone' => $this->session->userdata('phone'),
+            'invoice_logo' => $this->session->userdata('invoice_logo'),
+            'footer' => $this->session->userdata('invoice_footer'),
+        ];
+    
+        // Crear el contenido del ticket
+        $content = [
+            // Encabezado de la empresa
+            ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
+            ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
+            ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+            
+            // Título del reporte
+            ['type' => 'text', 'align' => 'center', 'text' => 'REPORTE DE CIERRE DE CAJA'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+            
+            // Información del cierre
+            ['type' => 'text', 'align' => 'left', 'text' => 'Caja: ' . getCounterName($this->session->userdata('counter_id'))],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Apertura: ' . $register_detail['opening_date_time']],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Cierre: ' . $register_detail['closing_date_time']],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+            ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+        ];
+    
+        // Parsear el HTML para extraer los datos relevantes
+        $dom = new DOMDocument();
+        @$dom->loadHTML($register_detail['html_content_for_div']);
+        $rows = $dom->getElementsByTagName('tr');
+        
+        $payment_methods = [];
+        $current_payment = null;
+        $payment_index = -1;
+        
+        foreach ($rows as $row) {
+            $cells = $row->getElementsByTagName('td');
+            $th_cells = $row->getElementsByTagName('th');
+            
+            // Buscar filas que contengan métodos de pago (filas con th)
+            if ($th_cells->length >= 4 && trim($th_cells->item(1)->nodeValue) != '' && 
+                !in_array(trim($th_cells->item(2)->nodeValue), ['Transactions', 'summary'])) {
+                // Es un método de pago nuevo
+                $payment_index++;
+                $payment_methods[$payment_index] = [
+                    'name' => trim($th_cells->item(1)->nodeValue),
+                    'opening_balance' => trim($th_cells->item(3)->nodeValue),
+                    'transactions' => []
+                ];
+                $current_payment = &$payment_methods[$payment_index];
+            }
+            // Buscar transacciones (filas con td)
+            elseif ($cells->length >= 4 && trim($cells->item(2)->nodeValue) != '') {
+                // Es una transacción
+                $transaction = [
+                    'description' => trim($cells->item(2)->nodeValue),
+                    'amount' => trim($cells->item(3)->nodeValue)
+                ];
+                if ($current_payment) {
+                    $current_payment['transactions'][] = $transaction;
+                }
+            }
+            // Buscar closing balance (filas con th que contengan "closing_balance")
+            elseif ($th_cells->length >= 4 && strpos($th_cells->item(2)->getAttribute('class'), 'text_right') !== false) {
+                if ($current_payment) {
+                    $current_payment['closing_balance'] = trim($th_cells->item(3)->nodeValue);
+                }
+            }
+        }
+    
+        // Agregar detalles de cada método de pago al contenido del ticket
+        foreach ($payment_methods as $payment) {
+            $content[] = ['type' => 'text', 'align' => 'left', 'text' => strtoupper($payment['name'])];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            
+            // Saldo inicial
+            $content[] = ['type' => 'extremos', 
+                         'textLeft' => 'Saldo inicial', 
+                         'textRight' => $payment['opening_balance']];
+            
+            // Transacciones
+            foreach ($payment['transactions'] as $transaction) {
+                $content[] = ['type' => 'extremos', 
+                             'textLeft' => $transaction['description'], 
+                             'textRight' => $transaction['amount']];
+            }
+            
+            // Saldo final
+            if (isset($payment['closing_balance'])) {
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+                $content[] = ['type' => 'extremos', 
+                             'textLeft' => 'TOTAL ' . $payment['name'], 
+                             'textRight' => $payment['closing_balance']];
+            }
+            
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        }
+    
+        // Resumen final (extraer del HTML)
+        $summary_rows = $dom->getElementsByTagName('tr');
+        $summary_data = [];
+        
+        foreach ($summary_rows as $row) {
+            $th_cells = $row->getElementsByTagName('th');
+            if ($th_cells->length >= 4 && trim($th_cells->item(2)->nodeValue) == 'summary') {
+                // Encontramos el inicio del resumen, ahora capturamos las filas siguientes
+                $next_rows = [];
+                $sibling = $row->nextSibling;
+                
+                while ($sibling) {
+                    if ($sibling->nodeName == 'tr') {
+                        $summary_th = $sibling->getElementsByTagName('th');
+                        if ($summary_th->length >= 4 && trim($summary_th->item(2)->nodeValue) != '') {
+                            $summary_data[] = [
+                                'name' => trim($summary_th->item(2)->nodeValue),
+                                'amount' => trim($summary_th->item(3)->nodeValue)
+                            ];
+                        }
+                    }
+                    $sibling = $sibling->nextSibling;
+                }
+                break;
+            }
+        }
+    
+        // Agregar resumen final al ticket
+        if (!empty($summary_data)) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'RESUMEN FINAL'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            
+            foreach ($summary_data as $summary) {
+                $content[] = ['type' => 'extremos', 
+                             'textLeft' => $summary['name'], 
+                             'textRight' => $summary['amount']];
+            }
+            
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        }
+        
+        // Pie del ticket
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'cut'];
+    
+        // Configuración de la impresora (como la tenías)
+        $company_id = $this->session->userdata('company_id');
+        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
+        
+        $counter_details = $this->Common_model->getPrinterIdByCounterId($this->session->userdata('counter_id'));
+        $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
+        $path = @$printer->path;
+    
+        $print_format = $company_data->print_format_bill;
+        $width = ($print_format == "80mm") ? 80 : 58;
+    
+        // Crear el objeto de solicitud de impresión
+        $printRequest = [
+            'printer' => $path,
+            'width' => $width,
+            'content' => filterArrayRecursivelyEscPos($content)
+        ];
+    
+        // Convertir a JSON, comprimir y codificar en Base64
+        $data = json_encode($printRequest);
+        $compressed = gzdeflate($data, 9);
+        $base64 = base64_encode($compressed);
+    
+        // Devolver el contenido codificado
+        echo $base64;
     }
 
     public function get_order_details_for_whatsapp($sale_id) {
