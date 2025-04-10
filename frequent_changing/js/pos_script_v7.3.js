@@ -1399,7 +1399,7 @@
                                 $.ajax({
                                     url:
                                     content_data_direct_print[key].ipvfour_address +
-                                    "print_server/irestora_printer_server.php",
+                                    "print_server/novabox_printer_server.php",
                                     method: "post",
                                     dataType: "json",
                                     data: {
@@ -4557,7 +4557,7 @@
                                               $.ajax({
                                                   url:
                                                   data.printer_server_url +
-                                                  "print_server/irestora_printer_server.php",
+                                                  "print_server/novabox_printer_server.php",
                                                   method: "post",
                                                   dataType: "json",
                                                   data: {
@@ -11139,7 +11139,7 @@ function updateSearchResults(searchText) {
                               $.ajax({
                                   url:
                                   content_data_direct_print[key].ipvfour_address +
-                                  "print_server/irestora_printer_server.php",
+                                  "print_server/novabox_printer_server.php",
                                   method: "post",
                                   dataType: "json",
                                   data: {
@@ -13071,7 +13071,7 @@ function updateSearchResults(searchText) {
                                 $.ajax({
                                     url:
                                     data.printer_server_url +
-                                    "print_server/irestora_printer_server.php",
+                                    "print_server/novabox_printer_server.php",
                                     method: "post",
                                     dataType: "json",
                                     data: {
@@ -13128,7 +13128,7 @@ function updateSearchResults(searchText) {
                                 $.ajax({
                                     url:
                                     data.printer_server_url +
-                                    "print_server/irestora_printer_server.php",
+                                    "print_server/novabox_printer_server.php",
                                     method: "post",
                                     dataType: "json",
                                     data: {
@@ -14101,11 +14101,12 @@ function updateSearchResults(searchText) {
             }
         });
     
-        processWaiterOrders();
+        // processWaiterOrders();
     }
+    let isInitialSync = true; // Bandera para identificar la sincronización inicial
     let lastServerSync = null;
 
-    function processWaiterOrders() {
+    async function processWaiterOrders() {
         let sale_no_all = $(".running_order_order_number").map(function () {
             return $(this).attr("data-added_offline_status") == 2 ? $(this).text() : null;
         }).get().join(",");
@@ -14141,7 +14142,7 @@ function updateSearchResults(searchText) {
                         if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
                             await add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
                             
-                            if (userDesignation == "Cashier" || userDesignation == "Admin") {
+                            if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
                                 printExistingOrder(sale_no_new, order.self_order_content);
                             }
                         }
@@ -14159,7 +14160,7 @@ function updateSearchResults(searchText) {
                         await updateOrderForWaiter(sale_no_new, order.self_order_content);
                         setOrderInvoiceUpdated(order.id, 2);
                         
-                        if (userDesignation == "Cashier" || userDesignation == "Admin") {
+                        if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
                             printExistingOrder(order.sale_no, order.self_order_content);
                         }
                     }
@@ -14190,13 +14191,18 @@ function updateSearchResults(searchText) {
                         if (!$(`#order_${get_plan_string(sale_no_new)}`).length) {
                             await add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
                             
-                            if (userDesignation == "Cashier" || userDesignation == "Admin") {
+                            if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
                                 printExistingOrder(sale_no_new, order.self_order_content);
                             }
                         }
                     }
                 }
     
+                // Después de la primera sincronización, cambiamos el estado
+                if (isInitialSync) {
+                    isInitialSync = false;
+                }
+
                 updateOccupiedNumbers(response.occupied_numbers);
             }
         });
@@ -14252,7 +14258,7 @@ function updateSearchResults(searchText) {
                 for (let key in content_data_direct_print) {
                     if(content_data_direct_print[key].ipvfour_address) {
                         $.ajax({
-                            url: content_data_direct_print[key].ipvfour_address + "print_server/irestora_printer_server.php",
+                            url: content_data_direct_print[key].ipvfour_address + "print_server/novabox_printer_server.php",
                             method: "post",
                             dataType: "json",
                             data: {
@@ -14370,6 +14376,7 @@ function updateSearchResults(searchText) {
     function all_time_interval_operation() {
         setInterval(() => {
             if (checkInternetConnection()) {
+                new_notification_interval()
                 safeProcessWaiterOrders();
             }
         }, 5000);
@@ -20752,7 +20759,7 @@ $(document).on("click", "#register_close", function (e) {
                 for (let key in content) {
                     if (content[key].ipvfour_address) {
                         $.ajax({
-                            url: content[key].ipvfour_address + "print_server/irestora_printer_server.php",
+                            url: content[key].ipvfour_address + "print_server/novabox_printer_server.php",
                             method: "post",
                             dataType: "json",
                             data: {
