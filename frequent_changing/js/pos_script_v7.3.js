@@ -1373,7 +1373,6 @@
             savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
             return;
             }
-
           $.ajax({
               url: base_url + "Sale/add_kitchen_sale_by_ajax",
               method: "POST",
@@ -1394,24 +1393,27 @@
                             printKitchenTickets(sale_no,false);
                         }
                         let content_data_direct_print = data.content_data_direct_print;
-                        for (let key in content_data_direct_print) {
-                            if(content_data_direct_print[key].ipvfour_address){
-                                $.ajax({
-                                    url:
-                                    content_data_direct_print[key].ipvfour_address +
-                                    "print_server/novabox_printer_server.php",
-                                    method: "post",
-                                    dataType: "json",
-                                    data: {
-                                        content_data: "["+(JSON.stringify(content_data_direct_print[key]))+"]",print_type:data.print_type,
-                                    },
-                                    success: function (data) {},
-                                    error: function () {},
-                                });
+                        
+                        if(userDesignation != "Waiter") {
+                            for (let key in content_data_direct_print) {
+                                if(content_data_direct_print[key].ipvfour_address){
+                                    $.ajax({
+                                        url:
+                                        content_data_direct_print[key].ipvfour_address +
+                                        "print_server/novabox_printer_server.php",
+                                        method: "post",
+                                        dataType: "json",
+                                        data: {
+                                            content_data: "["+(JSON.stringify(content_data_direct_print[key]))+"]",print_type:data.print_type,
+                                        },
+                                        success: function (data) {},
+                                        error: function () {},
+                                    });
+                                }
                             }
+                            $("#kot_print").val(2);
+                            print_kot_popup_print(data.content_data_popup_print,1);
                         }
-                        $("#kot_print").val(2);
-                        print_kot_popup_print(data.content_data_popup_print,1);
                     }
                     
                 }
@@ -1692,23 +1694,27 @@
       };
   
       function getDateTime() {
-          //for date and time
-          let today = new Date();
-          let dd = today.getDate();
-          if(att_type==1){let ddd= Number($(".mrgin_3").text()).tofixed(ir_precision);$(".mrgin_3").text(ddd)}
-          let mm = today.getMonth() + 1; //January is 0!
-          let yyyy = today.getFullYear();
-          if (dd < 10) {
-              dd = "0" + dd;
-          }
-          if (mm < 10) {
-              mm = "0" + mm;
-          }
-          let time_a = new Date().toLocaleTimeString();
-          let today_date = yyyy + "-" + mm + "-" + dd;
-          let date_time = today_date + " " + time_a;
-          return [date_time,time_a];
-      }
+        // For date and time
+        let today = new Date();
+        let dd = today.getDate();
+        if (att_type == 1) {
+            let ddd = Number($(".mrgin_3").text()).toFixed(ir_precision);
+            $(".mrgin_3").text(ddd);
+        }
+        let mm = today.getMonth() + 1; // January is 0!
+        let yyyy = today.getFullYear();
+        if (dd < 10) {
+            dd = "0" + dd;
+        }
+        if (mm < 10) {
+            mm = "0" + mm;
+        }
+        // Usamos "en-GB" para el formato 24hs
+        let time_a = today.toLocaleTimeString('en-GB');
+        let today_date = yyyy + "-" + mm + "-" + dd;
+        let date_time = today_date + " " + time_a;
+        return [date_time, time_a];
+    }
       function gettingRoundingAmount(amount){
         let is_rounding_enable = Number($("#is_rounding_enable").val());
         if(is_rounding_enable==1){
@@ -4513,6 +4519,7 @@
             }
         );
       $(document).on("click", "#create_bill_and_close", function (e) {
+            const userDesignation = $("#user_designation").val();
           let pos_12 = Number($("#pos_12").val());
           if(pos_12){
   
@@ -4523,7 +4530,7 @@
               ) {
 
                   let sale_no = $(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
-                  
+                  const userDesignation = $("#user_designation").val();
                   let res = getSelectedOrderDetails(sale_no).then(function(data){
                       // var response = jQuery.parseJSON(data);
                       if(data !== null) {
@@ -4544,6 +4551,7 @@
                                         }
                                     });
                               }else if (print_type_bill == "direct_print"){
+                                if(userDesignation != "Waiter") {
                                   $.ajax({
                                       url: base_url + "Authentication/printSaleBillByAjax",
                                       method: "post",
@@ -4553,6 +4561,7 @@
                                           data_order: data,
                                       },
                                       success: function (data) {
+                                        if(userDesignation != "Waiter") {
                                           if (data.printer_server_url) {
                                               $.ajax({
                                                   url:
@@ -4567,9 +4576,11 @@
                                                   error: function () {},
                                               });
                                           }
+                                        }
                                       },
                                       error: function () {},
                                   });
+                                }
                               }
                           }else{
                               print_bill(data,sale_no)
@@ -11112,6 +11123,7 @@ function updateSearchResults(searchText) {
       }
     });
     $(document).on("click", "#print_kot_modal", function (e) {
+        const userDesignation = $("#user_designation").val();
         let selected_order_no = $(".holder .order_details .single_order[data-selected=selected]").find(".running_order_order_number").text();
         if(checkInternetConnection()){
             let kitchen_id = '';
@@ -11135,6 +11147,7 @@ function updateSearchResults(searchText) {
                     success: function (data) {
                       let content_data_direct_print = data.content_data_direct_print;
                       for (let key in content_data_direct_print) {
+                        if(userDesignation != "Waiter") {
                           if(content_data_direct_print[key].ipvfour_address){
                               $.ajax({
                                   url:
@@ -11149,6 +11162,7 @@ function updateSearchResults(searchText) {
                                   error: function () {},
                               });
                           }
+                        }
                       }
                       print_kot_popup_print(data.content_data_popup_print,0);
                     },
@@ -13056,6 +13070,7 @@ function updateSearchResults(searchText) {
           }else if (print_type_invoice == "direct_print"){
             $("#finalize_order_modal").removeClass("active");
             $(".pos__modal__overlay").fadeOut(300);
+            const userDesignation = $("#user_designation").val();
             getSelectedOrderDetailsRecentSale(sale_no).then(function(order_info){
                 if(checkInternetConnection()){
                     $.ajax({
@@ -13067,19 +13082,21 @@ function updateSearchResults(searchText) {
                             data_order: order_info,
                         },
                         success: function (data) {
-                            if (data.printer_server_url) {
-                                $.ajax({
-                                    url:
-                                    data.printer_server_url +
-                                    "print_server/novabox_printer_server.php",
-                                    method: "post",
-                                    dataType: "json",
-                                    data: {
-                                        content_data: JSON.stringify(data.content_data),print_type:data.print_type,
-                                    },
-                                    success: function (data) {},
-                                    error: function () {},
-                                });
+                            if(userDesignation != "Waiter") {
+                                if (data.printer_server_url) {
+                                    $.ajax({
+                                        url:
+                                        data.printer_server_url +
+                                        "print_server/novabox_printer_server.php",
+                                        method: "post",
+                                        dataType: "json",
+                                        data: {
+                                            content_data: JSON.stringify(data.content_data),print_type:data.print_type,
+                                        },
+                                        success: function (data) {},
+                                        error: function () {},
+                                    });
+                                }
                             }
                         },
                         error: function () {},
@@ -13113,6 +13130,7 @@ function updateSearchResults(searchText) {
           } else {
             $("#finalize_order_modal").removeClass("active");
             $(".pos__modal__overlay").fadeOut(300);
+            const userDesignation = $("#user_designation").val();
             getSelectedOrderDetailsRecentSale(sale_no).then(function(order_info){
                 if(checkInternetConnection()){
                     $.ajax({
@@ -13124,19 +13142,21 @@ function updateSearchResults(searchText) {
                             data_order: order_info,
                         },
                         success: function (data) {
-                            if (data.printer_server_url) {
-                                $.ajax({
-                                    url:
-                                    data.printer_server_url +
-                                    "print_server/novabox_printer_server.php",
-                                    method: "post",
-                                    dataType: "json",
-                                    data: {
-                                        content_data: JSON.stringify(data.content_data),print_type:data.print_type,
-                                    },
-                                    success: function (data) {},
-                                    error: function () {},
-                                });
+                            if(userDesignation != "Waiter") {
+                                if (data.printer_server_url) {
+                                    $.ajax({
+                                        url:
+                                        data.printer_server_url +
+                                        "print_server/novabox_printer_server.php",
+                                        method: "post",
+                                        dataType: "json",
+                                        data: {
+                                            content_data: JSON.stringify(data.content_data),print_type:data.print_type,
+                                        },
+                                        success: function (data) {},
+                                        error: function () {},
+                                    });
+                                }
                             }
                         },
                         error: function () {},
@@ -14233,13 +14253,11 @@ function updateSearchResults(searchText) {
     }
 
     function printExistingOrder(sale_no) {
-        // Verificar conexión a internet
         if (!checkInternetConnection()) {
             console.log('No hay conexión, no se puede imprimir');
             return;
         }
     
-        // Obtener los datos de impresión directamente desde el backend
         $.ajax({
             url: base_url + "Sale/getPrintDataForOrder",
             method: "POST",
@@ -14252,26 +14270,31 @@ function updateSearchResults(searchText) {
                 if(data.printer_app_qty && data.printer_app_qty > 0) {
                     printKitchenTickets(sale_no,false);
                 }
-                
-                // Procesar impresión directa
                 let content_data_direct_print = data.content_data_direct_print;
                 for (let key in content_data_direct_print) {
                     if(content_data_direct_print[key].ipvfour_address) {
-                        $.ajax({
-                            url: content_data_direct_print[key].ipvfour_address + "print_server/novabox_printer_server.php",
-                            method: "post",
-                            dataType: "json",
-                            data: {
+                        // Usar Fetch API en lugar de jQuery.ajax para mejor control CORS
+                        fetch(content_data_direct_print[key].ipvfour_address + "print_server/novabox_printer_server.php", {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: new URLSearchParams({
                                 content_data: "["+(JSON.stringify(content_data_direct_print[key]))+"]",
                                 print_type: data.print_type,
-                            },
-                            success: function() {},
-                            error: function() {}
-                        });
+                            })
+                        })
+                        .then(response => {
+                            // if (!response.ok) {
+                            //     throw new Error('Error en la impresión');
+                            // }
+                            return response.json();
+                        })
+                        .catch(error => console.error('Error:', error));
                     }
                 }
     
-                // Procesar impresión popup
                 $("#kot_print").val(2);
                 print_kot_popup_print(data.content_data_popup_print, 1);
             },

@@ -1211,10 +1211,12 @@ class Sale extends Cl_Controller {
             $return_data['invoice_status'] = '1';
             $return_data['invoice_msg'] = lang('not_permission_invoice_create_error');
             echo json_encode($return_data);
-        }else{
+            return;
+        };
+        $order = $this->input->post('order');
+        $order_details = (json_decode($order));
+        if(!empty($order_details)){
             /*This variable could not be escaped because this is json data*/
-            $order = $this->input->post('order');
-            $order_details = (json_decode($order));
             //this id will be 0 when there is new order, but will be greater then 0 when there is modification
             //on previous order
             $sale_no = $order_details->sale_no;
@@ -1635,8 +1637,9 @@ class Sale extends Cl_Controller {
                             $printers_direct_print[$ky]->time_inv = $data['order_time'];
                             $printers_direct_print[$ky]->sales_associate = $order_details->user_name;
                             $printers_direct_print[$ky]->customer_name = $order_details->customer_name;
-                            $printers_direct_print[$ky]->customer_phone = $order_details->customer_phone;
-                            $printers_direct_print[$ky]->selected_number_name = $order_details->selected_number_name;
+                            $printers_direct_print[$ky]->customer_phone = isset($order_details->customer_phone) && $order_details->customer_phone?$order_details->customer_phone:'';
+                            $printers_direct_print[$ky]->selected_number_name = isset($order_details->selected_number_name) && $order_details->selected_number_name?$order_details->selected_number_name:'';
+                            $printers_direct_print[$ky]->selected_number = isset($order_details->selected_number) && $order_details->selected_number?$order_details->selected_number:'';
                             $printers_direct_print[$ky]->customer_address = getCustomerAddress($order_details->customer_id);
                             $printers_direct_print[$ky]->waiter_name = $order_details->waiter_name;
                             $printers_direct_print[$ky]->customer_table = $order_details->orders_table_text;
@@ -1658,8 +1661,11 @@ class Sale extends Cl_Controller {
                                     if($item->menu_combo_items && $item->menu_combo_items!=null){
                                         $items.= (printText(lang('combo_txt').': '.$item->menu_combo_items,$value->characters_per_line)."\n");
                                     }
-                                    if($item->menu_note){
+                                    if(isset($item->menu_note)){
                                         $items.= (printText(lang('note').': '.$item->menu_note,$value->characters_per_line)."\n");
+                                    }
+                                    if(isset($item->item_note)){
+                                        $items.= (printText(lang('note').': '.$item->item_note,$value->characters_per_line)."\n");
                                     }
                                     if(count($item->modifiers)>0){
                                         foreach($item->modifiers as $modifier){
@@ -1725,16 +1731,26 @@ class Sale extends Cl_Controller {
                     }
                 }
             }
+        } else {
+            $return_data['invoice_status'] = '1';
+            $return_data['invoice_msg'] = 'No se ha enviado datos de ninguna orden';
+            echo json_encode($return_data);
+            return;
         }
         
 
     }
 
-    public function getPrintDataForOrder() {
-        $sale_no = $this->input->post('sale_no');
+    public function getPrintDataForOrder($sale_no = null) {
+        $sale_no = ($sale_no == null) ? $this->input->post('sale_no') : $sale_no;
         
         // Obtener los datos de la orden (sin modificarla)
         $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
+        // echo '<pre>';
+        // var_dump($sale_d); 
+        // echo '<pre>';
+        
+        
         $sale_id = $sale_d->id;
         
         // Decodificar el contenido de la orden para obtener los detalles
@@ -1895,8 +1911,9 @@ class Sale extends Cl_Controller {
                     $printers_direct_print[$ky]->time_inv = $data['order_time'];
                     $printers_direct_print[$ky]->sales_associate = $order_details->user_name;
                     $printers_direct_print[$ky]->customer_name = $order_details->customer_name;
-                    $printers_direct_print[$ky]->customer_phone = $order_details->customer_phone;
-                    $printers_direct_print[$ky]->selected_number_name = $order_details->selected_number_name;
+                    $printers_direct_print[$ky]->customer_phone = isset($order_details->customer_phone) && $order_details->customer_phone ? $order_details->customer_phone : '';
+                    $printers_direct_print[$ky]->selected_number = isset($order_details->selected_number) && $order_details->selected_number ? $order_details->selected_number : '';
+                    $printers_direct_print[$ky]->selected_number_name = isset($order_details->selected_number_name) && $order_details->selected_number_name ? $order_details->selected_number_name : '';
                     $printers_direct_print[$ky]->customer_address = getCustomerAddress($order_details->customer_id);
                     $printers_direct_print[$ky]->waiter_name = $order_details->waiter_name;
                     $printers_direct_print[$ky]->customer_table = $order_details->orders_table_text;
@@ -1915,15 +1932,19 @@ class Sale extends Cl_Controller {
                     
                     foreach ($sale_items as $item) {
                         if ($item->tmp_qty) {
-                            $items .= printLine(("#".$count." ".(getPlanData($item->menu_name))).": " .($item->tmp_qty), $value->characters_per_line)."\n";
+                            $items .= printLine(("- ".(getPlanData($item->menu_name))).": " .($item->tmp_qty), $value->characters_per_line)."\n";
                             $count++;
                             
                             if ($item->menu_combo_items && $item->menu_combo_items != null) {
                                 $items .= (printText(lang('combo_txt') . ': ' . $item->menu_combo_items, $value->characters_per_line) . "\n");
                             }
                             
-                            if ($item->menu_note) {
+                            if (isset($item->menu_note) && strlen($item->menu_note) > 0) {
                                 $items .= (printText(lang('note') . ': ' . $item->menu_note, $value->characters_per_line) . "\n");
+                            }
+                            
+                            if (isset($item->item_note) && strlen($item->item_note) > 0) {
+                                $items .= (printText(lang('note') . ': ' . $item->item_note, $value->characters_per_line) . "\n");
                             }
                             
                             if (count($item->modifiers) > 0) {

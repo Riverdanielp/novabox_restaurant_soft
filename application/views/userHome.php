@@ -1084,7 +1084,7 @@ endif;
         /*This variable could not be escaped because this is building object*/
         window.menu_objects = [<?php echo ($menu_objects);?>];
     </script>
-    <script src="<?php echo base_url();?>pwa.js?v=1.01"></script>
+    <script src="<?php echo base_url();?>pwa.js?v=1.003"></script>
     <!-- Bootstrap 5.0.0 -->
     <script src="<?php echo base_url(); ?>assets/bower_components/jquery-slimscroll/jquery.slimscroll.min.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/css-framework/bootstrap-new/bootstrap.bundle.min.js?v=7.5"></script>

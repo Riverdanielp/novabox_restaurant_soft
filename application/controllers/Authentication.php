@@ -1661,20 +1661,22 @@ class Authentication extends Cl_Controller {
         $order_details = json_decode(json_decode($this->input->post('order')));
         $data_main = array();
         $data_item_con = array();
-        if(count($order_details->items)>0){
-            foreach($order_details->items as $item){
-                $data_item = array();
-                $data_item['row_type'] = $item->row_type;
-                $data_item['item_name'] = $item->item_name;
-                $data_item['item_note'] = $item->item_note;
-                $data_item['item_price'] = $item->item_unit_price;
-                $data_item['item_qty'] =  $item->item_quantity;
-                $data_item['percentage_table'] =  $item->percentage_table;
-                $data_item['item_discount_table'] =  $item->item_discount_table;
-                $data_item['modifiers_name'] =  $item->modifiers_name;
-                $data_item['modifiers_price'] =  $item->modifiers_price;
-                $data_item['total_price'] =  $item->total_price;
-                $data_item_con[] = $data_item;
+        if (isset($order_details->items)){
+            if(count($order_details->items)>0){
+                foreach($order_details->items as $item){
+                    $data_item = array();
+                    $data_item['row_type'] = $item->row_type;
+                    $data_item['item_name'] = $item->item_name;
+                    $data_item['item_note'] = $item->item_note;
+                    $data_item['item_price'] = $item->item_unit_price;
+                    $data_item['item_qty'] =  $item->item_quantity;
+                    $data_item['percentage_table'] =  $item->percentage_table;
+                    $data_item['item_discount_table'] =  $item->item_discount_table;
+                    $data_item['modifiers_name'] =  $item->modifiers_name;
+                    $data_item['modifiers_price'] =  $item->modifiers_price;
+                    $data_item['total_price'] =  $item->total_price;
+                    $data_item_con[] = $data_item;
+                }
             }
         }
 
@@ -2074,7 +2076,7 @@ class Authentication extends Cl_Controller {
                         $single_item_by_sale_id->modifiers = $modifier_information;
                     }
                     if($sale_items){
-                        $printers_direct_print[$ky]->ipvfour_address = getIPv4WithFormat($value->ipvfour_address);
+                        $printers_direct_print[$ky]->ipvfour_address = ($value->ipvfour_address);
                         $order_type = '';
                         if($sale_details->order_type==1){
                             $order_type = lang('dine');
