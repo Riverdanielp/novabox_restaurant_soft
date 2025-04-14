@@ -522,6 +522,127 @@ class Sale extends Cl_Controller {
         $this->load->view('sale/POS/main_screen', $data);
     }
 
+    public function debugQueryTimesPOS($user_id='', $outlet_id='', $company_id='', $is_waiter=''){
+        $this->load->helper('url'); // por si falta
+        $this->load->helper('date'); // para timestamps si necesitás
+        $this->load->model('Common_model');
+        $this->load->model('Sale_model');
+    
+        function log_query_time($label, $start_time) {
+            $end_time = microtime(true);
+            $duration = round($end_time - $start_time, 4);
+            // log_message('debug', "[QUERY TIME] $label: {$duration} segundos");
+            echo "[QUERY TIME] $label: {$duration} segundos" . "<br>";
+            return $duration;
+        }
+        $total_duration = 0;
+    
+        if (!$outlet_id) $outlet_id = $this->session->userdata('outlet_id');
+        if (!$company_id) $company_id = $this->session->userdata('company_id');
+        if (!$user_id) $user_id = $this->session->userdata('user_id');
+        if (!$is_waiter) $is_waiter = 'No';
+    
+        if ($is_waiter == 'Yes') {
+            $start = microtime(true);
+            $getCompanyInfo = getCompanyInfoById($company_id);
+            $total_duration += log_query_time("getCompanyInfoById", $start);
+    
+            $start = microtime(true);
+            $outlet_info = $this->Common_model->getDataById($outlet_id, "tbl_outlets");
+            $total_duration += log_query_time("getDataById tbl_outlets", $start);
+    
+            $start = microtime(true);
+            $user = $this->Common_model->getDataById($user_id, "tbl_users");
+            $total_duration += log_query_time("getDataById tbl_users", $start);
+        }
+    
+        // Simula POS():
+        $start = microtime(true);
+        $data['customers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_customers');
+        $total_duration += log_query_time("getAllByCompanyIdForDropdown tbl_customers", $start);
+    
+        $start = microtime(true);
+        $data['food_menus'] = $this->Sale_model->getAllFoodMenus();
+        $total_duration += log_query_time("getAllFoodMenus", $start);
+    
+        if (!empty($data['food_menus'])) {
+            foreach ($data['food_menus'] as $key => $value) {
+                $start = microtime(true);
+                $variations = $this->Common_model->getAllByCustomId($value->id, "parent_id", "tbl_food_menus");
+                $total_duration += log_query_time("getAllByCustomId tbl_food_menus (ID {$value->id})", $start);
+    
+                $start = microtime(true);
+                $kitchen = getKitchenNameAndId($value->category_id);
+                $total_duration += log_query_time("getKitchenNameAndId ({$value->category_id})", $start);
+            }
+        }
+    
+        $start = microtime(true);
+        $data['denominations'] = $this->Common_model->getDenomination($company_id);
+        $total_duration += log_query_time("getDenomination", $start);
+    
+        $start = microtime(true);
+        $data['menu_categories'] = $this->Common_model->getSortingForPOS();
+        $total_duration += log_query_time("getSortingForPOS", $start);
+    
+        $start = microtime(true);
+        $data['menu_modifiers'] = $this->Sale_model->getAllMenuModifiers();
+        $total_duration += log_query_time("getAllMenuModifiers", $start);
+    
+        $start = microtime(true);
+        $data['waiters'] = $this->Sale_model->getWaitersForThisCompany($company_id, 'tbl_users');
+        $total_duration += log_query_time("getWaitersForThisCompany", $start);
+    
+        $start = microtime(true);
+        $data['MultipleCurrencies'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_multiple_currencies");
+        $total_duration += log_query_time("getAllByCompanyId tbl_multiple_currencies", $start);
+    
+        $start = microtime(true);
+        $data['users'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_users");
+        $total_duration += log_query_time("getAllByCompanyId tbl_users", $start);
+    
+        $start = microtime(true);
+        $data['outlet_information'] = $this->Common_model->getDataById($outlet_id, "tbl_outlets");
+        $total_duration += log_query_time("getDataById tbl_outlets", $start);
+    
+        $start = microtime(true);
+        $data['payment_methods'] = $this->Sale_model->getAllPaymentMethods();
+        $total_duration += log_query_time("getAllPaymentMethods", $start);
+    
+        $start = microtime(true);
+        $data['payment_method_finalize'] = $this->Sale_model->getAllPaymentMethodsFinalize();
+        $total_duration += log_query_time("getAllPaymentMethodsFinalize", $start);
+    
+        $start = microtime(true);
+        $data['deliveryPartners'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
+        $total_duration += log_query_time("getAllByCompanyId tbl_delivery_partners", $start);
+    
+        $start = microtime(true);
+        $data['areas'] = $this->Common_model->getAllByOutletId($outlet_id, 'tbl_areas');
+        $total_duration += log_query_time("getAllByOutletId tbl_areas", $start);
+    
+        $start = microtime(true);
+        $data['only_modifiers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_modifiers');
+        $total_duration += log_query_time("getAllByCompanyIdForDropdown tbl_modifiers", $start);
+    
+        $start = microtime(true);
+        $data['kitchens'] = $this->Common_model->getAllByOutletId($outlet_id, "tbl_kitchens");
+        $total_duration += log_query_time("getAllByOutletId tbl_kitchens", $start);
+    
+        $start = microtime(true);
+        $data['sale_details'] = $this->Common_model->getDataById(null, "tbl_sales"); // Si no hay $sale_id
+        $total_duration += log_query_time("getDataById tbl_sales (null)", $start);
+    
+        $start = microtime(true);
+        $this->db->where("outlet_id", $outlet_id);
+        $this->db->where("del_status", "Live");
+        $data['numbers'] = $this->db->get("tbl_numeros")->result();
+        $total_duration += log_query_time("get tbl_numeros (where outlet_id & del_status)", $start);
+    
+        echo "Debug completado. Total duración: {$total_duration} segundos";
+    }
+
+    
     public function getKitchenStatus()
         {
             $table_id = $this->input->post('table_id');
@@ -1929,11 +2050,13 @@ class Sale extends Cl_Controller {
                     
                     $items = "\n";
                     $count = 1;
+                    $count_item_to_print = 0;
                     
                     foreach ($sale_items as $item) {
-                        if ($item->tmp_qty) {
-                            $items .= printLine(("- ".(getPlanData($item->menu_name))).": " .($item->tmp_qty), $value->characters_per_line)."\n";
+                        if ($item->tmp_qty > 0) {
+                            $items .= printLine((($item->tmp_qty) . " * ".(getPlanData($item->menu_name))), $value->characters_per_line)."\n";
                             $count++;
+                            $count_item_to_print++;
                             
                             if ($item->menu_combo_items && $item->menu_combo_items != null) {
                                 $items .= (printText(lang('combo_txt') . ': ' . $item->menu_combo_items, $value->characters_per_line) . "\n");
@@ -1949,7 +2072,7 @@ class Sale extends Cl_Controller {
                             
                             if (count($item->modifiers) > 0) {
                                 foreach ($item->modifiers as $modifier) {
-                                    $items .= "   " . printLine((getPlanData($modifier->name)) . ": " . ($item->tmp_qty), ($value->characters_per_line - 3)) . "\n";
+                                    $items .= "   " . printLine( ($item->tmp_qty). " * " .(getPlanData($modifier->name))  , ($value->characters_per_line - 3)) . "\n";
                                 }
                             }
                             
@@ -1957,7 +2080,9 @@ class Sale extends Cl_Controller {
                         }
                     }
                     
-                    $printers_direct_print[$ky]->items = $items;
+                    if ($count_item_to_print > 0) {
+                        $printers_direct_print[$ky]->items = $items;
+                    }
                 } else {
                     $printers_direct_print[$ky]->ipvfour_address = '';
                 }

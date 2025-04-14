@@ -1073,43 +1073,43 @@
   
    
       function checkInternetConnectionNew(){
-        if ($("#is_offline_system").val() != 1){
-            $("#online_status").removeClass("bg__red");
-            $("#online_status").addClass("bg__green");
-            $(".online_status_text").text(inv_online);
-            $(".online_status_counter").hide();
-            $("#is_offline_system").val(1);
-        }
-        //   $.ajax({
-        //       url: base_url + 'Checkconn',  
-        //       method: 'GET',
-        //       cache: false,
-        //       success: function() {
-        //           $("#online_status").removeClass("bg__red");
-        //           $("#online_status").addClass("bg__green");
-        //           $(".online_status_text").text(inv_online);
-        //           $(".online_status_counter").hide();
-        //           $("#is_offline_system").val(1);
-        //       },
-        //       error: function() {
-        //           $("#online_status").removeClass("bg__green");
-        //           $("#online_status").addClass("bg__red");
-        //           $(".online_status_text").text(inv_offline);
-        //           let online_status_counter = ($(".online_status_counter").attr('data-total'));
-        //           let sales_currently_in_local = online_status_counter+" "+$("#sales_currently_in_local").val();
+            // if ($("#is_offline_system").val() != 1){
+            //     $("#online_status").removeClass("bg__red");
+            //     $("#online_status").addClass("bg__green");
+            //     $(".online_status_text").text(inv_online);
+            //     $(".online_status_counter").hide();
+            //     $("#is_offline_system").val(1);
+            // }
+          $.ajax({
+              url: base_url + 'checkconn',  
+              method: 'GET',
+              cache: false,
+              success: function() {
+                  $("#online_status").removeClass("bg__red");
+                  $("#online_status").addClass("bg__green");
+                  $(".online_status_text").text(inv_online);
+                  $(".online_status_counter").hide();
+                  $("#is_offline_system").val(1);
+              },
+              error: function() {
+                  $("#online_status").removeClass("bg__green");
+                  $("#online_status").addClass("bg__red");
+                  $(".online_status_text").text(inv_offline);
+                  let online_status_counter = ($(".online_status_counter").attr('data-total'));
+                  let sales_currently_in_local = online_status_counter+" "+$("#sales_currently_in_local").val();
   
-        //           tippy(".online_status_text", {
-        //               content:
-        //               `<div style="text-align:center"><span>` +
-        //               sales_currently_in_local +
-        //               `</span></div>`,
-        //               allowHTML: true,
-        //               animation: "scale",
-        //           });
-        //           $(".online_status_counter").show();
-        //           $("#is_offline_system").val(0);
-        //       }
-        //     });
+                  tippy(".online_status_text", {
+                      content:
+                      `<div style="text-align:center"><span>` +
+                      sales_currently_in_local +
+                      `</span></div>`,
+                      allowHTML: true,
+                      animation: "scale",
+                  });
+                  $(".online_status_counter").show();
+                  $("#is_offline_system").val(0);
+              }
+            });
       }
   
       function checkInternetConnection(){
@@ -1117,6 +1117,8 @@
           return is_offline_system;
       }
   
+
+        
       function notify_online(sale_no){
           toastr.options = {
               positionClass:'toast-bottom-right'
@@ -1574,16 +1576,53 @@
               $(".online_status_counter").attr("data-total",counter_row_offline_counter);
           }
       }
-      setInterval(function () {
-          if(checkInternetConnection()){
-              push_online();
-          }
-          remove_more_20();
-      }, 7000);
-  
-      setInterval(function () {
-          checkInternetConnectionNew();
-      }, 5000);
+
+        //   setInterval(function () {
+        //       if(checkInternetConnection()){
+        //           push_online();
+        //       }
+        //       remove_more_20();
+        //   }, 7000);
+
+        function startPushAndCleanLoop() {
+            async function repeatPush() {
+                try {
+                    if (checkInternetConnection()) {
+                        await push_online(); // si la haces async en algún momento
+                    }
+        
+                    remove_more_20(); // esta no necesita await
+        
+                } catch (error) {
+                    console.error("Error en repeatPush:", error);
+                } finally {
+                    // Pase lo que pase, repetimos el ciclo
+                    setTimeout(repeatPush, 1000);
+                }
+            }
+        
+            repeatPush(); // Inicia el ciclo
+        }
+        
+        // startPushAndCleanLoop();
+        setTimeout(startPushAndCleanLoop, 7000);
+    
+        //   setInterval(function () {
+        //         checkInternetConnectionNew();
+        //     }, 5000);
+        
+        function startConnectionCheckLoop() {
+            function repeatCheck() {
+                checkInternetConnectionNew();
+        
+                // Esperamos 1 segundo después de terminar antes de repetir
+                setTimeout(repeatCheck, 1000);
+            }
+        
+            repeatCheck(); // Inicia el ciclo
+        }
+        
+        startConnectionCheckLoop();
   
       $(document).on("click", "#sync_online", function (e) {
           push_online_sync();
@@ -5502,33 +5541,20 @@ function updateSearchResults(searchText) {
   
                 let veg_status = $(this).attr("data-veg_status"); // Obtener el estado veg_status
 
-                if (when_clicking_on_item_in_pos == 2) {
-                    if (if_exist && if_exist != undefined && veg_status !== "yes") {
-                        $("#increase_item_table_" + item_id).click();
-                        //do calculation on table
-                        status_continue = false;
-                    }
-                } else if (when_clicking_on_item_in_pos == 1) {
-                    if (if_exist && if_exist != undefined && veg_status !== "yes") {
-                        $("#edit_item_" + item_id).click();
-                        //do calculation on table
-                        status_continue = false;
-                    }
-                }
-
-                // if(when_clicking_on_item_in_pos==2){
-                //   if(if_exist && if_exist!=undefined){
-                //       $("#increase_item_table_"+item_id).click();
-                //       //do calculation on table
-                //       status_continue = false;
-                //   }
-                // }else if (when_clicking_on_item_in_pos==1){
-                //     if(if_exist && if_exist!=undefined){
-                //         $("#edit_item_"+item_id).click();
+                // if (when_clicking_on_item_in_pos == 2) {
+                //     if (if_exist && if_exist != undefined && veg_status !== "yes") {
+                //         $("#increase_item_table_" + item_id).click();
+                //         //do calculation on table
+                //         status_continue = false;
+                //     }
+                // } else if (when_clicking_on_item_in_pos == 1) {
+                //     if (if_exist && if_exist != undefined && veg_status !== "yes") {
+                //         $("#edit_item_" + item_id).click();
                 //         //do calculation on table
                 //         status_continue = false;
                 //     }
                 // }
+
                 //get tax information
                 let tax_information = "";
                 /*added_new_zakir*/
@@ -14228,6 +14254,64 @@ function updateSearchResults(searchText) {
         });
     }
     
+    async function all_time_interval_operation() {
+        async function repeatSync() {
+            try {
+                if (checkInternetConnection()) {
+                    try {
+                        new_notification_interval(); // No requiere await
+                        await processWaiterOrders(); // Sí es async
+                    } catch (err) {
+                        console.error("🔴 Error al sincronizar ordenes:", err);
+                    }
+                }
+            } catch (outerError) {
+                console.error("🔴 Error general en repeatSync:", outerError);
+            } finally {
+                // Siempre se ejecuta el siguiente ciclo
+                setTimeout(repeatSync, 3000);
+            }
+        }
+    
+        repeatSync(); // Iniciar la primera vez
+    }
+    
+    
+    all_time_interval_operation();
+
+    
+    // // Variable para controlar si ya hay una sincronización en curso
+    // let isSyncing = false;
+
+    // async function safeProcessWaiterOrders() {
+    //     if (isSyncing) {
+    //         console.log("Sincronización ya en curso, omitiendo...");
+    //         return;
+    //     }
+
+    //     isSyncing = true;
+    //     try {
+    //         await processWaiterOrders();
+    //     } catch (error) {
+    //         console.error("Error en la sincronización:", error);
+    //     } finally {
+    //         isSyncing = false;
+    //     }
+    // }
+
+    // // Modificar all_time_interval_operation para usar la versión segura
+    // function all_time_interval_operation() {
+    //     setInterval(() => {
+    //         if (checkInternetConnection()) {
+    //             new_notification_interval()
+    //             safeProcessWaiterOrders();
+    //         }
+    //     }, 5000);
+    // }
+    
+    // all_time_interval_operation();
+
+
     // Función auxiliar para obtener todas las órdenes existentes en IndexedDB
     function getAllExistingOrders() {
         return new Promise((resolve, reject) => {
@@ -14286,10 +14370,11 @@ function updateSearchResults(searchText) {
                             })
                         })
                         .then(response => {
+                            console.log('Orden de impresión sale_no:' . sale_no);
                             // if (!response.ok) {
                             //     throw new Error('Error en la impresión');
                             // }
-                            return response.json();
+                            // return response.json();
                         })
                         .catch(error => console.error('Error:', error));
                     }
@@ -14376,36 +14461,6 @@ function updateSearchResults(searchText) {
         }
     }
 
-    // Variable para controlar si ya hay una sincronización en curso
-    let isSyncing = false;
-
-    async function safeProcessWaiterOrders() {
-        if (isSyncing) {
-            console.log("Sincronización ya en curso, omitiendo...");
-            return;
-        }
-
-        isSyncing = true;
-        try {
-            await processWaiterOrders();
-        } catch (error) {
-            console.error("Error en la sincronización:", error);
-        } finally {
-            isSyncing = false;
-        }
-    }
-
-    // Modificar all_time_interval_operation para usar la versión segura
-    function all_time_interval_operation() {
-        setInterval(() => {
-            if (checkInternetConnection()) {
-                new_notification_interval()
-                safeProcessWaiterOrders();
-            }
-        }, 5000);
-    }
-    
-    all_time_interval_operation();
     
 
 
@@ -20804,8 +20859,32 @@ $(document).on("click", "#register_close", function (e) {
     initNumberSelection();
     
 
-    // Verificar cada 30 segundos si hay pedidos pendientes
-    setInterval(syncPendingKitchenOrders, 7000);
+    // // Verificar cada 30 segundos si hay pedidos pendientes
+    // setInterval(syncPendingKitchenOrders, 7000);
+    function startSyncKitchenOrdersLoop() {
+        function repeatSync() {
+            try {
+                if (checkInternetConnection()) {
+                    try {
+                        syncPendingKitchenOrders();
+                    } catch (innerErr) {
+                        console.error("🔴 Error al sincronizar pedidos de cocina:", innerErr);
+                    }
+                }
+            } catch (outerErr) {
+                console.error("🔴 Error general en repeatSync (Kitchen Orders):", outerErr);
+            } finally {
+                // Garantiza que el loop continúa
+                setTimeout(repeatSync, 5000);
+            }
+        }
+    
+        repeatSync(); // Iniciar el ciclo
+    }
+    
+    
+    startSyncKitchenOrdersLoop();
+    
 
     // También verificar cuando se detecta conexión
     window.addEventListener('online', syncPendingKitchenOrders);

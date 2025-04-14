@@ -291,9 +291,9 @@ class Outlet extends Cl_Controller {
         
         if (!$this->session->has_userdata('clicked_controller')) {
             
-            if ($this->session->userdata('role') == 'Admin') {
+            if ($this->session->userdata('designation') == 'Admin') {
                 redirect('Dashboard/dashboard');
-            } else if($this->session->userdata('role') == 'Chef') {
+            } else if($this->session->userdata('designation') == 'Chef') {
                 redirect('Kitchen/kitchens');
             } else {
                redirect('POSChecker/posAndWaiterMiddleman');
@@ -301,7 +301,6 @@ class Outlet extends Cl_Controller {
         } else {
             $clicked_controller = $this->session->userdata('clicked_controller');
             $clicked_method = $this->session->userdata('clicked_method');
-
             $this->session->unset_userdata('clicked_controller');
             $this->session->unset_userdata('clicked_method');
             if($clicked_method=="get_new_notifications_ajax"){

@@ -16,37 +16,38 @@ class Authentication extends Cl_Controller {
         $this->load->library('form_validation');
     }
 
-  public function frontend() {
-    $company = getMainCompany();
-    if(str_rot13($company->language_manifesto)=="eriutoeri"){
+    public function frontend() {
+        $company = getMainCompany();
+        if(str_rot13($company->language_manifesto)=="eriutoeri"){
 
-    }else{
-        $this->session->set_userdata('online_selected_outlet', 1);
-    }
-
-
-        $is_valid = isset($_POST['is_valid']) && $_POST['is_valid']?$_POST['is_valid']:'';
-        $update_plan = isset($_GET['update_plan']) && $_GET['update_plan']?$_GET['update_plan']:'';
-        $data['update_plan'] = $update_plan;
-        if($is_valid){
-            $data['is_valid'] = $is_valid;
-            $data['base_url'] = base_url();
-            echo json_encode($data);
         }else{
- 
-                $company = getMainCompany();
-                if(isset($company->sos_enable_online_order_frontend_website) && $company->sos_enable_online_order_frontend_website==1){
-                    $data = array();
-                    $data['header_content'] = $this->load->view('frontend/header_section_index', $data, TRUE);
-                    $data['main_content'] = $this->load->view('frontend/index', $data, TRUE);
-                    $this->load->view('frontend/website_layout', $data);
-                }else{
-                    $this->load->view('authentication/login');
-                }
-                
-            // }
+            $this->session->set_userdata('online_selected_outlet', 1);
         }
-}
+
+
+            $is_valid = isset($_POST['is_valid']) && $_POST['is_valid']?$_POST['is_valid']:'';
+            $update_plan = isset($_GET['update_plan']) && $_GET['update_plan']?$_GET['update_plan']:'';
+            $data['update_plan'] = $update_plan;
+            if($is_valid){
+                $data['is_valid'] = $is_valid;
+                $data['base_url'] = base_url();
+                echo json_encode($data);
+            }else{
+    
+                    $company = getMainCompany();
+                    if(isset($company->sos_enable_online_order_frontend_website) && $company->sos_enable_online_order_frontend_website==1){
+                        $data = array();
+                        $data['header_content'] = $this->load->view('frontend/header_section_index', $data, TRUE);
+                        $data['main_content'] = $this->load->view('frontend/index', $data, TRUE);
+                        $this->load->view('frontend/website_layout', $data);
+                    }else{
+                        $this->load->view('authentication/login');
+                    }
+                    
+                // }
+            }
+    }
+    
     public function index() {
         
         if($this->session->userdata('user_id') > 0){
@@ -423,12 +424,15 @@ class Authentication extends Cl_Controller {
                                                $outlet_session['default_waiter'] =$outlet_info->default_waiter;
                                            endif;
                                            $this->session->set_userdata($outlet_session);
-                                           if ($user_information->designation == 'Chef') {
-                                            redirect("Kitchen/kitchens");
-                                        }else{
-                                            redirect("Sale/POS");
-                                        }
-                                       endif;
+                                           
+                                            if ($user_information->designation == 'Admin') {
+                                                redirect("Outlet/outlets");
+                                            }elseif ($user_information->designation == 'Chef') {
+                                                redirect("Kitchen/kitchens");
+                                            }else{
+                                                redirect("Sale/POS");
+                                            }
+                                        endif;
                                     }
 
 
@@ -512,7 +516,9 @@ class Authentication extends Cl_Controller {
                                                 $outlet_session['default_waiter'] =$outlet_info->default_waiter;
                                             endif;
                                             $this->session->set_userdata($outlet_session);
-                                            if ($user_information->designation == 'Chef') {
+                                            if ($user_information->designation == 'Admin') {
+                                                redirect("Outlet/outlets");
+                                            }elseif ($user_information->designation == 'Chef') {
                                                 redirect("Kitchen/kitchens");
                                             }else{
                                                 redirect("Sale/POS");
