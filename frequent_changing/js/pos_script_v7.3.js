@@ -1347,87 +1347,186 @@
   
       }
   
-      function push_online_for_kitchen(order_object,is_self_order,sale_no,is_print=0){
-            const userDesignation = $("#user_designation").val();
+    //   function push_online_for_kitchen(order_object,is_self_order,sale_no,is_print=0){
+    //         const userDesignation = $("#user_designation").val();
             
-            // Si es mesero y se solicita impresión, no imprimir
-            if(is_print && userDesignation === "Waiter") {
-                is_print = 0;
-            }
+    //         // Si es mesero y se solicita impresión, no imprimir
+    //         if(is_print && userDesignation === "Waiter") {
+    //             is_print = 0;
+    //         }
     
-          $(".order_table_holder .order_holder").empty();
-          let updated_sale_id = sale_no;
-          $("#update_sale_id").val('');
-          $("#self_order_table_person").val('');
-          if(updated_sale_id){
-              if(s_width<=700){
-                  $.notifyBar({ cssClass: "success", html: order_success_updated });
-              }
-          }else if(updated_sale_id==""){
-              if(s_width<=700){
-                  $.notifyBar({ cssClass: "success", html: order_success_added });
-              }
-          }
+    //       $(".order_table_holder .order_holder").empty();
+    //       let updated_sale_id = sale_no;
+    //       $("#update_sale_id").val('');
+    //       $("#self_order_table_person").val('');
+    //       if(updated_sale_id){
+    //           if(s_width<=700){
+    //               $.notifyBar({ cssClass: "success", html: order_success_updated });
+    //           }
+    //       }else if(updated_sale_id==""){
+    //           if(s_width<=700){
+    //               $.notifyBar({ cssClass: "success", html: order_success_added });
+    //           }
+    //       }
   
-          if (!checkInternetConnection()) {
-            // Guardar en IndexedDB para sincronización posterior
-            console.log('Guardar en IndexedDB para sincronización posterior');
-            savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
-            return;
-            }
-          $.ajax({
-              url: base_url + "Sale/add_kitchen_sale_by_ajax",
-              method: "POST",
-              dataType:'json',
-              data: {
-                  order: order_object,
-                  is_self_order: is_self_order,
-                  close_order: 0,
-                  csrf_irestoraplus: csrf_value_,
-              },
-              success: function (data) {
-                if(data.invoice_status){
-                    toastr['error']((data.invoice_msg), ''); 
-                }else{
-                    if(is_print){
-                        // Verificar si hay tickets de cocina para imprimir
-                        if (data.printer_app_qty && data.printer_app_qty > 0 && sale_no) {
-                            printKitchenTickets(sale_no,false);
-                        }
-                        let content_data_direct_print = data.content_data_direct_print;
+    //       if (!checkInternetConnection()) {
+    //         // Guardar en IndexedDB para sincronización posterior
+    //         console.log('Guardar en IndexedDB para sincronización posterior');
+    //         savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
+    //         return;
+    //         }
+    //       $.ajax({
+    //           url: base_url + "Sale/add_kitchen_sale_by_ajax",
+    //           method: "POST",
+    //           dataType:'json',
+    //           data: {
+    //               order: order_object,
+    //               is_self_order: is_self_order,
+    //               close_order: 0,
+    //               csrf_irestoraplus: csrf_value_,
+    //           },
+    //           success: function (data) {
+    //             if(data.invoice_status){
+    //                 toastr['error']((data.invoice_msg), ''); 
+    //             }else{
+    //                 if(is_print){
+    //                     // Verificar si hay tickets de cocina para imprimir
+    //                     if (data.printer_app_qty && data.printer_app_qty > 0 && sale_no) {
+    //                         printKitchenTickets(sale_no,false);
+    //                     }
+    //                     let content_data_direct_print = data.content_data_direct_print;
                         
-                        if(userDesignation != "Waiter") {
+    //                     if(userDesignation != "Waiter") {
+    //                         for (let key in content_data_direct_print) {
+    //                             if(content_data_direct_print[key].ipvfour_address){
+    //                                 $.ajax({
+    //                                     url:
+    //                                     content_data_direct_print[key].ipvfour_address +
+    //                                     "print_server/novabox_printer_server.php",
+    //                                     method: "post",
+    //                                     dataType: "json",
+    //                                     data: {
+    //                                         content_data: "["+(JSON.stringify(content_data_direct_print[key]))+"]",print_type:data.print_type,
+    //                                     },
+    //                                     success: function (data) {},
+    //                                     error: function () {},
+    //                                 });
+    //                             }
+    //                         }
+    //                         $("#kot_print").val(2);
+    //                         print_kot_popup_print(data.content_data_popup_print,1);
+    //                     }
+    //                 }
+                    
+    //             }
+
+    //           },
+    //           error: function () {
+    //             // Si falla, guardar para reintentar luego
+    //             savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
+    //           },
+    //       });
+    //   }
+  
+    function push_online_for_kitchen(order_object, is_self_order, sale_no, is_print = 0) {
+        const userDesignation = $("#user_designation").val();
+    
+        if (is_print && userDesignation === "Waiter") {
+            is_print = 0;
+        }
+    
+        $(".order_table_holder .order_holder").empty();
+        $("#update_sale_id").val('');
+        $("#self_order_table_person").val('');
+    
+        if (sale_no) {
+            if (s_width <= 700) {
+                $.notifyBar({ cssClass: "success", html: order_success_updated });
+            }
+        } else {
+            if (s_width <= 700) {
+                $.notifyBar({ cssClass: "success", html: order_success_added });
+            }
+        }
+    
+        // if (!checkInternetConnection()) {
+        //     console.log('Sin internet. Guardando para sincronizar luego...');
+        //     savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
+        //     return;
+        // }
+    
+        // Intentar sincronizar con reintentos
+        const maxAttempts = 30;
+        let attempt = 0;
+    
+        function tryPushKitchen() {
+            showLoader(attempt);
+    
+            $.ajax({
+                url: base_url + "Sale/add_kitchen_sale_by_ajax",
+                method: "POST",
+                dataType: 'json',
+                data: {
+                    order: order_object,
+                    is_self_order: is_self_order,
+                    close_order: 0,
+                    csrf_irestoraplus: csrf_value_,
+                },
+                success: function (data) {
+                    hideLoader();
+    
+                    if (data.invoice_status) {
+                        toastr['error'](data.invoice_msg, '');
+                        return;
+                    }
+    
+                    // Imprimir si corresponde
+                    if (is_print) {
+                        if (data.printer_app_qty && data.printer_app_qty > 0 && sale_no) {
+                            printKitchenTickets(sale_no, false);
+                        }
+    
+                        let content_data_direct_print = data.content_data_direct_print;
+    
+                        if (userDesignation !== "Waiter") {
                             for (let key in content_data_direct_print) {
-                                if(content_data_direct_print[key].ipvfour_address){
+                                if (content_data_direct_print[key].ipvfour_address) {
                                     $.ajax({
-                                        url:
-                                        content_data_direct_print[key].ipvfour_address +
-                                        "print_server/novabox_printer_server.php",
+                                        url: content_data_direct_print[key].ipvfour_address + "print_server/novabox_printer_server.php",
                                         method: "post",
                                         dataType: "json",
                                         data: {
-                                            content_data: "["+(JSON.stringify(content_data_direct_print[key]))+"]",print_type:data.print_type,
+                                            content_data: "[" + (JSON.stringify(content_data_direct_print[key])) + "]",
+                                            print_type: data.print_type,
                                         },
-                                        success: function (data) {},
+                                        success: function () {},
                                         error: function () {},
                                     });
                                 }
                             }
+    
                             $("#kot_print").val(2);
-                            print_kot_popup_print(data.content_data_popup_print,1);
+                            print_kot_popup_print(data.content_data_popup_print, 1);
                         }
                     }
-                    
+                },
+                error: function () {
+                    attempt++;
+                    if (attempt < maxAttempts) {
+                        console.log(`Intento fallido ${attempt}... reintentando en 1s`);
+                        setTimeout(tryPushKitchen, 1000);
+                    } else {
+                        hideLoader();
+                        console.log("Máximo de intentos alcanzado. Guardando en modo offline.");
+                        savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
+                    }
                 }
+            });
+        }
+    
+        tryPushKitchen();
+    }
 
-              },
-              error: function () {
-                // Si falla, guardar para reintentar luego
-                savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print);
-              },
-          });
-      }
-  
         function savePendingKitchenOrder(order_object, is_self_order, sale_no, is_print) {
             // let db = window.db; // Asegúrate de tener acceso a tu instancia de IndexedDB
             
@@ -1475,7 +1574,20 @@
               }
           });
       }
-  
+      function showLoader(attempt = 0) {
+        document.getElementById("fullScreenLoader").style.display = "flex";
+        if (attempt > 0) {
+            let count_attempt = attempt+1;
+            $("#fullScreenLoaderCounter").html('Reintentando ' + count_attempt + ' veces');
+        }
+            
+    }
+    
+    function hideLoader() {
+        document.getElementById("fullScreenLoader").style.display = "none";
+    }
+
+
       function push_online(){
           let objectStore = db.transaction(['recent_sales'], "readwrite").objectStore("recent_sales");
           objectStore.openCursor().onsuccess = function(event) {
@@ -1597,7 +1709,7 @@
                     console.error("Error en repeatPush:", error);
                 } finally {
                     // Pase lo que pase, repetimos el ciclo
-                    setTimeout(repeatPush, 1000);
+                    setTimeout(repeatPush, 5000);
                 }
             }
         
@@ -1616,7 +1728,7 @@
                 checkInternetConnectionNew();
         
                 // Esperamos 1 segundo después de terminar antes de repetir
-                setTimeout(repeatCheck, 1000);
+                setTimeout(repeatCheck, 5000);
             }
         
             repeatCheck(); // Inicia el ciclo
@@ -9135,6 +9247,7 @@ function updateSearchResults(searchText) {
                           add_sale_by_ajax_kot_print(update_sale_id,order_info,outlet_id_indexdb,company_id_indexdb,sale_no_new,"");
                           //add sale details for kitchen status
                           push_online_for_kitchen(order_info,'',sale_no_new,1);
+                        //   push_single_online(sale_no_new);
                       }
                   }
                   clearButtonNumber();
@@ -14269,7 +14382,7 @@ function updateSearchResults(searchText) {
                 console.error("🔴 Error general en repeatSync:", outerError);
             } finally {
                 // Siempre se ejecuta el siguiente ciclo
-                setTimeout(repeatSync, 3000);
+                setTimeout(repeatSync, 4000);
             }
         }
     

@@ -4791,6 +4791,10 @@ foreach ($notifications as $single_notification){
     <div class="ir_display_none current_kot_items"></div>
     <input type="hidden" id="is_offline_system" value="">
     <div class="kot_exist_checker ir_display_none"></div>
+    <div id="fullScreenLoader" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;justify-content:center;align-items:center;color:white;font-size:24px;">
+        Sincronizando, aguarde un momento... 
+        <span id="fullScreenLoaderCounter"></span>
+    </div>
     <script src="<?php echo base_url(); ?>frequent_changing/notify/toastr.js?v=7.5"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/marquee.js?v=7.5"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/items.js?v=7.5"></script>
