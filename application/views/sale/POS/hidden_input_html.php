@@ -474,3 +474,176 @@ function printKitchenTickets(sale_no, print_all = true) {
     });
 }
 </script>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function() {
+  fetch('<?=site_url("sale/get_food_menus_ajax")?>')
+    .then(response => response.json())
+    .then(function(data) {
+      // Helpers simulados (adapta según tu lógica real)
+      function getPlanText(text) { return text || ""; }
+      function getAmtP(amount) { return amount || "0.00"; }
+      function getParentNameTemp(parent_id) { return ""; /* adapta si lo necesitas */ }
+      function getDetailsCombo(id) { return ""; /* adapta si lo necesitas */ }
+      function checkPromotionWithinDatePOS(today, menu_id) { return null; /* adapta si lo necesitas */ }
+      function getSalePriceDetails(raw) { return raw || ""; }
+      function getFoodMenuNameCodeById(id) { return ""; /* adapta si lo necesitas */ }
+
+      // Si necesitas datos adicionales (outlet_information, delivery_price_outlet, language_manifesto, etc.),
+      // debes traerlos también en el endpoint o definir valores por defecto aquí.
+
+      const food_menus = data.food_menus || [];
+      const menu_modifiers = data.menu_modifiers || [];
+      const only_modifiers = data.only_modifiers || []; // Si no viene, puedes armarlo igual que antes
+
+      // Ordena por categoría igual que usort($food_menus, "cmp");
+      food_menus.sort((a, b) => (a.category_id+"").localeCompare(b.category_id+""));
+
+      window.items = [];
+      let i = 1;
+      let total_menus = food_menus.length;
+
+      for (const single_menus of food_menus) {
+        let sale_price_take = single_menus.sale_price;
+        let sale_price_delivery = single_menus.sale_price;
+        let sale_price = 0;
+
+        // new_added_zak
+        let sale_price_delivery_details = getSalePriceDetails(single_menus.delivery_price);
+
+        // TODO: lógica de precios previos y delivery_price_outlet si lo necesitas, deberías traerlos del endpoint
+
+        // TODO: lógica de language_manifesto, previous_price, sale_price_tmp (si lo necesitas, trae estas variables)
+        // De momento solo uso los precios por defecto:
+        sale_price = single_menus.sale_price;
+        if(single_menus.sale_price_take_away && single_menus.sale_price_take_away !== '0.00'){
+          sale_price_take = single_menus.sale_price_take_away;
+        } else {
+          sale_price_take = single_menus.sale_price;
+        }
+        if(single_menus.sale_price_delivery && single_menus.sale_price_delivery !== '0.00'){
+          sale_price_delivery = single_menus.sale_price_delivery;
+        } else {
+          sale_price_delivery = single_menus.sale_price;
+        }
+
+        let is_variation = single_menus.is_variation;
+        let veg_status1 = single_menus.veg_item == "Veg Yes" ? "yes" : "no";
+        let beverage_status = single_menus.beverage_item == "Bev Yes" ? "yes" : "no";
+        let is_promo = '';
+        let modifiers = [];
+
+        // Construir modifiers para cada menú
+        for (const single_menu_modifier of menu_modifiers) {
+          if (single_menu_modifier.food_menu_id == single_menus.id) {
+            modifiers.push({
+              menu_modifier_id: single_menu_modifier.modifier_id,
+              modifier_row_id: single_menu_modifier.id,
+              menu_modifier_name: getPlanText(single_menu_modifier.name),
+              tax_information: single_menu_modifier.tax_information,
+              menu_modifier_price: getAmtP(single_menu_modifier.price)
+            });
+          }
+        }
+        if (modifiers.length > 0) is_promo = "Yes";
+
+        // item_name_tmp
+        let item_name_tmp = single_menus.parent_id != '0'
+          ? (getParentNameTemp(single_menus.parent_id) + (single_menus.name ? getPlanText(single_menus.name) : ''))
+          : getPlanText(single_menus.name);
+
+        // new_added_zak: combos
+        let product_comb = '';
+        if(single_menus.product_type == 2){
+          product_comb = getDetailsCombo(single_menus.id);
+        }
+
+        // Promociones (debes adaptar la lógica si tienes promociones reales)
+        let today = (new Date()).toISOString().slice(0,10);
+        let promo_checker = checkPromotionWithinDatePOS(today, single_menus.id) || {};
+        let get_food_menu_id = '';
+        let string_text = '';
+        let get_qty = 0;
+        let qty = 0;
+        let discount = '';
+        let promo_type = '';
+        let modal_item_name_row = '';
+
+        if(promo_checker && promo_checker.status){
+          get_food_menu_id = promo_checker.get_food_menu_id;
+          string_text = promo_checker.string_text;
+          get_qty = promo_checker.get_qty;
+          qty = promo_checker.qty;
+          discount = promo_checker.discount;
+          promo_type = promo_checker.type;
+          modal_item_name_row = getParentNameTemp(single_menus.parent_id) + getFoodMenuNameCodeById(get_food_menu_id);
+          is_promo = "Yes";
+        }
+
+        // Imagen
+        let image_path = single_menus.photo
+          ? "<?=base_url()?>images/" + single_menus.photo
+          : "<?=base_url()?>images/image_thumb.png";
+
+        // Otros campos
+        let veg_status = single_menus.veg_item == 'Veg Yes' ? "VEG" : "";
+        let soft_status = single_menus.beverage_item == 'Beverage Yes' ? "BEV" : "";
+
+        // Armado del objeto FINAL, igual que el que hacías en PHP
+        window.items.push({
+          item_id: single_menus.id,
+          kitchen_id: single_menus.kitchen_id,
+          kitchen_name: single_menus.kitchen_name,
+          is_promo: is_promo,
+          qty: qty,
+          modal_item_name_row: modal_item_name_row,
+          promo_type: promo_type,
+          get_food_menu_id: get_food_menu_id,
+          string_text: string_text,
+          get_qty: get_qty,
+          discount: discount,
+          parent_id: single_menus.parent_id,
+          product_type: single_menus.product_type,
+          product_comb: product_comb,
+          is_variation: is_variation,
+          item_code: getPlanText(single_menus.code),
+          category_name: getPlanText(single_menus.category_name),
+          item_name: getPlanText(single_menus.name),
+          alternative_name: getPlanText(single_menus.alternative_name),
+          item_name_tmp: getPlanText(item_name_tmp),
+          price: getAmtP(sale_price),
+          price_take: getAmtP(sale_price_take),
+          price_delivery: getAmtP(sale_price_delivery),
+          price_delivery_details: sale_price_delivery_details,
+          image: image_path,
+          tax_information: single_menus.tax_information,
+          vat_percentage: "0",
+          veg_item: veg_status,
+          beverage_item: soft_status,
+          sold_for: single_menus.item_sold,
+          veg_item_status: veg_status1,
+          beverage_item_status: beverage_status,
+          modifiers: modifiers
+        });
+        i++;
+      }
+
+      // Construye window.only_modifiers igual que antes
+      window.only_modifiers = [];
+      let mods = only_modifiers.length ? only_modifiers : menu_modifiers;
+      for (const mod of mods) {
+        window.only_modifiers.push({
+          menu_modifier_id: mod.id || mod.modifier_id,
+          menu_modifier_name: getPlanText(mod.name),
+          tax_information: mod.tax_information,
+          menu_modifier_price: getAmtP(mod.price)
+        });
+      }
+
+      // Ya tienes window.items y window.only_modifiers igual que antes de tu PHP.
+      // Puedes usar el resto de tu lógica JS como antes.
+    });
+});
+
+</script>

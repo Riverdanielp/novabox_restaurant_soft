@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.54121';
+    return '?v=7.54122';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -1167,7 +1167,8 @@ if(! function_exists('printLine')) {
     function printLine($str, $size, $sep = ":", $space = NULL) {
         $size = $space ? $space : $size;
         $lenght = strlen($str);
-        list($first, $second) = explode(":", $str, 2);
+        // SOLUCIÓN: usar array_pad para evitar el warning
+        list($first, $second) = array_pad(explode(":", $str, 2), 2, '');
         $line = $first . ($sep == ":" ? $sep : '');
         for ($i = 1; $i < ($size - $lenght); $i++) {
             $line .= ' ';

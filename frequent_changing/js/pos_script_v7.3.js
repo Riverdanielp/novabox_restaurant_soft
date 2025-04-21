@@ -5550,28 +5550,62 @@ function openProductEditModalForPromo(string_text, item_name, id, promo_type, di
                           item_price = parseFloat($(this).attr('data-price')).toFixed(ir_precision);
                       }else if (selected_order_type_object.attr("data-id") == "take_away_button"){
                           item_price = parseFloat($(this).attr('data-price_take')).toFixed(ir_precision);
-                      }else if (selected_order_type_object.attr("data-id") == "delivery_button"){
-                          let arr_item_details = search_by_menu_id(item_id, window.items);
-                          let check_dl_person = 1;
-                          item_price = parseFloat($(this).attr('data-price_delivery')).toFixed(ir_precision);
-                          $(".custom_li").each(function() {
-                              let row_div =  $(this).attr("data-row");
-                              if($("#myCheckbox"+row_div).is(":checked")){
-                                  let  price_delivery_details_tmp  = arr_item_details[0].price_delivery_details.split("|||");
+                    }  else if (selected_order_type_object.attr("data-id") == "delivery_button") {
+                        // Intenta obtener el precio de delivery
+                        let price_delivery = $(this).attr('data-price_delivery');
+                        let price_normal = $(this).attr('data-price');
+                        let arr_item_details = search_by_menu_id(item_id, window.items);
+                    
+                        // Valor por defecto: precio de delivery SI existe, si no el normal, si no 0
+                        if (price_delivery && !isNaN(parseFloat(price_delivery)) && parseFloat(price_delivery) > 0) {
+                            item_price = parseFloat(price_delivery).toFixed(ir_precision);
+                        } else if (price_normal && !isNaN(parseFloat(price_normal)) && parseFloat(price_normal) > 0) {
+                            item_price = parseFloat(price_normal).toFixed(ir_precision);
+                        } else {
+                            // Última defensa, busca en los detalles
+                            item_price = arr_item_details && arr_item_details[0] && arr_item_details[0].price
+                                ? parseFloat(arr_item_details[0].price).toFixed(ir_precision)
+                                : "0.00";
+                        }
+                    
+                        // Si hay zona personalizada, sobreescribe el precio si corresponde
+                        $(".custom_li").each(function() {
+                            let row_div =  $(this).attr("data-row");
+                            if($("#myCheckbox"+row_div).is(":checked")) {
+                                let price_delivery_details_tmp = arr_item_details[0].price_delivery_details.split("|||");
+                                for(let x=0;x<price_delivery_details_tmp.length;x++) {
+                                    let price_delivery_details_tmp_separate = price_delivery_details_tmp[x].split("||");
+                                    if("index_" + row_div == price_delivery_details_tmp_separate[0]) {
+                                        if(Number(price_delivery_details_tmp_separate[1])) {
+                                            item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    //   }else if (selected_order_type_object.attr("data-id") == "delivery_button"){
+                    //       let arr_item_details = search_by_menu_id(item_id, window.items);
+                    //       let check_dl_person = 1;
+                    //       item_price = parseFloat($(this).attr('data-price_delivery')).toFixed(ir_precision);
+                    //       $(".custom_li").each(function() {
+                    //           let row_div =  $(this).attr("data-row");
+                    //           if($("#myCheckbox"+row_div).is(":checked")){
+                    //               let  price_delivery_details_tmp  = arr_item_details[0].price_delivery_details.split("|||");
   
-                                  for(let x=0;x<price_delivery_details_tmp.length;x++){
-                                      let  price_delivery_details_tmp_separate  = price_delivery_details_tmp[x].split("||");
-                                      if("index_"+row_div == price_delivery_details_tmp_separate[0]){
-                                          if(Number(price_delivery_details_tmp_separate[1])){
-                                              item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
-                                          }
-                                      }
-                                  }
-                              }
+                    //               for(let x=0;x<price_delivery_details_tmp.length;x++){
+                    //                   let  price_delivery_details_tmp_separate  = price_delivery_details_tmp[x].split("||");
+                    //                   if("index_"+row_div == price_delivery_details_tmp_separate[0]){
+                    //                       if(Number(price_delivery_details_tmp_separate[1])){
+                    //                           item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
+                    //                       }
+                    //                   }
+                    //               }
+                    //           }
   
-                          });
+                    //       });
   
-                      }
+                    //   }
   
                       openProductEditModalForPromo(string_text,item_name,item_id,promo_type,discount,get_food_menu_id,qty,get_qty,item_price,modal_item_name_row);
                   }else{

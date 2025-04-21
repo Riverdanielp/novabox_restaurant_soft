@@ -523,6 +523,31 @@ class Sale extends Cl_Controller {
         $this->load->view('sale/POS/main_screen', $data);
     }
 
+    public function get_food_menus_ajax() {
+        $this->load->model('Sale_model');
+        $food_menus = $this->Sale_model->getAllFoodMenus();
+        if(isset($data['food_menus']) && $data['food_menus']){
+            foreach ($data['food_menus'] as $key=>$value){
+                $variations = $this->Common_model->getAllByCustomId($value->id,"parent_id","tbl_food_menus",$order='');
+                $data['food_menus'][$key]->is_variation = isset($variations) && $variations?'Yes':'No';
+                $data['food_menus'][$key]->variations = $variations;
+                    $kitchen = getKitchenNameAndId($value->category_id);
+                    $data['food_menus'][$key]->kitchen_id =$kitchen[0];
+                    $data['food_menus'][$key]->kitchen_name =$kitchen[1];
+            }
+        }
+        $menu_modifiers = $this->Sale_model->getAllMenuModifiers();
+        // Si necesitas otras variables, agrégalas aquí y pásalas a json_encode
+    
+        // Puedes filtrar/simplificar los datos si son muy grandes
+    
+        echo json_encode([
+            'food_menus' => $food_menus,
+            'menu_modifiers' => $menu_modifiers
+            // agrega otros datos si los necesitas
+        ]);
+    }
+
     public function search_food_menus_ajax()
     {
         // Solo permitir AJAX
@@ -1909,6 +1934,20 @@ class Sale extends Cl_Controller {
         // var_dump($sale_d); 
         // echo '<pre>';
         
+        if (empty($sale_d)) {
+            $return_data = [
+                'printer_app_qty' => [],
+                'content_data_popup_print' => [],
+                'content_data_direct_print' => [],
+                'print_type' => 'KOT',
+                'status' => [],
+                'invoice_status' => '',
+                'invoice_msg' => ''
+            ];
+            
+            echo json_encode($return_data);
+            return;
+        }
         
         $sale_id = $sale_d->id;
         
