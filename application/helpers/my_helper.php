@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.541131';
+    return '?v=7.54121';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -899,12 +899,9 @@ function getCompanyInfo($company_id = '') {
             $company_id = 1;
         }
     }
-    $CI->db->select("*");
-    $CI->db->from("tbl_companies");
-    $CI->db->where("id", $company_id);
-    return $CI->db->get()->row();
+    // Usa get_where, nunca select('*') aquí
+    return $CI->db->get_where("tbl_companies", ["id" => $company_id])->row();
 }
-
 /**
  * get Company Info
  * @access public

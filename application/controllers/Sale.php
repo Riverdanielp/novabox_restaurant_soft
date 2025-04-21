@@ -489,7 +489,8 @@ class Sale extends Cl_Controller {
 
         $data = array();
         $data['customers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_customers');
-        $data['food_menus'] = $this->Sale_model->getAllFoodMenus();
+        $data['food_menus'] = $this->Sale_model->getTopFoodMenus(24); //getAllFoodMenus(); //[];
+        $this->Sale_model->attachModifiersToMenus($data['food_menus']);
         if(isset($data['food_menus']) && $data['food_menus']){
             foreach ($data['food_menus'] as $key=>$value){
                 $variations = $this->Common_model->getAllByCustomId($value->id,"parent_id","tbl_food_menus",$order='');
@@ -520,6 +521,43 @@ class Sale extends Cl_Controller {
         // $this->db->order_by("name", "ASC");
         $data['numbers'] = $this->db->get("tbl_numeros")->result();
         $this->load->view('sale/POS/main_screen', $data);
+    }
+
+    public function search_food_menus_ajax()
+    {
+        // Solo permitir AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+            return;
+        }
+        $term = $this->input->get('q', true);
+        $category_id = $this->input->get('category_id', true);
+        $type = $this->input->get('type', true); // opcional: veg, bev, combo
+    
+        $outlet_id = $this->session->userdata('outlet_id');
+    
+        $results = $this->Sale_model->searchFoodMenus($term, $category_id, $type, $outlet_id);
+        $this->Sale_model->attachModifiersToMenus($results);
+    
+        // Puedes convertir aquí los objetos en arrays, si lo deseas
+        echo json_encode($results);
+    }
+
+    public function get_modifiers_by_menu_id() {
+        $menu_id = $this->input->get('menu_id');
+        $this->load->model('Sale_model');
+        $modifiers = $this->Sale_model->getModifiersByMenuId($menu_id);
+
+        // Arma el string exactamente igual a tu formato
+        $modifiers_str = '';
+        $total = count($modifiers);
+        $j = 1;
+        foreach ($modifiers as $mod) {
+            $modifiers_str .= "{menu_modifier_id:'".$mod->modifier_id."',modifier_row_id:'".$mod->id."',menu_modifier_name:'".getPlanText($mod->name)."',tax_information:'".$mod->tax_information."',menu_modifier_price:'".getAmtP($mod->price)."' }";
+            if($j < $total) $modifiers_str .= ",";
+            $j++;
+        }
+        echo $modifiers_str; // responde exactamente como tú lo usabas
     }
 
     public function debugQueryTimesPOS($user_id='', $outlet_id='', $company_id='', $is_waiter=''){

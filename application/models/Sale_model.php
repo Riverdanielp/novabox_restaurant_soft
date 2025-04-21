@@ -262,6 +262,160 @@ class Sale_model extends CI_Model {
         return false;
       }
     }
+
+      public function getTopFoodMenus($limit = 20) {
+        $outlet_id = $this->session->userdata('outlet_id');
+        $getFM = getFMIds($outlet_id);
+        $result = $this->db->query("
+            SELECT 
+                fm.*, 
+                fmc.category_name, 
+                IFNULL(SUM(sd.qty), 0) AS item_sold,
+                kt_cat.kitchen_id 
+            FROM tbl_food_menus fm
+            LEFT JOIN (SELECT * FROM tbl_food_menu_categories WHERE del_status='Live') fmc ON fmc.id = fm.category_id
+            LEFT JOIN (
+                SELECT food_menu_id, SUM(qty) as qty 
+                FROM tbl_sales_details 
+                WHERE del_status='Live' 
+                GROUP BY food_menu_id
+            ) sd ON sd.food_menu_id = fm.id
+            LEFT JOIN (SELECT kitchen_id, cat_id FROM tbl_kitchen_categories WHERE del_status='Live') kt_cat ON kt_cat.cat_id = fm.category_id
+            WHERE 
+                FIND_IN_SET(fm.id, '$getFM') 
+                AND fm.del_status='Live'
+            GROUP BY fm.id
+            ORDER BY item_sold DESC
+            LIMIT $limit
+        ")->result();
+        return $result ? $result : false;
+    }
+    // public function attachModifiersToMenus(&$food_menus) {
+    //     if (!$food_menus || !is_array($food_menus)) return;
+    //     $ids = array_map(function($m){ return $m->id; }, $food_menus);
+    //     if (empty($ids)) return;
+
+    //     $modifiers = $this->db->query("
+    //         SELECT 
+    //             tmm.*, tm.name, tm.price, tm.tax_information, tmm.food_menu_id
+    //         FROM tbl_food_menus_modifiers tmm
+    //         LEFT JOIN tbl_modifiers tm ON tm.id = tmm.modifier_id
+    //         WHERE tmm.del_status = 'Live'
+    //         AND tmm.food_menu_id IN (".implode(',', $ids).")
+    //     ")->result();
+
+    //     $mod_arr = [];
+    //     foreach ($modifiers as $mod) {
+    //         $mod_arr[$mod->food_menu_id][] = $mod;
+    //     }
+    //     foreach ($food_menus as &$menu) {
+    //         $menu->modifiers = isset($mod_arr[$menu->id]) ? $mod_arr[$menu->id] : [];
+    //     }
+    // }
+    public function attachModifiersToMenus(&$menus) {
+      if (!$menus || !is_array($menus)) return;
+      $ids = array_map(function($m){ return $m->id; }, $menus);
+      if (empty($ids)) return;
+  
+      $this->db->select('tmm.food_menu_id, tmm.modifier_id as menu_modifier_id, tmm.id as modifier_row_id, tm.name as menu_modifier_name, tm.tax_information, tm.price as menu_modifier_price');
+      $this->db->from('tbl_food_menus_modifiers tmm');
+      $this->db->join('tbl_modifiers tm', 'tm.id = tmm.modifier_id', 'left');
+      $this->db->where_in('tmm.food_menu_id', $ids);
+      $this->db->where('tmm.del_status', 'Live');
+      $query = $this->db->get();
+  
+      $mod_map = [];
+      foreach ($query->result() as $mod) {
+          $mod_map[$mod->food_menu_id][] = $mod;
+      }
+  
+      foreach ($menus as &$menu) {
+          $menu->modifiers = isset($mod_map[$menu->id]) ? array_values($mod_map[$menu->id]) : [];
+      }
+  }
+  public function getModifiersByMenuId($menu_id) {
+    $this->db->select('tmm.modifier_id, tmm.id, tm.name, tm.tax_information, tm.price');
+    $this->db->from('tbl_food_menus_modifiers tmm');
+    $this->db->join('tbl_modifiers tm', 'tm.id = tmm.modifier_id', 'left');
+    $this->db->where('tmm.food_menu_id', $menu_id);
+    $this->db->where('tmm.del_status', 'Live');
+    return $this->db->get()->result();
+}
+  //   public function getModifiersByMenuId($menu_id) {
+  //     $this->db->select('tmm.modifier_id as menu_modifier_id, tmm.id as modifier_row_id, tm.name as menu_modifier_name, tm.tax_information, tm.price as menu_modifier_price, tm.type');
+  //     $this->db->from('tbl_food_menus_modifiers tmm');
+  //     $this->db->join('tbl_modifiers tm', 'tm.id = tmm.modifier_id', 'left');
+  //     $this->db->where('tmm.food_menu_id', $menu_id);
+  //     $this->db->where('tmm.del_status', 'Live');
+  //     return $this->db->get()->result();
+  // }
+
+    public function searchFoodMenus($term = '', $category_id = '', $type = '', $outlet_id = '')
+    {
+        // Obtiene los ids de menús válidos para el outlet
+        $fm_ids = getFMIds($outlet_id);
+        if (!$fm_ids) {
+            return []; // Si no hay menús disponibles, retorna vacío
+        }
+
+        $this->db->select('fm.*, fmc.category_name');
+        $this->db->from('tbl_food_menus as fm');
+        $this->db->join('tbl_food_menu_categories as fmc', 'fmc.id = fm.category_id', 'left');
+        $this->db->where('fm.del_status', 'Live');
+        $this->db->where("FIND_IN_SET(fm.id, '$fm_ids')");
+
+        // Búsqueda por término, nombre, código o categoría
+        if ($term) {
+            $this->db->group_start();
+            $this->db->like('fm.name', $term);
+            $this->db->or_like('fm.code', $term);
+            $this->db->or_like('fmc.category_name', $term);
+            $this->db->group_end();
+        }
+        // Filtro por categoría
+        if ($category_id) {
+            $this->db->where('fm.category_id', $category_id);
+        }
+        // Filtro por tipo
+        if ($type === 'veg') {
+            $this->db->where('fm.veg_item', 'Veg Yes');
+        }
+        if ($type === 'bev') {
+            $this->db->where('fm.beverage_item', 'Bev Yes');
+        }
+        if ($type === 'combo') {
+            $this->db->where('fm.product_type', 2);
+        }
+
+        $this->db->limit(24);
+
+        $query = $this->db->get();
+        return $query->result();
+    }
+    public function getFoodMenuById($id) {
+        $this->db->select('fm.*, fmc.category_name');
+        $this->db->from('tbl_food_menus fm');
+        $this->db->join('tbl_food_menu_categories fmc', 'fmc.id = fm.category_id', 'left');
+        $this->db->where('fm.del_status', 'Live');
+        $this->db->where('fm.id', $id);
+        $query = $this->db->get();
+        $food_menu = $query->row();
+    
+        if ($food_menu) {
+            // Traer los modificadores asociados
+            $this->db->select('tmm.*, tm.name, tm.price, tm.tax_information');
+            $this->db->from('tbl_food_menus_modifiers tmm');
+            $this->db->join('tbl_modifiers tm', 'tm.id = tmm.modifier_id', 'left');
+            $this->db->where('tmm.food_menu_id', $id);
+            $this->db->where('tmm.del_status', 'Live');
+            $modifiers = $this->db->get()->result();
+    
+            $food_menu->modifiers = $modifiers;
+        }
+    
+        return $food_menu;
+    }
+
     /**
      * get All Menu Categories
      * @access public

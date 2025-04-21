@@ -5035,170 +5035,10 @@
   
       //end
   
-      //get all images based on category when category button is clicked
-      $(document).on("click", ".category_button", function (e) {
-        let str = $(this).attr("id");
-        let res = str.substr(16);
-        $("#searched_item_found").remove();
-        $(".specific_category_items_holder").fadeOut(0);
-        $("#category_" + res).css("display", "grid");
-      });
-      //get all images based on category when category button is clicked
-      $(document).on("click", ".veg_bev_item", function (e) {
-        let status = $(this).attr("data-status");
-        $(".specific_category_items_holder").fadeOut(0);
-        let foundItems = searchItemAndConstructGallery("");
-        let searched_category_items_to_show =
-          '<div id="searched_item_found" class="specific_category_items_holder 003">';
-        for (let key in foundItems) {
-            if (foundItems.hasOwnProperty(key)) {
-                if (status == "veg" && foundItems[key].veg_item_status == "yes") {
-                    if (foundItems[key].parent_id == '0') {
-                        searched_category_items_to_show +=
-                            '<div class="single_item animate__animated animate__flipInX"   data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
-                            '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"    data-price_delivery="' + foundItems[key].price_delivery + '"  data-veg_status="yes"  id="item_' +
-                            foundItems[key].item_id +
-                            '">';
-                        searched_category_items_to_show +=
-                            '<img src="' + foundItems[key].image + '" alt="" width="141">';
-                        searched_category_items_to_show +=
-                            '<p class="item_name" data-tippy-content="' +
-                            foundItems[key].item_name +
-                            '">' +
-                            foundItems[key].item_name +"</p>";
-                        searched_category_items_to_show +=
-                            '<p class="item_price">' +
-                            inv_currency +
-                            " " +
-                            formatNumberToCurrency(foundItems[key].price) +
-                            "</p>";
-  
-                        searched_category_items_to_show += "</div>";
-                    }
-                } else if (
-                    status == "bev" &&
-                    foundItems[key].beverage_item_status == "yes"
-                ) {
-                    if (foundItems[key].parent_id == '0') {
-                        searched_category_items_to_show +=
-                            '<div class="single_item animate__animated animate__flipInX"  data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '" data-veg_status="no"   data-price_delivery="' + foundItems[key].price_delivery + '"  id="item_' +
-                            foundItems[key].item_id +
-                            '">';
-                        searched_category_items_to_show +=
-                            '<img src="' + foundItems[key].image + '" alt="" width="141">';
-                        searched_category_items_to_show +=
-                            '<p class="item_name" data-tippy-content="' +
-                            foundItems[key].item_name +
-                            '">' +
-                            foundItems[key].item_name +
-                            "</p>";
-                        searched_category_items_to_show +=
-                            '<p class="item_price">' +
-                            inv_currency +
-                            " " +
-                            formatNumberToCurrency(foundItems[key].price) +
-                            "</p>";
-  
-                        searched_category_items_to_show += "</div>";
-                    }
-                }
-            }
-        }
-        searched_category_items_to_show += "<div>";
-        $("#searched_item_found").remove();
-        $(".specific_category_items_holder").fadeOut(0);
-        $(".category_items").prepend(searched_category_items_to_show);
-  
-        if(food_menu_tooltip=="show"){
-            tippy(".item_name", {
-                placement: "bottom-start",
-            });
-        }
-  
-      });
       function getOrderTime() {
           return (Number(Math.floor(Math.random() * (6 - 1 + 1) + 3))).toFixed(ir_precision);
       }
       
-let searchTimeout; // Para el debounce
-
-$(document).on("keyup", "#search", function (e) {
-    clearTimeout(searchTimeout);
-    let searched_string = $(this).val().trim();
-    
-    // Si se presiona Enter
-    if (e.keyCode === 13 && searched_string) {
-        e.preventDefault(); // Prevenir comportamiento por defecto
-
-        // Buscar producto por código exacto
-        let foundItem = window.items.find(item =>
-            item.item_code && item.item_code.trim().toLowerCase() === searched_string.toLowerCase()
-        );
-
-        if (foundItem) {
-            // Simular click en el producto encontrado
-            $(`#item_${foundItem.item_id}`).click();
-            $(this).val(''); // Limpiar el buscador después de agregar
-            show_all_items(); // Mostrar todos los items nuevamente
-        } else {
-            updateSearchResults(searched_string);
-        }
-    } else {
-        searchTimeout = setTimeout(() => {
-            if (searched_string) {
-                updateSearchResults(searched_string);
-            } else {
-                show_all_items();
-            }
-        }, 200); // Esperamos 200ms antes de ejecutar la búsqueda
-    }
-});
-
-// Función optimizada para construir los resultados
-function updateSearchResults(searchText) {
-    let foundItems = searchItemAndConstructGallery(searchText);
-    let container = document.createElement("div");
-    container.id = "searched_item_found";
-    container.className = "specific_category_items_holder 002";
-
-    for (let key in foundItems) {
-        let veg_status = "no";
-        if (foundItems[key].veg_item_status == "yes") {
-            veg_status = "yes";
-        }
-        if (foundItems[key].parent_id == '0') {
-            let item = foundItems[key];
-            let itemDiv = document.createElement("div");
-            itemDiv.className = "single_item animate__animated animate__flipInX";
-            itemDiv.dataset.price = item.price;
-            itemDiv.dataset.price_take = item.price_take;
-            itemDiv.dataset.is_variation = item.is_variation;
-            itemDiv.dataset.parent_id = item.parent_id;
-            itemDiv.dataset.price_delivery = item.price_delivery;
-            itemDiv.dataset.veg_status = veg_status;
-            itemDiv.id = `item_${item.item_id}`;
-
-            itemDiv.innerHTML = `
-                <img src="${item.image}" alt="" width="141">
-                <p class="item_name" data-tippy-content="${item.item_name}">${item.item_name}</p>
-                <p class="item_price">${inv_currency} ${formatNumberToCurrency(item.price)}</p>
-                <span class="item_vat_percentage ir_display_none">${item.vat_percentage}</span>
-            `;
-
-            container.appendChild(itemDiv);
-        }
-    }
-
-    // Actualizar el DOM de forma eficiente
-    $("#searched_item_found").remove();
-    $(".specific_category_items_holder").fadeOut(0);
-    $(".category_items").prepend(container);
-
-    if (food_menu_tooltip == "show") {
-        tippy(".item_name", { placement: "bottom-start" });
-    }
-}
-
 
 
       $(document).on(
@@ -5322,127 +5162,125 @@ function updateSearchResults(searchText) {
             }
         }
       );
-        //when single ite is clicked pop-up modal is appeared
-        function openProductEditModal(parent_id,item_name, id){
-            let single_order_element_object = $(this).parent().parent().parent();
-            let row_number = 0;
-            let menu_id = Number(id);
-            let item_price = 0;
-            let item_vat_percentage = '';
-            let item_discount_input_value = 0;
-            let item_discount_amount = 0;
-            let item_price_without_discount = 0;
-            let item_quantity = 1;
-            let item_price_with_discount = 0;
-            let modifiers_price = 0;
-  
-  
-            let note = '';
-            let modifiers_id = "";
-  
-            let modifiers_price_as_per_item_quantity = 0;
-            let total_price = 0;
-  
-            $("#modal_item_row").html(row_number);
-            $("#vr01_modal_price_variable").html(0);
-            $("#modal_item_id").html(menu_id);
-            $("#item_name_modal_custom").html(item_name);
-            $("#modal_item_price").html(item_price);
-            $("#modal_item_price_variable").html(item_price_with_discount);
-            $("#modal_item_price_variable_without_discount").html(item_price_without_discount);
-  
-            $("#modal_item_vat_percentage").html(item_vat_percentage);
-            $("#modal_discount_amount").html(item_discount_amount);
-            $("#item_quantity_modal").val(item_quantity);
-            $("#modal_modifiers_unit_price_variable").html(modifiers_price);
-            $("#modal_modifier_price_variable").html(modifiers_price_as_per_item_quantity);
-            $("#modal_discount").val(item_discount_input_value);
-            $("#modal_item_note").val(note);
-            $("#modal_total_price").html(total_price);
-            //add modifiers to pop up associated to menu
-            let foundItems_variations = get_variations_search_by_menu_id(menu_id, window.items);
-  
-            let variations = "";
-            for (let key1 in foundItems_variations) {
-  
-                let vr01_selected_order_type_object = $(".main_top").find("button[data-selected=selected]" );
-                if (vr01_selected_order_type_object.attr("data-id") == "dine_in_button") {
-                    item_price = parseFloat(foundItems_variations[key1].price).toFixed(ir_precision);
-                }else if (vr01_selected_order_type_object.attr("data-id") == "take_away_button"){
-                    item_price = parseFloat(foundItems_variations[key1].price_take).toFixed(ir_precision);
-                }else if (vr01_selected_order_type_object.attr("data-id") == "delivery_button"){
-                    let arr_item_details = search_by_menu_id(foundItems_variations[key1].item_id, window.items);
-                    let check_dl_person = 1;
-                    item_price = arr_item_details[0].price_delivery;
-                    $(".custom_li").each(function() {
-                        let row_div =  $(this).attr("data-row");
-                        if($("#myCheckbox"+row_div).is(":checked")){
-                            let  price_delivery_details_tmp  = arr_item_details[0].price_delivery_details.split("|||");
-                            for(let x=0;x<price_delivery_details_tmp.length;x++){
-                                let  price_delivery_details_tmp_separate  = price_delivery_details_tmp[x].split("||");
-                                if("index_"+row_div == price_delivery_details_tmp_separate[0]){
-                                    if(Number(price_delivery_details_tmp_separate[1])){
-                                        item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
-                                    }
-                                }
-  
+// Modal para producto con variaciones (llamado desde .single_item si is_variation == "Yes")
+function openProductEditModal(parent_id, item_name, id) {
+    // --- Variables base ---
+    let row_number = 0;
+    let menu_id = Number(id);
+    let item_price = 0;
+    let item_vat_percentage = "";
+    let item_discount_input_value = 0;
+    let item_discount_amount = 0;
+    let item_price_without_discount = 0;
+    let item_quantity = 1;
+    let item_price_with_discount = 0;
+    let modifiers_price = 0;
+    let note = "";
+    let modifiers_id = "";
+    let modifiers_price_as_per_item_quantity = 0;
+    let total_price = 0;
+
+    // --- Setea los valores iniciales del modal ---
+    $("#modal_item_row").html(row_number);
+    $("#vr01_modal_price_variable").html(0);
+    $("#modal_item_id").html(menu_id);
+    $("#item_name_modal_custom").html(item_name);
+    $("#modal_item_price").html(item_price);
+    $("#modal_item_price_variable").html(item_price_with_discount);
+    $("#modal_item_price_variable_without_discount").html(item_price_without_discount);
+    $("#modal_item_vat_percentage").html(item_vat_percentage);
+    $("#modal_discount_amount").html(item_discount_amount);
+    $("#item_quantity_modal").val(item_quantity);
+    $("#modal_modifiers_unit_price_variable").html(modifiers_price);
+    $("#modal_modifier_price_variable").html(modifiers_price_as_per_item_quantity);
+    $("#modal_discount").val(item_discount_input_value);
+    $("#modal_item_note").val(note);
+    $("#modal_total_price").html(total_price);
+
+    // --- Variaciones ---
+    let foundItems_variations = get_variations_search_by_menu_id(menu_id, window.items);
+    let variations = "";
+    for (let key1 in foundItems_variations) {
+        let vr01_selected_order_type_object = $(".main_top").find("button[data-selected=selected]");
+        if (vr01_selected_order_type_object.attr("data-id") == "dine_in_button") {
+            item_price = parseFloat(foundItems_variations[key1].price).toFixed(ir_precision);
+        } else if (vr01_selected_order_type_object.attr("data-id") == "take_away_button") {
+            item_price = parseFloat(foundItems_variations[key1].price_take).toFixed(ir_precision);
+        } else if (vr01_selected_order_type_object.attr("data-id") == "delivery_button") {
+            let arr_item_details = search_by_menu_id(foundItems_variations[key1].item_id, window.items);
+            let check_dl_person = 1;
+            item_price = arr_item_details[0].price_delivery;
+            $(".custom_li").each(function () {
+                let row_div = $(this).attr("data-row");
+                if ($("#myCheckbox" + row_div).is(":checked")) {
+                    let price_delivery_details_tmp = arr_item_details[0].price_delivery_details.split("|||");
+                    for (let x = 0; x < price_delivery_details_tmp.length; x++) {
+                        let price_delivery_details_tmp_separate = price_delivery_details_tmp[x].split("||");
+                        if ("index_" + row_div == price_delivery_details_tmp_separate[0]) {
+                            if (Number(price_delivery_details_tmp_separate[1])) {
+                                item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
                             }
                         }
-                    });
+                    }
                 }
-  
-                variations += "<div class='btn_new_custom vr01_modal_class bg_btn_custom' data-id='"+foundItems_variations[key1].item_id+"' data-code='"+foundItems_variations[key1].item_code+"'  data-item_name_tmp='"+foundItems_variations[key1].item_name_tmp+"' data-price='"+item_price+"' data-selected='unselected' data-menu_tax='"+foundItems_variations[key1].tax_information+"'>";
-                variations += `<input class="margin_for_vr01" name="vr01_name" type="radio"/>`;
-                variations += "<p>" + foundItems_variations[key1].item_name + "</p>";
-                variations +=
-                    '<span class="vr01_modal_price"> <span>' +
-                    price_txt +
-                    ":</span> " +
-                    item_price +
-                    "</span>";
-                variations += "</div>";
+            });
+        }
+        variations += "<div class='btn_new_custom vr01_modal_class bg_btn_custom' data-id='" + foundItems_variations[key1].item_id + "' data-code='" + foundItems_variations[key1].item_code + "'  data-item_name_tmp='" + foundItems_variations[key1].item_name_tmp + "' data-price='" + item_price + "' data-selected='unselected' data-menu_tax='" + foundItems_variations[key1].tax_information + "'>";
+        variations += `<input class="margin_for_vr01" name="vr01_name" type="radio"/>`;
+        variations += "<p>" + foundItems_variations[key1].item_name + "</p>";
+        variations += '<span class="vr01_modal_price"> <span>' + price_txt + ":</span> " + item_price + "</span>";
+        variations += "</div>";
+    }
+
+    // --- AJAX para los modificadores ---
+    $.ajax({
+        url: base_url + "Sale/get_modifiers_by_menu_id",
+        data: { menu_id: menu_id },
+        method: "GET",
+        success: function (response) {
+            let originalMenu = [];
+            if (response && response.trim() !== "") {
+                originalMenu = eval('[' + response + ']');
             }
-  
-            let foundItems = search_by_menu_id(menu_id, window.items);
-            let originalMenu = foundItems[0].modifiers;
+
             let modifiers = "";
             let modifiers_single = "";
             for (let key in originalMenu) {
                 let selectedOrNot = "unselected";
                 let backgroundColor = "";
-                if (
-                    typeof modifiers_id !== "undefined" &&
-                    modifiers_id.includes(originalMenu[key].menu_modifier_id)
-                ) {
+                if (typeof modifiers_id !== "undefined" && modifiers_id.includes(originalMenu[key].menu_modifier_id)) {
                     selectedOrNot = "selected";
-                    //this is dynamic style
-                    // backgroundColor = 'style="background-color:#B5D6F6;"';
-                } else {
-                    selectedOrNot = "unselected";
-                    backgroundColor = "";
                 }
-                /*new_added_zak*/
                 let style_content = "";
                 let tmp_class = "";
                 let tmp_price = originalMenu[key].menu_modifier_price;
                 let modifier_ingrs = '';
                 let blank_div = "";
-                if(Number(originalMenu[key].type) == 2){
+                let modifier_full_name = originalMenu[key].menu_modifier_name;
+                if (Number(originalMenu[key].type) == 2) {
                     style_content = "none";
                     tmp_class = "single_modifier";
                     modifier_ingrs = get_modifier_ingrs_search_by_menu_modi_id(originalMenu[key].modifier_row_id, window.item_modifier_ingrs);
                     let modifier_ingrs_length = Number(modifier_ingrs.length);
-                    if((modifier_ingrs_length%2)!=0){
+                    if ((modifier_ingrs_length % 2) != 0) {
                         blank_div = '\n' +
                             '<div class="vr01_modal_class_mod" data-selected="unselected" style="\n' +
                             '    pointer-events: none;\n' +
                             '"></div>';
                     }
+                    for (let key1 in modifier_ingrs) {
+                        $(".hidden_mod_cart_" + menu_id + "_" + originalMenu[key].menu_modifier_id).each(function () {
+                            let this_value = ($(this).val());
+                            if (this_value === originalMenu[key].menu_modifier_id + "_" + (modifier_ingrs[key1].inline_mod_row)) {
+                                modifier_full_name = originalMenu[key].menu_modifier_name + "(" + modifier_ingrs[key1].menu_ingr_name + ")";
+                            }
+                        });
+                    }
                 }
                 modifiers +=
                     "<div " +
                     backgroundColor +
-                    ' class="btn_new_custom modal_modifiers bg_btn_custom '+tmp_class+'" data-type="'+originalMenu[key].type+'" style="display:'+style_content+'"  data-menu_tax="' +
+                    ' class="btn_new_custom modal_modifiers bg_btn_custom ' + tmp_class + '" data-type="' + originalMenu[key].type + '" style="display:' + style_content + '"  data-menu_tax="' +
                     originalMenu[key].tax_information +
                     '"  data-price="' +
                     originalMenu[key].menu_modifier_price +
@@ -5452,129 +5290,125 @@ function updateSearchResults(searchText) {
                     originalMenu[key].menu_modifier_id +
                     '">';
                 modifiers += `<input type="checkbox" ${
-                    selectedOrNot === "selected" ? "checked" : "unchecked"
-                    }/>`;
-                modifiers += "<p>" + originalMenu[key].menu_modifier_name + "</p>";
-                modifiers +=
-                    '<span class="modifier_price"> <span>' +
-                    price_txt +
-                    ":</span> " +
-                    originalMenu[key].menu_modifier_price +
-                    "</span>";
+                    selectedOrNot === "selected" ? "checked" : ""
+                }/>`;
+                modifiers += "<p>" + modifier_full_name + "</p>";
+                modifiers += '<span class="modifier_price"> <span>' + price_txt + ":</span> " + originalMenu[key].menu_modifier_price + "</span>";
                 modifiers += "</div>";
-  
-  
-                if(Number(originalMenu[key].type) == 2){
+
+                // Si hay ingredientes
+                if (Number(originalMenu[key].type) == 2) {
                     for (let key1 in modifier_ingrs) {
-                        modifiers_single += "<div class='vr01_modal_class_mod vr01_modal_class_mod_"+originalMenu[key].menu_modifier_id+" mod_main_row_div_"+modifier_ingrs[key1].inline_mod_row+"' data-id='"+modifier_ingrs[key1].inline_mod_row+"'   data-parent_id='"+originalMenu[key].menu_modifier_id+"'  data-price='"+modifier_ingrs[key1].menu_ingr_price+"' data-selected='unselected' data-menu_tax='"+originalMenu[key].tax_information+"'>";
-                        modifiers_single += `<input class="margin_for_vr01_mod  margin_for_vr01_mod_`+originalMenu[key].menu_modifier_id+`  mod_main_row_value_`+modifier_ingrs[key1].inline_mod_row+`"  data-id="`+originalMenu[key].menu_modifier_id+`_`+modifier_ingrs[key1].inline_mod_row+`"   name="vr01_name_mod" type="radio"/>`;
-                        modifiers_single += "<p>" + originalMenu[key].menu_modifier_name+"("+modifier_ingrs[key1].menu_ingr_name + ") <span> "+price_txt+": "+modifier_ingrs[key1].menu_ingr_price+" </span></p>";
+                        modifiers_single += "<div class='vr01_modal_class_mod vr01_modal_class_mod_" + originalMenu[key].menu_modifier_id + " mod_main_row_div_" + modifier_ingrs[key1].inline_mod_row + "' data-id='" + modifier_ingrs[key1].inline_mod_row + "'   data-parent_id='" + originalMenu[key].menu_modifier_id + "'  data-price='" + modifier_ingrs[key1].menu_ingr_price + "' data-selected='unselected' data-menu_tax='" + originalMenu[key].tax_information + "'>";
+                        modifiers_single += `<input class="margin_for_vr01_mod  margin_for_vr01_mod_` + originalMenu[key].menu_modifier_id + `  mod_main_row_value_` + modifier_ingrs[key1].inline_mod_row + `"  data-id="` + originalMenu[key].menu_modifier_id + `_` + modifier_ingrs[key1].inline_mod_row + `"   name="vr01_name_mod" type="radio"/>`;
+                        modifiers_single += "<p>" + originalMenu[key].menu_modifier_name + "(" + modifier_ingrs[key1].menu_ingr_name + ") <span> " + price_txt + ": " + modifier_ingrs[key1].menu_ingr_price + " </span></p>";
                         modifiers_single += "</div>";
                     }
                 }
-                /*new_added_zak*/
-  
             }
+
             $(".variation_div_modal").show();
-  
-            if(modifiers.length){
+
+            if (modifiers.length) {
                 $(".modifier_div").show();
-            }else{
+            } else {
                 $(".modifier_div").hide();
             }
-  
-            $("#item_modal .section3_vr").empty();
-            $("#item_modal .section3_vr").prepend(variations);
-  
-  
-            $("#item_modal .section3_new").empty();
-            $("#item_modal .section3_new").prepend(modifiers);
-  
-            $("#item_modal .section3_new_single").empty();
-            $("#item_modal .section3_new_single").prepend(modifiers_single);
+
+            $("#item_modal .section3_vr").empty().prepend(variations);
+            $("#item_modal .section3_new").empty().prepend(modifiers);
+            $("#item_modal .section3_new_single").empty().prepend(modifiers_single);
+
+            $("#item_modal").addClass("active");
+            $(".pos__modal__overlay").fadeIn(200);
+        },
+        error: function () {
+            $(".variation_div_modal").show();
+            $(".modifier_div").hide();
+            $("#item_modal .section3_vr").empty().prepend(variations);
+            $("#item_modal .section3_new").empty().prepend('');
+            $("#item_modal .section3_new_single").empty().prepend('');
             $("#item_modal").addClass("active");
             $(".pos__modal__overlay").fadeIn(200);
         }
+    });
+}
         //when single ite is clicked pop-up modal is appeared
-        function openProductEditModalForPromo(string_text,item_name, id,promo_type,discount,get_food_menu_id,qty,get_qty,item_price,modal_item_name_row){
-            let single_order_element_object = $(this).parent().parent().parent();
-            let row_number = 0;
-            let menu_id = Number(id);
-            let item_vat_percentage = '';
-            let item_discount_input_value = 0;
-            let item_discount_amount = 0;
-            let item_price_without_discount = item_price;
-            let item_quantity = 1;
-            let item_price_with_discount = item_price;
-            let modifiers_price = 0;
-  
-  
-            let note = '';
-            let modifiers_id = "";
-  
-            let modifiers_price_as_per_item_quantity = 0;
-            let total_price = 0;
-  
-            $(".prom_txt").html(string_text);
-            promo_type = Number(promo_type);
-            $("#modal_discount_amount").html(0);
-            $("#modal_discount").val(discount);
-            if(string_text){
-                $("#modal_discount").attr("readonly",'');
+// Modal para productos en promo/oferta (llamado desde .single_item si is_promo == "Yes")
+function openProductEditModalForPromo(string_text, item_name, id, promo_type, discount, get_food_menu_id, qty, get_qty, item_price, modal_item_name_row) {
+    let row_number = 0;
+    let menu_id = Number(id);
+    let item_vat_percentage = "";
+    let item_discount_input_value = 0;
+    let item_discount_amount = 0;
+    let item_price_without_discount = item_price;
+    let item_quantity = 1;
+    let item_price_with_discount = item_price;
+    let modifiers_price = 0;
+    let note = "";
+    let modifiers_id = "";
+    let modifiers_price_as_per_item_quantity = 0;
+    let total_price = 0;
+
+    $(".prom_txt").html(string_text);
+    promo_type = Number(promo_type);
+    $("#modal_discount_amount").html(0);
+    $("#modal_discount").val(discount);
+    if (string_text) {
+        $("#modal_discount").attr("readonly", '');
+    }
+    $("#modal_promo_type_row").html(promo_type);
+    $("#modal_discount_row").html(discount);
+    $("#modal_get_food_menu_id_row").html(get_food_menu_id);
+    $("#modal_qty_row").html(qty);
+    $("#modal_get_qty_row").html(get_qty);
+    $("#modal_item_name_row").html(modal_item_name_row);
+
+    $("#modal_item_row").html(row_number);
+    $("#vr01_modal_price_variable").html(0);
+    $("#modal_item_id").html(menu_id);
+    $("#item_name_modal_custom").html(item_name);
+    $("#modal_item_price").html(item_price);
+    $("#modal_item_price_variable").html(item_price_with_discount);
+    $("#modal_item_price_variable_without_discount").html(item_price_without_discount);
+    $("#modal_item_vat_percentage").html(item_vat_percentage);
+
+    $("#item_quantity_modal").val(item_quantity);
+    $("#modal_modifiers_unit_price_variable").html(modifiers_price);
+    $("#modal_modifier_price_variable").html(modifiers_price_as_per_item_quantity);
+
+    $("#modal_item_note").val(note);
+    $("#modal_total_price").html(total_price);
+
+    // --- AJAX para los modificadores ---
+    $.ajax({
+        url: base_url + "Sale/get_modifiers_by_menu_id",
+        data: { menu_id: menu_id },
+        method: "GET",
+        success: function (response) {
+            let originalMenu = [];
+            if (response && response.trim() !== "") {
+                originalMenu = eval('[' + response + ']');
             }
-            $("#modal_promo_type_row").html(promo_type);
-            $("#modal_discount_row").html(discount);
-            $("#modal_get_food_menu_id_row").html(get_food_menu_id);
-            $("#modal_qty_row").html(qty);
-            $("#modal_get_qty_row").html(get_qty);
-            $("#modal_item_name_row").html(modal_item_name_row);
-  
-            $("#modal_item_row").html(row_number);
-            $("#vr01_modal_price_variable").html(0);
-            $("#modal_item_id").html(menu_id);
-            $("#item_name_modal_custom").html(item_name);
-            $("#modal_item_price").html(item_price);
-            $("#modal_item_price_variable").html(item_price_with_discount);
-            $("#modal_item_price_variable_without_discount").html(item_price_without_discount);
-            $("#modal_item_vat_percentage").html(item_vat_percentage);
-  
-            $("#item_quantity_modal").val(item_quantity);
-            $("#modal_modifiers_unit_price_variable").html(modifiers_price);
-            $("#modal_modifier_price_variable").html(modifiers_price_as_per_item_quantity);
-  
-            $("#modal_item_note").val(note);
-            $("#modal_total_price").html(total_price);
-  
-            let foundItems = search_by_menu_id(menu_id, window.items);
-            let originalMenu = foundItems[0].modifiers;
             let modifiers = "";
-  
             for (let key in originalMenu) {
                 let selectedOrNot = "unselected";
                 let backgroundColor = "";
-                if (
-                    typeof modifiers_id !== "undefined" &&
-                    modifiers_id.includes(originalMenu[key].menu_modifier_id)
-                ) {
+                if (typeof modifiers_id !== "undefined" && modifiers_id.includes(originalMenu[key].menu_modifier_id)) {
                     selectedOrNot = "selected";
-                    //this is dynamic style
-                    // backgroundColor = 'style="background-color:#B5D6F6;"';
-                } else {
-                    selectedOrNot = "unselected";
-                    backgroundColor = "";
                 }
-                /*new_added_zak*/
                 let style_content = "";
                 let tmp_class = "";
                 let tmp_price = originalMenu[key].menu_modifier_price;
                 let modifier_ingrs = '';
                 let blank_div = "";
-                if(Number(originalMenu[key].type) == 2){
+                let modifier_full_name = originalMenu[key].menu_modifier_name;
+                if (Number(originalMenu[key].type) == 2) {
                     style_content = "none";
                     tmp_class = "single_modifier";
                     modifier_ingrs = get_modifier_ingrs_search_by_menu_modi_id(originalMenu[key].modifier_row_id, window.item_modifier_ingrs);
                     let modifier_ingrs_length = Number(modifier_ingrs.length);
-                    if((modifier_ingrs_length%2)!=0){
+                    if ((modifier_ingrs_length % 2) != 0) {
                         blank_div = '\n' +
                             '<div class="vr01_modal_class_mod" data-selected="unselected" style="\n' +
                             '    pointer-events: none;\n' +
@@ -5584,7 +5418,7 @@ function updateSearchResults(searchText) {
                 modifiers +=
                     "<div " +
                     backgroundColor +
-                    ' class="btn_new_custom modal_modifiers bg_btn_custom '+tmp_class+'" data-type="'+originalMenu[key].type+'" style="display:'+style_content+'"  data-menu_tax="' +
+                    ' class="btn_new_custom modal_modifiers bg_btn_custom ' + tmp_class + '" data-type="' + originalMenu[key].type + '" style="display:' + style_content + '"  data-menu_tax="' +
                     originalMenu[key].tax_information +
                     '"  data-price="' +
                     originalMenu[key].menu_modifier_price +
@@ -5594,36 +5428,38 @@ function updateSearchResults(searchText) {
                     originalMenu[key].menu_modifier_id +
                     '">';
                 modifiers += `<input type="checkbox" ${
-                    selectedOrNot === "selected" ? "checked" : "unchecked"
-                    }/>`;
-                modifiers += "<p>" + originalMenu[key].menu_modifier_name + "</p>";
-                modifiers +=
-                    '<span class="modifier_price"> <span>' +
-                    price_txt +
-                    ":</span> " +
-                    originalMenu[key].menu_modifier_price +
-                    "</span>";
+                    selectedOrNot === "selected" ? "checked" : ""
+                }/>`;
+                modifiers += "<p>" + modifier_full_name + "</p>";
+                modifiers += '<span class="modifier_price"> <span>' + price_txt + ":</span> " + originalMenu[key].menu_modifier_price + "</span>";
                 modifiers += "</div>";
-  
-                /*new_added_zak*/
-  
             }
+
             $(".variation_div_modal").hide();
-  
-            if(modifiers.length){
+
+            if (modifiers.length) {
                 $(".modifier_div").show();
-            }else{
+            } else {
                 $(".modifier_div").hide();
             }
-  
-            $("#item_modal .section3_new").empty();
-            $("#item_modal .section3_new").prepend(modifiers);
-  
+
+            $("#item_modal .section3_new").empty().prepend(modifiers);
+
             update_all_total_price();
-  
+
+            $("#item_modal").addClass("active");
+            $(".pos__modal__overlay").fadeIn(200);
+        },
+        error: function () {
+            $(".variation_div_modal").hide();
+            $(".modifier_div").hide();
+            $("#item_modal .section3_new").empty().prepend('');
+            update_all_total_price();
             $("#item_modal").addClass("active");
             $(".pos__modal__overlay").fadeIn(200);
         }
+    });
+}
       //when single ite is clicked pop-up modal is appeared
         $(document).on("click", ".single_item", function () {
             //focus search field
@@ -6074,167 +5910,95 @@ function updateSearchResults(searchText) {
           );
         }
       });
+
     $(document).on("click", ".edit_item", function () {
-          //add for vr01
-          $("#modal_item_price").html(0);
-          $("#vr01_modal_price_variable").html(0);
-          $("#is_variation_product").html(0);
-          $(".variation_div_modal").hide();
-          $(".section3_vr").empty();
-          $(".prom_txt").html('');
-          $("#modal_discount").removeAttr("readonly");
+        // --- Inicializaciones y reseteos de UI ---
+        $("#modal_item_price").html(0);
+        $("#vr01_modal_price_variable").html(0);
+        $("#is_variation_product").html(0);
+        $(".variation_div_modal").hide();
+        $(".section3_vr").empty();
+        $(".prom_txt").html('');
+        $("#modal_discount").removeAttr("readonly");
         let add_to_cart_pos = $("#add_to_cart_pos").val();
         $("#add_to_cart").html(add_to_cart_pos);
-  
-          let single_order_element_object = $(this).parent().parent().parent();
-          let menu_id = Number($(this).attr("id").substr(10));
-          let item_price = single_order_element_object
-              .find("#item_price_table_" + menu_id)
-              .html();
-  
-          let parent_id = Number($(this).attr('data-parent_id'));
-          let check_parent_id = 0;
-          let check_parent_price = 0;
-          if(parent_id){
-              $("#vr01_modal_price_variable").html(item_price);
-              $(".variation_div_modal").show();
-              $("#is_variation_product").html(parent_id);
-  
-              let foundItems_variations = get_variations_search_by_menu_id(parent_id, window.items);
-  
-              let variations = "";
-              for (let key1 in foundItems_variations) {
-                  let item_price = 0;
-                  let vr01_selected_order_type_object = $(".main_top").find("button[data-selected=selected]" );
-                  if (vr01_selected_order_type_object.attr("data-id") == "dine_in_button") {
-                      item_price = parseFloat(foundItems_variations[key1].price).toFixed(ir_precision);
-                  }else if (vr01_selected_order_type_object.attr("data-id") == "take_away_button"){
-                      item_price = parseFloat(foundItems_variations[key1].price_take).toFixed(ir_precision);
-                  }else if (vr01_selected_order_type_object.attr("data-id") == "delivery_button"){
-                      item_price = parseFloat(foundItems_variations[key1].price_delivery).toFixed(ir_precision);
-                  }
-                  let check_status = '';
-                  let selected_status = 'unselected';
-                  if(menu_id==Number(foundItems_variations[key1].item_id)){
-                      selected_status = "selected";
-                      check_status = "checked";
-                  }
-                  variations += "<div class='btn_new_custom vr01_modal_class bg_btn_custom' data-id='"+foundItems_variations[key1].item_id+"' data-code='"+foundItems_variations[key1].item_code+"'  data-item_name_tmp='"+foundItems_variations[key1].item_name_tmp+"' data-price='"+item_price+"' data-selected='"+selected_status+"' data-menu_tax='"+foundItems_variations[key1].tax_information+"'>";
-                  variations += `<input `+check_status+` class="margin_for_vr01" name="vr01_name" type="radio"/>`;
-                  variations += "<p>" + foundItems_variations[key1].item_name + "</p>";
-                  variations +=
-                      '<span class="vr01_modal_price"> <span>' +
-                      price_txt +
-                      ":</span> " +
-                      item_price +
-                      "</span>";
-                  variations += "</div>";
-              }
-  
-              //vr01
-              $("#item_modal .section3_vr").empty();
-              $("#item_modal .section3_vr").prepend(variations);
-          }
-  
-          let row_number = $(this)
-              .parent()
-              .parent()
-              .parent()
-              .attr("data-single-order-row-no");
-  
-          let item_name = single_order_element_object
-              .find("#item_name_table_" + menu_id)
-              .html();
-  
-          let item_vat_percentage = single_order_element_object
-              .find("#item_vat_percentage_table" + menu_id)
-              .html();
-          let item_discount_input_value = single_order_element_object
-              .find("#percentage_table_" + menu_id)
-              .val();
-          let item_discount_amount = single_order_element_object
-              .find("#item_discount_table" + menu_id)
-              .html();
-          let item_price_without_discount = single_order_element_object
-              .find("#item_price_without_discount_" + menu_id)
-              .html();
-          let item_quantity = single_order_element_object
-              .find("#item_quantity_table_" + menu_id)
-              .html();
-          let item_price_with_discount = parseFloat(
-              single_order_element_object
-                  .find("#item_total_price_table_" + menu_id)
-                  .html()
-          ).toFixed(ir_precision);
-          let modifiers_price = parseFloat(0).toFixed(ir_precision);
-          let cooking_status = single_order_element_object
-              .find("#item_cooking_status_table" + menu_id)
-              .html();
-          if (cooking_status != "" && cooking_status !== undefined) {
-              toastr['error']((progress_or_done_kitchen), '');
-              return false;
-          }
-          if (
-              single_order_element_object.find("#item_modifiers_price_table_" + menu_id)
-                  .length > 0
-          ) {
-              let comma_separeted_modifiers_price = single_order_element_object
-                  .find("#item_modifiers_price_table_" + menu_id)
-                  .html();
-              let modifiers_price_array =
-                  comma_separeted_modifiers_price != ""
-                      ? comma_separeted_modifiers_price.split(",")
-                      : "";
-              modifiers_price_array.forEach(function (modifier_price) {
-                  modifiers_price = (
-                      parseFloat(modifiers_price) + parseFloat(modifier_price)
-                  ).toFixed(ir_precision);
-              });
-              parseFloat(
-                  single_order_element_object
-                      .find("#item_modifiers_price_table_" + menu_id)
-                      .html()
-              ).toFixed(ir_precision);
-          }
-  
-          let note = single_order_element_object
-              .find("#item_note_table_" + menu_id)
-              .html();
-          let modifiers_id = "";
-          if (
-              single_order_element_object.find("#item_modifiers_id_table_" + menu_id)
-                  .length > 0
-          ) {
-              let comma_seperted_modifiers_id = single_order_element_object
-                  .find("#item_modifiers_id_table_" + menu_id)
-                  .html();
-              modifiers_id =
-                  comma_seperted_modifiers_id != ""
-                      ? comma_seperted_modifiers_id.split(",")
-                      : "";
-          }
-          let modifiers_price_as_per_item_quantity = (
-              parseFloat(modifiers_price) * parseFloat(item_quantity)
-          ).toFixed(ir_precision);
-          let total_price = (
-              parseFloat(item_price_with_discount) +
-              parseFloat(modifiers_price_as_per_item_quantity)
-          ).toFixed(ir_precision);
-  
-  
-        // iterate over each item in the array
-        let product_type = 1;
-        let product_comb = '';
-        let is_promo = '';
-        let promo_type = '';
-        let string_text = '';
-        let discount = 0;
-        let get_food_menu_id = 0;
-        let qty = 0;
-        let get_qty = 0;
-  
+
+        // --- Variables de ítem seleccionado ---
+        let single_order_element_object = $(this).parent().parent().parent();
+        let menu_id = Number($(this).attr("id").substr(10));
+        let item_price = single_order_element_object.find("#item_price_table_" + menu_id).html();
+        let parent_id = Number($(this).attr('data-parent_id'));
+        let check_parent_id = 0;
+        let check_parent_price = 0;
+
+        // --- Variaciones ---
+        if(parent_id){
+            $("#vr01_modal_price_variable").html(item_price);
+            $(".variation_div_modal").show();
+            $("#is_variation_product").html(parent_id);
+            let foundItems_variations = get_variations_search_by_menu_id(parent_id, window.items);
+            let variations = "";
+            for (let key1 in foundItems_variations) {
+                let vitem_price = 0;
+                let vr01_selected_order_type_object = $(".main_top").find("button[data-selected=selected]" );
+                if (vr01_selected_order_type_object.attr("data-id") == "dine_in_button") {
+                    vitem_price = parseFloat(foundItems_variations[key1].price).toFixed(ir_precision);
+                } else if (vr01_selected_order_type_object.attr("data-id") == "take_away_button"){
+                    vitem_price = parseFloat(foundItems_variations[key1].price_take).toFixed(ir_precision);
+                } else if (vr01_selected_order_type_object.attr("data-id") == "delivery_button"){
+                    vitem_price = parseFloat(foundItems_variations[key1].price_delivery).toFixed(ir_precision);
+                }
+                let check_status = '';
+                let selected_status = 'unselected';
+                if(menu_id==Number(foundItems_variations[key1].item_id)){
+                    selected_status = "selected";
+                    check_status = "checked";
+                }
+                variations += "<div class='btn_new_custom vr01_modal_class bg_btn_custom' data-id='"+foundItems_variations[key1].item_id+"' data-code='"+foundItems_variations[key1].item_code+"'  data-item_name_tmp='"+foundItems_variations[key1].item_name_tmp+"' data-price='"+vitem_price+"' data-selected='"+selected_status+"' data-menu_tax='"+foundItems_variations[key1].tax_information+"'>";
+                variations += `<input `+check_status+` class="margin_for_vr01" name="vr01_name" type="radio"/>`;
+                variations += "<p>" + foundItems_variations[key1].item_name + "</p>";
+                variations += '<span class="vr01_modal_price"> <span>' + price_txt + ":</span> " + vitem_price + "</span>";
+                variations += "</div>";
+            }
+            $("#item_modal .section3_vr").empty();
+            $("#item_modal .section3_vr").prepend(variations);
+        }
+
+        // --- Otros datos del producto ---
+        let row_number = single_order_element_object.attr("data-single-order-row-no");
+        let item_name = single_order_element_object.find("#item_name_table_" + menu_id).html();
+        let item_vat_percentage = single_order_element_object.find("#item_vat_percentage_table" + menu_id).html();
+        let item_discount_input_value = single_order_element_object.find("#percentage_table_" + menu_id).val();
+        let item_discount_amount = single_order_element_object.find("#item_discount_table" + menu_id).html();
+        let item_price_without_discount = single_order_element_object.find("#item_price_without_discount_" + menu_id).html();
+        let item_quantity = single_order_element_object.find("#item_quantity_table_" + menu_id).html();
+        let item_price_with_discount = parseFloat(single_order_element_object.find("#item_total_price_table_" + menu_id).html()).toFixed(ir_precision);
+        let modifiers_price = parseFloat(0).toFixed(ir_precision);
+        let cooking_status = single_order_element_object.find("#item_cooking_status_table" + menu_id).html();
+        if (cooking_status != "" && cooking_status !== undefined) {
+            toastr['error']((progress_or_done_kitchen), '');
+            return false;
+        }
+        if (single_order_element_object.find("#item_modifiers_price_table_" + menu_id).length > 0) {
+            let comma_separeted_modifiers_price = single_order_element_object.find("#item_modifiers_price_table_" + menu_id).html();
+            let modifiers_price_array = comma_separeted_modifiers_price != "" ? comma_separeted_modifiers_price.split(",") : "";
+            modifiers_price_array.forEach(function (modifier_price) {
+                modifiers_price = (parseFloat(modifiers_price) + parseFloat(modifier_price)).toFixed(ir_precision);
+            });
+        }
+
+        let note = single_order_element_object.find("#item_note_table_" + menu_id).html();
+        let modifiers_id = "";
+        if (single_order_element_object.find("#item_modifiers_id_table_" + menu_id).length > 0) {
+            let comma_seperted_modifiers_id = single_order_element_object.find("#item_modifiers_id_table_" + menu_id).html();
+            modifiers_id = comma_seperted_modifiers_id != "" ? comma_seperted_modifiers_id.split(",") : "";
+        }
+        let modifiers_price_as_per_item_quantity = (parseFloat(modifiers_price) * parseFloat(item_quantity)).toFixed(ir_precision);
+        let total_price = (parseFloat(item_price_with_discount) + parseFloat(modifiers_price_as_per_item_quantity)).toFixed(ir_precision);
+
+        // --- Extra: datos de promociones y combinaciones ---
+        let product_type = 1, product_comb = '', is_promo = '', promo_type = '', string_text = '', discount = 0, get_food_menu_id = 0, qty = 0, get_qty = 0;
         for (let i = 0; i < window.items.length; i++) {
-            // look for the entry with a matching `code` value
             if (items[i].item_id == menu_id) {
                 product_type = Number(items[i].product_type);
                 product_comb = (items[i].product_comb);
@@ -6247,203 +6011,129 @@ function updateSearchResults(searchText) {
                 get_qty = (items[i].get_qty);
             }
         }
-  
         $(".prom_txt").html(string_text);
         promo_type = Number(promo_type);
         if(promo_type==1 || promo_type==2){
             $("#modal_discount").attr("readonly",'');
         }
-  
-          $("#modal_item_row").html(row_number);
-          $("#modal_item_id").html(menu_id);
-          $("#item_name_modal_custom").html(item_name);
-          $("#modal_item_price").html(item_price);
-          $("#modal_item_price_variable").html(item_price_with_discount);
-          $("#modal_item_price_variable_without_discount").html(
-              item_price_without_discount
-          );
-  
-          $("#modal_item_vat_percentage").html(item_vat_percentage);
-          $("#modal_discount_amount").html(item_discount_amount);
-          $("#item_quantity_modal").val(item_quantity);
-          $("#modal_modifiers_unit_price_variable").html(modifiers_price);
-          $("#modal_modifier_price_variable").html(
-              modifiers_price_as_per_item_quantity
-          );
-          $("#modal_discount").val(item_discount_input_value);
-          $("#modal_item_note").val(note);
-          $("#modal_total_price").html(total_price);
-          //add modifiers to pop up associated to menu
-          let foundItems = search_by_menu_id(menu_id, window.items);
-  
-          let originalMenu = foundItems[0].modifiers;
-          let modifiers = "";
-          for (let key in originalMenu) {
-              let selectedOrNot = "unselected";
-              let backgroundColor = "";
-              if (
-                  typeof modifiers_id !== "undefined" &&
-                  modifiers_id.includes(originalMenu[key].menu_modifier_id)
-              ) {
-                  selectedOrNot = "selected";
-                  //this is dynamic style
-                  // backgroundColor = 'style="background-color:#B5D6F6;"';
-              } else {
-                  selectedOrNot = "unselected";
-                  backgroundColor = "";
-              }
-  
-              /*new_added_zak*/
-              let style_content = "";
-              let tmp_class = '';
-              let tmp_price = originalMenu[key].menu_modifier_price;
-              let modifier_ingrs = '';
-              let blank_div = "";
-              let modifier_full_name = originalMenu[key].menu_modifier_name;
-              if(Number(originalMenu[key].type) == 2){
-                  style_content = "none";
-                  tmp_class = "single_modifier";
-                  modifier_ingrs = get_modifier_ingrs_search_by_menu_modi_id(originalMenu[key].modifier_row_id, window.item_modifier_ingrs);
-                  let modifier_ingrs_length = Number(modifier_ingrs.length);
-                  if((modifier_ingrs_length%2)!=0){
-                      blank_div = '\n' +
-                          '<div class="vr01_modal_class_mod" data-selected="unselected" style="\n' +
-                          '    pointer-events: none;\n' +
-                          '"></div>';
-                  }
-  
-                  for (let key1 in modifier_ingrs) {
-                      $(".hidden_mod_cart_"+menu_id+"_"+originalMenu[key].menu_modifier_id).each(function() {
-                          let this_value = ($(this).val());
-                          if(this_value===originalMenu[key].menu_modifier_id+"_"+(modifier_ingrs[key1].inline_mod_row)) {
-                              modifier_full_name = originalMenu[key].menu_modifier_name + "(" + modifier_ingrs[key1].menu_ingr_name+")";
-                          }
-                      });
-                  }
-  
-              }
-  
-              modifiers +=
-                  "<div " +
-                  backgroundColor +
-                  ' class="btn_new_custom modal_modifiers bg_btn_custom '+tmp_class+'"  data-type="'+originalMenu[key].type+'"  style="display:'+style_content+'"  data-menu_tax="' +
-                  originalMenu[key].tax_information +
-                  '"  data-price="' +
-                  originalMenu[key].menu_modifier_price +
-                  '" data-selected="' +
-                  selectedOrNot +
-                  '" id="modifier_' +
-                  originalMenu[key].menu_modifier_id +
-                  '">';
-              modifiers += `<input type="checkbox" ${
-                  selectedOrNot === "selected" ? "checked" : "unchecked"
-                  }/>`;
-              modifiers += "<p>" + modifier_full_name + "</p>";
-              modifiers +=
-                  '<span class="modifier_price"> <span>' +
-                  price_txt +
-                  ":</span> " +
-                  originalMenu[key].menu_modifier_price +
-                  "</span>";
-              modifiers += "</div>";
-  
-              /*new_added_zak*/
-          }
-  
-          if(parent_id){
-              foundItems = search_by_menu_id(parent_id, window.items);
-              originalMenu = foundItems[0].modifiers;
-              modifiers = "";
-              for (let key in originalMenu) {
-                  let selectedOrNot = "unselected";
-                  let backgroundColor = "";
-                  if (
-                      typeof modifiers_id !== "undefined" &&
-                      modifiers_id.includes(originalMenu[key].menu_modifier_id)
-                  ) {
-                      selectedOrNot = "selected";
-                      //this is dynamic style
-                      // backgroundColor = 'style="background-color:#B5D6F6;"';
-                  } else {
-                      selectedOrNot = "unselected";
-                      backgroundColor = "";
-                  }
-  
-                  /*new_added_zak*/
-                  let style_content = "";
-                  let tmp_class = '';
-                  let tmp_price = originalMenu[key].menu_modifier_price;
-                  let modifier_ingrs = '';
-                  let blank_div = "";
-                  if(Number(originalMenu[key].type) == 2){
-                      style_content = "none";
-                      tmp_class = "single_modifier";
-                      modifier_ingrs = get_modifier_ingrs_search_by_menu_modi_id(originalMenu[key].modifier_row_id, window.item_modifier_ingrs);
-                      let modifier_ingrs_length = Number(modifier_ingrs.length);
-                      if((modifier_ingrs_length%2)!=0){
-                          blank_div = '\n' +
-                              '<div class="vr01_modal_class_mod" data-selected="unselected" style="\n' +
-                              '    pointer-events: none;\n' +
-                              '"></div>';
-                      }
-                  }
-  
-                  modifiers +=
-                      "<div " +
-                      backgroundColor +
-                      ' class="btn_new_custom modal_modifiers bg_btn_custom '+tmp_class+'"  data-type="'+originalMenu[key].type+'"   style="display:'+style_content+'"  data-menu_tax="' +
-                      originalMenu[key].tax_information +
-                      '"  data-price="' +
-                      originalMenu[key].menu_modifier_price +
-                      '" data-selected="' +
-                      selectedOrNot +
-                      '" id="modifier_' +
-                      originalMenu[key].menu_modifier_id +
-                      '">';
-                  modifiers += `<input type="checkbox" ${
-                      selectedOrNot === "selected" ? "checked" : "unchecked"
-                      }/>`;
-                  modifiers += "<p>" + originalMenu[key].menu_modifier_name + "</p>";
-                  modifiers +=
-                      '<span class="modifier_price"> <span>' +
-                      price_txt +
-                      ":</span> " +
-                      originalMenu[key].menu_modifier_price +
-                      "</span>";
-                  modifiers += "</div>";
-                  /*new_added_zak*/
-              }
-          }
-          if(modifiers.length){
-              $(".modifier_div").show();
-          }else{
-              $(".modifier_div").hide();
-          }
-          $("#item_modal .section3_new").empty();
-          $("#item_modal .section3_new").prepend(modifiers);
-          if(Number(check_parent_id)){
-              $("#modifier_"+check_parent_id).attr('data-price',check_parent_price);
-              $("#modifier_"+check_parent_id).find('.modifier_price').html("<span>"+price_txt+":</span> "+check_parent_price);
-          }
-  
+
+        // --- Llenar los campos del modal ---
+        $("#modal_item_row").html(row_number);
+        $("#modal_item_id").html(menu_id);
+        $("#item_name_modal_custom").html(item_name);
+        $("#modal_item_price").html(item_price);
+        $("#modal_item_price_variable").html(item_price_with_discount);
+        $("#modal_item_price_variable_without_discount").html(item_price_without_discount);
+        $("#modal_item_vat_percentage").html(item_vat_percentage);
+        $("#modal_discount_amount").html(item_discount_amount);
+        $("#item_quantity_modal").val(item_quantity);
+        $("#modal_modifiers_unit_price_variable").html(modifiers_price);
+        $("#modal_modifier_price_variable").html(modifiers_price_as_per_item_quantity);
+        $("#modal_discount").val(item_discount_input_value);
+        $("#modal_item_note").val(note);
+        $("#modal_total_price").html(total_price);
+
+        // --- ¡AHORA! Consulta AJAX para los modificadores ---
+        $.ajax({
+            url: base_url + "Sale/get_modifiers_by_menu_id",
+            data: { menu_id: menu_id },
+            method: "GET",
+            success: function(response) {
+                let originalMenu = [];
+                if(response && response.trim() !== "") {
+                    originalMenu = eval('[' + response + ']');
+                }
+                // Ahora renderiza los modificadores
+                let modifiers = "";
+                for (let key in originalMenu) {
+                    let selectedOrNot = "unselected";
+                    let backgroundColor = "";
+                    if (
+                        typeof modifiers_id !== "undefined" &&
+                        modifiers_id.includes(originalMenu[key].menu_modifier_id)
+                    ) {
+                        selectedOrNot = "selected";
+                    }
+                    let style_content = "";
+                    let tmp_class = '';
+                    let tmp_price = originalMenu[key].menu_modifier_price;
+                    let modifier_ingrs = '';
+                    let blank_div = "";
+                    let modifier_full_name = originalMenu[key].menu_modifier_name;
+                    if(Number(originalMenu[key].type) == 2){
+                        style_content = "none";
+                        tmp_class = "single_modifier";
+                        modifier_ingrs = get_modifier_ingrs_search_by_menu_modi_id(originalMenu[key].modifier_row_id, window.item_modifier_ingrs);
+                        let modifier_ingrs_length = Number(modifier_ingrs.length);
+                        if((modifier_ingrs_length%2)!=0){
+                            blank_div = '\n' +
+                                '<div class="vr01_modal_class_mod" data-selected="unselected" style="\n' +
+                                '    pointer-events: none;\n' +
+                                '"></div>';
+                        }
+                        for (let key1 in modifier_ingrs) {
+                            $(".hidden_mod_cart_"+menu_id+"_"+originalMenu[key].menu_modifier_id).each(function() {
+                                let this_value = ($(this).val());
+                                if(this_value===originalMenu[key].menu_modifier_id+"_"+(modifier_ingrs[key1].inline_mod_row)) {
+                                    modifier_full_name = originalMenu[key].menu_modifier_name + "(" + modifier_ingrs[key1].menu_ingr_name+")";
+                                }
+                            });
+                        }
+                    }
+                    modifiers +=
+                        "<div " + backgroundColor +
+                        ' class="btn_new_custom modal_modifiers bg_btn_custom '+tmp_class+'"  data-type="'+originalMenu[key].type+'"  style="display:'+style_content+'"  data-menu_tax="' +
+                        originalMenu[key].tax_information +
+                        '"  data-price="' +
+                        originalMenu[key].menu_modifier_price +
+                        '" data-selected="' +
+                        selectedOrNot +
+                        '" id="modifier_' +
+                        originalMenu[key].menu_modifier_id +
+                        '">';
+                    modifiers += `<input type="checkbox" ${
+                        selectedOrNot === "selected" ? "checked" : "unchecked"
+                    }/>`;
+                    modifiers += "<p>" + modifier_full_name + "</p>";
+                    modifiers += '<span class="modifier_price"> <span>' + price_txt + ":</span> " + originalMenu[key].menu_modifier_price + "</span>";
+                    modifiers += "</div>";
+                }
+
+                if(modifiers.length){
+                    $(".modifier_div").show();
+                }else{
+                    $(".modifier_div").hide();
+                }
+                $("#item_modal .section3_new").empty();
+                $("#item_modal .section3_new").prepend(modifiers);
+                if(Number(check_parent_id)){
+                    $("#modifier_"+check_parent_id).attr('data-price',check_parent_price);
+                    $("#modifier_"+check_parent_id).find('.modifier_price').html("<span>"+price_txt+":</span> "+check_parent_price);
+                }
+            },
+            error: function() {
+                $(".modifier_div").hide();
+                $("#item_modal .section3_new").empty().prepend('<span class="text-danger">No se pudieron cargar los modificadores</span>');
+            }
+        });
+
+        // --- Resto de lógica para el modal ---
         let is_self_order = $("#is_self_order").val();
         let modal_item_is_offer = $(this).attr("data-modal_item_is_offer");
-  
         if(is_self_order=="Yes"){
             $("#modal_discount").attr("readonly",'');
         }else{
             $("#modal_discount").removeAttr("readonly");
         }
-  
         if(modal_item_is_offer=="Yes"){
             $("#modal_discount").attr("readonly",'');
         }else{
             $("#modal_discount").removeAttr("readonly");
         }
-  
-          $("#item_modal").addClass("active");
-          $(".pos__modal__overlay").fadeIn(200);
-      });
+        $("#item_modal").addClass("active");
+        $(".pos__modal__overlay").fadeIn(200);
+    });
+
       $(document).on("click", "#close_item_modal", function (e) {
         reset_on_modal_close_or_add_to_cart();
         $(this)
@@ -6643,102 +6333,6 @@ function updateSearchResults(searchText) {
       setTimeout(function () {
           show_all_items();
       }, 700);
-      //show all when all button is clicked
-      $(document).on(
-        "click",
-        "#button_category_show_all,.button_category_show_all1",
-        function () {
-          $(".specific_category_items_holder").fadeOut(0);
-          let foundItems = searchItemAndConstructGallery("");
-          let searched_category_items_to_show =
-            '<div id="searched_item_found" class="specific_category_items_holder 003">';
-  
-          for (let key in foundItems) {
-            let veg_status = "no";
-            if (foundItems[key].veg_item_status == "yes") {
-                veg_status = "yes";
-            }
-            if (foundItems.hasOwnProperty(key)) {
-                if(foundItems[key].parent_id=='0'){
-                    searched_category_items_to_show +=
-                        '<div class="single_item animate__animated animate__flipInX"  data-price="'+foundItems[key].price+'"  data-price_take="'+foundItems[key].price_take+'"   data-is_variation="'+foundItems[key].is_variation+'"  data-parent_id="'+foundItems[key].parent_id+'"   data-price_delivery="'+foundItems[key].price_delivery+ '" data-veg_status="' + veg_status +'"  id="item_' +
-                foundItems[key].item_id +
-                '">';
-              searched_category_items_to_show +=
-                '<img src="' + foundItems[key].image + '" alt="" width="141">';
-              searched_category_items_to_show +=
-                '<p class="item_name" data-tippy-content="' +
-                foundItems[key].item_name +
-                '">' +
-                foundItems[key].item_name +
-                "</p>";
-              searched_category_items_to_show +=
-                '<p class="item_price">' +
-                inv_currency +
-                " " +
-                formatNumberToCurrency(foundItems[key].price) +
-                "</p>";
-              searched_category_items_to_show += "</div>";
-            }
-          }
-          }
-          searched_category_items_to_show += "<div>";
-          $("#searched_item_found").remove();
-          $(".specific_category_items_holder").fadeOut(0);
-          $(".category_items").prepend(searched_category_items_to_show);
-            if(food_menu_tooltip=="show"){
-                tippy(".item_name", {
-                    placement: "bottom-start",
-                });
-            }
-        }
-      );
-        $(document).on("click","#combo_item",function () {
-                $(".specific_category_items_holder").fadeOut(0);
-                let foundItems = searchItemAndConstructGallery("");
-                let searched_category_items_to_show =
-                    '<div id="searched_item_found" class="specific_category_items_holder 003">';
-  
-                for (let key in foundItems) {
-                    if (foundItems.hasOwnProperty(key)) {
-                        let veg_status = "no";
-                        if (foundItems[key].veg_item_status == "yes") {
-                            veg_status = "yes";
-                        }
-                        if(foundItems[key].parent_id=='0' && foundItems[key].product_type==2){
-                            searched_category_items_to_show +=
-                                '<div class="single_item animate__animated animate__flipInX"  data-price="'+foundItems[key].price+'"  data-price_take="'+foundItems[key].price_take+'"   data-is_variation="'+foundItems[key].is_variation+'"  data-parent_id="'+foundItems[key].parent_id+'"   data-price_delivery="'+foundItems[key].price_delivery+'" data-veg_status="' + veg_status +'"  id="item_' +
-                                foundItems[key].item_id +
-                                '">';
-                            searched_category_items_to_show +=
-                                '<img src="' + foundItems[key].image + '" alt="" width="141">';
-                            searched_category_items_to_show +=
-                                '<p class="item_name" data-tippy-content="' +
-                                foundItems[key].item_name +
-                                '">' +
-                                foundItems[key].item_name +
-                                "</p>";
-                            searched_category_items_to_show +=
-                                '<p class="item_price">' +
-                                inv_currency +
-                                " " +
-                                formatNumberToCurrency(foundItems[key].price) +
-                                "</p>";
-                            searched_category_items_to_show += "</div>";
-                        }
-                    }
-                }
-                searched_category_items_to_show += "<div>";
-                $("#searched_item_found").remove();
-                $(".specific_category_items_holder").fadeOut(0);
-                $(".category_items").prepend(searched_category_items_to_show);
-            if(food_menu_tooltip=="show"){
-                tippy(".item_name", {
-                    placement: "bottom-start",
-                });
-            }
-            }
-        );
       $(document).on("click", "#increase_item_modal", function (e) {
         //get recent item price
         let current_item_price_modal = parseFloat(
@@ -9021,216 +8615,236 @@ function updateSearchResults(searchText) {
   
                   items_info += '"items":';
                   items_info += "[";
-                  if ($(".order_holder .single_order").length > 0) {
-                      let k = 1;
-                      $(".order_holder .single_order").each(function (i, obj) {
-                          let item_id = $(this).attr("id").substr(15);
-                          let item_name = $(this)
-                              .find("#item_name_table_" + item_id)
-                              .html();
-                          let item_vat = $(this).find(".item_vat").html();
-                          let item_discount = $(this)
-                              .find("#percentage_table_" + item_id)
-                              .val();
-                          let discount_type = "";
-                          if (
-                              item_discount.length > 0 &&
-                              item_discount.substr(item_discount.length - 1) == "%"
-                          ) {
-                              discount_type = "percentage";
-                          } else {
-                              discount_type = "fixed";
-                          }
-                          let item_previous_id = $(this)
-                              .find("#item_previous_id_table" + item_id)
-                              .html();
-                          let item_cooking_done_time = $(this)
-                              .find("#item_cooking_done_time_table" + item_id)
-                              .html();
-                          let item_cooking_start_time = $(this)
-                              .find("#item_cooking_start_time_table" + item_id)
-                              .html();
-                          let item_cooking_status = $(this)
-                              .find("#item_cooking_status_table" + item_id)
-                              .html();
-                          let item_type = $(this)
-                              .find("#item_type_table" + item_id)
-                              .html();
-                          let item_price_without_discount = $(this)
-                              .find(".item_price_without_discount")
-                              .html();
-                          let item_unit_price = $(this)
-                              .find("#item_price_table_" + item_id)
-                              .html();
-                          let item_quantity = $(this).find("#item_quantity_table_" + item_id).html();
-                          let is_kot_print = $(this).find("#item_quantity_table_" + item_id).attr('data-is_kot_print');
-                          let tmp_qty = $(this).find(".tmp_qty").val();
-                          let rounding_amount_hidden = $(this).find("#rounding_amount_hidden").val();
-                          let p_qty = $(this).find(".p_qty").val();
-                          let item_price_with_discount = $(this)
-                              .find("#item_total_price_table_" + item_id)
-                              .html();
-                          let item_discount_amount = (
-                              parseFloat(item_price_without_discount) -
-                              parseFloat(item_price_with_discount)
-                          ).toFixed(ir_precision);
-                          let kitchen_details_1 = search_by_menu_id(item_id, window.items);
-                   
-                          items_info +=
-                              '{"food_menu_id":"' +
-                              item_id +
-                              '", "is_print":"' + 1 +
-                              '", "is_kot_print":"' + is_kot_print +
-                              '", "menu_name":"' + item_name +
-                              '", "kitchen_id":"' + kitchen_details_1[0].kitchen_id +
-                              '", "kitchen_name":"' + kitchen_details_1[0].kitchen_name +
-                              '", "is_free":"0", "rounding_amount_hidden":"0", "item_vat":' +
-                              item_vat +
-                              ",";
-                          items_info +=
-                              '"menu_discount_value":"' +
-                              item_discount +
-                              '","discount_type":"' +
-                              discount_type +
-                              '","menu_price_without_discount":"' +
-                              item_price_without_discount +
-                              '",';
-                          items_info +=
-                              '"menu_unit_price":"' +
-                              item_unit_price +
-                              '","qty":"' +
-                              item_quantity +
-                              '","tmp_qty":"' +
-                              tmp_qty +
-                              '","p_qty":"' +
-                              p_qty +
-                              '",';
-                          items_info +=
-                              '"item_previous_id":"' +
-                              item_previous_id +
-                              '","item_cooking_done_time":"' +
-                              item_cooking_done_time +
-                              '",';
-                          items_info +=
-                              '"item_cooking_start_time":"' +
-                              item_cooking_start_time +
-                              '","item_cooking_status":"' +
-                              item_cooking_status +
-                              '","item_type":"' +
-                              item_type +
-                              '",';
-                          items_info +=
-                              '"menu_price_with_discount":"' +
-                              item_price_with_discount +
-                              '","item_discount_amount":"' +
-                              item_discount_amount +
-                              '"';
-                          let modifiers_tax_custom = "";
-                          let ji = 1;
-                          let modifier_vat = "";
-                          $(".item_vat_modifier_" + item_id).each(function (i, obj) {
-                              if (ji == $(".item_vat_modifier_" + item_id).length) {
-                                  modifier_vat += $(this).html();
-                              } else {
-                                  modifier_vat += $(this).html() + "|||";
-                              }
-                              ji++;
-                          });
-                          if ($(this).find(".second_portion").length > 0) {
-                              let modifiers_id = $(this)
-                                  .find("#item_modifiers_id_table_" + item_id)
-                                  .html();
-                              let modifiers_name = $(this).find("#item_modifiers_table_" + item_id).html();//Added By Jobayer
-                              let modifiers_price = $(this)
-                                  .find("#item_modifiers_price_table_" + item_id)
-                                  .html();
-                              items_info +=
-                                  ',"modifiers_id":"' +
-                                  modifiers_id  +
-                                  '", "modifiers_name":"' + modifiers_name+'", "modifiers_price":"' +
-                                  modifiers_price +
-                                  '", "modifier_vat":' +
-                                  JSON.stringify(modifier_vat);
-                          } else {
-                              items_info +=
-                                  ',"modifiers_id":"", "modifiers_name":"", "modifiers_price":"", "modifier_vat":""';
-                          }
-                          if ($(this).find(".third_portion").length > 0) {
-                              let item_note = $(this)
-                                  .find("#item_note_table_" + item_id)
-                                  .html();
-                              items_info += ',"item_note":"' + item_note + '"';
-                          } else {
-                              items_info += ',"item_note":""';
-                          }
-                          let combo_txt = $("#item_combo_table_"+item_id).text();
-                          if(combo_txt==undefined){
-                              items_info += ',"menu_combo_items":""';
-                          }else{
-                              items_info += ',"menu_combo_items":"' + (combo_txt) + '"';
-                          }
-  
-                          let free_item_div = $(".free_item_div_"+item_id).attr("data-is_free");
-                          let get_fm_id = $(".free_item_div_"+item_id).attr("data-get_fm_id");
-                          if(free_item_div=="Yes"){
-                              items_info +="},";
-                              let free_item_quantity_table = $("#free_item_quantity_table_"+item_id).html();
-                              let free_item_name_table = $("#free_item_name_table_"+item_id).html();
-  
-                              let kitchen_details_2 = search_by_menu_id(item_id, window.items);
-  
-                              items_info +=
-                                  '{"food_menu_id":"' +
-                                  get_fm_id +
-                                  '", "is_print":"' + 1 +
-                                  '", "menu_name":"' + free_item_name_table +
-                                  '", "kitchen_id":"' + kitchen_details_2[0].kitchen_id +
-                                  '", "kitchen_name":"' + kitchen_details_2[0].kitchen_name +
-                                  '", "parent_food_id":"' + item_id+
-                                  '", "is_free":"1", "rounding_amount_hidden":"0", "item_vat":' +
-                                  item_vat +
-                                  ",";
-                              items_info +=
-                                  '"menu_discount_value":"0","discount_type":"' +
-                                  discount_type +
-                                  '","menu_price_without_discount":"0",';
-                              items_info +=
-                                  '"menu_unit_price":"0","qty":"' +
-                                  free_item_quantity_table +
-                                  '","tmp_qty":"' +
-                                  free_item_quantity_table +
-                                  '","p_qty":"' +
-                                  free_item_quantity_table +
-                                  '",';
-                              items_info +=
-                                  '"item_previous_id":"' +
-                                  item_previous_id +
-                                  '","item_cooking_done_time":"' +
-                                  item_cooking_done_time +
-                                  '",';
-                              items_info +=
-                                  '"item_cooking_start_time":"' +
-                                  item_cooking_start_time +
-                                  '","item_cooking_status":"' +
-                                  item_cooking_status +
-                                  '","item_type":"' +
-                                  item_type +
-                                  '",';
-                              items_info +=
-                                  '"menu_price_with_discount":"0","item_discount_amount":"0"';
-                              items_info +=
-                                  ',"modifiers_id":"", "modifiers_price":"", "modifier_vat":""';
-                              items_info += ',"item_note":""';
-                              items_info += ',"menu_combo_items":""';
-                              items_info +=
-                                  k == $(".order_holder .single_order").length ? "}" : "},";
-                          }else{
-                              items_info +=
-                                  k == $(".order_holder .single_order").length ? "}" : "},";
-                          }
-                          k++;
-                      });
-                  }
+                  $(".order_holder .single_order").each(function (i, obj) {
+                    let item_id = $(this).attr("id").substr(15);
+                    let item_name = $(this).find("#item_name_table_" + item_id).html();
+                    let item_vat = $(this).find(".item_vat").html();
+                    let item_discount = $(this).find("#percentage_table_" + item_id).val();
+                    let discount_type = "";
+                    if (item_discount.length > 0 && item_discount.substr(item_discount.length - 1) == "%") {
+                        discount_type = "percentage";
+                    } else {
+                        discount_type = "fixed";
+                    }
+                    let item_previous_id = $(this).find("#item_previous_id_table" + item_id).html();
+                    let item_cooking_done_time = $(this).find("#item_cooking_done_time_table" + item_id).html();
+                    let item_cooking_start_time = $(this).find("#item_cooking_start_time_table" + item_id).html();
+                    let item_cooking_status = $(this).find("#item_cooking_status_table" + item_id).html();
+                    let item_type = $(this).find("#item_type_table" + item_id).html();
+                    let item_price_without_discount = $(this).find(".item_price_without_discount").html();
+                    let item_unit_price = $(this).find("#item_price_table_" + item_id).html();
+                    let item_quantity = $(this).find("#item_quantity_table_" + item_id).html();
+                    let is_kot_print = $(this).find("#item_quantity_table_" + item_id).attr('data-is_kot_print');
+                    let tmp_qty = $(this).find(".tmp_qty").val();
+                    let rounding_amount_hidden = $(this).find("#rounding_amount_hidden").val();
+                    let p_qty = $(this).find(".p_qty").val();
+                    let item_price_with_discount = $(this).find("#item_total_price_table_" + item_id).html();
+                    let item_discount_amount = (
+                        parseFloat(item_price_without_discount) - parseFloat(item_price_with_discount)
+                    ).toFixed(ir_precision);
+                
+                    // --- AJAX síncrono para obtener kitchen_id y kitchen_name ---
+                    let kitchen_id = "";
+                    let kitchen_name = "";
+                    $.ajax({
+                        url: base_url + "Sale/get_modifiers_by_menu_id",
+                        data: { menu_id: item_id },
+                        method: "GET",
+                        async: false, // Síncrono para obtener los datos antes de continuar
+                        success: function(response) {
+                            if(response && response.trim() !== "") {
+                                try {
+                                    let modifiers = eval('[' + response + ']');
+                                    // Puedes adaptar esto según la estructura de tu respuesta
+                                    if(Array.isArray(modifiers) && modifiers.length > 0) {
+                                        kitchen_id = modifiers[0].kitchen_id || "";
+                                        kitchen_name = modifiers[0].kitchen_name || "";
+                                    }
+                                } catch(e) {
+                                    kitchen_id = "";
+                                    kitchen_name = "";
+                                }
+                            }
+                        },
+                        error: function() {
+                            kitchen_id = "";
+                            kitchen_name = "";
+                        }
+                    });
+                
+                    items_info +=
+                        '{"food_menu_id":"' +
+                        item_id +
+                        '", "is_print":"' + 1 +
+                        '", "is_kot_print":"' + is_kot_print +
+                        '", "menu_name":"' + item_name +
+                        '", "kitchen_id":"' + kitchen_id +
+                        '", "kitchen_name":"' + kitchen_name +
+                        '", "is_free":"0", "rounding_amount_hidden":"0", "item_vat":' +
+                        item_vat +
+                        ",";
+                    items_info +=
+                        '"menu_discount_value":"' +
+                        item_discount +
+                        '","discount_type":"' +
+                        discount_type +
+                        '","menu_price_without_discount":"' +
+                        item_price_without_discount +
+                        '",';
+                    items_info +=
+                        '"menu_unit_price":"' +
+                        item_unit_price +
+                        '","qty":"' +
+                        item_quantity +
+                        '","tmp_qty":"' +
+                        tmp_qty +
+                        '","p_qty":"' +
+                        p_qty +
+                        '",';
+                    items_info +=
+                        '"item_previous_id":"' +
+                        item_previous_id +
+                        '","item_cooking_done_time":"' +
+                        item_cooking_done_time +
+                        '",';
+                    items_info +=
+                        '"item_cooking_start_time":"' +
+                        item_cooking_start_time +
+                        '","item_cooking_status":"' +
+                        item_cooking_status +
+                        '","item_type":"' +
+                        item_type +
+                        '",';
+                    items_info +=
+                        '"menu_price_with_discount":"' +
+                        item_price_with_discount +
+                        '","item_discount_amount":"' +
+                        item_discount_amount +
+                        '"';
+                    let modifiers_tax_custom = "";
+                    let ji = 1;
+                    let modifier_vat = "";
+                    $(".item_vat_modifier_" + item_id).each(function (i, obj) {
+                        if (ji == $(".item_vat_modifier_" + item_id).length) {
+                            modifier_vat += $(this).html();
+                        } else {
+                            modifier_vat += $(this).html() + "|||";
+                        }
+                        ji++;
+                    });
+                    if ($(this).find(".second_portion").length > 0) {
+                        let modifiers_id = $(this).find("#item_modifiers_id_table_" + item_id).html();
+                        let modifiers_name = $(this).find("#item_modifiers_table_" + item_id).html();
+                        let modifiers_price = $(this).find("#item_modifiers_price_table_" + item_id).html();
+                        items_info +=
+                            ',"modifiers_id":"' +
+                            modifiers_id  +
+                            '", "modifiers_name":"' + modifiers_name+'", "modifiers_price":"' +
+                            modifiers_price +
+                            '", "modifier_vat":' +
+                            JSON.stringify(modifier_vat);
+                    } else {
+                        items_info +=
+                            ',"modifiers_id":"", "modifiers_name":"", "modifiers_price":"", "modifier_vat":""';
+                    }
+                    if ($(this).find(".third_portion").length > 0) {
+                        let item_note = $(this).find("#item_note_table_" + item_id).html();
+                        items_info += ',"item_note":"' + item_note + '"';
+                    } else {
+                        items_info += ',"item_note":""';
+                    }
+                    let combo_txt = $("#item_combo_table_"+item_id).text();
+                    if(combo_txt==undefined){
+                        items_info += ',"menu_combo_items":""';
+                    }else{
+                        items_info += ',"menu_combo_items":"' + (combo_txt) + '"';
+                    }
+                
+                    let free_item_div = $(".free_item_div_"+item_id).attr("data-is_free");
+                    let get_fm_id = $(".free_item_div_"+item_id).attr("data-get_fm_id");
+                    if(free_item_div=="Yes"){
+                        items_info +="},";
+                        let free_item_quantity_table = $("#free_item_quantity_table_"+item_id).html();
+                        let free_item_name_table = $("#free_item_name_table_"+item_id).html();
+                
+                        // --- También obtener kitchen_id y kitchen_name para el ítem gratis ---
+                        let kitchen_id_free = "";
+                        let kitchen_name_free = "";
+                        $.ajax({
+                            url: base_url + "Sale/get_modifiers_by_menu_id",
+                            data: { menu_id: item_id },
+                            method: "GET",
+                            async: false,
+                            success: function(response) {
+                                if(response && response.trim() !== "") {
+                                    try {
+                                        let modifiers = eval('[' + response + ']');
+                                        if(Array.isArray(modifiers) && modifiers.length > 0) {
+                                            kitchen_id_free = modifiers[0].kitchen_id || "";
+                                            kitchen_name_free = modifiers[0].kitchen_name || "";
+                                        }
+                                    } catch(e) {
+                                        kitchen_id_free = "";
+                                        kitchen_name_free = "";
+                                    }
+                                }
+                            },
+                            error: function() {
+                                kitchen_id_free = "";
+                                kitchen_name_free = "";
+                            }
+                        });
+                
+                        items_info +=
+                            '{"food_menu_id":"' +
+                            get_fm_id +
+                            '", "is_print":"' + 1 +
+                            '", "menu_name":"' + free_item_name_table +
+                            '", "kitchen_id":"' + kitchen_id_free +
+                            '", "kitchen_name":"' + kitchen_name_free +
+                            '", "parent_food_id":"' + item_id+
+                            '", "is_free":"1", "rounding_amount_hidden":"0", "item_vat":' +
+                            item_vat +
+                            ",";
+                        items_info +=
+                            '"menu_discount_value":"0","discount_type":"' +
+                            discount_type +
+                            '","menu_price_without_discount":"0",';
+                        items_info +=
+                            '"menu_unit_price":"0","qty":"' +
+                            free_item_quantity_table +
+                            '","tmp_qty":"' +
+                            free_item_quantity_table +
+                            '","p_qty":"' +
+                            free_item_quantity_table +
+                            '",';
+                        items_info +=
+                            '"item_previous_id":"' +
+                            item_previous_id +
+                            '","item_cooking_done_time":"' +
+                            item_cooking_done_time +
+                            '",';
+                        items_info +=
+                            '"item_cooking_start_time":"' +
+                            item_cooking_start_time +
+                            '","item_cooking_status":"' +
+                            item_cooking_status +
+                            '","item_type":"' +
+                            item_type +
+                            '",';
+                        items_info +=
+                            '"menu_price_with_discount":"0","item_discount_amount":"0"';
+                        items_info +=
+                            ',"modifiers_id":"", "modifiers_price":"", "modifier_vat":""';
+                        items_info += ',"item_note":""';
+                        items_info += ',"menu_combo_items":""';
+                        items_info +=
+                            i == $(".order_holder .single_order").length-1 ? "}" : "},";
+                    }else{
+                        items_info +=
+                            i == $(".order_holder .single_order").length-1 ? "}" : "},";
+                    }
+                });
                   items_info += "]";
                   order_info += items_info + "}";
                   let outlet_id_indexdb = $("#outlet_id_indexdb").val();
@@ -10555,7 +10169,7 @@ function updateSearchResults(searchText) {
           let item_total_price_without_discount = (
               parseFloat(item_quantity) * (parseFloat(item_unit_price))
           ).toFixed(ir_precision);
-          console.log(parseFloat(item_quantity),parseFloat(item_unit_price),ir_precision);
+        //   console.log(parseFloat(item_quantity),parseFloat(item_unit_price),ir_precision);
           //set item total price without discount
           $("#modal_item_price_variable_without_discount").html(
               item_total_price_without_discount
@@ -11172,6 +10786,372 @@ function updateSearchResults(searchText) {
         add_hold_by_ajax(order_object, hold_number);
       });
     }
+    
+//         $(document).on("click","#combo_item",function () {
+//             $(".specific_category_items_holder").fadeOut(0);
+//             let foundItems = searchItemAndConstructGallery("");
+//             let searched_category_items_to_show =
+//                 '<div id="searched_item_found" class="specific_category_items_holder 003">';
+
+//             for (let key in foundItems) {
+//                 if (foundItems.hasOwnProperty(key)) {
+//                     let veg_status = "no";
+//                     if (foundItems[key].veg_item_status == "yes") {
+//                         veg_status = "yes";
+//                     }
+//                     if(foundItems[key].parent_id=='0' && foundItems[key].product_type==2){
+//                         searched_category_items_to_show +=
+//                             '<div class="single_item animate__animated animate__flipInX"  data-price="'+foundItems[key].price+'"  data-price_take="'+foundItems[key].price_take+'"   data-is_variation="'+foundItems[key].is_variation+'"  data-parent_id="'+foundItems[key].parent_id+'"   data-price_delivery="'+foundItems[key].price_delivery+'" data-veg_status="' + veg_status +'"  id="item_' +
+//                             foundItems[key].item_id +
+//                             '">';
+//                         searched_category_items_to_show +=
+//                             '<img src="' + foundItems[key].image + '" alt="" width="141">';
+//                         searched_category_items_to_show +=
+//                             '<p class="item_name" data-tippy-content="' +
+//                             foundItems[key].item_name +
+//                             '">' +
+//                             foundItems[key].item_name +
+//                             "</p>";
+//                         searched_category_items_to_show +=
+//                             '<p class="item_price">' +
+//                             inv_currency +
+//                             " " +
+//                             formatNumberToCurrency(foundItems[key].price) +
+//                             "</p>";
+//                         searched_category_items_to_show += "</div>";
+//                     }
+//                 }
+//             }
+//             searched_category_items_to_show += "<div>";
+//             $("#searched_item_found").remove();
+//             $(".specific_category_items_holder").fadeOut(0);
+//             $(".category_items").prepend(searched_category_items_to_show);
+//         if(food_menu_tooltip=="show"){
+//             tippy(".item_name", {
+//                 placement: "bottom-start",
+//             });
+//         }
+//         }
+//     );
+
+    //   //get all images based on category when category button is clicked
+    //   $(document).on("click", ".category_button", function (e) {
+    //     let str = $(this).attr("id");
+    //     let res = str.substr(16);
+    //     $("#searched_item_found").remove();
+    //     $(".specific_category_items_holder").fadeOut(0);
+    //     $("#category_" + res).css("display", "grid");
+    //   });
+//       //get all images based on category when category button is clicked
+//       $(document).on("click", ".veg_bev_item", function (e) {
+//         let status = $(this).attr("data-status");
+//         $(".specific_category_items_holder").fadeOut(0);
+//         let foundItems = searchItemAndConstructGallery("");
+//         let searched_category_items_to_show =
+//           '<div id="searched_item_found" class="specific_category_items_holder 003">';
+//         for (let key in foundItems) {
+//             if (foundItems.hasOwnProperty(key)) {
+//                 if (status == "veg" && foundItems[key].veg_item_status == "yes") {
+//                     if (foundItems[key].parent_id == '0') {
+//                         searched_category_items_to_show +=
+//                             '<div class="single_item animate__animated animate__flipInX"   data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + 
+//                             '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"    data-price_delivery="' + foundItems[key].price_delivery + '"  data-veg_status="yes"  id="item_' +
+//                             foundItems[key].item_id +
+//                             '">';
+//                         searched_category_items_to_show +=
+//                             '<img src="' + foundItems[key].image + '" alt="" width="141">';
+//                         searched_category_items_to_show +=
+//                             '<p class="item_name" data-tippy-content="' +
+//                             foundItems[key].item_name +
+//                             '">' +
+//                             foundItems[key].item_name +"</p>";
+//                         searched_category_items_to_show +=
+//                             '<p class="item_price">' +
+//                             inv_currency +
+//                             " " +
+//                             formatNumberToCurrency(foundItems[key].price) +
+//                             "</p>";
+  
+//                         searched_category_items_to_show += "</div>";
+//                     }
+//                 } else if (
+//                     status == "bev" &&
+//                     foundItems[key].beverage_item_status == "yes"
+//                 ) {
+//                     if (foundItems[key].parent_id == '0') {
+//                         searched_category_items_to_show +=
+//                             '<div class="single_item animate__animated animate__flipInX"  data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '" data-veg_status="no"   data-price_delivery="' + foundItems[key].price_delivery + '"  id="item_' +
+//                             foundItems[key].item_id +
+//                             '">';
+//                         searched_category_items_to_show +=
+//                             '<img src="' + foundItems[key].image + '" alt="" width="141">';
+//                         searched_category_items_to_show +=
+//                             '<p class="item_name" data-tippy-content="' +
+//                             foundItems[key].item_name +
+//                             '">' +
+//                             foundItems[key].item_name +
+//                             "</p>";
+//                         searched_category_items_to_show +=
+//                             '<p class="item_price">' +
+//                             inv_currency +
+//                             " " +
+//                             formatNumberToCurrency(foundItems[key].price) +
+//                             "</p>";
+  
+//                         searched_category_items_to_show += "</div>";
+//                     }
+//                 }
+//             }
+//         }
+//         searched_category_items_to_show += "<div>";
+//         $("#searched_item_found").remove();
+//         $(".specific_category_items_holder").fadeOut(0);
+//         $(".category_items").prepend(searched_category_items_to_show);
+  
+//         if(food_menu_tooltip=="show"){
+//             tippy(".item_name", {
+//                 placement: "bottom-start",
+//             });
+//         }
+  
+//       });
+
+      
+// let searchTimeout; // Para el debounce
+
+// $(document).on("keyup", "#search", function (e) {
+//     clearTimeout(searchTimeout);
+//     let searched_string = $(this).val().trim();
+    
+//     // Si se presiona Enter
+//     if (e.keyCode === 13 && searched_string) {
+//         e.preventDefault(); // Prevenir comportamiento por defecto
+
+//         // Buscar producto por código exacto
+//         let foundItem = window.items.find(item =>
+//             item.item_code && item.item_code.trim().toLowerCase() === searched_string.toLowerCase()
+//         );
+
+//         if (foundItem) {
+//             // Simular click en el producto encontrado
+//             $(`#item_${foundItem.item_id}`).click();
+//             $(this).val(''); // Limpiar el buscador después de agregar
+//             show_all_items(); // Mostrar todos los items nuevamente
+//         } else {
+//             updateSearchResults(searched_string);
+//         }
+//     } else {
+//         searchTimeout = setTimeout(() => {
+//             if (searched_string) {
+//                 updateSearchResults(searched_string);
+//             } else {
+//                 show_all_items();
+//             }
+//         }, 200); // Esperamos 200ms antes de ejecutar la búsqueda
+//     }
+// });
+
+// // Función optimizada para construir los resultados
+// function updateSearchResults(searchText) {
+//     let foundItems = searchItemAndConstructGallery(searchText);
+//     let container = document.createElement("div");
+//     container.id = "searched_item_found";
+//     container.className = "specific_category_items_holder 002";
+
+//     for (let key in foundItems) {
+//         let veg_status = "no";
+//         if (foundItems[key].veg_item_status == "yes") {
+//             veg_status = "yes";
+//         }
+//         if (foundItems[key].parent_id == '0') {
+//             let item = foundItems[key];
+//             let itemDiv = document.createElement("div");
+//             itemDiv.className = "single_item animate__animated animate__flipInX";
+//             itemDiv.dataset.price = item.price;
+//             itemDiv.dataset.price_take = item.price_take;
+//             itemDiv.dataset.is_variation = item.is_variation;
+//             itemDiv.dataset.parent_id = item.parent_id;
+//             itemDiv.dataset.price_delivery = item.price_delivery;
+//             itemDiv.dataset.veg_status = veg_status;
+//             itemDiv.id = `item_${item.item_id}`;
+
+//             itemDiv.innerHTML = `
+//                 <img src="${item.image}" alt="" width="141">
+//                 <p class="item_name" data-tippy-content="${item.item_name}">${item.item_name}</p>
+//                 <p class="item_price">${inv_currency} ${formatNumberToCurrency(item.price)}</p>
+//                 <span class="item_vat_percentage ir_display_none">${item.vat_percentage}</span>
+//             `;
+
+//             container.appendChild(itemDiv);
+//         }
+//     }
+
+//     // Actualizar el DOM de forma eficiente
+//     $("#searched_item_found").remove();
+//     $(".specific_category_items_holder").fadeOut(0);
+//     $(".category_items").prepend(container);
+
+//     if (food_menu_tooltip == "show") {
+//         tippy(".item_name", { placement: "bottom-start" });
+//     }
+// }
+
+
+//       //show all when all button is clicked
+//       $(document).on(
+//         "click",
+//         "#button_category_show_all,.button_category_show_all1",
+//         function () {
+//           $(".specific_category_items_holder").fadeOut(0);
+//           let foundItems = searchItemAndConstructGallery("");
+//           let searched_category_items_to_show =
+//             '<div id="searched_item_found" class="specific_category_items_holder 003">';
+  
+//           for (let key in foundItems) {
+//             let veg_status = "no";
+//             if (foundItems[key].veg_item_status == "yes") {
+//                 veg_status = "yes";
+//             }
+//             if (foundItems.hasOwnProperty(key)) {
+//                 if(foundItems[key].parent_id=='0'){
+//                     searched_category_items_to_show +=
+//                         '<div class="single_item animate__animated animate__flipInX"  data-price="'+foundItems[key].price+'"  data-price_take="'+foundItems[key].price_take+'"   data-is_variation="'+foundItems[key].is_variation+'"  data-parent_id="'+foundItems[key].parent_id+'"   data-price_delivery="'+foundItems[key].price_delivery+ '" data-veg_status="' + veg_status +'"  id="item_' +
+//                 foundItems[key].item_id +
+//                 '">';
+//               searched_category_items_to_show +=
+//                 '<img src="' + foundItems[key].image + '" alt="" width="141">';
+//               searched_category_items_to_show +=
+//                 '<p class="item_name" data-tippy-content="' +
+//                 foundItems[key].item_name +
+//                 '">' +
+//                 foundItems[key].item_name +
+//                 "</p>";
+//               searched_category_items_to_show +=
+//                 '<p class="item_price">' +
+//                 inv_currency +
+//                 " " +
+//                 formatNumberToCurrency(foundItems[key].price) +
+//                 "</p>";
+//               searched_category_items_to_show += "</div>";
+//             }
+//           }
+//           }
+//           searched_category_items_to_show += "<div>";
+//           $("#searched_item_found").remove();
+//           $(".specific_category_items_holder").fadeOut(0);
+//           $(".category_items").prepend(searched_category_items_to_show);
+//             if(food_menu_tooltip=="show"){
+//                 tippy(".item_name", {
+//                     placement: "bottom-start",
+//                 });
+//             }
+//         }
+//       );
+
+
+let searchTimeout;
+
+$(document).on("keyup", "#search", function (e) {
+    clearTimeout(searchTimeout);
+    let searched_string = $(this).val().trim();
+
+    if (e.keyCode === 13 && searched_string) {
+        e.preventDefault();
+
+        // Ejecuta la búsqueda (si tienes una función para ello)
+        fetchAndDisplayArticles(searched_string);
+
+        // Espera un poco para que se rendericen los resultados y luego hace click al primero
+        setTimeout(function() {
+            let $firstItem = $(".single_item:visible").first();
+            if ($firstItem.length) {
+                $firstItem.click();
+                $("#search").val('');
+                // Si necesitas mostrar todos de nuevo después de agregar, puedes llamar a show_all_items()
+            }
+        }, 150);
+    } else {
+        searchTimeout = setTimeout(() => {
+            if (searched_string) {
+                fetchAndDisplayArticles(searched_string);
+            } else {
+                fetchAndDisplayArticles(""); // destacados o todos
+            }
+        }, 200);
+    }
+});
+
+function fetchAndDisplayArticles(searchText, categoryId = "", type = "") {
+    $.ajax({
+        url: base_url + "Sale/search_food_menus_ajax",
+        method: "GET",
+        data: {
+            q: searchText,
+            category_id: categoryId,
+            type: type // veg, bev, combo, etc.
+        },
+        dataType: "json",
+        beforeSend: function(){
+            $("#main_item_holder .category_items").html('<div class="loading">Cargando...</div>');
+        },
+        success: function(items){
+            let html = '<div id="searched_item_found" class="specific_category_items_holder">';
+            $.each(items, function(i, item){
+                if(item.parent_id == '0'){
+                    let veg_status = (item.veg_item == "Veg Yes") ? "yes" : "no";
+                    let image_path = item.photo ? (base_url + "images/" + item.photo) : (base_url + "images/image_thumb.png");
+                    html += `
+                        <div class="single_item animate__animated animate__flipInX" 
+                            data-price="${item.sale_price}" data-price_take="${item.sale_price_take_away}" 
+                            data-is_variation="${item.is_variation}" data-parent_id="${item.parent_id}"
+                            data-price_delivery="${item.sale_price_delivery}" data-veg_status="${veg_status}" 
+                            id="item_${item.id}">
+                            <img src="${image_path}" alt="" width="141">
+                            <p class="item_name" data-tippy-content="${item.name}">${item.name}</p>
+                            <p class="item_price">${inv_currency} ${formatNumberToCurrency(item.sale_price)}</p>
+                        </div>
+                    `;
+                }
+            });
+            html += "</div>";
+            $(".loading").remove();
+            $("#searched_item_found").remove();
+            $(".specific_category_items_holder").fadeOut(0);
+            $(".category_items").prepend(html);
+            if(food_menu_tooltip=="show"){
+                tippy(".item_name", { placement: "bottom-start" });
+            }
+        },
+        error: function(){
+            $("#main_item_holder .category_items").html('<div class="error">Error al buscar artículos.</div>');
+        }
+    });
+}
+
+//get all images based on category when category button is clicked
+$(document).on("click", ".category_button", function (e) {
+let str = $(this).attr("id");
+let res = str.substr(16);
+// $("#searched_item_found").remove();
+// $(".specific_category_items_holder").fadeOut(0);
+// $("#category_" + res).css("display", "grid");
+fetchAndDisplayArticles("",res);
+});
+
+$(".button_category_show_all1").on("click", function(){
+    fetchAndDisplayArticles(""); // sin búsqueda, trae los destacados
+});
+$(".veg_bev_item[data-status=veg]").on("click", function(){
+    fetchAndDisplayArticles("", "", "veg");
+});
+$(".veg_bev_item[data-status=bev]").on("click", function(){
+    fetchAndDisplayArticles("", "", "bev");
+});
+$("#combo_item").on("click", function(){
+    fetchAndDisplayArticles("", "", "combo");
+});
+
+
     $(".marquee").marquee({
       //speed in milliseconds of the marquee
       duration: 5000,
