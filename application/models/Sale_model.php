@@ -364,13 +364,35 @@ class Sale_model extends CI_Model {
         $this->db->where('fm.del_status', 'Live');
         $this->db->where("FIND_IN_SET(fm.id, '$fm_ids')");
 
+        $col = "utf8mb4_general_ci";
+        $column_search = array('fm.name', 'fm.code');
         // Búsqueda por término, nombre, código o categoría
         if ($term) {
+          
+            $delimiter = ' ';
+            $palabras = explode($delimiter, $term);
+    
+            $concat_search = '';
+            $i_cs = 0;
+            foreach ($column_search as $item){
+                if ($i_cs > 0){
+                    $concat_search = $concat_search . ", ";
+                }
+                $concat_search .= "IFNULL(CONCAT($item, ' '), '') COLLATE $col";
+                $i_cs++;
+            }
+          
             $this->db->group_start();
-            $this->db->like('fm.name', $term);
-            $this->db->or_like('fm.code', $term);
-            $this->db->or_like('fmc.category_name', $term);
-            $this->db->group_end();
+            foreach ($palabras as $palabra){
+                $this->db->like("CONCAT($concat_search)", $palabra);
+            }
+            $this->db->group_end(); //close bracket
+
+            // $this->db->group_start();
+            // $this->db->like('fm.name', $term);
+            // $this->db->or_like('fm.code', $term);
+            // $this->db->or_like('fmc.category_name', $term);
+            // $this->db->group_end();
         }
         // Filtro por categoría
         if ($category_id) {

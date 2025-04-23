@@ -5460,6 +5460,18 @@ function openProductEditModalForPromo(string_text, item_name, id, promo_type, di
         }
     });
 }
+
+function getSafePrice(priceAttr) {
+    if (
+        priceAttr === undefined || priceAttr === null ||
+        priceAttr === "" || priceAttr === "null"
+    ) {
+        return null;
+    }
+    let parsed = parseFloat(priceAttr);
+    return isNaN(parsed) ? null : parsed;
+}
+
       //when single ite is clicked pop-up modal is appeared
         $(document).on("click", ".single_item", function () {
             //focus search field
@@ -5552,60 +5564,48 @@ function openProductEditModalForPromo(string_text, item_name, id, promo_type, di
                           item_price = parseFloat($(this).attr('data-price_take')).toFixed(ir_precision);
                     }  else if (selected_order_type_object.attr("data-id") == "delivery_button") {
                         // Intenta obtener el precio de delivery
-                        let price_delivery = $(this).attr('data-price_delivery');
-                        let price_normal = $(this).attr('data-price');
-                        let arr_item_details = search_by_menu_id(item_id, window.items);
+                        // let price_delivery = $(this).attr('data-price_delivery');
+                        // let price_normal = $(this).attr('data-price');
+                        // let arr_item_details = search_by_menu_id(item_id, window.items);
                     
-                        // Valor por defecto: precio de delivery SI existe, si no el normal, si no 0
-                        if (price_delivery && !isNaN(parseFloat(price_delivery)) && parseFloat(price_delivery) > 0) {
-                            item_price = parseFloat(price_delivery).toFixed(ir_precision);
-                        } else if (price_normal && !isNaN(parseFloat(price_normal)) && parseFloat(price_normal) > 0) {
-                            item_price = parseFloat(price_normal).toFixed(ir_precision);
+                        // // Valor por defecto: precio de delivery SI existe, si no el normal, si no 0
+                        // if (price_delivery && !isNaN(parseFloat(price_delivery)) && parseFloat(price_delivery) > 0) {
+                        //     item_price = parseFloat(price_delivery).toFixed(ir_precision);
+                        // } else if (price_normal && !isNaN(parseFloat(price_normal)) && parseFloat(price_normal) > 0) {
+                        //     item_price = parseFloat(price_normal).toFixed(ir_precision);
+                        // } else {
+                        //     // Última defensa, busca en los detalles
+                        //     item_price = arr_item_details && arr_item_details[0] && arr_item_details[0].price
+                        //         ? parseFloat(arr_item_details[0].price).toFixed(ir_precision)
+                        //         : "0.00";
+                        // }
+                    
+                        // // Si hay zona personalizada, sobreescribe el precio si corresponde
+                        // $(".custom_li").each(function() {
+                        //     let row_div =  $(this).attr("data-row");
+                        //     if($("#myCheckbox"+row_div).is(":checked")) {
+                        //         let price_delivery_details_tmp = arr_item_details[0].price_delivery_details.split("|||");
+                        //         for(let x=0;x<price_delivery_details_tmp.length;x++) {
+                        //             let price_delivery_details_tmp_separate = price_delivery_details_tmp[x].split("||");
+                        //             if("index_" + row_div == price_delivery_details_tmp_separate[0]) {
+                        //                 if(Number(price_delivery_details_tmp_separate[1])) {
+                        //                     item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
+                        //                 }
+                        //             }
+                        //         }
+                        //     }
+                        // });
+                        let price_delivery = getSafePrice($(this).attr('data-price_delivery'));
+                        let price_normal = getSafePrice($(this).attr('data-price'));
+
+                        if (price_delivery && price_delivery > 0) {
+                            item_price = price_delivery.toFixed(ir_precision);
+                        } else if (price_normal && price_normal > 0) {
+                            item_price = price_normal.toFixed(ir_precision);
                         } else {
-                            // Última defensa, busca en los detalles
-                            item_price = arr_item_details && arr_item_details[0] && arr_item_details[0].price
-                                ? parseFloat(arr_item_details[0].price).toFixed(ir_precision)
-                                : "0.00";
+                            item_price = "0.00";
                         }
-                    
-                        // Si hay zona personalizada, sobreescribe el precio si corresponde
-                        $(".custom_li").each(function() {
-                            let row_div =  $(this).attr("data-row");
-                            if($("#myCheckbox"+row_div).is(":checked")) {
-                                let price_delivery_details_tmp = arr_item_details[0].price_delivery_details.split("|||");
-                                for(let x=0;x<price_delivery_details_tmp.length;x++) {
-                                    let price_delivery_details_tmp_separate = price_delivery_details_tmp[x].split("||");
-                                    if("index_" + row_div == price_delivery_details_tmp_separate[0]) {
-                                        if(Number(price_delivery_details_tmp_separate[1])) {
-                                            item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
-                                        }
-                                    }
-                                }
-                            }
-                        });
                     }
-                    //   }else if (selected_order_type_object.attr("data-id") == "delivery_button"){
-                    //       let arr_item_details = search_by_menu_id(item_id, window.items);
-                    //       let check_dl_person = 1;
-                    //       item_price = parseFloat($(this).attr('data-price_delivery')).toFixed(ir_precision);
-                    //       $(".custom_li").each(function() {
-                    //           let row_div =  $(this).attr("data-row");
-                    //           if($("#myCheckbox"+row_div).is(":checked")){
-                    //               let  price_delivery_details_tmp  = arr_item_details[0].price_delivery_details.split("|||");
-  
-                    //               for(let x=0;x<price_delivery_details_tmp.length;x++){
-                    //                   let  price_delivery_details_tmp_separate  = price_delivery_details_tmp[x].split("||");
-                    //                   if("index_"+row_div == price_delivery_details_tmp_separate[0]){
-                    //                       if(Number(price_delivery_details_tmp_separate[1])){
-                    //                           item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
-                    //                       }
-                    //                   }
-                    //               }
-                    //           }
-  
-                    //       });
-  
-                    //   }
   
                       openProductEditModalForPromo(string_text,item_name,item_id,promo_type,discount,get_food_menu_id,qty,get_qty,item_price,modal_item_name_row);
                   }else{
@@ -5614,27 +5614,37 @@ function openProductEditModalForPromo(string_text, item_name, id, promo_type, di
                       }else if (selected_order_type_object.attr("data-id") == "take_away_button"){
                           item_price = parseFloat($(this).attr('data-price_take')).toFixed(ir_precision);
                       }else if (selected_order_type_object.attr("data-id") == "delivery_button"){
-                          let arr_item_details = search_by_menu_id(item_id, window.items);
+                        let price_normal = getSafePrice($(this).attr('data-price'));
+                        let price_delivery = getSafePrice($(this).attr('data-price_delivery'));
+
+                        if (price_delivery && price_delivery > 0) {
+                            item_price = price_delivery.toFixed(ir_precision);
+                        } else if (price_normal && price_normal > 0) {
+                            item_price = price_normal.toFixed(ir_precision);
+                        } else {
+                            item_price = "0.00";
+                        }
+                        //   let arr_item_details = search_by_menu_id(item_id, window.items);
                           let check_dl_person = 1;
-                          item_price = parseFloat($(this).attr('data-price_delivery')).toFixed(ir_precision);
-                          $(".custom_li").each(function() {
-                              let row_div =  $(this).attr("data-row");
-                              if($("#myCheckbox"+row_div).is(":checked")){
-                                  let  price_delivery_details_tmp  = arr_item_details[0].price_delivery_details.split("|||");
-                                  for(let x=0;x<price_delivery_details_tmp.length;x++){
-                                      let  price_delivery_details_tmp_separate  = price_delivery_details_tmp[x].split("||");
-                                      if("index_"+row_div == price_delivery_details_tmp_separate[0]){
-                                          if(Number(price_delivery_details_tmp_separate[1])){
-                                              item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
-                                          }
-                                      }
+                        //   item_price = parseFloat($(this).attr('data-price_delivery')).toFixed(ir_precision);
+                        //   $(".custom_li").each(function() {
+                        //       let row_div =  $(this).attr("data-row");
+                        //       if($("#myCheckbox"+row_div).is(":checked")){
+                        //           let  price_delivery_details_tmp  = arr_item_details[0].price_delivery_details.split("|||");
+                        //           for(let x=0;x<price_delivery_details_tmp.length;x++){
+                        //               let  price_delivery_details_tmp_separate  = price_delivery_details_tmp[x].split("||");
+                        //               if("index_"+row_div == price_delivery_details_tmp_separate[0]){
+                        //                   if(Number(price_delivery_details_tmp_separate[1])){
+                        //                       item_price = parseFloat(price_delivery_details_tmp_separate[1]).toFixed(ir_precision);
+                        //                   }
+                        //               }
   
-                                  }
+                        //           }
   
   
-                              }
+                        //       }
   
-                          });
+                        //   });
                       }
   
                       let row_number = $("#modal_item_row").html();
@@ -5901,6 +5911,7 @@ function openProductEditModalForPromo(string_text, item_name, id, promo_type, di
                 return false;
             }
         });
+        
       $(document).on("click", "#cancel_button", function (e) {
         //get total items in cart
         let total_items_in_cart = $(".order_holder .single_order").length;
@@ -11084,8 +11095,9 @@ function openProductEditModalForPromo(string_text, item_name, id, promo_type, di
 
 
 let searchTimeout;
+let lastSearchedString = ""; 
 
-$(document).on("keyup", "#search", function (e) {
+$(document).on("keyup", "#search_old", function (e) {
     clearTimeout(searchTimeout);
     let searched_string = $(this).val().trim();
 
@@ -11094,14 +11106,23 @@ $(document).on("keyup", "#search", function (e) {
 
         // Ejecuta la búsqueda (si tienes una función para ello)
         fetchAndDisplayArticles(searched_string);
-
-        // Espera un poco para que se rendericen los resultados y luego hace click al primero
+        
         setTimeout(function() {
-            let $firstItem = $(".single_item:visible").first();
-            if ($firstItem.length) {
-                $firstItem.click();
+            // Busca el item que tenga el mismo código ingresado
+            let $matchedItem = $(`.single_item:visible[data-code="${searched_string}"]`).first();
+
+            if ($matchedItem.length) {
+                $matchedItem.click();
                 $("#search").val('');
-                // Si necesitas mostrar todos de nuevo después de agregar, puedes llamar a show_all_items()
+                show_all_items()
+            } else {
+                // (opcional) Si no hay coincidencia exacta, podrías seleccionar el primero como fallback
+                let $firstItem = $(".single_item:visible").first();
+                if ($firstItem.length) {
+                    $firstItem.click();
+                    $("#search").val('');
+                    show_all_items();
+                }
             }
         }, 150);
     } else {
@@ -11115,14 +11136,38 @@ $(document).on("keyup", "#search", function (e) {
     }
 });
 
-function fetchAndDisplayArticles(searchText, categoryId = "", type = "") {
+$(document).on("keyup", "#search", function (e) {
+    clearTimeout(searchTimeout);
+    let searched_string = $(this).val().trim();
+
+    if (e.keyCode === 13 && searched_string) {
+        e.preventDefault();
+        lastSearchedString = searched_string;
+        fetchAndDisplayArticles(searched_string, "", "", true);
+    } else {
+        searchTimeout = setTimeout(() => {
+            if (searched_string) {
+                fetchAndDisplayArticles(searched_string);
+            } else {
+                fetchAndDisplayArticles(""); // destacados o todos
+            }
+        }, 200);
+    }
+});
+
+function safePriceAttr(val) {
+    return (val === null || val === undefined || val === "" || val === "null") ? "" : val;
+}
+
+
+function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoClick = false) {
     $.ajax({
         url: base_url + "Sale/search_food_menus_ajax",
         method: "GET",
         data: {
             q: searchText,
             category_id: categoryId,
-            type: type // veg, bev, combo, etc.
+            type: type
         },
         dataType: "json",
         beforeSend: function(){
@@ -11136,9 +11181,13 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "") {
                     let image_path = item.photo ? (base_url + "images/" + item.photo) : (base_url + "images/image_thumb.png");
                     html += `
                         <div class="single_item animate__animated animate__flipInX" 
-                            data-price="${item.sale_price}" data-price_take="${item.sale_price_take_away}" 
-                            data-is_variation="${item.is_variation}" data-parent_id="${item.parent_id}"
-                            data-price_delivery="${item.sale_price_delivery}" data-veg_status="${veg_status}" 
+                            data-price="${safePriceAttr(item.sale_price)}" 
+                            data-price_take="${safePriceAttr(item.sale_price_take_away)}" 
+                            data-is_variation="${item.is_variation}" 
+                            data-parent_id="${item.parent_id}"
+                            data-code="${item.code}"
+                            data-price_delivery="${safePriceAttr(item.sale_price_delivery)}" 
+                            data-veg_status="${veg_status}" 
                             id="item_${item.id}">
                             <img src="${image_path}" alt="" width="141">
                             <p class="item_name" data-tippy-content="${item.name}">${item.name}</p>
@@ -11154,6 +11203,31 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "") {
             $(".category_items").prepend(html);
             if(food_menu_tooltip=="show"){
                 tippy(".item_name", { placement: "bottom-start" });
+            }
+
+            // ----> AUTOCLICK, pero busca el item por código exacto
+            console.log('autoClick', autoClick);
+            if (autoClick && items.length) {
+                let codeToMatch = lastSearchedString.trim();
+                console.log('codeToMatch', codeToMatch);
+            
+                // LOG de todos los códigos visibles
+                $(".single_item:visible").each(function(){
+                    console.log('item code:', $(this).data("code"), '| typeof:', typeof $(this).data("code"));
+                });
+            
+                let $matchItem = $(".single_item:visible").filter(function() {
+                    // Compara sin espacios y en minúscula para asegurar coincidencia
+                    return (($(this).data("code") + "").trim().toLowerCase() === codeToMatch.toLowerCase());
+                }).first();
+            
+                if ($matchItem.length) {
+                    console.log('Se encontró coincidencia:', $matchItem.data("code"));
+                    $matchItem.click();
+                } else {
+                    console.log('No se encontró coincidencia exacta');
+                }
+                // $("#search").val('');
             }
         },
         error: function(){

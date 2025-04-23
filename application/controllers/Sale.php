@@ -563,6 +563,16 @@ class Sale extends Cl_Controller {
     
         $results = $this->Sale_model->searchFoodMenus($term, $category_id, $type, $outlet_id);
         $this->Sale_model->attachModifiersToMenus($results);
+        if(isset($results) && $results){
+            foreach ($results as $key=>$value){
+                $variations = $this->Common_model->getAllByCustomId($value->id,"parent_id","tbl_food_menus",$order='');
+                $results[$key]->is_variation = isset($variations) && $variations?'Yes':'No';
+                $results[$key]->variations = $variations;
+                    $kitchen = getKitchenNameAndId($value->category_id);
+                    $results[$key]->kitchen_id =$kitchen[0];
+                    $results[$key]->kitchen_name =$kitchen[1];
+            }
+        }
     
         // Puedes convertir aquí los objetos en arrays, si lo deseas
         echo json_encode($results);
