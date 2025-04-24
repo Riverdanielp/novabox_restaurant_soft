@@ -383,9 +383,11 @@ class Sale_model extends CI_Model {
             }
           
             $this->db->group_start();
-            foreach ($palabras as $palabra){
-                $this->db->like("CONCAT($concat_search)", $palabra);
-            }
+            foreach ($palabras as $palabra) {
+              // Escapa el valor para SQL y agrega el marcador de collation
+              $search = $this->db->escape_like_str($palabra);
+              $this->db->where("CONCAT($concat_search) LIKE " . "_utf8mb4'%$search%' COLLATE $col", null, false);
+          }
             $this->db->group_end(); //close bracket
 
             // $this->db->group_start();

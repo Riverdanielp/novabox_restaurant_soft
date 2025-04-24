@@ -11206,14 +11206,14 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoCli
             }
 
             // ----> AUTOCLICK, pero busca el item por código exacto
-            console.log('autoClick', autoClick);
+            // console.log('autoClick', autoClick);
             if (autoClick && items.length) {
                 let codeToMatch = lastSearchedString.trim();
-                console.log('codeToMatch', codeToMatch);
+                // console.log('codeToMatch', codeToMatch);
             
                 // LOG de todos los códigos visibles
                 $(".single_item:visible").each(function(){
-                    console.log('item code:', $(this).data("code"), '| typeof:', typeof $(this).data("code"));
+                    // console.log('item code:', $(this).data("code"), '| typeof:', typeof $(this).data("code"));
                 });
             
                 let $matchItem = $(".single_item:visible").filter(function() {
@@ -11222,12 +11222,12 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoCli
                 }).first();
             
                 if ($matchItem.length) {
-                    console.log('Se encontró coincidencia:', $matchItem.data("code"));
+                    // console.log('Se encontró coincidencia:', $matchItem.data("code"));
                     $matchItem.click();
                 } else {
-                    console.log('No se encontró coincidencia exacta');
+                    // console.log('No se encontró coincidencia exacta');
                 }
-                // $("#search").val('');
+                $("#search").val('');
             }
         },
         error: function(){
@@ -12790,19 +12790,39 @@ $("#combo_item").on("click", function(){
         });
     }
 
-    function add_sale_by_ajax_kot_print(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='') {
-          //reset previous update sale id
+    function add_sale_by_ajax_kot_print(update_sale_id, order_object, outlet_id = '', company_id = '', sale_no_new = '', is_direct_sale = '') {
+        //reset previous update sale id
         let arr_kot_items = {};
         if (localStorage.getItem('kot_invoice') !== null) {
             arr_kot_items = JSON.parse(localStorage['kot_invoice']);
         }
-
-        if(!update_sale_id) {
-            let order_no_outlet	 = sale_no_new+''+outlet_id;
+    
+        if (!update_sale_id) {
+            let order_no_outlet = sale_no_new + '' + outlet_id;
+            
+            // Limitar la cantidad de elementos en arr_kot_items (por ejemplo, 50)
+            const MAX_ITEMS = 30;
+            if (Object.keys(arr_kot_items).length >= MAX_ITEMS) {
+                // Elimina el primer elemento (FIFO)
+                const firstKey = Object.keys(arr_kot_items)[0];
+                delete arr_kot_items[firstKey];
+            }
+    
             arr_kot_items[order_no_outlet] = order_object;
-            localStorage['kot_invoice'] = JSON.stringify(arr_kot_items);
+            try {
+                localStorage['kot_invoice'] = JSON.stringify(arr_kot_items);
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') {
+                    // Si aún así falla, limpia todo o muestra un mensaje al usuario
+                    console.warn("LocalStorage lleno, limpiando...");
+                    localStorage.removeItem('kot_invoice');
+                } else {
+                    throw e;
+                }
+            }
         }
     }
+
     function updateForMerge(sale_id,merge_id){
         console.log('updateForMerge');
         let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
