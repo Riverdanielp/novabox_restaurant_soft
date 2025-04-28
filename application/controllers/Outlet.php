@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Outlet Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -291,7 +276,9 @@ class Outlet extends Cl_Controller {
         
         if (!$this->session->has_userdata('clicked_controller')) {
             
-            if ($this->session->userdata('designation') == 'Admin') {
+            if ($this->session->userdata('designation') == 'Super Admin') {
+                redirect('Dashboard/dashboard');
+            } else if ($this->session->userdata('designation') == 'Admin') {
                 redirect('Dashboard/dashboard');
             } else if($this->session->userdata('designation') == 'Chef') {
                 redirect('Kitchen/kitchens');

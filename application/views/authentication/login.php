@@ -181,7 +181,7 @@ $company = getMainCompany();
         </div>
     </div>
 </div>
-<script src="<?php echo base_url();?>pwa.js?v=1.003"></script>
+<script src="<?php echo base_url();?>pwa.js?v=1.004"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/notify/toastr.js"></script>
 </body>
 </html>

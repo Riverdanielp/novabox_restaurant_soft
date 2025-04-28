@@ -239,92 +239,92 @@
           });
       }
   
-    //   /**************indexedDB Initialization*******************/
-    //   if (!window.indexedDB) {
-    //     let indexdb_err = $("#indexdb_err").val();
-    //       toastr.options = {
-    //           positionClass:'toast-bottom-right'
-    //       };
-    //       toastr['error'](indexdb_err, '');
-    //   }
-  
-    //   let db;
-    //   let request = window.indexedDB.open("restaurantDB", 1);
-  
-    //   request.onsuccess = function(event) {
-    //       db = request.result;
-    //       displayOrderList();
-    //   }
-  
-    //   request.onerror = function(event) {
-  
-    //   };
-    //   request.onupgradeneeded = function(event) {
-    //         let db = event.target.result;
-    //         let objectStore = db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement:true});
-    //         let objectStore2 = db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement:true});
-    //         let objectStore3 = db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement:true});
-    //         let objectStore4 = db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement:true});
-    //         let objectStore5 = db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement:true});
-    //         let objectStore6 = db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement:false});
-    //   }
-
-    /**************indexedDB Initialization*******************/
-    if (!window.indexedDB) {
+      /**************indexedDB Initialization*******************/
+      if (!window.indexedDB) {
         let indexdb_err = $("#indexdb_err").val();
-        toastr.options = {
-            positionClass: 'toast-bottom-right'
-        };
-        toastr['error'](indexdb_err, '');
-    }
+          toastr.options = {
+              positionClass:'toast-bottom-right'
+          };
+          toastr['error'](indexdb_err, '');
+      }
+  
+      let db;
+      let request = window.indexedDB.open("restaurantDB", 1);
+  
+      request.onsuccess = function(event) {
+          db = request.result;
+          displayOrderList();
+      }
+  
+      request.onerror = function(event) {
+  
+      };
+      request.onupgradeneeded = function(event) {
+            let db = event.target.result;
+            let objectStore = db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore2 = db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore3 = db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore4 = db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore5 = db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement:true});
+            let objectStore6 = db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement:false});
+      }
 
-    // Definimos db en el ámbito global
-    let db;
+    // /**************indexedDB Initialization*******************/
+    // if (!window.indexedDB) {
+    //     let indexdb_err = $("#indexdb_err").val();
+    //     toastr.options = {
+    //         positionClass: 'toast-bottom-right'
+    //     };
+    //     toastr['error'](indexdb_err, '');
+    // }
 
-    // Función para eliminar la base de datos existente
-    function deleteDatabase() {
-        return new Promise((resolve, reject) => {
-            const req = indexedDB.deleteDatabase("restaurantDB");
-            req.onsuccess = resolve;
-            req.onerror = reject;
-            req.onblocked = () => reject(new Error("Database deletion blocked"));
-        });
-    }
+    // // Definimos db en el ámbito global
+    // let db;
 
-    // Función para inicializar la base de datos
-    function initializeDatabase() {
-        return new Promise((resolve, reject) => {
-            let request = window.indexedDB.open("restaurantDB", 1);
+    // // Función para eliminar la base de datos existente
+    // function deleteDatabase() {
+    //     return new Promise((resolve, reject) => {
+    //         const req = indexedDB.deleteDatabase("restaurantDB");
+    //         req.onsuccess = resolve;
+    //         req.onerror = reject;
+    //         req.onblocked = () => reject(new Error("Database deletion blocked"));
+    //     });
+    // }
+
+    // // Función para inicializar la base de datos
+    // function initializeDatabase() {
+    //     return new Promise((resolve, reject) => {
+    //         let request = window.indexedDB.open("restaurantDB", 1);
             
-            request.onsuccess = function(event) {
-                db = request.result; // Asignamos a la variable global db
-                resolve(db);
-            };
+    //         request.onsuccess = function(event) {
+    //             db = request.result; // Asignamos a la variable global db
+    //             resolve(db);
+    //         };
             
-            request.onerror = function(event) {
-                reject(event.target.error);
-            };
+    //         request.onerror = function(event) {
+    //             reject(event.target.error);
+    //         };
             
-            request.onupgradeneeded = function(event) {
-                let db = event.target.result;
-                // Eliminar object stores existentes si los hay
-                if (db.objectStoreNames.contains("sales")) db.deleteObjectStore("sales");
-                // if (db.objectStoreNames.contains("future_sales")) db.deleteObjectStore("future_sales");
-                // if (db.objectStoreNames.contains("recent_sales")) db.deleteObjectStore("recent_sales");
-                if (db.objectStoreNames.contains("order_tables")) db.deleteObjectStore("order_tables");
-                if (db.objectStoreNames.contains("invoice_date_table")) db.deleteObjectStore("invoice_date_table");
-                // if (db.objectStoreNames.contains("pending_kitchen_orders")) db.deleteObjectStore("pending_kitchen_orders");
+    //         request.onupgradeneeded = function(event) {
+    //             let db = event.target.result;
+    //             // Eliminar object stores existentes si los hay
+    //             if (db.objectStoreNames.contains("sales")) db.deleteObjectStore("sales");
+    //             // if (db.objectStoreNames.contains("future_sales")) db.deleteObjectStore("future_sales");
+    //             // if (db.objectStoreNames.contains("recent_sales")) db.deleteObjectStore("recent_sales");
+    //             if (db.objectStoreNames.contains("order_tables")) db.deleteObjectStore("order_tables");
+    //             if (db.objectStoreNames.contains("invoice_date_table")) db.deleteObjectStore("invoice_date_table");
+    //             // if (db.objectStoreNames.contains("pending_kitchen_orders")) db.deleteObjectStore("pending_kitchen_orders");
                 
-                // Crear nuevos object stores
-                db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement: true});
-                db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement: true});
-                db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement: true});
-                db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement: true});
-                db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement: true});
-                db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement: false});
-            };
-        });
-    }
+    //             // Crear nuevos object stores
+    //             db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement: true});
+    //             db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement: true});
+    //             db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement: true});
+    //             db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement: true});
+    //             db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement: true});
+    //             db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement: false});
+    //         };
+    //     });
+    // }
 
     // Modificación de tus funciones para asegurar que db esté disponible
     function getSelectedOrderDetails(sale_no_new) {
@@ -355,26 +355,26 @@
 
     // Repite el mismo patrón para las otras funciones (getSelectedOrderDetailsRecentSale, getSelectedOrderDetailsFutureSale, etc.)
 
-    // Proceso de inicialización al cargar la página
-    (async function initApp() {
-        try {
-            // Primero intentamos eliminar la base de datos existente
-            await deleteDatabase().catch(() => { 
-                console.log("No se pudo eliminar la base de datos existente, continuando...");
-            });
+    // // Proceso de inicialización al cargar la página
+    // (async function initApp() {
+    //     try {
+    //         // Primero intentamos eliminar la base de datos existente
+    //         await deleteDatabase().catch(() => { 
+    //             console.log("No se pudo eliminar la base de datos existente, continuando...");
+    //         });
             
-            // Luego inicializamos una nueva base de datos
-            await initializeDatabase();
+    //         // Luego inicializamos una nueva base de datos
+    //         await initializeDatabase();
             
-            // Una vez inicializada, llamamos a displayOrderList
-            if (typeof displayOrderList === 'function') {
-                displayOrderList();
-            }
+    //         // Una vez inicializada, llamamos a displayOrderList
+    //         if (typeof displayOrderList === 'function') {
+    //             displayOrderList();
+    //         }
             
-        } catch (error) {
-            console.error("Error al inicializar IndexedDB:", error);
-        }
-    })();
+    //     } catch (error) {
+    //         console.error("Error al inicializar IndexedDB:", error);
+    //     }
+    // })();
 
 
 
@@ -413,26 +413,26 @@
           }
           return number;
       }
-      function getSelectedOrderDetails(sale_no_new) {
+    //   function getSelectedOrderDetails(sale_no_new) {
 
-        return new Promise(function (resolve, reject) {
-            let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-            objectStore.openCursor().onsuccess = function(event) {
-                let cursor = event.target.result;
-                if (cursor) {
-                       if(cursor.value.sale_no == sale_no_new) {
-                        let orderData = cursor.value;
-                        resolve(orderData.order);
-                    }
-                    cursor.continue();
-                }
-            };
+    //     return new Promise(function (resolve, reject) {
+    //         let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
+    //         objectStore.openCursor().onsuccess = function(event) {
+    //             let cursor = event.target.result;
+    //             if (cursor) {
+    //                    if(cursor.value.sale_no == sale_no_new) {
+    //                     let orderData = cursor.value;
+    //                     resolve(orderData.order);
+    //                 }
+    //                 cursor.continue();
+    //             }
+    //         };
 
-            objectStore.onerror = function(event) {
-                reject(event)
-            }
-        })
-    }
+    //         objectStore.onerror = function(event) {
+    //             reject(event)
+    //         }
+    //     })
+    // }
     function getSelectedOrderDetailsRecentSale(sale_no_new) {
 
         return new Promise(function (resolve, reject) {
@@ -782,49 +782,170 @@
        * Added by: shuvo
        * Added Date: 25/9/2021
        *****/
-      function add_to_recent_sale_by_ajax(order_object,is_ignore='',sale_no_new) {
-          let sale = JSON.parse(order_object);
-          let outlet_id = $("#outlet_id_indexdb").val();
-          let order_info = {
-              order: order_object,
-              is_offline_system:($("#is_offline_system").val()),
-              online_push: 0,
-              outlet_id: outlet_id,
-              sale_no: sale_no_new,
-              user_id: ($("#user_id").val()),
-          };
+    //   function add_to_recent_sale_by_ajax(order_object,is_ignore='',sale_no_new) {
+    //       let sale = JSON.parse(order_object);
+    //       let outlet_id = $("#outlet_id_indexdb").val();
+    //       let order_info = {
+    //           order: order_object,
+    //           is_offline_system:($("#is_offline_system").val()),
+    //           online_push: 0,
+    //           outlet_id: outlet_id,
+    //           sale_no: sale_no_new,
+    //           user_id: ($("#user_id").val()),
+    //       };
   
-          let request = db.transaction("recent_sales", "readwrite").objectStore("recent_sales").add(order_info);
+    //       let request = db.transaction("recent_sales", "readwrite").objectStore("recent_sales").add(order_info);
   
-          request.onsuccess = function(event) {
-              $("#open_invoice_date_hidden").val(getCurrentDate());
-              if (waiter_app_status == "Yes") {
-                //   $("#show_running_order").click();
-              }
+    //       request.onsuccess = function(event) {
+    //           $("#open_invoice_date_hidden").val(getCurrentDate());
+    //           if (waiter_app_status == "Yes") {
+    //             //   $("#show_running_order").click();
+    //           }
   
-              $(".datepicker_custom").datepicker({
-                  autoclose: true,
-                  format: "yyyy-mm-dd",
-                  startDate: "0",
-                  todayHighlight: true,
-              }).datepicker("update", getCurrentDate());
+    //           $(".datepicker_custom").datepicker({
+    //               autoclose: true,
+    //               format: "yyyy-mm-dd",
+    //               startDate: "0",
+    //               todayHighlight: true,
+    //           }).datepicker("update", getCurrentDate());
    
-              localStorage["last_sale_id"] = sale_no_new;
-              localStorage["last_sale_id_split"] = sale_no_new;
-              clearFooterCartCalculation();
-              $("#hidden_given_amount").val('');
-              $("#hidden_change_amount").val('');
-              if(is_ignore!='')
-              {
-                  displayOrderList();
-              }
-          };
+    //           localStorage["last_sale_id"] = sale_no_new;
+    //           localStorage["last_sale_id_split"] = sale_no_new;
+    //           clearFooterCartCalculation();
+    //           $("#hidden_given_amount").val('');
+    //           $("#hidden_change_amount").val('');
+    //           if(is_ignore!='')
+    //           {
+    //               displayOrderList();
+    //           }
+    //       };
   
-          request.onerror = function(event) {
-              alert("Unable to add data\r\nOrder is already exist in your database!");
-          }
+    //       request.onerror = function(event) {
+    //           alert("Unable to add data\r\nOrder is already exist in your database!");
+    //       }
   
-      }
+    //   }
+
+
+
+
+    // async function add_to_recent_sale_by_ajax(order_object, is_ignore = '', sale_no_new, onSuccess, onFail) {
+    //     const maxRetries = 15;
+    //     let attempts = 0;
+    //     let sent = false;
+    
+    //     const saleData = typeof order_object === "string" ? JSON.parse(order_object) : order_object;
+    //     const orders = JSON.stringify(saleData);
+    
+    //     // Loader opcional (puedes personalizar)
+    //     showLoader("Enviando venta...");
+    
+    //     while (attempts < maxRetries && !sent) {
+    //         try {
+    //             // AJAX síncrono para asegurar el flujo
+    //             await $.ajax({
+    //                 url: base_url + "Sale/push_online",
+    //                 method: "post",
+    //                 data: {
+    //                     orders: orders,
+    //                     sales_id: saleData.sale_no,
+    //                     csrf_name_: csrf_value_
+    //                 },
+    //                 async: false, // Síncrono (puedes cambiar si prefieres promesas)
+    //                 success: function(response) {
+    //                     sent = true;
+    //                     if (typeof onSuccess === "function") onSuccess(response);
+    //                 },
+    //                 error: function() {
+    //                     attempts++;
+    //                 }
+    //             });
+    //         } catch (err) {
+    //             attempts++;
+    //         }
+    //     }
+    
+    //     hideLoader();
+    
+    //     if (!sent) {
+    //         // Si falla 15 veces, guarda en cola local para reintentar luego
+    //         let dbRequest = db.transaction(['recent_sales'], "readwrite")
+    //             .objectStore("recent_sales")
+    //             .add({
+    //                 sales_id: saleData.sale_no,
+    //                 online_push: 0,
+    //                 is_offline_system: 0, // Modifica si manejas sistemas offline
+    //                 order: orders
+    //             });
+    //         dbRequest.onsuccess = function() {
+    //             if (typeof onFail === "function") onFail();
+    //         };
+    //         dbRequest.onerror = function() {
+    //             toastr['error']("No se pudo guardar la venta localmente.");
+    //             if (typeof onFail === "function") onFail();
+    //         };
+    //     }
+    // }
+
+
+    function add_to_recent_sale_by_ajax(order_object, is_ignore = '', sale_no_new, onSuccess, onFail) {
+        const maxRetries = 15;
+        let attempts = 0;
+        let sent = false;
+        let saleData = typeof order_object === "string" ? JSON.parse(order_object) : order_object;
+        let orders = typeof order_object === "string" ? order_object : JSON.stringify(order_object);
+    
+        function attemptPush() {
+            $.ajax({
+                url: base_url + "Sale/push_online",
+                method: "POST",
+                data: {
+                    orders: orders,
+                    sales_id: sale_no_new,
+                    csrf_name_: csrf_value_
+                },
+                async: false,
+                success: function(response) {
+                    hideLoader();
+                    sent = true;
+                    if (typeof onSuccess === "function") onSuccess(response);
+                },
+                error: function() {
+                    attempts++;
+                    if (attempts < maxRetries) {
+                        setTimeout(attemptPush, 1000);
+                    } else {
+                        showLoader(attempts);
+                        // Si falla, guarda en recent_sales
+                        let outlet_id = $("#outlet_id_indexdb").val();
+                        let order_info = {
+                            order: orders,
+                            is_offline_system: ($("#is_offline_system").val()),
+                            online_push: 0,
+                            outlet_id: outlet_id,
+                            sale_no: sale_no_new,
+                            user_id: ($("#user_id").val()),
+                        };
+                        let dbRequest = db.transaction(['recent_sales'], "readwrite").objectStore("recent_sales").add(order_info);
+                        dbRequest.onsuccess = function() {
+                            if (typeof onFail === "function") onFail();
+                        };
+                        dbRequest.onerror = function() {
+                            toastr['error']("No se pudo guardar la venta localmente.");
+                            if (typeof onFail === "function") onFail();
+                        };
+                        hideLoader();
+                    }
+                }
+            });
+        }
+    
+        attemptPush();
+    }
+
+
+
+
       function update_split_parent_sale(order_object_split, sale_no,is_ignore='') {
   
           let res = getSelectedOrderDetails(sale_no).then(function(data){
@@ -1588,7 +1709,7 @@
     }
 
 
-      function push_online(){
+      async function push_online(){
           let objectStore = db.transaction(['recent_sales'], "readwrite").objectStore("recent_sales");
           objectStore.openCursor().onsuccess = function(event) {
               let cursor = event.target.result;
@@ -1689,39 +1810,24 @@
           }
       }
 
-        //   setInterval(function () {
-        //       if(checkInternetConnection()){
-        //           push_online();
-        //       }
-        //       remove_more_20();
-        //   }, 7000);
 
-        function startPushAndCleanLoop() {
-            async function repeatPush() {
-                try {
-                    if (checkInternetConnection()) {
-                        await push_online(); // si la haces async en algún momento
-                    }
-        
-                    remove_more_20(); // esta no necesita await
-        
-                } catch (error) {
-                    console.error("Error en repeatPush:", error);
-                } finally {
-                    // Pase lo que pase, repetimos el ciclo
-                    setTimeout(repeatPush, 5000);
+
+      function startPushAndCleanLoop() {
+        async function repeatPush() {
+            try {
+                if (checkInternetConnection()) {
+                    await push_online(); // Puede ser lenta
                 }
+                remove_more_20();
+            } catch (error) {
+                console.error("Error en repeatPush:", error);
             }
-        
-            repeatPush(); // Inicia el ciclo
+            setTimeout(repeatPush, 20000); // Espera 20s después de finalizar todo
         }
-        
-        // startPushAndCleanLoop();
-        setTimeout(startPushAndCleanLoop, 7000);
+        repeatPush();
+    }
+    setTimeout(startPushAndCleanLoop, 7000);
     
-        //   setInterval(function () {
-        //         checkInternetConnectionNew();
-        //     }, 5000);
         
         function startConnectionCheckLoop() {
             function repeatCheck() {
@@ -1736,6 +1842,17 @@
         
         startConnectionCheckLoop();
   
+                //   setInterval(function () {
+        //       if(checkInternetConnection()){
+        //           push_online();
+        //       }
+        //       remove_more_20();
+        //   }, 7000);
+
+        //   setInterval(function () {
+        //         checkInternetConnectionNew();
+        //     }, 5000);
+
       $(document).on("click", "#sync_online", function (e) {
           push_online_sync();
       });
@@ -8902,6 +9019,7 @@ function getSafePrice(priceAttr) {
                           push_online_for_kitchen(order_info,'Yes',sale_no_new,1);
                           clearFooterCartCalculation();
                       }else{
+                        // console.log('ingresando a componentes add sale');
                           add_sale_by_ajax(update_sale_id,order_info,outlet_id_indexdb,company_id_indexdb,sale_no_new,"",action_type,"");
                           add_sale_by_ajax_kot_print(update_sale_id,order_info,outlet_id_indexdb,company_id_indexdb,sale_no_new,"");
                           //add sale details for kitchen status
@@ -9894,54 +10012,152 @@ function getSafePrice(priceAttr) {
                 items_info += "]";
                 order_info += items_info + "}";
   
-                add_to_recent_sale_by_ajax((order_info),'',sale_no_new);
-                update_split_parent_sale((order_info), sale_no_new,'');
+                // add_to_recent_sale_by_ajax((order_info),'',sale_no_new);
+                // update_split_parent_sale((order_info), sale_no_new,'');
   
-                setTimeout(function () {
-                    let last_sale_id_split = localStorage["last_sale_id_split"];
-                    print_invoice(last_sale_id_split);
-                }, 1000);
+                // setTimeout(function () {
+                //     let last_sale_id_split = localStorage["last_sale_id_split"];
+                //     print_invoice(last_sale_id_split);
+                // }, 1000);
   
-                //update split box
-                let is_show_split_modal = false;
-                let remove_div_action = '';
-                $(".goto_to_payment").each(function (i, obj) {
-                    let is_remove = $(this).attr('data-is_remove');
-                    if(is_remove==="yes"){
-                        is_show_split_modal = true;
-                        remove_div_action = $(this);
-                    }
-                });
-                  //remove order tables
-                remove_kot_invoice(sale_no_new);
-                removeOrderTablesBySaleId(sale_no_new,'Yes');
+                // //update split box
+                // let is_show_split_modal = false;
+                // let remove_div_action = '';
+                // $(".goto_to_payment").each(function (i, obj) {
+                //     let is_remove = $(this).attr('data-is_remove');
+                //     if(is_remove==="yes"){
+                //         is_show_split_modal = true;
+                //         remove_div_action = $(this);
+                //     }
+                // });
+                //   //remove order tables
+                // remove_kot_invoice(sale_no_new);
+                // removeOrderTablesBySaleId(sale_no_new,'Yes');
   
-                if(is_split_bill==1 && is_show_split_modal && ($(".goto_to_payment").length>1)){
-                    //set total split bill box, and remove last generated_invoice
-                    let current_split = Number($("#maximum_spit").html());
-                    $("#spit_modal_input").attr('max',(current_split-1));
-                    $("#spit_modal_input").val((current_split-1));
-                    $("#maximum_spit").html((current_split-1));
-                    remove_div_action.parent().parent().parent().remove();
-                    $("#order_split_modal").addClass("active");
-                    $(".pos__modal__overlay").fadeIn(200);
-                }else{
-                    let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-                    objectStore.openCursor().onsuccess = function(event) {
-                        let cursor = event.target.result;
+                // if(is_split_bill==1 && is_show_split_modal && ($(".goto_to_payment").length>1)){
+                //     //set total split bill box, and remove last generated_invoice
+                //     let current_split = Number($("#maximum_spit").html());
+                //     $("#spit_modal_input").attr('max',(current_split-1));
+                //     $("#spit_modal_input").val((current_split-1));
+                //     $("#maximum_spit").html((current_split-1));
+                //     remove_div_action.parent().parent().parent().remove();
+                //     $("#order_split_modal").addClass("active");
+                //     $(".pos__modal__overlay").fadeIn(200);
+                // }else{
+                //     let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
+                //     objectStore.openCursor().onsuccess = function(event) {
+                //         let cursor = event.target.result;
   
-                        if (cursor) {
-                            if(cursor.value.sale_no == sale_no_new) {
-                                let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
-                                request.onsuccess = function(event) {
-                                    $("#order_" + get_plan_string(sale_no_new)).remove();
-                                }
+                //         if (cursor) {
+                //             if(cursor.value.sale_no == sale_no_new) {
+                //                 let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
+                //                 request.onsuccess = function(event) {
+                //                     $("#order_" + get_plan_string(sale_no_new)).remove();
+                //                 }
+                //             }
+                //             cursor.continue();
+                //         }
+                //     }
+                // }
+                // clearButtonNumber(sale_no);
+
+                add_to_recent_sale_by_ajax(order_info, '', sale_no_new, 
+                    function(response) {
+                        // SOLO SI SE SINCRONIZÓ CON ÉXITO, ejecuta el resto:
+                        update_split_parent_sale(order_info, sale_no_new, '');
+                
+                        setTimeout(function () {
+                            let last_sale_id_split = localStorage["last_sale_id_split"];
+                            print_invoice(last_sale_id_split);
+                        }, 1000);
+                
+                        // update split box y limpieza
+                        let is_show_split_modal = false;
+                        let remove_div_action = '';
+                        $(".goto_to_payment").each(function (i, obj) {
+                            let is_remove = $(this).attr('data-is_remove');
+                            if(is_remove==="yes"){
+                                is_show_split_modal = true;
+                                remove_div_action = $(this);
                             }
-                            cursor.continue();
+                        });
+                        remove_kot_invoice(sale_no_new);
+                        removeOrderTablesBySaleId(sale_no_new,'Yes');
+                
+                        if(is_split_bill==1 && is_show_split_modal && ($(".goto_to_payment").length>1)){
+                            let current_split = Number($("#maximum_spit").html());
+                            $("#spit_modal_input").attr('max',(current_split-1));
+                            $("#spit_modal_input").val((current_split-1));
+                            $("#maximum_spit").html((current_split-1));
+                            remove_div_action.parent().parent().parent().remove();
+                            $("#order_split_modal").addClass("active");
+                            $(".pos__modal__overlay").fadeIn(200);
+                        }else{
+                            add_to_recent_sale_by_ajax(order_info, '', sale_no_new, 
+                                function(response) {
+                                    // SOLO SI SE SINCRONIZÓ CON ÉXITO, ejecuta el resto:
+                                    update_split_parent_sale(order_info, sale_no_new, '');
+                            
+                                    setTimeout(function () {
+                                        let last_sale_id_split = localStorage["last_sale_id_split"];
+                                        print_invoice(last_sale_id_split);
+                                    }, 1000);
+                            
+                                    // update split box y limpieza
+                                    let is_show_split_modal = false;
+                                    let remove_div_action = '';
+                                    $(".goto_to_payment").each(function (i, obj) {
+                                        let is_remove = $(this).attr('data-is_remove');
+                                        if(is_remove==="yes"){
+                                            is_show_split_modal = true;
+                                            remove_div_action = $(this);
+                                        }
+                                    });
+                                    remove_kot_invoice(sale_no_new);
+                                    removeOrderTablesBySaleId(sale_no_new,'Yes');
+                            
+                                    if(is_split_bill==1 && is_show_split_modal && ($(".goto_to_payment").length>1)){
+                                        let current_split = Number($("#maximum_spit").html());
+                                        $("#spit_modal_input").attr('max',(current_split-1));
+                                        $("#spit_modal_input").val((current_split-1));
+                                        $("#maximum_spit").html((current_split-1));
+                                        remove_div_action.parent().parent().parent().remove();
+                                        $("#order_split_modal").addClass("active");
+                                        $(".pos__modal__overlay").fadeIn(200);
+                                    }else{
+                                        let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
+                                        objectStore.openCursor().onsuccess = function(event) {
+                                            let cursor = event.target.result;
+                                            if (cursor) {
+                                                if(cursor.value.sale_no == sale_no_new) {
+                                                    let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
+                                                    request.onsuccess = function(event) {
+                                                        $("#order_" + get_plan_string(sale_no_new)).remove();
+                                                    }
+                                                }
+                                                cursor.continue();
+                                            }
+                                        }
+                                    }
+                                    clearButtonNumber(sale_no_new);
+                            
+                                }, 
+                                function() {
+                                    // Si falla incluso guardar offline, puedes mostrar un mensaje
+                                    toastr['error']("No se pudo sincronizar la venta. Se guardó para intento futuro.");
+                                }
+                            );
                         }
+                        clearButtonNumber(sale_no_new);
+                
+                    }, 
+                    function() {
+                        // Si falla incluso guardar offline, puedes mostrar un mensaje
+                        toastr['error']("No se pudo sincronizar la venta. Se guardó para intento futuro.");
                     }
-                }
-                clearButtonNumber(sale_no);
+                );
+
+
             }
   
           } else {
@@ -14488,15 +14704,14 @@ $("#combo_item").on("click", function(){
                 }
             } catch (outerError) {
                 console.error("🔴 Error general en repeatSync:", outerError);
-            } finally {
-                // Siempre se ejecuta el siguiente ciclo
-                setTimeout(repeatSync, 4000);
             }
+            // OJO: El finally ya no es necesario.
+            // Esperamos 4 segundos DESPUÉS de que acabe todo el ciclo, no en paralelo.
+            setTimeout(repeatSync, 4000);
         }
     
         repeatSync(); // Iniciar la primera vez
     }
-    
     
     all_time_interval_operation();
 
@@ -21083,27 +21298,22 @@ $(document).on("click", "#register_close", function (e) {
     // // Verificar cada 30 segundos si hay pedidos pendientes
     // setInterval(syncPendingKitchenOrders, 7000);
     function startSyncKitchenOrdersLoop() {
-        function repeatSync() {
+        async function repeatSync() {
             try {
                 if (checkInternetConnection()) {
                     try {
-                        syncPendingKitchenOrders();
+                        await syncPendingKitchenOrders();
                     } catch (innerErr) {
                         console.error("🔴 Error al sincronizar pedidos de cocina:", innerErr);
                     }
                 }
             } catch (outerErr) {
                 console.error("🔴 Error general en repeatSync (Kitchen Orders):", outerErr);
-            } finally {
-                // Garantiza que el loop continúa
-                setTimeout(repeatSync, 5000);
             }
+            setTimeout(repeatSync, 5000);
         }
-    
-        repeatSync(); // Iniciar el ciclo
+        repeatSync();
     }
-    
-    
     startSyncKitchenOrdersLoop();
     
 
