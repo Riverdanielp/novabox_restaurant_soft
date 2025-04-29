@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Kitchen Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -23,6 +8,7 @@ class Kitchen extends Cl_Controller {
         parent::__construct();
         $this->load->model('Common_model');
         $this->load->model('Kitchen_model');
+        $this->load->model('Sale_model');
         $this->Common_model->setDefaultTimezone();
         $this->load->library('form_validation'); 
         if (!$this->session->has_userdata('user_id')) {
@@ -232,6 +218,10 @@ class Kitchen extends Cl_Controller {
                 $kitchen_info = array();
                 $kitchen_info['name'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('name')));
                 $kitchen_info['printer_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('printer_id')));
+                // Antes de guardar
+                $designation_arr = $this->input->post('designation');
+                $kitchen_info['designations'] = $designation_arr && is_array($designation_arr) ? implode(',', $designation_arr) : '';
+
                 if(isLMni()):
                     $kitchen_info['outlet_id'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('outlet_id')));
                   else:
@@ -361,7 +351,7 @@ class Kitchen extends Cl_Controller {
         $outlet_id = $this->session->userdata('outlet_id');
         $user_id = $this->session->userdata('user_id');
         $kitchen = $this->Common_model->getDataById($kitchen_id, "tbl_kitchens");
-        $data1 = $this->Kitchen_model->getNewOrders($kitchen->outlet_id);
+        $data1 = $this->Kitchen_model->getNewOrders($kitchen->outlet_id,$kitchen_id);
         $i = 0;
         for($i;$i<count($data1);$i++){
             //update for bell
@@ -661,5 +651,224 @@ class Kitchen extends Cl_Controller {
         }
 
         echo json_encode($html);
+    }
+
+    
+    
+    public function printer_app_kot_by_sale_id($sale_no, $kitchen_id) {
+        $printers_array = [];
+    
+        // Obtener información de la venta
+        // $sale_object = getKitchenSaleDetailsBySaleNo($sale_id);
+        $sale_object = $this->get_all_information_of_a_sale($sale_no);
+        // echo '<pre>';
+        // var_dump($sale_object); 
+        // echo '<pre>';
+        
+        if(!$sale_object) {
+            echo json_encode([]);
+            return;
+        }
+        $sale_id = $sale_object->id;
+        // Traer solo los items de la venta para esa cocina
+        $outlet_id = $this->session->userdata('outlet_id');
+
+        $this->db->select('tbl_kitchen_sales_details.*, tbl_kitchens.name as kitchen_name, tbl_kitchens.id as kitchen_id');
+        $this->db->from('tbl_kitchen_sales_details');
+        $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id', 'left');
+        $this->db->join('tbl_kitchen_categories', 'tbl_kitchen_categories.cat_id = tbl_food_menus.category_id AND tbl_kitchen_categories.del_status = "Live" AND tbl_kitchen_categories.outlet_id = ' . intval($outlet_id), 'left');
+        $this->db->join('tbl_kitchens', 'tbl_kitchens.id = tbl_kitchen_categories.kitchen_id AND tbl_kitchens.outlet_id = ' . intval($outlet_id), 'left');
+        $this->db->where('tbl_kitchen_sales_details.sales_id', $sale_id);
+        $this->db->where('tbl_kitchens.id', $kitchen_id);
+        // $this->db->where('tbl_kitchen_categories.del_status', 'Live');
+        // Solo items no terminados, si lo deseas:
+        // $this->db->where('tbl_kitchen_sales_details.cooking_status !=', 'Done');
+        $sale_items = $this->db->get()->result();
+    
+        
+
+        // Traer los modificadores para cada item
+        foreach ($sale_items as $item) {
+            $item->modifiers = $this->Kitchen_model->getModifiersBySaleAndSaleDetailsId($sale_id, $item->id);
+        }
+    
+        // echo '<pre>';
+        // var_dump($sale_items); 
+        // echo '<pre>';
+
+        if($sale_object->order_type==1){
+            $order_type = lang('dine');
+        }else if($sale_object->order_type==2){
+            $order_type = lang('take_away');
+        }else if($sale_object->order_type==3){
+            $order_type = lang('delivery');
+        }
+        // Construcción del contenido del ticket
+        $content = [
+            ['type' => 'text', 'align' => 'center', 'text' => $this->session->userdata('outlet_name')],
+            ['type' => 'text', 'align' => 'center', 'text' => 'TICKET DE COCINA'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+    
+            ['type' => 'text', 'align' => 'left', 'text' => 'Tipo: ' . $order_type],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale_object->selected_number_name],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale_object->sale_no],
+            ['type' => 'text', 'align' => 'left', 'text' =>
+                'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale_object->sale_date)) .
+                ' ' . date('H:i', strtotime($sale_object->order_time)) ],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale_object->customer_name]
+        ];
+        if (!empty($sale_object->customer_phone)) {
+            $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'CEL: ' . $sale_object->customer_phone];
+        }
+        if (!empty($sale_object->customer_address)) {
+            $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Dir: ' . $sale_object->customer_address];
+        }
+        
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Mesero: ' . $sale_object->waiter_name];
+        $content[] =     ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] =    ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+    
+        // Listado de productos
+        foreach ($sale_items as $row) {
+            $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->qty . '    ' . $row->menu_name];
+            if (!empty($row->modifiers)) {
+                foreach ($row->modifiers as $modifier) {
+                    $content[] = ['type' => 'text', 'align' => 'left', 'text' => '   + ' . $modifier->name];
+                }
+            }
+            if (!empty($row->menu_note)) {
+                $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Nota: ' . $row->menu_note];
+            }
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '---'];
+        }
+    
+        // Pie del ticket
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => '******************************'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Impreso: ' . date('H:i')];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'cut'];
+    
+        // Configuración de la impresora
+        // El path de la impresora lo puedes definir fijo o según la cocina:
+        $kitchen_data = $this->Common_model->getDataById($kitchen_id, "tbl_kitchens");
+        $printer = $this->Common_model->getPrinterInfoById($kitchen_data->printer_id);
+        $printer_path = isset($printer->path) ? $printer->path : 'kitchen_' . $kitchen_id;
+        $print_format = isset($printer->print_format) ? $printer->print_format : '80mm';
+        $width = ($print_format == "80mm") ? 80 : 58;
+    
+        // echo '<pre>';
+        // var_dump($kitchen_data); 
+        // var_dump($printer); 
+        // var_dump($printer_path); 
+        // var_dump($print_format); 
+        // echo '<pre>';
+        $printRequest = [
+            'printer' => $printer_path,
+            'width' => $width,
+            'content' => filterArrayRecursivelyEscPos($content)
+        ];
+    
+        // echo '<pre>';
+        // var_dump($printRequest); 
+        // echo '<pre>';
+        
+        // Codificación y compresión
+        $data = json_encode($printRequest);
+        $compressed = gzdeflate($data, 9);
+        $base64 = base64_encode($compressed);
+    
+        $printers_array[] = $base64;
+    
+        echo empty($printers_array) ? json_encode([]) : json_encode($printers_array);
+        return;
+    }
+
+     /**
+     * get all information of a sale
+     * @access public
+     * @return object
+     * @param int
+     */
+    public function get_all_information_of_a_sale($sale_no){
+        $sales_information = $this->get_all_information_of_a_sale_kitchen($sale_no);
+    //     echo 'get_all_information_of_a_sale';
+    //    echo '<pre>';
+    //    var_dump($sales_information); 
+    //    echo '<pre>';
+       
+
+        @$sales_information->selected_number = $sales_information->number_slot ?? '';
+        @$sales_information->selected_number_name = $sales_information->number_slot_name ?? '';
+        $sales_information->sub_total = getAmtP(isset($sales_information->sub_total) && $sales_information->sub_total?$sales_information->sub_total:0);
+        $sales_information->paid_amount = getAmtP(isset($sales_information->paid_amount) && $sales_information->paid_amount?$sales_information->paid_amount:0);
+        $sales_information->due_amount = getAmtP(isset($sales_information->due_amount) && $sales_information->due_amount?$sales_information->due_amount:0);
+        $sales_information->vat = getAmtP(isset($sales_information->vat) && $sales_information->vat?$sales_information->vat:0);
+        $sales_information->total_payable = getAmtP(isset($sales_information->total_payable) && $sales_information->total_payable?$sales_information->total_payable:0);
+        $sales_information->total_item_discount_amount = getAmtP(isset($sales_information->total_item_discount_amount) && $sales_information->total_item_discount_amount?$sales_information->total_item_discount_amount:0);
+        $sales_information->sub_total_with_discount = getAmtP(isset($sales_information->sub_total_with_discount) && $sales_information->sub_total_with_discount?$sales_information->sub_total_with_discount:0);
+        $sales_information->sub_total_discount_amount = getAmtP(isset($sales_information->sub_total_discount_amount) && $sales_information->sub_total_discount_amount?$sales_information->sub_total_discount_amount:0);
+        $sales_information->total_discount_amount = getAmtP(isset($sales_information->total_discount_amount) && $sales_information->total_discount_amount?$sales_information->total_discount_amount:0);
+        $sales_information->delivery_charge = (isset($sales_information->delivery_charge) && $sales_information->delivery_charge?$sales_information->delivery_charge:0);
+        $this_value = $sales_information->sub_total_discount_value;
+        $disc_fields = explode('%',$this_value);
+        $discP = isset($disc_fields[1]) && $disc_fields[1]?$disc_fields[1]:'';
+        if ($discP == "") {
+        } else {
+            $sales_information->sub_total_discount_value = getAmtP(isset($sales_information->sub_total_discount_value) && $sales_information->sub_total_discount_value?$sales_information->sub_total_discount_value:0);
+        }
+        $items_by_sales_id = $this->Sale_model->getAllItemsFromSalesDetailBySalesIdKitchen($sales_information->id);
+
+        foreach($items_by_sales_id as $single_item_by_sale_id){
+            $modifier_information = $this->Sale_model->getModifiersBySaleAndSaleDetailsIdKitchen($sales_information->id,$single_item_by_sale_id->sales_details_id);
+            $single_item_by_sale_id->modifiers = $modifier_information;
+
+            $modifiers_id = '';
+            $modifiers_name = '';
+            $modifiers_price = '';
+            foreach($modifier_information as $ky1=>$val){
+                $modifiers_id.=$val->modifier_id;
+                $modifiers_name.=$val->name;
+                $modifiers_price.=$val->modifier_price;
+
+                if($ky1<(sizeof($modifier_information))-1){
+                    $modifiers_id.=",";
+                    $modifiers_name.=",";
+                    $modifiers_price.=",";
+                }
+            }
+            $single_item_by_sale_id->modifiers_id = $modifiers_id;
+            $single_item_by_sale_id->modifiers_name = $modifiers_name;
+            $single_item_by_sale_id->modifiers_price = $modifiers_price;
+            
+        }
+        $sales_details_objects = $items_by_sales_id;
+        if(isset($sales_details_objects[0]) && $sales_details_objects[0]){
+            $sales_details_objects[0]->menu_price_without_discount = getAmtP(isset($sales_details_objects[0]->menu_price_without_discount) && $sales_details_objects[0]->menu_price_without_discount?$sales_details_objects[0]->menu_price_without_discount:0);
+            $sales_details_objects[0]->menu_price_with_discount = getAmtP(isset($sales_details_objects[0]->menu_price_with_discount) && $sales_details_objects[0]->menu_price_with_discount?$sales_details_objects[0]->menu_price_with_discount:0);
+            $sales_details_objects[0]->menu_unit_price = getAmtP(isset($sales_details_objects[0]->menu_unit_price) && $sales_details_objects[0]->menu_unit_price?$sales_details_objects[0]->menu_unit_price:0);
+            $sales_details_objects[0]->menu_vat_percentage = getAmtP(isset($sales_details_objects[0]->menu_vat_percentage) && $sales_details_objects[0]->menu_vat_percentage?$sales_details_objects[0]->menu_vat_percentage:0);
+            $sales_details_objects[0]->discount_amount = getAmtP(isset($sales_details_objects[0]->discount_amount) && $sales_details_objects[0]->discount_amount?$sales_details_objects[0]->discount_amount:0);
+    
+            $this_value = $sales_details_objects[0]->menu_discount_value;
+            $disc_fields = explode('%',$this_value);
+            $discP = isset($disc_fields[1]) && $disc_fields[1]?$disc_fields[1]:'';
+            if ($discP == "") {
+            } else {
+                $sales_details_objects[0]->menu_discount_value = getAmtP(isset($sales_details_objects[0]->menu_discount_value) && $sales_information->menu_discount_value?$sales_details_objects[0]->menu_discount_value:0);
+            }
+    
+        }
+      
+        $sale_object = $sales_information;
+        $sale_object->items = $sales_details_objects;
+        $sale_object->tables_booked = '';
+        return $sale_object;
+    }
+    public function get_all_information_of_a_sale_kitchen($sale_no){
+        $sales_information = getKitchenSaleDetailsBySaleNoWithDeleted($sale_no);
+        return $sales_information;
     }
 }

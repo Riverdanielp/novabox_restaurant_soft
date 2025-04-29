@@ -2490,7 +2490,8 @@ class Authentication extends Cl_Controller {
                                 <div class="cart_item">
                                     <img src="'.base_url().'assets/media/prepare.png" widht="60" height="60">
                                     <div class="cart_item_inner_part">
-                                        <span class="sale_order_no">Order: '.$sale_no.'</span>
+                                        <span class="sale_order_no">#'.$value->number_slot_name.' '.$sale_no.'</span><br>
+                                        <span class="">'.$value->waiter_name.' </span>
                                         <p class="order_type_screen_p">
                                             <span>'.$order_type.'</span>
                                         </p>
@@ -2508,7 +2509,8 @@ class Authentication extends Cl_Controller {
                                 <div class="cart_item">
                                     <img src="'.base_url().'assets/media/Group.png" widht="60" height="60">
                                     <div class="cart_item_inner_part">
-                                        <span class="sale_order_no">Order: '.$sale_no.'</span>
+                                        <span class="sale_order_no">#'.$value->number_slot_name.' '.$sale_no.'</span><br>
+                                        <span class="">'.$value->waiter_name.' </span>
                                         <p class="order_type_screen_p">
                                             <span>'.$order_type.'</span>
                                         </p>

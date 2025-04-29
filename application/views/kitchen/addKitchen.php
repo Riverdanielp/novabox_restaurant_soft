@@ -79,6 +79,49 @@
                             </div>
                         <?php } ?>
                     </div>
+                    
+                    <div class="col-sm-12 mb-2 col-md-3">
+                        <div class="form-group">
+                            <label>Usuarios que pueden imprimir <span class="required_star">*</span></label>
+                            <div>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Admin"> <?php echo lang('Admin'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Cashier"> <?php echo lang('Cashier'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Manager"> <?php echo lang('Manager'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Waiter"> <?php echo lang('Waiter'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Chef"> <?php echo lang('Chef'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Normal User"> <?php echo lang('Normal_Users'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Others"> <?php echo lang('Others'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                            </div>
+                            <?php if (form_error('designation[]')) { ?>
+                                <div class="callout callout-danger my-2">
+                                    <?php echo form_error('designation[]'); ?>
+                                </div>
+                            <?php } ?>
+                        </div>
+                    </div>
+
+
                 </div>
                 <div class="row">
                     <div class="col-sm-12 mb-2 col-md-6">

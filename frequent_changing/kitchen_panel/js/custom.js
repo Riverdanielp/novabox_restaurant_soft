@@ -73,7 +73,7 @@ $(document).ready(function () {
     });
   $(document).on("click", ".items_holder .single_item", function () {
     let single_order = $(this).parent().parent().parent();
-    if (single_order.attr("data-order-type") == "Dine In") {
+    // if (single_order.attr("data-order-type") == "Dine In") {
       if ($(this).attr("data-selected") == "selected") {
         if (
           $(this).attr("data-cooking-status") == "Done" ||
@@ -92,11 +92,11 @@ $(document).ready(function () {
         $(this).find(".select_single_item").prop("checked",false);
       } else {
         $(this).attr("data-selected", "selected");
-        if ($(this).find(".single_item_cooking_status").html() == "Not Ready") {
+        if ($(this).find(".single_item_cooking_status").html() == "No está listo") {
           single_order.find(".start_cooking_button").fadeIn();
         }
         if (
-          $(this).find(".single_item_cooking_status").html() == "In Preparation"
+          $(this).find(".single_item_cooking_status").html() == "En Preparacion"
         ) {
           single_order.find(".done_cooking").fadeIn();
         }
@@ -104,13 +104,13 @@ $(document).ready(function () {
         single_order.find('.done_cooking').fadeIn();
         $(this).find(".select_single_item").prop("checked",true);
       }
-    } else {
-      swal({
-        title: "Alert",
-        text: "¡Debes seleccionar todo para pedidos para llevar o entrega a domicilio, ya que estos están empaquetados!",
-        confirmButtonColor: "#b6d6f6",
-      });
-    }
+    // } else {
+    //   swal({
+    //     title: "Alert",
+    //     text: "¡Debes seleccionar todo para pedidos para llevar o entrega a domicilio, ya que estos están empaquetados!",
+    //     confirmButtonColor: "#b6d6f6",
+    //   });
+    // }
   });
   $(document).on("click", ".select_all_of_an_order", function () {
     let order_id = $(this).attr("id").substr(23);
@@ -258,7 +258,7 @@ $(document).ready(function () {
           "#detail_item_id_" +
             entry +
             " .single_item_right_side .single_item_cooking_status"
-        ).html("In Preparation");
+        ).html("En Preparacion");
 
         $(
           "#detail_item_id_" +
@@ -280,11 +280,11 @@ $(document).ready(function () {
           },
           success: function (response) {
             bgColorAdd();
-            swal({
-              title: "Alert",
-              text: "Cooking Started!!",
-              confirmButtonColor: "#b6d6f6",
-            });
+            // swal({
+            //   title: "Alert",
+            //   text: "Cooking Started!!",
+            //   confirmButtonColor: "#b6d6f6",
+            // });
           },
           error: function () {
             alert("error");
@@ -1087,7 +1087,7 @@ $(document).ready(function () {
         let counter = 1;
         $(this).parent().find(".single_item_cooking_status").each(function() {
            let this_text = $(this).text();
-           if(this_text=="In Preparation"){
+           if(this_text=="En Preparacion"){
             counter++;
            }
        });
@@ -1096,6 +1096,7 @@ $(document).ready(function () {
        }
      });
     }
+
     function refresh_orders() {
         let url = base_url + "Kitchen/get_new_orders_ajax";
         $("#refresh_it_or_not").html("Yes");
@@ -1110,7 +1111,8 @@ $(document).ready(function () {
             success: function (response) {
                 window.order_items = [];
                 response = JSON.parse(response);
-                console.log(response);
+                window.last_orders = response;
+                // console.log(response);
                 let order_list_left = "";
                 let i = 1;
                 for (let key in response) {
@@ -1371,11 +1373,36 @@ $(document).ready(function () {
                                 response[key].sales_id +
                                 '">';
                             order_list_left +=
-                                '<button class="start_cooking_button cook_bg" id="start_cooking_button_' +
-                                response[key].sales_id +
-                                '">Cocinar</button><button class="done_cooking" id="done_cooking_' +
-                                response[key].sales_id +
-                                '">Terminar</button>';
+                              '<button class="start_cooking_button cook_bg" id="start_cooking_button_' +
+                              response[key].sales_id +
+                              '">Cocinar</button>' +
+                              '<button class="done_cooking" id="done_cooking_' +
+                              response[key].sales_id +
+                              '">Terminar</button>' +
+
+                              '<button class="print_kitchen_ticket" onclick="printKitchenKOTBySaleId(' + "'" +
+                              response[key].sale_no + "'" + ', ' + kitchen_id + ')" id="print_kitchen_ticket_' +
+                              response[key].sales_id +
+                              '">Imprimir</button>';
+
+                              // '<button class="print_kitchen_ticket" onclick="printKitchenTicketCompressed(window.last_orders['+key+'],' + "'" + 'POS80 Printer' + "'" + ')" id="print_kitchen_ticket_' +
+                              // response[key].sales_id +
+                              // '">Imprimir</button>';
+
+
+                              // '<button class="print_kitchen_ticket" onclick="printKitchenTickets(\'' +
+                              // response[key].sale_no +
+                              // '\')" id="print_kitchen_ticket_' +
+                              // response[key].sales_id +
+                              // '">Imprimir</button>';
+                            
+                            // order_list_left +=
+                            //     '<button class="start_cooking_button cook_bg" id="start_cooking_button_' +
+                            //     response[key].sales_id +
+                            //     '">Cocinar</button><button class="done_cooking" id="done_cooking_' +
+                            //     response[key].sales_id +
+                            //     '">Terminar</button>';
+
                             order_list_left += "</div>";
                             order_list_left += "</div>";
                         }

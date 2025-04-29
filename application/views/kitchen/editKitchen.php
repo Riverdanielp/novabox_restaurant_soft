@@ -45,7 +45,7 @@
                     <?php
                     if(isLMni()):
                     ?>
-                        <div class="col-sm-12 mb-3 col-md-6 col-lg-3">
+                    <div class="col-sm-12 mb-3 col-md-6 col-lg-3">
                         <div class="form-group">
                             <label><?php echo lang('outlet'); ?> <span class="required_star">*</span></label>
                             <select tabindex="2" class="form-control select2 ir_w_100" id="outlet_id" name="outlet_id">
@@ -83,6 +83,54 @@
                             </div>
                         <?php } ?>
                     </div>
+
+                    <?php
+                    // En tu controlador, prepara este array:
+                    $checked_designations = isset($kitchen->designations) ? explode(',', $kitchen->designations) : [];
+                    ?>
+
+                    <div class="col-sm-12 mb-2 col-md-3">
+                        <div class="form-group">
+                            <label>Usuarios que pueden imprimir <span class="required_star">*</span></label>
+                            <div>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Admin" <?php echo in_array('Admin', $checked_designations) ? 'checked' : ''; ?>> <?php echo lang('Admin'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Cashier" <?php echo in_array('Cashier', $checked_designations) ? 'checked' : ''; ?>> <?php echo lang('Cashier'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Manager" <?php echo in_array('Manager', $checked_designations) ? 'checked' : ''; ?>> <?php echo lang('Manager'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Waiter" <?php echo in_array('Waiter', $checked_designations) ? 'checked' : ''; ?>> <?php echo lang('Waiter'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Chef" <?php echo in_array('Chef', $checked_designations) ? 'checked' : ''; ?>> <?php echo lang('Chef'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Normal User" <?php echo in_array('Normal User', $checked_designations) ? 'checked' : ''; ?>> <?php echo lang('Normal_Users'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                                <label class="container">
+                                    <input type="checkbox" name="designation[]" value="Others" <?php echo in_array('Others', $checked_designations) ? 'checked' : ''; ?>> <?php echo lang('Others'); ?>
+                                    <span class="checkmark"></span>
+                                </label>
+                            </div>
+                            <?php if (form_error('designation[]')) { ?>
+                                <div class="callout callout-danger my-2">
+                                    <?php echo form_error('designation[]'); ?>
+                                </div>
+                            <?php } ?>
+                        </div>
+                    </div>
+
+
                 </div>
                 <div class="row">
                     <div class="col-sm-12 mb-2 col-md-6">
@@ -102,6 +150,7 @@
                             </label>
                         </div>
                     </div>
+
                     <div class="clearfix"></div>
                     <div class="row category_list">
                     </div>

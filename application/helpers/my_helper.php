@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.54125';
+    return '?v=7.54127';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -455,14 +455,21 @@ function getStatusOrders() {
     $CI = & get_instance();
     $outlet_id = $CI->session->userdata('outlet_id');
 
-    $CI->db->select('tbl_kitchen_sales.id,order_type,tbl_kitchen_sales.sale_no,tbl_customers.name as customer_name');
+    $CI->db->select('tbl_kitchen_sales.id,order_type,tbl_kitchen_sales.sale_no,tbl_kitchen_sales.number_slot,tbl_kitchen_sales.number_slot_name,tbl_customers.name as customer_name,tbl_users.full_name as waiter_name');
     $CI->db->from('tbl_kitchen_sales');
     $CI->db->join('tbl_customers', 'tbl_customers.id = tbl_kitchen_sales.customer_id', 'left');
+    $CI->db->join('tbl_users', 'tbl_users.id = tbl_kitchen_sales.waiter_id', 'left');
     $CI->db->where('tbl_kitchen_sales.del_status', "Live");
     $CI->db->where('tbl_kitchen_sales.is_pickup_sale', 1);
     $CI->db->where("tbl_kitchen_sales.is_accept", 1);
     $CI->db->where("tbl_kitchen_sales.is_kitchen", 1);
     $CI->db->where('tbl_kitchen_sales.outlet_id', $outlet_id);
+    // <-- AQUI EL FILTRO DE 6 HORAS -->
+    $CI->db->where("tbl_kitchen_sales.date_time >=", "DATE_SUB(NOW(), INTERVAL 6 HOUR)", false);
+    $CI->db->order_by('tbl_kitchen_sales.date_time', 'ASC'); // Cambia a 'DESC' si quieres más recientes primero
+
+    // O alternativamente:
+    // $CI->db->where('tbl_kitchen_sales.date_time >=', date('Y-m-d H:i:s', strtotime('-6 hours')));
     $results =  $CI->db->get()->result();
     foreach ($results as $ky=>$value){
         $items = getStatusOrdersItems($value->id);

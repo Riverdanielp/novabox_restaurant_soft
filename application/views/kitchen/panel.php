@@ -78,7 +78,7 @@
         <?php if($font_detect=="arabic"):?>
             @font-face {
                 font-family: arabic_font;
-                src: url(<?=base_url()?>/assets/Cairo-VariableFont_wght.ttf);
+                src: url(<?php echo base_url()?>/assets/Cairo-VariableFont_wght.ttf);
             }
             .arabic_font {
                 font-family: arabic_font !important
@@ -99,6 +99,15 @@
         }
         .single_row_notification .bg-blue-btn, #notification_list_modal .modal-footer .bg-blue-btn, #help_modal .modal-footer .bg-blue-btn{
             background-color: <?php echo $base_color?>;
+        }
+        .print_kitchen_ticket {
+            background-color:rgb(0, 77, 144);
+            color: #fff;
+            margin-left: 5px;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -274,7 +283,44 @@
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/howler.min.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/kitchen_panel/js/custom.js<?php echo VERS() ?>"></script>
     <!-- material icon -->
+    <!-- Incluye estas librerías en tu HTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-base64@3.7.5/base64.min.js"></script>
 
+    <script>
+        
+    
+        function printKitchenKOTBySaleId(sale_id, kitchen_id) {
+            let base_url = $("base").attr("data-base");
+            let url = base_url + "Kitchen/printer_app_kot_by_sale_id/" + sale_id + "/" + kitchen_id;
+            $.ajax({
+                url: url,
+                method: "GET",
+                dataType: 'json',
+                success: function(printersArray) {
+                    if (printersArray && printersArray.length > 0) {
+                        // Imprime secuencialmente si hay varias impresoras (por si acaso)
+                        function printSequentially(index) {
+                            if (index < printersArray.length) {
+                                window.location.href = 'print://' + printersArray[index];
+                                setTimeout(function() {
+                                    printSequentially(index + 1);
+                                }, 500);
+                            }
+                        }
+                        printSequentially(0);
+                    } else {
+                        alert("No hay ticket de cocina para imprimir.");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert("Error al generar el ticket de cocina: " + error);
+                }
+            });
+        }
+
+
+    </script>
 </body>
 
 </html>

@@ -2991,14 +2991,14 @@ class Sale extends Cl_Controller {
             //         smsSendOnly($sms_content,$customer->phone);
             //     }
             // }
-            if($select_kitchen_row){
-                // $pre_or_post_payment = $this->session->userdata('pre_or_post_payment');
-                // if($pre_or_post_payment==1){
-                    $this->db->delete("tbl_kitchen_sales_details", array("sales_id" => $select_kitchen_row->id));
-                    $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
-                    $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
-                // }
-            }
+            // if($select_kitchen_row){
+            //     // $pre_or_post_payment = $this->session->userdata('pre_or_post_payment');
+            //     // if($pre_or_post_payment==1){
+            //         $this->db->delete("tbl_kitchen_sales_details", array("sales_id" => $select_kitchen_row->id));
+            //         $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
+            //         $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
+            //     // }
+            // }
             
             echo escape_output($sale_id_offline);
             $this->db->trans_commit();

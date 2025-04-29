@@ -1,19 +1,5 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Kitchen_model Model
-  ###########################################################
- */
+
 class Kitchen_model extends CI_Model {
 
      /**
@@ -23,7 +9,7 @@ class Kitchen_model extends CI_Model {
      * @param int
      */
 
-    public function getNewOrders($outlet_id){
+     public function getNewOrders($outlet_id, $kitchen_id = null){
         $this->db->select("*,tbl_kitchen_sales.id as sale_id, tbl_customers.name as customer_name, tbl_kitchen_sales.id as sales_id,tbl_users.full_name as waiter_name,tbl_tables.name as table_name");
         $this->db->from('tbl_kitchen_sales');
         $this->db->where("tbl_kitchen_sales.is_self_order", "No");
@@ -33,6 +19,24 @@ class Kitchen_model extends CI_Model {
         $this->db->join('tbl_tables', 'tbl_tables.id = tbl_kitchen_sales.table_id', 'left');
         $this->db->join('tbl_users', 'tbl_users.id = tbl_kitchen_sales.waiter_id', 'left');
         $this->db->join('tbl_customers', 'tbl_customers.id = tbl_kitchen_sales.customer_id', 'left');
+        // Filtro de las últimas 6 horas
+        $this->db->where("tbl_kitchen_sales.date_time >=", "DATE_SUB(NOW(), INTERVAL 6 HOUR)", false);
+    
+        // FILTRO CLAVE: Solo órdenes con items para esta cocina y outlet
+        if ($kitchen_id) {
+            $this->db->where("EXISTS (
+                SELECT 1 FROM tbl_kitchen_sales_details
+                LEFT JOIN tbl_food_menus ON tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id
+                LEFT JOIN tbl_kitchen_categories ON tbl_kitchen_categories.cat_id = tbl_food_menus.category_id
+                    AND tbl_kitchen_categories.outlet_id = " . intval($outlet_id) . "
+                LEFT JOIN tbl_kitchens ON tbl_kitchens.id = tbl_kitchen_categories.kitchen_id
+                    AND tbl_kitchens.outlet_id = " . intval($outlet_id) . "
+                WHERE tbl_kitchen_sales_details.sales_id = tbl_kitchen_sales.id
+                AND tbl_kitchens.id = " . intval($kitchen_id) . "
+                AND tbl_kitchen_sales_details.cooking_status != 'Done'
+            )");
+        }
+    
         $this->db->order_by('tbl_kitchen_sales.id', 'ASC');
         return $this->db->get()->result();
     }
