@@ -2141,7 +2141,7 @@ class Sale extends Cl_Controller {
                     
                     foreach ($sale_items as $item) {
                         if ($item->tmp_qty > 0) {
-                            $items .= printLine((($item->tmp_qty) . " * ".(getPlanData($item->menu_name))), $value->characters_per_line)."\n";
+                            $items .= printText((($item->tmp_qty) . " * ".(getPlanData($item->menu_name))), $value->characters_per_line)."\n";
                             $count++;
                             $count_item_to_print++;
                             

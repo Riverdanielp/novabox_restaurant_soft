@@ -476,7 +476,7 @@ $(document).ready(function () {
     } else {
       swal({
         title: "Alert",
-        text: "You don't need to select or deselect any item for take away or delivery, because you need to deliver all items in a pack",
+        text: "No es necesario seleccionar o deseleccionar ningún artículo para llevar o entregar, porque hay que entregar todos los artículos en un paquete",
         confirmButtonColor: "#b6d6f6",
       });
     }
@@ -498,7 +498,7 @@ $(document).ready(function () {
     } else {
       swal({
         title: "Alert",
-        text: "You don't need to select or deselect any item for take away or delivery, because you need to deliver all items in a pack",
+        text: "No es necesario seleccionar o deseleccionar ningún artículo para llevar o entregar, porque hay que entregar todos los artículos en un paquete",
         confirmButtonColor: "#b6d6f6",
       });
     }
@@ -1098,378 +1098,398 @@ $(document).ready(function () {
     }
 
     function refresh_orders() {
-        let url = base_url + "Kitchen/get_new_orders_ajax";
-        $("#refresh_it_or_not").html("Yes");
-        $.ajax({
-            url: url,
-            method: "POST",
-            data: {
-                outlet_id: window.localStorage.getItem("ls_outlet_id"),
-                csrf_irestoraplus: csrf_value_,
-                kitchen_id: kitchen_id,
-            },
-            success: function (response) {
-                window.order_items = [];
-                response = JSON.parse(response);
-                window.last_orders = response;
-                // console.log(response);
-                let order_list_left = "";
-                let i = 1;
-                for (let key in response) {
-                  // console.log(response[key]);
-                    let items_tmp = response[key].items;
-                    if(items_tmp.length){
-                        let order_name = "";
-                        let order_type = "";
-                        if (response[key].order_type == "1") {
-                            order_name = response[key].sale_no;
-                            order_type = dine_ln;
-                        } else if (response[key].order_type == "2") {
-                            order_name = response[key].sale_no;
-                            order_type = take_away_ln;
-                        } else if (response[key].order_type == "3") {
-                            order_name = response[key].sale_no;
-                            order_type = delivery_ln;
-                        }
-                        //for new order play bell
-                        if (Number(response[key].is_kitchen_bell) == 1) {
-                            let bell_new_order_notification_1 = new Howl({
-                                src: [base_url + "assets/media/kitchen_bell.mp3"],
-                            });
-
-                            bell_new_order_notification_1.play();
-                        }
-                        let tables_booked = response[key].orders_table_text;
-
-                        let selected_unselected =
-                            $("#selected_order_for_refreshing_help").html() ==
-                            response[key].sales_id
-                                ? "selected"
-                                : "unselected";
-                        let selected_background =
-                            $("#selected_order_for_refreshing_help").html() ==
-                            response[key].sales_id
-                                ? ' style="background-color:#b6d6f6" '
-                                : "";
-                        let width = 100;
-                        let total_kitchen_type_items = response[key].total_kitchen_type_items;
-                        let total_kitchen_type_started_cooking_items =
-                            response[key].total_kitchen_type_started_cooking_items;
-                        let total_kitchen_type_done_items =
-                            response[key].total_kitchen_type_done_items;
-                        let splitted_width = (
-                            parseFloat(width) / parseFloat(total_kitchen_type_items)
-                        ).toFixed(2);
-                        let percentage_for_started_cooking = (
-                            parseFloat(splitted_width) *
-                            parseFloat(total_kitchen_type_started_cooking_items)
-                        ).toFixed(2);
-                        let percentage_for_done_cooking = (
-                            parseFloat(splitted_width) * parseFloat(total_kitchen_type_done_items)
-                        ).toFixed(2);
-
-                        let comanda_name =
-                            response[key].number_slot_name != null ? response[key].number_slot_name : "";
-                        let usuario_name =
-                            response[key].full_name != null ? response[key].full_name : "";
-                        let table_name =
-                            response[key].table_name != null ? response[key].table_name : "";
-                        let waiter_name =
-                            response[key].waiter_name != null ? response[key].waiter_name : "";
-                        let customer_name =
-                            response[key].customer_name != null
-                                ? response[key].customer_name
-                                : "";
-                        let booked_time = new Date(Date.parse(response[key].date_time));
-                        let now = new Date();
-
-                        let days = parseInt((now - booked_time) / (1000 * 60 * 60 * 24));
-                        let hours = parseInt(
-                            (Math.abs(now - booked_time) / (1000 * 60 * 60)) % 24
-                        );
-                        let minute = parseInt(
-                            (Math.abs(now.getTime() - booked_time.getTime()) / (1000 * 60)) % 60
-                        );
-                        let second = parseInt(
-                            (Math.abs(now.getTime() - booked_time.getTime()) / 1000) % 60
-                        );
-                        minute = minute.toString();
-                        second = second.toString();
-                        minute = minute.length == 1 ? "0" + minute : minute;
-                        second = second.length == 1 ? "0" + second : second;
-
-                        let table_name_txt = '';
-                        if (tables_booked > 0){
-                            table_name_txt = table +': ' + tables_booked;
-                        }
-                        if (total_kitchen_type_items != total_kitchen_type_done_items) {
-                            order_list_left +=
-                                '<div class="fix floatleft single_order" data-order-type="' +
-                                order_type +
-                                '" data-selected="' +
-                                selected_unselected +
-                                '" id="single_order_' +
-                                response[key].sales_id +
-                                '">';
-                            order_list_left +=
-                                '<div class="header_portion light-blue-background fix">';
-                            order_list_left += '<div class="fix floatleft" style="width:70%;">';
-                            order_list_left +='<p class="order_number table_no"><b>#' + comanda_name + '</b> - ' + order_name + '</p>';
-                            order_list_left += '<p class="order_number sale_no"> ' + usuario_name +  "</p> ";
-                            order_list_left += '<p class="order_number customer_name">'+response[key].customer_name+'</p>';
-                            order_list_left += "</div>";
-                            order_list_left += '<div class="fix floatleft" style="width:30%;">';
-                            order_list_left += '<p class="order_duration  order_number order_type"><span>'+order_type+'</span></p>';
-                            order_list_left += "</div>";
-                            order_list_left += '<div class="fix floatleft" style="width:30%;">';
-                            order_list_left += '<p class="order_duration "><span id="kitchen_time_minute_' +
-                                response[key].sales_id +
-                                '">' +
-                                minute +
-                                '</span>:<span id="kitchen_time_second_' +
-                                response[key].sales_id +
-                                '">' +
-                                second +
-                                "</span></p>";
-                            order_list_left += "</div>";
-                            order_list_left += "</div>";
-                            order_list_left += '<div class="fix items_holder">';
-                            let items = response[key].items;
-                            let i_counter = 0;
-                            order_list_left += '<div class="single_el_wrapper"><div class="el_wrapper"><label for="all_select_all_of_an_order_' + response[key].sales_id +'" id="select_all_of_an_order_' + response[key].sales_id +'" class="select_all_of_an_order"><input id="all_select_all_of_an_order_' + response[key].sales_id +'" type="checkbox"><span>Select. Todo</span></label></div></div>'
-
-                            for (let key_item in items) {
-
-                                let single_item = items[key_item];
-                                let searched_found = searchItems(single_item.menu_name);
-                                if (searched_found.length == 0) {
-                                    window.order_items.push(single_item);
+      let url = base_url + "Kitchen/get_new_orders_ajax";
+      $("#refresh_it_or_not").html("Yes");
+  
+      // Control de impresiones en memoria (solo vive mientras no recargues)
+      if (typeof window.printed_sales === "undefined") {
+          window.printed_sales = {};
+          window.is_first_load = true;
+      }
+  
+      $.ajax({
+          url: url,
+          method: "POST",
+          data: {
+              outlet_id: window.localStorage.getItem("ls_outlet_id"),
+              csrf_irestoraplus: csrf_value_,
+              kitchen_id: kitchen_id,
+          },
+          success: function (response) {
+              window.order_items = [];
+              response = JSON.parse(response);
+              window.last_orders = response;
+  
+              // --- Control de impresión ---
+              // 1. En la primera carga, solo registra los tickets actuales (NO imprime)
+              // 2. En siguientes cargas, imprime solo los nuevos o modificados
+  
+              // Recolecta los sale_no actuales y su hash (puedes ajustar el hash según lo que consideres "cambio")
+              let current_sales = {};
+              for (let key in response) {
+                  let sale_no = response[key].sale_no;
+                  // Puedes usar solo los items, o todo el objeto según tu lógica
+                  current_sales[sale_no] = JSON.stringify(response[key].items);
+              }
+  
+              // Primera carga: solo registra, NO imprime
+              if (window.is_first_load) {
+                window.printed_sales = { ...current_sales };
+                window.is_first_load = false;
+              } else {
+                  // Siguientes cargas: imprime los nuevos y modificados
+                  for (let sale_no in current_sales) {
+                      if (typeof window.printed_sales[sale_no] === "undefined") {
+                          // NUEVO pedido
+                          fetchAndPrint(sale_no, kitchen_id, "1");
+                          window.printed_sales[sale_no] = current_sales[sale_no];
+                      } else if (window.printed_sales[sale_no] !== current_sales[sale_no]) {
+                          // MODIFICADO
+                          fetchAndPrint(sale_no, kitchen_id, "0");
+                          window.printed_sales[sale_no] = current_sales[sale_no];
+                      }
+                      // Si no cambió, no imprime
+                  }
+                  // Limpia los pedidos que ya no existen
+                  for (let sale_no in window.printed_sales) {
+                      if (!(sale_no in current_sales)) {
+                          delete window.printed_sales[sale_no];
+                      }
+                  }
+              }
+              // --- Fin control de impresión ---
+  
+              // Render de la UI de pedidos
+              let order_list_left = "";
+              let i = 1;
+              for (let key in response) {
+                  let items_tmp = response[key].items;
+                  if (items_tmp.length) {
+                      let order_name = "";
+                      let order_type = "";
+                      if (response[key].order_type == "1") {
+                          order_name = response[key].sale_no;
+                          order_type = dine_ln;
+                      } else if (response[key].order_type == "2") {
+                          order_name = response[key].sale_no;
+                          order_type = take_away_ln;
+                      } else if (response[key].order_type == "3") {
+                          order_name = response[key].sale_no;
+                          order_type = delivery_ln;
+                      }
+                      // Toca campana si hay pedido nuevo
+                      if (Number(response[key].is_kitchen_bell) == 1) {
+                          let bell_new_order_notification_1 = new Howl({
+                              src: [base_url + "assets/media/kitchen_bell.mp3"],
+                          });
+                          bell_new_order_notification_1.play();
+                      }
+                      let tables_booked = response[key].orders_table_text;
+  
+                      let selected_unselected =
+                          $("#selected_order_for_refreshing_help").html() ==
+                          response[key].sales_id
+                              ? "selected"
+                              : "unselected";
+                      let selected_background =
+                          $("#selected_order_for_refreshing_help").html() ==
+                          response[key].sales_id
+                              ? ' style="background-color:#b6d6f6" '
+                              : "";
+                      let width = 100;
+                      let total_kitchen_type_items = response[key].total_kitchen_type_items;
+                      let total_kitchen_type_started_cooking_items =
+                          response[key].total_kitchen_type_started_cooking_items;
+                      let total_kitchen_type_done_items =
+                          response[key].total_kitchen_type_done_items;
+                      let splitted_width = (
+                          parseFloat(width) / parseFloat(total_kitchen_type_items)
+                      ).toFixed(2);
+                      let percentage_for_started_cooking = (
+                          parseFloat(splitted_width) *
+                          parseFloat(total_kitchen_type_started_cooking_items)
+                      ).toFixed(2);
+                      let percentage_for_done_cooking = (
+                          parseFloat(splitted_width) * parseFloat(total_kitchen_type_done_items)
+                      ).toFixed(2);
+  
+                      let comanda_name =
+                          response[key].number_slot_name != null ? response[key].number_slot_name : "";
+                      let usuario_name =
+                          response[key].full_name != null ? response[key].full_name : "";
+                      let table_name =
+                          response[key].table_name != null ? response[key].table_name : "";
+                      let waiter_name =
+                          response[key].waiter_name != null ? response[key].waiter_name : "";
+                      let customer_name =
+                          response[key].customer_name != null
+                              ? response[key].customer_name
+                              : "";
+                      let booked_time = new Date(Date.parse(response[key].date_time));
+                      let now = new Date();
+  
+                      let days = parseInt((now - booked_time) / (1000 * 60 * 60 * 24));
+                      let hours = parseInt(
+                          (Math.abs(now - booked_time) / (1000 * 60 * 60)) % 24
+                      );
+                      let minute = parseInt(
+                          (Math.abs(now.getTime() - booked_time.getTime()) / (1000 * 60)) % 60
+                      );
+                      let second = parseInt(
+                          (Math.abs(now.getTime() - booked_time.getTime()) / 1000) % 60
+                      );
+                      minute = minute.toString();
+                      second = second.toString();
+                      minute = minute.length == 1 ? "0" + minute : minute;
+                      second = second.length == 1 ? "0" + second : second;
+  
+                      let table_name_txt = '';
+                      if (tables_booked > 0){
+                          table_name_txt = table +': ' + tables_booked;
+                      }
+                      if (total_kitchen_type_items != total_kitchen_type_done_items) {
+                          order_list_left +=
+                              '<div class="fix floatleft single_order" data-order-type="' +
+                              order_type +
+                              '" data-selected="' +
+                              selected_unselected +
+                              '" id="single_order_' +
+                              response[key].sales_id +
+                              '">';
+                          order_list_left +=
+                              '<div class="header_portion light-blue-background fix">';
+                          order_list_left += '<div class="fix floatleft" style="width:70%;">';
+                          order_list_left +='<p class="order_number table_no"><b>#' + comanda_name + '</b> - ' + order_name + '</p>';
+                          order_list_left += '<p class="order_number sale_no"> ' + usuario_name +  "</p> ";
+                          order_list_left += '<p class="order_number customer_name">'+response[key].customer_name+'</p>';
+                          order_list_left += "</div>";
+                          order_list_left += '<div class="fix floatleft" style="width:30%;">';
+                          order_list_left += '<p class="order_duration  order_number order_type"><span>'+order_type+'</span></p>';
+                          order_list_left += "</div>";
+                          order_list_left += '<div class="fix floatleft" style="width:30%;">';
+                          order_list_left += '<p class="order_duration "><span id="kitchen_time_minute_' +
+                              response[key].sales_id +
+                              '">' +
+                              minute +
+                              '</span>:<span id="kitchen_time_second_' +
+                              response[key].sales_id +
+                              '">' +
+                              second +
+                              "</span></p>";
+                          order_list_left += "</div>";
+                          order_list_left += "</div>";
+                          order_list_left += '<div class="fix items_holder">';
+                          let items = response[key].items;
+                          let i_counter = 0;
+                          order_list_left += '<div class="single_el_wrapper"><div class="el_wrapper"><label for="all_select_all_of_an_order_' + response[key].sales_id +'" id="select_all_of_an_order_' + response[key].sales_id +'" class="select_all_of_an_order"><input id="all_select_all_of_an_order_' + response[key].sales_id +'" type="checkbox"><span>Select. Todo</span></label></div></div>'
+  
+                          for (let key_item in items) {
+  
+                              let single_item = items[key_item];
+                              let searched_found = searchItems(single_item.menu_name);
+                              if (searched_found.length == 0) {
+                                  window.order_items.push(single_item);
+                              }
+  
+                              let alternative_name = single_item.alternative_name?" ("+single_item.alternative_name+")":'';
+                              let item_background = "";
+                              let font_style = "color: #212121";
+                              let cook_status_btn = '';
+                              let cooking_status = text_not_ready_ln;
+                              if (single_item.cooking_status == "Done") {
+                                  cooking_status = text_ready_ln;
+                                  cook_status_btn = 'done_cooking';
+                              } else if (single_item.cooking_status == "Started Cooking") {
+                                  cooking_status = text_in_preparation_ln;
+                                  cook_status_btn = 'start_cooking_button';
+                              }
+  
+                              let qty_str = '<p class="item_qty" style="font-weight:bold; ' +
+                              font_style +
+                              '">'+quantity_ln+': ' +
+                              single_item.qty +
+                              "</p>";
+  
+                                if(single_item.qty!=single_item.tmp_qty && parseFloat(single_item.tmp_qty)){
+  
+                                  qty_str = '<p class="item_qty" style="font-weight:bold; ' +
+                                          font_style +
+                                          '">'+Qty_Old+': ' +
+                                          (single_item.qty - single_item.tmp_qty) +
+                                          "</p>";
+                                  qty_str += '<p class="item_qty" style="font-weight:bold; ' +
+                                          font_style +
+                                          '">'+Qty_New+': ' +
+                                          single_item.tmp_qty +
+                                          "</p>";
+  
                                 }
-
-                                let alternative_name = single_item.alternative_name?" ("+single_item.alternative_name+")":'';
-                                let item_background = "";
-                                let font_style = "color: #212121";
-                                let cook_status_btn = '';
-                                let cooking_status = text_not_ready_ln;
-                                if (single_item.cooking_status == "Done") {
-                                    cooking_status = text_ready_ln;
-                                    cook_status_btn = 'done_cooking';
-                                } else if (single_item.cooking_status == "Started Cooking") {
-                                    cooking_status = text_in_preparation_ln;
-                                    cook_status_btn = 'start_cooking_button';
-                                }
-
-
-                                let qty_str = '<p class="item_qty" style="font-weight:bold; ' +
-                                font_style +
-                                '">'+quantity_ln+': ' +
-                                single_item.qty +
-                                "</p>";
-
-                                  if(single_item.qty!=single_item.tmp_qty && parseFloat(single_item.tmp_qty)){
-
-                                    qty_str = '<p class="item_qty" style="font-weight:bold; ' +
-                                            font_style +
-                                            '">'+Qty_Old+': ' +
-                                            (single_item.qty - single_item.tmp_qty) +
-                                            "</p>";
-                                    qty_str += '<p class="item_qty" style="font-weight:bold; ' +
-                                            font_style +
-                                            '">'+Qty_New+': ' +
-                                            single_item.tmp_qty +
-                                            "</p>";
-
+                             
+                              order_list_left +=
+                                  '<div data-selected="unselected" class="fix single_item ' +
+                                  item_background +
+                                  '" data-order-id="' +
+                                  response[key].sales_id +
+                                  '" data-item-id="' +
+                                  single_item.previous_id +
+                                  '" id="detail_item_id_' +
+                                  single_item.previous_id +
+                                  '" data-cooking-status="' +
+                                  single_item.cooking_status +
+                                  '">';
+                              order_list_left += '<div class="single_item_left_side fix">';
+                              order_list_left += '<div class="fix floatleft item_quantity">';
+                              order_list_left +=
+                                  '<p class="item_quanity_text" style="' +
+                                  font_style +
+                                  '">' +
+                                  single_item.qty +
+                                  "</p>";
+                              order_list_left += "</div>";
+                              order_list_left += '<div class="fix floatleft item_detail"><div><label ><input type="checkbox" class="select_single_item">';
+                              order_list_left +=
+                                  '<span class="item_name" style="' +
+                                  font_style +
+                                  '">' +
+                                  single_item.menu_name +
+                                  "</span></label>"+alternative_name+"</div>";
+                              if (single_item.menu_combo_items != "" && single_item.menu_combo_items!=undefined && single_item.menu_combo_items!="undefined") {
+                                  order_list_left +=
+                                      '<p class="note" style="' +
+                                      font_style +
+                                      '">Items- ' +
+                                      single_item.menu_combo_items +
+                                      "</p>";
+                              }
+                              order_list_left += qty_str;
+  
+                              let modifiers = single_item.modifiers;
+                              let modifiers_length = modifiers.length;
+                              let w = 1;
+                              let modifiers_name = "";
+                              for (let key_modifier in modifiers) {
+                                  if (w == modifiers_length) {
+                                      modifiers_name += modifiers[key_modifier].name;
+                                  } else {
+                                      modifiers_name += modifiers[key_modifier].name + ", ";
                                   }
-                               
-                                order_list_left +=
-                                    '<div data-selected="unselected" class="fix single_item ' +
-                                    item_background +
-                                    '" data-order-id="' +
-                                    response[key].sales_id +
-                                    '" data-item-id="' +
-                                    single_item.previous_id +
-                                    '" id="detail_item_id_' +
-                                    single_item.previous_id +
-                                    '" data-cooking-status="' +
-                                    single_item.cooking_status +
-                                    '">';
-                                order_list_left += '<div class="single_item_left_side fix">';
-                                order_list_left += '<div class="fix floatleft item_quantity">';
-                                order_list_left +=
-                                    '<p class="item_quanity_text" style="' +
-                                    font_style +
-                                    '">' +
-                                    single_item.qty +
-                                    "</p>";
-                                order_list_left += "</div>";
-                                order_list_left += '<div class="fix floatleft item_detail"><div><label ><input type="checkbox" class="select_single_item">';
-                                order_list_left +=
-                                    '<span class="item_name" style="' +
-                                    font_style +
-                                    '">' +
-                                    single_item.menu_name +
-                                    "</span></label>"+alternative_name+"</div>";
-                                if (single_item.menu_combo_items != "" && single_item.menu_combo_items!=undefined && single_item.menu_combo_items!="undefined") {
-                                    order_list_left +=
-                                        '<p class="note" style="' +
-                                        font_style +
-                                        '">Items- ' +
-                                        single_item.menu_combo_items +
-                                        "</p>";
-                                }
-                                order_list_left += qty_str;
-
-                                let modifiers = single_item.modifiers;
-                                let modifiers_length = modifiers.length;
-                                let w = 1;
-                                let modifiers_name = "";
-                                for (let key_modifier in modifiers) {
-                                    if (w == modifiers_length) {
-                                        modifiers_name += modifiers[key_modifier].name;
-                                    } else {
-                                        modifiers_name += modifiers[key_modifier].name + ", ";
-                                    }
-                                    w++;
-                                }
-                                if (modifiers_length > 0) {
-                                    order_list_left +=
-                                        '<p class="modifiers" style="' +
-                                        font_style +
-                                        '">- ' +
-                                        modifiers_name +
-                                        "</p>";
-                                }
-
-                                if (single_item.menu_note != "" && single_item.menu_note!=undefined && single_item.menu_note!="undefined") {
-                                    order_list_left +=
-                                        '<p class="note" style="' +
-                                        font_style +
-                                        '">- ' +
-                                        single_item.menu_note +
-                                        "</p>";
-                                }
-
-                                order_list_left += "</div>";
-                                order_list_left += "</div>";
-                                order_list_left += '<div class="single_item_right_side fix">';
-                                order_list_left +=
-                                    '<p class="single_item_cooking_status '+cook_status_btn+'" style="' +
-                                    font_style +
-                                    ';">' +
-                                    cooking_status +
-                                    "</p>";
-                                order_list_left += "</div>";
-                                order_list_left += "</div>";
-                                if((items.length-1)>i_counter){
-                                   order_list_left += "<hr class='hr_kitchen_panel'>";
-                                }
-
-                                i_counter++;
-                            }
-
-                            order_list_left += "</div>";
-                            order_list_left +=
-                                '<div class="single_order_button_holder" id="single_order_button_holder_' +
-                                response[key].sales_id +
-                                '">';
-                            order_list_left +=
-                              '<button class="start_cooking_button cook_bg" id="start_cooking_button_' +
+                                  w++;
+                              }
+                              if (modifiers_length > 0) {
+                                  order_list_left +=
+                                      '<p class="modifiers" style="' +
+                                      font_style +
+                                      '">- ' +
+                                      modifiers_name +
+                                      "</p>";
+                              }
+  
+                              if (single_item.menu_note != "" && single_item.menu_note!=undefined && single_item.menu_note!="undefined") {
+                                  order_list_left +=
+                                      '<p class="note" style="' +
+                                      font_style +
+                                      '">- ' +
+                                      single_item.menu_note +
+                                      "</p>";
+                              }
+  
+                              order_list_left += "</div>";
+                              order_list_left += "</div>";
+                              order_list_left += '<div class="single_item_right_side fix">';
+                              order_list_left +=
+                                  '<p class="single_item_cooking_status '+cook_status_btn+'" style="' +
+                                  font_style +
+                                  ';">' +
+                                  cooking_status +
+                                  "</p>";
+                              order_list_left += "</div>";
+                              order_list_left += "</div>";
+                              if((items.length-1)>i_counter){
+                                 order_list_left += "<hr class='hr_kitchen_panel'>";
+                              }
+  
+                              i_counter++;
+                          }
+  
+                          order_list_left += "</div>";
+                          order_list_left +=
+                              '<div class="single_order_button_holder" id="single_order_button_holder_' +
                               response[key].sales_id +
-                              '">Cocinar</button>' +
-                              '<button class="done_cooking" id="done_cooking_' +
-                              response[key].sales_id +
-                              '">Terminar</button>' +
-
-                              '<button class="print_kitchen_ticket" onclick="printKitchenKOTBySaleId(' + "'" +
-                              response[key].sale_no + "'" + ', ' + kitchen_id + ')" id="print_kitchen_ticket_' +
-                              response[key].sales_id +
-                              '">Imprimir</button>';
-
-                              // '<button class="print_kitchen_ticket" onclick="printKitchenTicketCompressed(window.last_orders['+key+'],' + "'" + 'POS80 Printer' + "'" + ')" id="print_kitchen_ticket_' +
-                              // response[key].sales_id +
-                              // '">Imprimir</button>';
-
-
-                              // '<button class="print_kitchen_ticket" onclick="printKitchenTickets(\'' +
-                              // response[key].sale_no +
-                              // '\')" id="print_kitchen_ticket_' +
-                              // response[key].sales_id +
-                              // '">Imprimir</button>';
-                            
-                            // order_list_left +=
-                            //     '<button class="start_cooking_button cook_bg" id="start_cooking_button_' +
-                            //     response[key].sales_id +
-                            //     '">Cocinar</button><button class="done_cooking" id="done_cooking_' +
-                            //     response[key].sales_id +
-                            //     '">Terminar</button>';
-
-                            order_list_left += "</div>";
-                            order_list_left += "</div>";
-                        }
-                        i++;
-
-                    }
-                }
-                $("#order_holder").html(order_list_left);
-                bgColorAdd();
-                $("#order_holder.order_holder .single_order .items_holder")
-                    .slimscroll({
-                        height: "199px",
-                    })
-                    .parent()
-                    .css({
-                        background: "#fff",
-                        border: "0px solid #184055",
-                    });
-                /*******************************************************************************************************
-                 ****************** Construct option for group order by item end ****************************************
-                 *******************************************************************************************************************************************************************/
-                let group_order_by_item_option =
-                    '<select id="group_by_order_item" class="group_by_order_item">';
-                group_order_by_item_option += '<option value="">Select Item</option>';
-                for (let key in window.order_items) {
-                    let single_ordered_item = window.order_items[key];
-                    group_order_by_item_option +=
-                        '<option value="' +
-                        single_ordered_item.food_menu_id +
-                        '">' +
-                        single_ordered_item.menu_name +
-                        "</option>";
-                }
-                group_order_by_item_option += "</select>";
-
-                $("#group_by_order_item_holder").html(group_order_by_item_option);
-                $("#group_by_order_item").select2({ dropdownCssClass: "bigdrop" });
-                /*******************************************************************************************************
-                 ****************** Construct order list end ************************************************************
-                 ********************************************************************************************************/
-            },
-            error: function () {
-                console.log("New order refresh error");
-            },
-        });
-
-        // material icon init
-        $(".select2").select2();
-        $.datable();
-
-        function searchItems(searchedValue) {
-            let resultObject = search(searchedValue, window.order_items);
-            return resultObject;
-        }
-
-        function search(nameKey, myArray) {
-            let foundResult = new Array();
-            for (let i = 0; i < myArray.length; i++) {
-                if (myArray[i].menu_name.toLowerCase().includes(nameKey.toLowerCase())) {
-                    foundResult.push(myArray[i]);
-                }
-            }
-            return foundResult.sort(function (a, b) {
-                return parseInt(b.sold_for) - parseInt(a.sold_for);
-            });
-        }
-    }
+                              '">';
+                          order_list_left +=
+                            '<button class="start_cooking_button cook_bg" id="start_cooking_button_' +
+                            response[key].sales_id +
+                            '">Cocinar</button>' +
+                            '<button class="done_cooking" id="done_cooking_' +
+                            response[key].sales_id +
+                            '">Terminar</button>' +
+  
+                            '<button class="print_kitchen_ticket" onclick="printKitchenKOTBySaleId(' + "'" +
+                            response[key].sale_no + "'" + ', ' + kitchen_id + ')" id="print_kitchen_ticket_' +
+                            response[key].sales_id +
+                            '">Imprimir</button>';
+  
+                          order_list_left += "</div>";
+                          order_list_left += "</div>";
+                      }
+                      i++;
+                  }
+              }
+              $("#order_holder").html(order_list_left);
+              bgColorAdd();
+              $("#order_holder.order_holder .single_order .items_holder")
+                  .slimscroll({
+                      height: "199px",
+                  })
+                  .parent()
+                  .css({
+                      background: "#fff",
+                      border: "0px solid #184055",
+                  });
+  
+              let group_order_by_item_option =
+                  '<select id="group_by_order_item" class="group_by_order_item">';
+              group_order_by_item_option += '<option value="">Select Item</option>';
+              for (let key in window.order_items) {
+                  let single_ordered_item = window.order_items[key];
+                  group_order_by_item_option +=
+                      '<option value="' +
+                      single_ordered_item.food_menu_id +
+                      '">' +
+                      single_ordered_item.menu_name +
+                      "</option>";
+              }
+              group_order_by_item_option += "</select>";
+  
+              $("#group_by_order_item_holder").html(group_order_by_item_option);
+              $("#group_by_order_item").select2({ dropdownCssClass: "bigdrop" });
+          },
+          error: function () {
+              console.log("New order refresh error");
+          },
+      });
+  
+      // material icon init
+      $(".select2").select2();
+      $.datable();
+  
+      function searchItems(searchedValue) {
+          let resultObject = search(searchedValue, window.order_items);
+          return resultObject;
+      }
+  
+      function search(nameKey, myArray) {
+          let foundResult = new Array();
+          for (let i = 0; i < myArray.length; i++) {
+              if (myArray[i].menu_name.toLowerCase().includes(nameKey.toLowerCase())) {
+                  foundResult.push(myArray[i]);
+              }
+          }
+          return foundResult.sort(function (a, b) {
+              return parseInt(b.sold_for) - parseInt(a.sold_for);
+          });
+      }
+  }
 
     function toggleFullscreen(elem) {
       elem = elem || document.documentElement;

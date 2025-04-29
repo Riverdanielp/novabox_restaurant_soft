@@ -794,11 +794,11 @@ class Kitchen extends Cl_Controller {
      */
     public function get_all_information_of_a_sale($sale_no){
         $sales_information = $this->get_all_information_of_a_sale_kitchen($sale_no);
-    //     echo 'get_all_information_of_a_sale';
-    //    echo '<pre>';
-    //    var_dump($sales_information); 
-    //    echo '<pre>';
-       
+        //     echo 'get_all_information_of_a_sale';
+        //    echo '<pre>';
+        //    var_dump($sales_information); 
+        //    echo '<pre>';
+        
 
         @$sales_information->selected_number = $sales_information->number_slot ?? '';
         @$sales_information->selected_number_name = $sales_information->number_slot_name ?? '';
@@ -870,5 +870,199 @@ class Kitchen extends Cl_Controller {
     public function get_all_information_of_a_sale_kitchen($sale_no){
         $sales_information = getKitchenSaleDetailsBySaleNoWithDeleted($sale_no);
         return $sales_information;
+    }
+
+    public function get_content_data_direct_print() {
+        $sale_no = $this->input->get('sale_no');
+        $kitchen_id = $this->input->get('kitchen_id');
+        $all = $this->input->get('all');
+        $this->load->model('Kitchen_model');
+        $data = $this->get_printers_direct_print_array($sale_no, $kitchen_id, $all); // La función que te armé antes
+        header('Content-Type: application/json');
+        echo json_encode($data);
+    }
+
+    
+    public function get_printers_direct_print_array($sale_no, $kitchen_id,$all = "1") {
+        $result = [];
+    
+        // Obtener la información de la venta
+        $sale_object = $this->get_all_information_of_a_sale($sale_no);
+        if(!$sale_object) return [];
+    
+        $sale_id = $sale_object->id;
+    
+        // NUEVO SELECT Y JOINS
+        $this->db->select("tbl_kitchen_sales_details.*, tbl_printers.*, tbl_kitchens.name as kitchen_name, tbl_kitchens.id as kitchen_id, tbl_kitchen_sales_details.outlet_id");
+        $this->db->from('tbl_kitchen_sales_details');
+        $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id', 'left');
+        $this->db->join('tbl_kitchen_categories', 'tbl_kitchen_categories.cat_id = tbl_food_menus.category_id', 'left');
+        $this->db->join('tbl_kitchens', 'tbl_kitchens.id = tbl_kitchen_categories.kitchen_id', 'left');
+        $this->db->join('tbl_printers', 'tbl_printers.id = tbl_kitchens.printer_id', 'left');
+        $this->db->where('tbl_kitchen_sales_details.sales_id', $sale_id);
+        $this->db->where('tbl_kitchens.id', $kitchen_id);
+        $this->db->where("tbl_kitchen_categories.del_status", "Live");
+        $this->db->order_by('tbl_kitchen_sales_details.id', 'ASC');
+        $this->db->group_by('tbl_kitchen_sales_details.id');
+        $sale_items = $this->db->get()->result();
+    
+        // echo '<pre>';
+        // var_dump($sale_items); 
+        // echo '<pre>';
+        
+        // Traer los modificadores para cada item y armar campos
+        foreach ($sale_items as $item) {
+            $modifiers = $this->Kitchen_model->getModifiersBySaleAndSaleDetailsId($sale_id, $item->id);
+            $item->modifiers = $modifiers;
+    
+            $modifiers_id = [];
+            $modifiers_name = [];
+            $modifiers_price = [];
+            foreach ($modifiers as $mod) {
+                $modifiers_id[] = $mod->modifier_id;
+                $modifiers_name[] = $mod->name;
+                $modifiers_price[] = $mod->modifier_price;
+            }
+            $item->modifiers_id = implode(',', $modifiers_id);
+            $item->modifiers_name = implode(',', $modifiers_name);
+            $item->modifiers_price = implode(',', $modifiers_price);
+        }
+    
+        // Determinar order_type
+        $order_type = '';
+        if($sale_object->order_type==1){
+            $order_type = lang('dine');
+        }else if($sale_object->order_type==2){
+            $order_type = lang('take_away');
+        }else if($sale_object->order_type==3){
+            $order_type = lang('delivery');
+        }
+    
+        // Tomar datos de impresora y cocina del primer item (ya que todos los items tienen esta info)
+        $first_item = isset($sale_items[0]) ? $sale_items[0] : null;
+        $ipvfour_address = $first_item ? (isset($first_item->ipvfour_address) ? $first_item->ipvfour_address : 'http://127.0.0.1/') : 'http://127.0.0.1/';
+        $store_name = $first_item ? (lang('KOT') . ':' . $first_item->kitchen_name) : '';
+        $printer_name = $first_item ? (isset($first_item->printer_name) ? $first_item->printer_name : '') : '';
+        $printer_path = $first_item ? (isset($first_item->path) ? $first_item->path : '') : '';
+        $characters_per_line = $first_item ? (isset($first_item->characters_per_line) ? $first_item->characters_per_line : '') : '';
+        $open_cash_drawer_when_printing_invoice = $first_item ? (isset($first_item->open_cash_drawer_when_printing_invoice) ? $first_item->open_cash_drawer_when_printing_invoice : '') : '';
+        $printer_type = $first_item ? (isset($first_item->type) ? $first_item->type : '') : '';
+        $printer_width = $first_item ? (isset($first_item->width) ? $first_item->width : '') : '';
+        $type = $first_item ? (isset($first_item->type) ? $first_item->type : '') : '';
+        $outlet_id = $first_item ? (isset($first_item->outlet_id) ? $first_item->outlet_id : '') : '';
+        $printer_port = $first_item ? (isset($first_item->printer_port) ? $first_item->printer_port : '') : '';
+        $profile_ = $first_item ? (isset($first_item->profile_) ? $first_item->profile_ : '') : '';
+        $printer_ip_address = $first_item ? (isset($first_item->printer_ip_address) ? $first_item->printer_ip_address : '') : '';
+        // $data['type'] = $printer->type;
+        // $data['printer_ip_address'] = $printer->printer_ip_address;
+        // $data['printer_port'] = $printer->printer_port;
+        // $data['path'] = $printer->path;
+        // $data['characters_per_line'] = $printer->characters_per_line;
+        // $data['profile_'] = $printer->profile_;
+    
+        // Formato del ticket (items)
+        $items = "\n";
+        $count = 1;
+        foreach ($sale_items as $item) {
+            // $items .= "#{$count} ".($item->menu_name).": " .($item->qty) . "\n";
+            // $count++;
+            // if($item->menu_combo_items && $item->menu_combo_items!=null){
+            //     $items .= "Combo: ".$item->menu_combo_items."\n";
+            // }
+            // if(isset($item->menu_note)){
+            //     $items .= "Nota: ".$item->menu_note."\n";
+            // }
+            // if(count($item->modifiers)>0){
+            //     foreach($item->modifiers as $modifier){
+            //         $items .= "   ".($modifier->name).": ".$item->qty."\n";
+            //     }
+            // }
+            
+            $count_item_to_print = 0;
+            $pass = false;
+            if ($all == "1"){
+                $pass = true;
+            } else {
+                if ($item->tmp_qty > 0){
+                    $pass = true;
+                }
+            }
+            if ($pass == true) {
+                if ($all == "1") {
+                    $qty = $item->qty;
+                } else {
+                    $qty = $item->tmp_qty;
+                }
+                $items .= printText((($qty) . " * ".(getPlanData($item->menu_name))), $characters_per_line)."\n";
+                $count++;
+                $count_item_to_print++;
+                
+                if ($item->menu_combo_items && $item->menu_combo_items != null) {
+                    $items .= (printText(lang('combo_txt') . ': ' . $item->menu_combo_items, $characters_per_line) . "\n");
+                }
+                
+                if (isset($item->menu_note) && strlen($item->menu_note) > 0) {
+                    $items .= (printText(lang('note') . ': ' . $item->menu_note, $characters_per_line) . "\n");
+                }
+                
+                if (isset($item->item_note) && strlen($item->item_note) > 0) {
+                    $items .= (printText(lang('note') . ': ' . $item->item_note, $characters_per_line) . "\n");
+                }
+                
+                if (count($item->modifiers) > 0) {
+                    foreach ($item->modifiers as $modifier) {
+                        if ($all == "1") {
+                            $mod_qty = $item->qty;
+                        } else {
+                            $mod_qty = $item->tmp_qty;
+                        }
+                        $items .= "   " . printText( ($mod_qty). " * " .(getPlanData($modifier->name))  , ($characters_per_line - 3)) . "\n";
+                    }
+                }
+                
+                $count++;
+            }
+        }
+    
+        $result[] = [
+            'printer_port' => $printer_port,
+            'profile_' => $profile_,
+            'printer_ip_address' => $printer_ip_address,
+            'ipvfour_address' => $ipvfour_address,
+            'store_name' => $store_name,
+            'printer_name' => $printer_name,
+            'path' => $printer_path,
+            'characters_per_line' => $characters_per_line,
+            'open_cash_drawer_when_printing_invoice' => $open_cash_drawer_when_printing_invoice,
+            'printer_type' => $printer_type,
+            'printer_width' => $printer_width,
+            'type' => $type,
+            'outlet_id' => $outlet_id,
+            'sale_type' => $order_type,
+            'sale_no_p' => $sale_object->sale_no,
+            'date' => escape_output(date($this->session->userdata('date_format'), strtotime($sale_object->sale_date))),
+            'time_inv' => $sale_object->order_time,
+            'sales_associate' => $sale_object->user_name,
+            'customer_name' => $sale_object->customer_name,
+            'customer_phone' => isset($sale_object->customer_phone) && $sale_object->customer_phone?$sale_object->customer_phone:'',
+            'selected_number_name' => isset($sale_object->selected_number_name) && $sale_object->selected_number_name?$sale_object->selected_number_name:'',
+            'selected_number' => isset($sale_object->selected_number) && $sale_object->selected_number?$sale_object->selected_number:'',
+            'customer_address' => getCustomerAddress($sale_object->customer_id),
+            'waiter_name' => $sale_object->waiter_name,
+            'customer_table' => $sale_object->orders_table_text,
+            'lang_order_type' => lang('order_type'),
+            'lang_Invoice_No' => lang('Invoice_No'),
+            'lang_date' => lang('date'),
+            'lang_Sales_Associate' => lang('Sales_Associate'),
+            'lang_customer' => lang('customer'),
+            'lang_address' => lang('address'),
+            'lang_gst_number' => lang('gst_number'),
+            'lang_waiter' => lang('waiter'),
+            'lang_table' => lang('table'),
+            'print_type' => 'KOT',
+            'items' => $items
+        ];
+    
+        return $result;
     }
 }

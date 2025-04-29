@@ -1,3 +1,6 @@
+
+<input type="hidden" id="csrf_name_" value="<?php echo escape_output($this->security->get_csrf_token_name()); ?>">
+<input type="hidden" id="csrf_value_" value="<?php echo escape_output($this->security->get_csrf_hash()); ?>">
 <?php
     $notification_number = 0;
     if(count($notifications)>0){
@@ -318,6 +321,82 @@
                 }
             });
         }
+
+
+        function printKitchenOrderByKitchen(sale_no, kitchen_id) {
+            let base_url = $("base").attr("data-base");
+
+            $.ajax({
+                url: base_url + "Kitchen/getPrintDataForOrder",
+                method: "POST",
+                dataType: 'json',
+                data: {
+                    sale_no: sale_no,
+                    kitchen_id: kitchen_id,
+                    csrf_irestoraplus: $('#csrf_value_').val()
+                },
+                success: function(data) {
+                    let content_data_direct_print = data.content_data_direct_print;
+                    for (let key in content_data_direct_print) {
+                        if(content_data_direct_print[key].ipvfour_address) {
+                            fetch(content_data_direct_print[key].ipvfour_address + "print_server/novabox_printer_server.php", {
+                                method: 'POST',
+                                mode: 'no-cors',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: new URLSearchParams({
+                                    content_data: "["+(JSON.stringify(content_data_direct_print[key]))+"]",
+                                    print_type: data.print_type,
+                                })
+                            })
+                            .then(response => {
+                                console.log('Orden de impresión sale_no:' + sale_no);
+                            })
+                            .catch(error => console.error('Error:', error));
+                        }
+                    }
+                    // Si quieres mostrar popup solo para esa cocina:
+                    // print_kot_popup_print(data.content_data_popup_print, 1);
+                },
+                error: function() {
+                    console.log('Error al obtener datos para impresión');
+                }
+            });
+        }
+
+
+        async function fetchAndPrint(sale_no, kitchen_id, all = 0) {
+            let base_url = $("base").attr("data-base");
+            // 1. Trae los datos de content_data_direct_print desde PHP vía fetch
+            const url = `${base_url}kitchen/get_content_data_direct_print?sale_no=${sale_no}&kitchen_id=${kitchen_id}&all=${all}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.error('No se pudieron obtener los datos de impresión');
+                return;
+            }
+            const content_data_direct_print = await response.json();
+
+            // 2. Por cada printer, ejecuta el fetch de impresión
+            content_data_direct_print.forEach(data => {
+                fetch(data.ipvfour_address + "print_server/novabox_printer_server.php", {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        content_data: "[" + JSON.stringify(data) + "]",
+                        print_type: 'KOT',
+                    })
+                })
+                .then(() => {
+                    console.log('Orden de impresión enviada sale_no:' + data.sale_no_p);
+                })
+                .catch(error => console.error('Error al imprimir:', error));
+            });
+        }
+
 
 
     </script>
