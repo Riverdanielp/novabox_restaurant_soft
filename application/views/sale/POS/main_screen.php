@@ -352,7 +352,8 @@ foreach ($customers as $customer){
     //set current due
     $current_due = 0;
     if($customer->id!=1){
-        $current_due = getCustomerDue($customer->id);
+        //CONSULTA DEMASIADO LENTA!!!
+        $current_due = 0; //getCustomerDue($customer->id);
     }
 
     if($customer->id==1){

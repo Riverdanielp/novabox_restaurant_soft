@@ -1569,7 +1569,7 @@ class Common_model extends CI_Model {
             $explode = explode(",", $sale_no_all);
             foreach ($explode as $sale_no) {
                 if ($sale_no) {
-                    $data_sale = getKitchenSaleDetailsBySaleNo($sale_no);
+                    $data_sale = getKitchenSaleDetailsBySaleNo($sale_no, true);
                     if (!$data_sale) { // Si la venta NO existe en la base de datos, se debe eliminar del dispositivo
                         $sale_no_array[] = $sale_no;
                     }

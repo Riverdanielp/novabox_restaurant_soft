@@ -1,19 +1,5 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is POSChecker Controller
-  ###########################################################
- */
+
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class POSChecker extends Cl_Controller {

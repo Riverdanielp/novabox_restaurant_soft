@@ -89,16 +89,16 @@ $(function() {
                 '                                    <td class="text_middle">\n' +
                 '                                        <table>\n' +
                 '                                            <tr>\n' +
-                '                                                <td><input type="text" tabindex="7" name="vr01_consumption[]" onfocus="this.select();" value="'+vr01_consumption+'" class="form-control integerchk  vr01_md_consumption add_change_value vr01_calculate" placeholder="Consumption"></td>\n' +
+                '                                                <td><input type="text" tabindex="7" name="vr01_consumption[]" onfocus="this.select();" value="'+vr01_consumption+'" class="form-control  vr01_md_consumption add_change_value vr01_calculate" placeholder="Consumption"></td>\n' +
                 '                                                <td><span class="label_aligning vr01_md_unit">'+vr01_unit+'</span></td>\n' +
                 '                                            </tr>\n' +
                 '                                        </table>\n' +
                 '                                        </td>\n' +
                 '                                    <td class="text_middle">\n' +
-                '                                       <input type="text" tabindex="7" name="vr01_cost[]" onfocus="this.select();" value="'+vr01_cost+'" class="form-control integerchk  vr01_md_cost add_change_value vr01_calculate" placeholder="Cost"></td>' +
+                '                                       <input type="text" tabindex="7" name="vr01_cost[]" onfocus="this.select();" value="'+vr01_cost+'" class="form-control  vr01_md_cost add_change_value vr01_calculate" placeholder="Cost"></td>' +
                 '                                        </td>\n' +
                 '                                    <td class="text_middle">\n' +
-                '                                        <input type="text" tabindex="7" name="vr01_total_cost[]" readonly onfocus="this.select();" value="'+vr01_total_cost+'" class="form-control integerchk  vr01_md_total_cost add_change_value" placeholder="Total">'+
+                '                                        <input type="text" tabindex="7" name="vr01_total_cost[]" readonly onfocus="this.select();" value="'+vr01_total_cost+'" class="form-control  vr01_md_total_cost add_change_value" placeholder="Total">'+
                 '                                        </td>\n' +
                 '                                    <td class="text_middle"><i class="remove_row fa fa-trash"></i></td>\n' +
                 '                                </tr>';
@@ -182,16 +182,16 @@ $(function() {
                     '                                    <td class="text_middle">\n' +
                     '                                        <table>\n' +
                     '                                            <tr>\n' +
-                    '                                                <td><input type="text" tabindex="7" name="vr01_consumption[]" onfocus="this.select();" value="'+vr01_consumption+'" class="form-control integerchk aligning vr01_md_consumption add_change_value vr01_calculate" placeholder="Consumption"></td>\n' +
+                    '                                                <td><input type="text" tabindex="7" name="vr01_consumption[]" onfocus="this.select();" value="'+vr01_consumption+'" class="form-control aligning vr01_md_consumption add_change_value vr01_calculate" placeholder="Consumption"></td>\n' +
                     '                                                <td><span class="label_aligning vr01_md_unit">'+vr01_unit+'</span></td>\n' +
                     '                                            </tr>\n' +
                     '                                        </table>\n' +
                     '                                        </td>\n' +
                     '                                    <td class="text_middle">\n' +
-                    '                                       <input type="text" tabindex="7" name="vr01_cost[]" onfocus="this.select();" value="'+vr01_cost+'" class="form-control integerchk  vr01_md_cost add_change_value vr01_calculate" placeholder="Cost"></td>' +
+                    '                                       <input type="text" tabindex="7" name="vr01_cost[]" onfocus="this.select();" value="'+vr01_cost+'" class="form-control  vr01_md_cost add_change_value vr01_calculate" placeholder="Cost"></td>' +
                     '                                        </td>\n' +
                     '                                    <td class="text_middle">\n' +
-                    '                                        <input type="text" tabindex="7" name="vr01_total_cost[]" readonly onfocus="this.select();" value="'+vr01_total_cost+'" class="form-control integerchk  vr01_md_total_cost add_change_value" placeholder="Total">'+
+                    '                                        <input type="text" tabindex="7" name="vr01_total_cost[]" readonly onfocus="this.select();" value="'+vr01_total_cost+'" class="form-control  vr01_md_total_cost add_change_value" placeholder="Total">'+
                     '                                        </td>\n' +
                     '                                    <td class="text_middle"><i class="remove_row fa fa-trash"></i></td>\n' +
                     '                                </tr>';
@@ -441,17 +441,17 @@ $(function() {
                 '                                    <td class="text_middle">\n' +
                 '                                        <table>\n' +
                 '                                            <tr>\n' +
-                '                                                <td><input type="text" tabindex="7" name="consumption[]" onfocus="this.select();" value="" class="form-control integerchk aligning vr01_consumption add_change_value required_checker_ing" placeholder="Consumption"></td>\n' +
+                '                                                <td><input type="text" tabindex="7" name="consumption[]" onfocus="this.select();" value="" class="form-control  aligning vr01_consumption add_change_value required_checker_ing" placeholder="Consumption"></td>\n' +
                 '                                                <td><span class="label_aligning vr01_unit">'+ingredient_details_array[2]+'</span></td>\n' +
                 '                                            </tr>\n' +
                 '                                        </table>\n' +
                 '                                        </td>\n' +
                 '<td style="width: 30%"><input type="text" tabindex="' + tab_index +
                 '" id="cost_' + suffix +
-                '" name="cost[]" onfocus="this.select();" value="'+ingredient_details_array[3]+'" class="form-control integerchk aligning vr01_cost add_change_value required_checker_ing" class="ir_w_85" placeholder="Cost"/></td>' +
+                '" name="cost[]" onfocus="this.select();" value="'+ingredient_details_array[3]+'" class="form-control  aligning vr01_cost add_change_value required_checker_ing" class="ir_w_85" placeholder="Cost"/></td>' +
                 '<td style="width: 30%"><input type="text" tabindex="' + tab_index +
                 '" id="total_cost_' + suffix +
-                '" name="total_cost[]" readonly onfocus="this.select();"  class="form-control integerchk aligning vr01_total_cost  required_checker_ing" class="ir_w_85" placeholder="Cost"/></td>' +
+                '" name="total_cost[]" readonly onfocus="this.select();"  class="form-control  aligning vr01_total_cost  required_checker_ing" class="ir_w_85" placeholder="Cost"/></td>' +
             '<td class="ir_w_17"><a class="btn btn-danger btn-xs del_ing" data-suffix="'+suffix+'" data-ing_id="'+ingredient_details_array[0]+'" style="margin-left: 5px;"><i class="fa fa-trash"></i> </a></td>' +
             '</tr>';
 
@@ -483,7 +483,7 @@ $(function() {
                 '<td class="ir_w_23">'+food_menu+' <input type="hidden" id="food_menu_id_hidden_' + suffix +'" name="food_menu_id_hidden[]" class="food_menu_id_hidden" value="' + food_menu_id+ '||'+food_menu_only+'"/></td>' +
                 '<td style="width: 30%"><input type="text" tabindex="' + tab_index +
                 '" id="qty_food_menu_' + suffix +
-                '" name="qty_food_menu[]" onfocus="this.select();"  class="form-control integerchk aligning vr01_qty_food_menu check_required_fm class="ir_w_85" placeholder="Quantity"/></td>' +
+                '" name="qty_food_menu[]" onfocus="this.select();"  class="form-control aligning vr01_qty_food_menu check_required_fm class="ir_w_85" placeholder="Quantity"/></td>' +
                 '<td class="ir_w_17"><a class="btn btn-danger btn-xs del_fm" style="margin-left: 5px;"><i class="fa fa-trash"></i> </a></td>' +
                 '</tr>';
 
@@ -523,13 +523,13 @@ $(function() {
                 '                                    <td class="text_middle">\n' +
                 '                                        <table>\n' +
                 '                                            <tr>\n' +
-                '                                                <td><input type="text" tabindex="7" name="vr01_consumption[]" onfocus="this.select();" value="" class="form-control integerchk  vr01_md_consumption add_change_value vr01_calculate" placeholder="Consumption"></td>\n' +
+                '                                                <td><input type="text" tabindex="7" name="vr01_consumption[]" onfocus="this.select();" value="" class="form-control  vr01_md_consumption add_change_value vr01_calculate" placeholder="Consumption"></td>\n' +
                 '                                                <td><span class="label_aligning vr01_md_unit">'+ingredient_details_array[2]+'</span></td>\n' +
                 '                                            </tr>\n' +
                 '                                        </table>\n' +
                 '                                        </td>\n' +  '                                    <td class="text_middle">\n' +
-                '                                               <input type="text" tabindex="7" name="vr01_cost[]" onfocus="this.select();" value="'+ingredient_details_array[3]+'" class="form-control integerchk  vr01_md_cost add_change_value vr01_calculate" placeholder="Cost"></td>'+
-                '                                        <td><input type="text" tabindex="7" name="vr01_total_cost[]" onfocus="this.select();" value="" readonly class="form-control integerchk  vr01_md_total_cost add_change_value" placeholder="Total"></td>'+
+                '                                               <input type="text" tabindex="7" name="vr01_cost[]" onfocus="this.select();" value="'+ingredient_details_array[3]+'" class="form-control  vr01_md_cost add_change_value vr01_calculate" placeholder="Cost"></td>'+
+                '                                        <td><input type="text" tabindex="7" name="vr01_total_cost[]" onfocus="this.select();" value="" readonly class="form-control  vr01_md_total_cost add_change_value" placeholder="Total"></td>'+
                 '                                    <td class="text_middle"><i class="remove_row fa fa-trash"></i></td>\n' +
                 '                                </tr>';
 
@@ -816,7 +816,7 @@ function show_hide(){
         $(".div_show_hide_combo").hide();
          $(".div_product").hide();
     }else if(product_type==2){
-        $(".div_show_hide").hide();
+        $(".div_show_hide").show();
         $(".div_show_hide_combo").show();
          $(".div_product").hide();
         $(".div_read_more").show();

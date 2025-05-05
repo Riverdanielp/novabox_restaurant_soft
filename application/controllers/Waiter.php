@@ -224,7 +224,7 @@ class Waiter extends Cl_Controller {
                         $order_type_operation = 'El pedido para llevar está listo';
                     }elseif($sale_info->order_type==3){
                         $order_name = $sale_info->sale_no;
-                        $order_type_operation = 'Delivery order is ready to deliver';
+                        $order_type_operation = 'Orden de Delivery está listo para llevar';
                     }
                     $notification = 'Cliente: '.$sale_info->customer_name.', Orden Número: '.$order_name.' '.$order_type_operation;
                     $notification_data = array();        

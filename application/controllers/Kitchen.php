@@ -502,7 +502,7 @@ class Kitchen extends Cl_Controller {
                         $order_type_operation = 'El pedido para llevar está listo';
                     }elseif($sale_info->order_type==3){
                         $order_name = $sale_info->sale_no;
-                        $order_type_operation = 'Delivery order is ready to deliver';
+                        $order_type_operation = 'Orden de Delivery está listo para llevar';
                     }
                     $notification = 'Cliente: '.$sale_info->customer_name.', Orden Número: '.$order_name.' '.$order_type_operation;
                     $notification_data = array();        
@@ -893,7 +893,7 @@ class Kitchen extends Cl_Controller {
         $sale_id = $sale_object->id;
     
         // NUEVO SELECT Y JOINS
-        $this->db->select("tbl_kitchen_sales_details.*, tbl_printers.*, tbl_kitchens.name as kitchen_name, tbl_kitchens.id as kitchen_id, tbl_kitchen_sales_details.outlet_id");
+        $this->db->select("tbl_printers.*,tbl_kitchen_sales_details.*, tbl_kitchens.name as kitchen_name, tbl_kitchens.id as kitchen_id, tbl_kitchen_sales_details.outlet_id");
         $this->db->from('tbl_kitchen_sales_details');
         $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id', 'left');
         $this->db->join('tbl_kitchen_categories', 'tbl_kitchen_categories.cat_id = tbl_food_menus.category_id', 'left');
@@ -913,6 +913,12 @@ class Kitchen extends Cl_Controller {
         // Traer los modificadores para cada item y armar campos
         foreach ($sale_items as $item) {
             $modifiers = $this->Kitchen_model->getModifiersBySaleAndSaleDetailsId($sale_id, $item->id);
+            // echo '<pre>';
+            // var_dump($sale_id); 
+            // var_dump($item->id); 
+            // var_dump($modifiers); 
+            // echo '<pre>';
+            
             $item->modifiers = $modifiers;
     
             $modifiers_id = [];
@@ -1012,9 +1018,9 @@ class Kitchen extends Cl_Controller {
                 if (count($item->modifiers) > 0) {
                     foreach ($item->modifiers as $modifier) {
                         if ($all == "1") {
-                            $mod_qty = $item->qty;
+                            $mod_qty = $modifier->qty;
                         } else {
-                            $mod_qty = $item->tmp_qty;
+                            $mod_qty = $modifier->tmp_qty;
                         }
                         $items .= "   " . printText( ($mod_qty). " * " .(getPlanData($modifier->name))  , ($characters_per_line - 3)) . "\n";
                     }

@@ -315,7 +315,7 @@ class Report extends Cl_Controller {
         $company_id = $this->session->userdata('company_id');
         $data['ingredient_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_ingredient_categories");
         $data['ingredients'] = $this->Report_model->getInventory($category_id, $ingredient_id, $food_id,$outlet_id);
-        $data['foodMenus'] = $this->Sale_model->getAllFoodMenus();
+        // $data['foodMenus'] = $this->Sale_model->getAllFoodMenus();
         $data['inventory'] = $this->Report_model->getInventory($category_id, $ingredient_id, $food_id,$outlet_id);
 
         $data['main_content'] = $this->load->view('report/inventoryReport', $data, TRUE);

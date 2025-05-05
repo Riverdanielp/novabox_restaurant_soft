@@ -326,9 +326,9 @@ $ingredient_id_container .= "]";
                                                 '<td ><p>' . $i . '</p></td>' .
                                                 '<td class="ir_w_23"><span class="vr01_txt_igr" >' . (isset($fmi->ingredient_id) && $fmi->ingredient_id ? getIngredientNameById($fmi->ingredient_id) : '') . '</span></td>' .
                                                 '<input type="hidden" class="ingredient_id" id="ingredient_id_' . $i . '" name="ingredient_id[]" value="' . $fmi->ingredient_id . '"/>' .
-                                                '<td><input type="text" tabindex="' . $i . '" id="consumption_' . $i . '" name="consumption[]" value="' . $fmi->consumption . '" onfocus="this.select();" class="form-control integerchk aligning ir_w_85 vr01_consumption add_change_value required_checker_ing" placeholder="Consumption"/><span  class="label_aligning vr01_unit">' . (isset($fmi->ingredient_id) && $fmi->ingredient_id ? unitName(getUnitIdByIgId($fmi->ingredient_id)) : '') . '</span></td>' .
-                                                '<td><input type="text" tabindex="' . $i . '" id="cost_' . $i . '" name="cost[]" value="' . $fmi->cost . '" onfocus="this.select();" class="form-control integerchk aligning ir_w_85 vr01_cost add_change_value required_checker_ing" placeholder="Consumption"/></td>' .
-                                                '<td><input type="text" tabindex="' . $i . '" id="total_cost_' . $i . '" name="total_cost[]" value="' . $fmi->total . '" onfocus="this.select();" readonly class="form-control integerchk aligning ir_w_85 vr01_total_cost add_change_value required_checker_ing" placeholder="Consumption"/></td>' .
+                                                '<td><input type="text" tabindex="' . $i . '" id="consumption_' . $i . '" name="consumption[]" value="' . $fmi->consumption . '" onfocus="this.select();" class="form-control  aligning ir_w_85 vr01_consumption add_change_value required_checker_ing" placeholder="Consumption"/><span  class="label_aligning vr01_unit">' . (isset($fmi->ingredient_id) && $fmi->ingredient_id ? unitName(getUnitIdByIgId($fmi->ingredient_id)) : '') . '</span></td>' .
+                                                '<td><input type="text" tabindex="' . $i . '" id="cost_' . $i . '" name="cost[]" value="' . $fmi->cost . '" onfocus="this.select();" class="form-control  aligning ir_w_85 vr01_cost add_change_value required_checker_ing" placeholder="Consumption"/></td>' .
+                                                '<td><input type="text" tabindex="' . $i . '" id="total_cost_' . $i . '" name="total_cost[]" value="' . $fmi->total . '" onfocus="this.select();" readonly class="form-control  aligning ir_w_85 vr01_total_cost add_change_value required_checker_ing" placeholder="Consumption"/></td>' .
                                                 '<td class="ir_w_17"><a class="btn btn-danger btn-xs del_ing" data-suffix="'.$i.'" data-ing_id="'.$fmi->ingredient_id.'"><i class="fa fa-trash"></i> </a></td>' .
                                                 '</tr>';
                                             }
@@ -366,7 +366,7 @@ $ingredient_id_container .= "]";
                                                 <td class="ir_w_1"><p class="txt_food_row"></p></td>
                                                 <td class="ir_w_23">
                                                     <?php echo escape_output($value->name)?> <input type="hidden" id="food_menu_id_hidden_4" name="food_menu_id_hidden[]" class="food_menu_id_hidden" value="<?php echo escape_output($value->added_food_menu_id)?>||<?php echo escape_output($value->name)?>"></td>
-                                                <td><input type="text" tabindex="6" value="<?php echo escape_output($value->quantity)?>" id="qty_food_menu_4" name="qty_food_menu[]" onfocus="this.select();" class="form-control integerchk aligning vr01_qty_food_menu check_required_fm" placeholder="Quantity"></td>
+                                                <td><input type="text" tabindex="6" value="<?php echo escape_output($value->quantity)?>" id="qty_food_menu_4" name="qty_food_menu[]" onfocus="this.select();" class="form-control  aligning vr01_qty_food_menu check_required_fm" placeholder="Quantity"></td>
                                                 <td class="ir_w_17"><a class="btn btn-danger btn-xs del_fm txt_left_m_5"><i class="fa fa-trash"></i> </a></td>
                                             </tr>
                                         <?php endforeach?>
@@ -382,7 +382,7 @@ $ingredient_id_container .= "]";
                             <div class="form-group">
                                 <label><?php echo lang('sale_price'); ?> (<?php echo lang('dine'); ?>) <span class="required_star">*</span></label>
                                 <input tabindex="4" class="form-control ir_w_100" type="text" id="sale_price"
-                                    name="sale_price" class="form-control integerchk"
+                                    name="sale_price" class="form-control "
                                     placeholder="<?php echo lang('sale_price'); ?> (<?php echo lang('dine'); ?>)"
                                     value="<?php echo escape_output($food_menu_details->sale_price) ?>">
                             </div>
@@ -401,7 +401,7 @@ $ingredient_id_container .= "]";
                             <div class="form-group">
                                 <label><?php echo lang('sale_price'); ?> (<?php echo lang('take_away'); ?>) <span class="required_star">*</span></label>
                                 <input tabindex="4" type="text" onfocus="this.select();" id="sale_price_take_away"
-                                       name="sale_price_take_away" class="form-control integerchk"
+                                       name="sale_price_take_away" class="form-control "
                                        onkeyup="return replacePonto();"
                                        placeholder="<?php echo lang('sale_price'); ?> (<?php echo lang('take_away'); ?>)"
                                        value="<?php echo escape_output($food_menu_details->sale_price_take_away) ?>">
@@ -434,7 +434,7 @@ $ingredient_id_container .= "]";
                                                 <td class="txt_21_50">
                                                     <input type="hidden" name="delivery_person[]" value="<?php echo escape_output($value->id)?>">
                                                     <input tabindex="4" type="text" onfocus="this.select();"
-                                                           name="sale_price_delivery_json[]" class="form-control integerchk check_required"
+                                                           name="sale_price_delivery_json[]" class="form-control  check_required"
                                                            placeholder="<?php echo lang('sale_price'); ?> (<?php echo lang('delivery'); ?>)"
                                                            value="<?php echo escape_output($delivery_price_value); ?>"></td>
                                             </tr>
@@ -560,7 +560,7 @@ $ingredient_id_container .= "]";
                                             <input tabindex="1" type="hidden" name="tax_field_name[]"
                                                 value="<?php echo escape_output($tax_field->tax_field_name) ?>">
                                             <input tabindex="1" type="text" name="tax_field_percentage[]"
-                                                class="form-control integerchk" placeholder=""
+                                                class="form-control " placeholder=""
                                                 value="<?php  echo escape_output($tax_field->tax_field_percentage) ?>">
                                         </td>
                                         <td class="txt_27">%</td>
@@ -602,7 +602,7 @@ $ingredient_id_container .= "]";
                                             <input tabindex="1" type="hidden" name="tax_field_name[]"
                                                 value="<?php echo escape_output($single_tax->tax) ?>">
                                             <input tabindex="1" type="text" name="tax_field_percentage[]"
-                                                class="form-control integerchk" placeholder=""
+                                                class="form-control " placeholder=""
                                                 value="<?php  echo escape_output($tax_percentage) ?>">
                                         </td>
                                         <td class="txt_27">%</td>
@@ -687,7 +687,7 @@ $ingredient_id_container .= "]";
                                                             <input tabindex="1" type="hidden" class="vr01_tax_field_id" value="<?php echo escape_output((isset($tax_field->tax_field_id) && $tax_field->tax_field_id?$tax_field->tax_field_id:'')) ?>" name="vr01_tax_field_id1[]">
                                                             <input tabindex="1" type="hidden" class="vr01_tax_field_company_id" value="<?php echo escape_output($tax_field->tax_field_company_id) ?>" name="vr01_tax_field_company_id1[]">
                                                             <input tabindex="1" type="hidden" class="vr01_tax_field_name" value="<?php echo escape_output($tax_field->tax_field_name) ?>" name="vr01_tax_field_name1[]">
-                                                            <input tabindex="1" type="text" class="form-control integerchk add_change_value vr01_tax_field_percentage" placeholder="<?php echo escape_output($tax_field->tax_field_name) ?>" value="<?php  echo escape_output($tax_field->tax_field_percentage) ?>" name="vr01_tax_field_percentage1[]">
+                                                            <input tabindex="1" type="text" class="form-control  add_change_value vr01_tax_field_percentage" placeholder="<?php echo escape_output($tax_field->tax_field_name) ?>" value="<?php  echo escape_output($tax_field->tax_field_percentage) ?>" name="vr01_tax_field_percentage1[]">
                                                         </div>
 
                                                 <?php }
@@ -848,7 +848,7 @@ $ingredient_id_container .= "]";
                         <div class="col-sm-12 col-md-6">
                             <div class="form-group">
                                 <label><?php echo lang('sale_price'); ?> <span class="required_star">*</span> (<?php echo lang('dine'); ?>)</label>
-                                <input tabindex="1" type="text" id="m_sale_price" name="m_sale_price" class="form-control integerchk required_checker"
+                                <input tabindex="1" type="text" id="m_sale_price" name="m_sale_price" class="form-control  required_checker"
                                        placeholder="<?php echo lang('sale_price'); ?>" value="<?php echo set_value('m_sale_price'); ?>">
                             </div>
                         </div>
@@ -856,7 +856,7 @@ $ingredient_id_container .= "]";
                             <div class="form-group">
                                 <label><?php echo lang('sale_price'); ?> (<?php echo lang('take_away'); ?>) <span class="required_star">*</span></label>
                                 <input tabindex="4" type="text" onfocus="this.select();" id="m_sale_price_take_away"
-                                       name="m_sale_price_take_away" class="form-control integerchk required_checker"
+                                       name="m_sale_price_take_away" class="form-control  required_checker"
                                        placeholder="<?php echo lang('sale_price'); ?> (<?php echo lang('take_away'); ?>)"
                                        value="<?php echo set_value('m_sale_price_take_away'); ?>">
                             </div>
@@ -877,7 +877,7 @@ $ingredient_id_container .= "]";
                                                 <td class="txt_21_50">
                                                     <input type="hidden" name="delivery_person_var[]" class="delivery_person_var delivery_person_var<?php echo escape_output($value->id)?>" value="<?php echo escape_output($value->id)?>">
                                                     <input tabindex="4" type="text" onfocus="this.select();"
-                                                           name="sale_price_delivery_json_var[]" class="form-control integerchk required_checker sale_price_delivery_json_var sale_price_delivery_json_var<?php echo escape_output($value->id)?>"
+                                                           name="sale_price_delivery_json_var[]" class="form-control  required_checker sale_price_delivery_json_var sale_price_delivery_json_var<?php echo escape_output($value->id)?>"
                                                            placeholder="<?php echo lang('sale_price'); ?> (<?php echo lang('delivery'); ?>)"
                                                            value="<?php echo set_value('sale_price_delivery'); ?>"></td>
                                             </tr>
@@ -885,7 +885,7 @@ $ingredient_id_container .= "]";
                                         </tbody>
                                     </table>
                                 <?php else:?>
-                                    <input tabindex="1" type="text" id="m_sale_price_delivery" name="m_sale_price_delivery" class="form-control integerchk"
+                                    <input tabindex="1" type="text" id="m_sale_price_delivery" name="m_sale_price_delivery" class="form-control "
                                            placeholder="<?php echo lang('sale_price'); ?> (<?php echo lang('delivery'); ?>)"
                                            value="<?php echo set_value('sale_price_delivery'); ?>">
                                 <?php endif;?>
@@ -962,7 +962,7 @@ $ingredient_id_container .= "]";
                                                     <input tabindex="1" type="hidden" class="vr01_tax_field_name"
                                                            value="<?php echo escape_output($tax_field->tax) ?>">
                                                     <input tabindex="1" type="text"
-                                                           class="form-control integerchk add_change_value vr01_tax_field_percentage"
+                                                           class="form-control  add_change_value vr01_tax_field_percentage"
                                                            placeholder="<?php echo escape_output($tax_field->tax) ?>" value="<?php echo escape_output($tax_field->tax_rate)?>">
                                                 </td>
                                                 <td class="txt_27">%</td>

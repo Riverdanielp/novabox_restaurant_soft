@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.54128';
+    return '?v=7.54130';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -582,9 +582,14 @@ if (!function_exists('getMainModuleName')) {
         }
     }
 }
-function getKitchenSaleDetailsBySaleNo($sale_no) {
+function getKitchenSaleDetailsBySaleNo($sale_no, $by_outlet = false) {
     $CI = & get_instance();
-    $user_information = $CI->db->query("SELECT * FROM tbl_kitchen_sales where `sale_no`='$sale_no' AND del_status='Live'")->row();
+    $outlet_id = $CI->session->userdata("outlet_id");
+    if ($by_outlet == false) {
+        $user_information = $CI->db->query("SELECT * FROM tbl_kitchen_sales where `sale_no`='$sale_no' AND del_status='Live'")->row();
+    } else {
+        $user_information = $CI->db->query("SELECT * FROM tbl_kitchen_sales where `sale_no`='$sale_no' AND outlet_id='$outlet_id' AND del_status='Live'")->row();
+    }
 
     if(isset($user_information) && $user_information){
         return $user_information;

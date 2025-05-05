@@ -829,66 +829,19 @@
 
 
 
-    // async function add_to_recent_sale_by_ajax(order_object, is_ignore = '', sale_no_new, onSuccess, onFail) {
-    //     const maxRetries = 15;
-    //     let attempts = 0;
-    //     let sent = false;
-    
-    //     const saleData = typeof order_object === "string" ? JSON.parse(order_object) : order_object;
-    //     const orders = JSON.stringify(saleData);
-    
-    //     // Loader opcional (puedes personalizar)
-    //     showLoader("Enviando venta...");
-    
-    //     while (attempts < maxRetries && !sent) {
-    //         try {
-    //             // AJAX síncrono para asegurar el flujo
-    //             await $.ajax({
-    //                 url: base_url + "Sale/push_online",
-    //                 method: "post",
-    //                 data: {
-    //                     orders: orders,
-    //                     sales_id: saleData.sale_no,
-    //                     csrf_name_: csrf_value_
-    //                 },
-    //                 async: false, // Síncrono (puedes cambiar si prefieres promesas)
-    //                 success: function(response) {
-    //                     sent = true;
-    //                     if (typeof onSuccess === "function") onSuccess(response);
-    //                 },
-    //                 error: function() {
-    //                     attempts++;
-    //                 }
-    //             });
-    //         } catch (err) {
-    //             attempts++;
-    //         }
-    //     }
-    
-    //     hideLoader();
-    
-    //     if (!sent) {
-    //         // Si falla 15 veces, guarda en cola local para reintentar luego
-    //         let dbRequest = db.transaction(['recent_sales'], "readwrite")
-    //             .objectStore("recent_sales")
-    //             .add({
-    //                 sales_id: saleData.sale_no,
-    //                 online_push: 0,
-    //                 is_offline_system: 0, // Modifica si manejas sistemas offline
-    //                 order: orders
-    //             });
-    //         dbRequest.onsuccess = function() {
-    //             if (typeof onFail === "function") onFail();
-    //         };
-    //         dbRequest.onerror = function() {
-    //             toastr['error']("No se pudo guardar la venta localmente.");
-    //             if (typeof onFail === "function") onFail();
-    //         };
-    //     }
-    // }
-
-
     function add_to_recent_sale_by_ajax(order_object, is_ignore = '', sale_no_new, onSuccess, onFail) {
+        // let sale = JSON.parse(order_object);
+          let outlet_id = $("#outlet_id_indexdb").val();
+          let order_info = {
+              order: order_object,
+              is_offline_system:($("#is_offline_system").val()),
+              online_push: 1,
+              outlet_id: outlet_id,
+              sale_no: sale_no_new,
+              user_id: ($("#user_id").val()),
+          };
+  
+          let request = db.transaction("recent_sales", "readwrite").objectStore("recent_sales").add(order_info);
         const maxRetries = 15;
         let attempts = 0;
         let sent = false;
@@ -7410,6 +7363,7 @@ function getSafePrice(priceAttr) {
             $(".pos__modal__overlay").fadeIn(200);
   
             let objectStore = db.transaction(['recent_sales'], "readwrite").objectStore("recent_sales");
+            // console.log(objectStore);
             let sales_id = '';
             let i = 1;
             let last_10_orders = "";
@@ -11893,6 +11847,7 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoCli
         success: function(items){
             let html = '<div id="searched_item_found" class="specific_category_items_holder">';
             $.each(items, function(i, item){
+                // console.log(item);
                 if(item.parent_id == '0'){
                     let veg_status = (item.veg_item == "Veg Yes") ? "yes" : "no";
                     let image_path = item.photo ? (base_url + "images/" + item.photo) : (base_url + "images/image_thumb.png");

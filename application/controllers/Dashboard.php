@@ -83,7 +83,7 @@ class Dashboard extends Cl_Controller {
         }
 
         $data['outlet_id'] =  $outlet_id;
-        $data['food_menu_count'] =  $this->Dashboard_model->getAllFoodMenus($outlet_id);
+        // $data['food_menu_count'] =  $this->Dashboard_model->getAllFoodMenus($outlet_id);
         $data['ingredient_count'] = sizeof($this->Dashboard_model->getInventory($outlet_id));
         $data['customer_count'] = $this->Dashboard_model->countData('tbl_customers');
         $data['employee_count'] = $this->Dashboard_model->countData('tbl_users');

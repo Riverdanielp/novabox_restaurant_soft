@@ -161,26 +161,27 @@ class Register extends Cl_Controller {
                    endif;
                    $this->session->set_userdata($print_arr);
                    
-                if (!$this->session->has_userdata('clicked_controller')) {
-                    if ($this->session->userdata('role') == 'Admin') {
-                        redirect('Dashboard/dashboard');
-                    } else {
-                        redirect('Authentication/userProfile');
-                    }
-                } else {
-                    $controller = $this->session->userdata('clicked_controller');
-                    $function = $this->session->userdata('clicked_method');
-                    if($function=="getWaiterOrders.html"){
-                        redirect('Dashboard/dashboard');
-                    }else{
-                        if($function=="get_new_notifications_ajax" || $function=="getWaiterOrders"){
-                            redirect('Dashboard/dashboard');
-                        }else{
-                            redirect($controller."/".$function);
-                        }
+                   redirect('POSChecker/posAndWaiterMiddleman');
+                // if (!$this->session->has_userdata('clicked_controller')) {
+                //     if ($this->session->userdata('role') == 'Admin') {
+                //         redirect('Dashboard/dashboard');
+                //     } else {
+                //         redirect('Authentication/userProfile');
+                //     }
+                // } else {
+                //     $controller = $this->session->userdata('clicked_controller');
+                //     $function = $this->session->userdata('clicked_method');
+                //     if($function=="getWaiterOrders.html"){
+                //         redirect('Dashboard/dashboard');
+                //     }else{
+                //         if($function=="get_new_notifications_ajax" || $function=="getWaiterOrders"){
+                //             redirect('Dashboard/dashboard');
+                //         }else{
+                //             redirect($controller."/".$function);
+                //         }
                         
-                    }
-                }
+                //     }
+                // }
             }else {
                 $data = array();
                 $outlet_id = $this->session->userdata('outlet_id'); 
