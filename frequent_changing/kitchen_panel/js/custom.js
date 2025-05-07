@@ -1126,10 +1126,12 @@ $(document).ready(function () {
   
               // Recolecta los sale_no actuales y su hash (puedes ajustar el hash según lo que consideres "cambio")
               let current_sales = {};
+              let current_info = {};
               for (let key in response) {
                   let sale_no = response[key].sale_no;
                   // Puedes usar solo los items, o todo el objeto según tu lógica
                   current_sales[sale_no] = JSON.stringify(response[key].items);
+                  current_info[sale_no] = JSON.stringify(response[key]);
               }
   
               // Primera carga: solo registra, NO imprime
@@ -1139,13 +1141,20 @@ $(document).ready(function () {
               } else {
                   // Siguientes cargas: imprime los nuevos y modificados
                   for (let sale_no in current_sales) {
+                    // console.log(sale_no);
                       if (typeof window.printed_sales[sale_no] === "undefined") {
                           // NUEVO pedido
-                          fetchAndPrint(sale_no, kitchen_id, "1");
+                          // console.log('NUEVO pedido');
+                          // console.log(current_info[sale_no]);
+                          // fetchAndPrint(sale_no, kitchen_id, "1");
+                          printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 1)
                           window.printed_sales[sale_no] = current_sales[sale_no];
                       } else if (window.printed_sales[sale_no] !== current_sales[sale_no]) {
                           // MODIFICADO
-                          fetchAndPrint(sale_no, kitchen_id, "0");
+                        // console.log('MODIFICADO');
+                        // console.log(current_info[sale_no]);
+                          // fetchAndPrint(sale_no, kitchen_id, "0");
+                          printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 0);
                           window.printed_sales[sale_no] = current_sales[sale_no];
                       }
                       // Si no cambió, no imprime

@@ -40,18 +40,18 @@
          
                     if (!empty($inventory) && isset($inventory)):
                         foreach ($inventory as $key => $value):
-                            $conversion_rate = (int)$value->conversion_rate?$value->conversion_rate:1;
+                            $conversion_rate = (float)$value->conversion_rate?$value->conversion_rate:1;
                             if($value->id):
                                 $totalStock = ($value->total_purchase*$value->conversion_rate)  - $value->total_consumption - $value->total_modifiers_consumption - $value->total_waste + $value->total_consumption_plus - $value->total_consumption_minus + ($value->total_transfer_plus*$value->conversion_rate) - ($value->total_transfer_minus*$value->conversion_rate)  +  ($value->total_transfer_plus_2*$value->conversion_rate) -  ($value->total_transfer_minus_2*$value->conversion_rate)+ ($value->total_production*$value->conversion_rate);
                                 $last_purchase_price = getLastPurchaseAmount($value->id);
 
                                 if($value->conversion_rate==0 || $value->conversion_rate==''){
-                                    $total_sale_unit = isset($value->conversion_rate) && (int)$value->conversion_rate?(int)($totalStock/1):'0';
+                                    $total_sale_unit = isset($value->conversion_rate) && (float)$value->conversion_rate?(float)($totalStock/1):'0';
                                 }else{
-                                    $total_sale_unit = isset($value->conversion_rate) && (int)$value->conversion_rate?(int)($totalStock/$value->conversion_rate):'0';
+                                    $total_sale_unit = isset($value->conversion_rate) && (float)$value->conversion_rate?(float)($totalStock/$value->conversion_rate):'0';
                                 }
 
-                                $total_stock_in_float = ((float)(((int)$total_sale_unit).".".((int)$totalStock%$conversion_rate)));
+                                $total_stock_in_float = ((float)(((float)$total_sale_unit).".".((float)$totalStock%$conversion_rate)));
                                 if ($totalStock >= 0) {
                                     $grandTotal += ($total_stock_in_float*$last_purchase_price);
                                 }
@@ -64,11 +64,11 @@
                                     <td><?= escape_output($value->name . "(" . $value->code . ")") ?></td>
                                     <td><?php echo escape_output($value->category_name); ?></td>
                                     <?php if(($value->ing_type=="Plain Ingredient" && $value->is_direct_food!=2) && $value->conversion_rate!=1):?>
-                                            <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>"><?php echo getAmtP($total_sale_unit); ?><?php echo " " . $value->unit_name2 ?></span> <span><?= ($totalStock) ? getAmtP($totalStock%$conversion_rate) : getAmtP(0) ?><?= " " . escape_output($value->unit_name)?></span></td>
+                                            <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>"><?php echo floatval($total_sale_unit); ?><?php echo " " . $value->unit_name2 ?></span> <span><?= ($totalStock) ? floatval($totalStock%$conversion_rate) : getAmtP(0) ?><?= " " . escape_output($value->unit_name)?></span></td>
                                     <?php else:
                                         $stock_float = (float)($total_sale_unit + (($totalStock) ? ($totalStock%$conversion_rate) : (0)));
                                         ?>
-                                        <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>"><?php echo escape_output(getAmtP($stock_float)) ?> <?= " " . escape_output($value->unit_name)?></span></td>
+                                        <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>"><?php echo escape_output(floatval($stock_float)) ?> <?= " " . escape_output($value->unit_name)?></span></td>
                                     <?php
                                     endif
                                     ?>

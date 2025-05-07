@@ -1158,9 +1158,9 @@ class Common_model extends CI_Model {
         $this->db->join('tbl_printers', 'tbl_printers.id = tbl_kitchens.printer_id', 'left');
         $this->db->where("sales_id", $sales_id);
         $this->db->where("tbl_printers.id", $printer_id);
-        if ($is_print != 'all'){
-            $this->db->where("tbl_kitchen_sales_details.is_print", $is_print);
-        }
+        // if ($is_print != 'all'){
+        //     $this->db->where("tbl_kitchen_sales_details.is_print", $is_print);
+        // }
         $this->db->where("tbl_kitchen_categories.del_status", "Live");
         $this->db->order_by('tbl_kitchen_sales_details.id', 'ASC');
         $this->db->group_by('tbl_kitchen_sales_details.id');
@@ -1713,6 +1713,33 @@ class Common_model extends CI_Model {
      * @param no
      */
     public function alreadyInvoicedOrders() {
+        $sale_no_all = escape_output($this->input->post('sale_no_all'));
+        
+        if (empty($sale_no_all)) {
+            return array();
+        }
+        
+        $spt = explode(',', $sale_no_all);
+        $sale_nos = array_filter($spt, function($value) {
+            return !empty($value) && is_numeric($value);
+        });
+        
+        if (empty($sale_nos)) {
+            return array();
+        }
+        
+        // Usar consulta preparada para seguridad
+        $this->db->select('sale_no')
+                 ->from('tbl_sales')
+                 ->where_in('sale_no', $sale_nos)
+                 ->where('del_status', 'Live');
+        
+        $query = $this->db->get();
+        
+        return $query->result_array();
+    }
+    
+    public function alreadyInvoicedOrdersOld() {
         $sale_no_all = escape_output($_POST['sale_no_all']);
         $spt = explode(',',$sale_no_all);
         $arr = array();

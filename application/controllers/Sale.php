@@ -13,6 +13,7 @@ class Sale extends Cl_Controller {
         $this->load->model('Waiter_model');
         $this->load->model('Master_model');
         $this->load->library('form_validation');
+        // $this->load->driver('cache', array('adapter' => 'apc', 'backup' => 'file'));
         $this->Common_model->setDefaultTimezone();
         if (!$this->session->has_userdata('user_id') && $this->session->has_userdata('is_online_order')!="Yes") {
             redirect('Authentication/index');
@@ -1922,6 +1923,7 @@ class Sale extends Cl_Controller {
 
     public function getPrintDataForOrder($sale_no = null) {
         $sale_no = ($sale_no == null) ? $this->input->post('sale_no') : $sale_no;
+        $all = $this->input->post('all') ?? '0';
         
         // Obtener los datos de la orden (sin modificarla)
         $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
@@ -1956,7 +1958,7 @@ class Sale extends Cl_Controller {
         ];
         
         // Obtener datos de impresión usando la función helper
-        $printData = $this->preparePrintData($sale_id, $order_details, $data);
+        $printData = $this->preparePrintData($sale_id, $order_details, $data, $all);
         
         // Preparar respuesta
         $return_data = [
@@ -1980,9 +1982,9 @@ class Sale extends Cl_Controller {
      * @param array $data Datos adicionales de la venta
      * @return array Datos preparados para impresión
      */
-    private function preparePrintData($sale_id, $order_details, $data) {
+    private function preparePrintData($sale_id, $order_details, $data, $all = "0") {
         $printers_popup_print = $this->Common_model->getOrderedPrinter($sale_id, 1);
-        $printers_direct_print = $this->Common_model->getOrderedPrinter($sale_id, 2);
+        $printers_direct_print = $this->Common_model->getOrderedPrinter($sale_id, 2, $all);
         $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id, 3);
         
         $printer_app_qty = 0;
@@ -2125,8 +2127,21 @@ class Sale extends Cl_Controller {
                     $count_item_to_print = 0;
                     
                     foreach ($sale_items as $item) {
-                        if ($item->tmp_qty > 0) {
-                            $items .= printText((($item->tmp_qty) . " * ".(getPlanData($item->menu_name))), $value->characters_per_line)."\n";
+                        $pass = false;
+                        if ($all == "1"){
+                            $pass = true;
+                        } else {
+                            if ($item->tmp_qty > 0){
+                                $pass = true;
+                            }
+                        }
+                        if ($pass == true) {
+                            if ($all == "1") {
+                                $qty = $item->qty;
+                            } else {
+                                $qty = $item->tmp_qty;
+                            }
+                            $items .= printText((($qty) . " * ".(getPlanData($item->menu_name))), $value->characters_per_line)."\n";
                             $count++;
                             $count_item_to_print++;
                             
@@ -2144,7 +2159,7 @@ class Sale extends Cl_Controller {
                             
                             if (count($item->modifiers) > 0) {
                                 foreach ($item->modifiers as $modifier) {
-                                    $items .= "   " . printLine( ($item->tmp_qty). " * " .(getPlanData($modifier->name))  , ($value->characters_per_line - 3)) . "\n";
+                                    $items .= "   " . printLine(($qty). " * " .(getPlanData($modifier->name))  , ($value->characters_per_line - 3)) . "\n";
                                 }
                             }
                             
@@ -4497,17 +4512,17 @@ class Sale extends Cl_Controller {
         // 2. Configuramos la hora actual del servidor (UTC)
         $return_data['server_time'] = gmdate('Y-m-d H:i:s');
 
-        $get_waiter_orders = $this->Common_model->getWaiterOrders();
-        $get_waiter_invoice_orders = $this->Common_model->getWaiterInvoiceOrders();
-        $get_waiter_orders_for_update_sender = $this->Common_model->getWaiterOrdersForUpdateSender();
-        $get_waiter_orders_for_update_receiver = $this->Common_model->getWaiterOrdersForUpdateReceiver();
+        $get_waiter_orders = []; //$this->Common_model->getWaiterOrders();
+        // $get_waiter_invoice_orders = $this->Common_model->getWaiterInvoiceOrders();
+        // $get_waiter_orders_for_update_sender = $this->Common_model->getWaiterOrdersForUpdateSender();
+        // $get_waiter_orders_for_update_receiver = $this->Common_model->getWaiterOrdersForUpdateReceiver();
         $get_waiter_orders_for_delete_sender = $this->Common_model->getWaiterOrdersForDeleteSender();
         $already_invoiced_orders = $this->Common_model->alreadyInvoicedOrders();
         $user_id = $this->session->userdata('user_id');
 
         $return_data['get_waiter_orders'] = $get_waiter_orders;
-        $return_data['get_waiter_invoice_orders'] = $get_waiter_invoice_orders;
-        $return_data['get_waiter_orders_for_update_sender'] = $get_waiter_orders_for_update_sender;
+        // $return_data['get_waiter_invoice_orders'] = $get_waiter_invoice_orders;
+        // $return_data['get_waiter_orders_for_update_sender'] = $get_waiter_orders_for_update_sender;
         // $return_data['get_waiter_orders_for_update_receiver'] = $get_waiter_orders_for_update_receiver;
         $return_data['get_waiter_orders_for_update_receiver'] = $this->Common_model->getFilteredUpdates($last_sync);
         $return_data['get_waiter_orders_for_delete_sender'] = $get_waiter_orders_for_delete_sender; 
@@ -5833,7 +5848,7 @@ class Sale extends Cl_Controller {
     //     return ($numbers);
     //     // return json_encode($numbers);
     // }
-    public function getUpdatedNumbers() {
+    public function liberar_numeros() {
         $outlet_id = $this->session->userdata('outlet_id');
         
         // Primero: Liberar números que ya tienen ventas concretadas
@@ -5857,6 +5872,14 @@ class Sale extends Cl_Controller {
                 'user_id' => NULL
             ));
         }
+        echo '<pre>';
+        var_dump($numbersToFree); 
+        echo '<pre>';
+        
+    }
+
+    public function getUpdatedNumbers() {
+        $outlet_id = $this->session->userdata('outlet_id');
         
         // Segundo: Obtener los números ocupados actuales (incluyendo los recién liberados)
         $this->db->select('id, sale_id, sale_no, user_id, name');
@@ -5880,5 +5903,51 @@ class Sale extends Cl_Controller {
         
         // Cargar vista con los datos
         $this->load->view("preimpreso_1", $data);
+    }
+
+    public function factura_half_letter() {
+        require_once(APPPATH.'third_party/tcpdf/tcpdf.php');
+        // $ancho = 140; // mm
+        $ancho  = 220; // mm
+        $alto  = 140; // mm
+
+        $pdf = new TCPDF('L', 'mm', array($ancho, $alto), true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetMargins(0, 0, 0);
+        $pdf->SetAutoPageBreak(false, 0);
+        $pdf->AddPage();
+        $pdf->SetFont('courier', '', 12);
+
+        // --- PRUEBA 1: Rotar 90º en el punto (0, $ancho) ---
+        $pdf->StartTransform();
+        // El punto (0, $ancho) es la esquina inferior izquierda de la hoja
+        $pdf->Rotate(90, 0, $ancho);
+        // Después de rotar, el área visible va de (0,0) a ($alto, $ancho)
+        $pdf->SetXY(0, 0);
+        $pdf->Cell(100, 10, 'ROT 90 en (0,140), XY(0,0)', 0, 1);
+        $pdf->SetXY(10, 20);
+        $pdf->Cell(100, 10, 'ROT 90 en (0,140), XY(10,20)', 0, 1);
+        $pdf->StopTransform();
+
+        // --- PRUEBA 2: Rotar 270º en el punto ($ancho, 0) ---
+        $pdf->StartTransform();
+        // El punto ($ancho, 0) es la esquina superior derecha de la hoja
+        $pdf->Rotate(270, $ancho, 0);
+        $pdf->SetXY(0, 0);
+        $pdf->Cell(100, 10, 'ROT 270 en (140,0), XY(0,0)', 0, 1);
+        $pdf->SetXY(10, 20);
+        $pdf->Cell(100, 10, 'ROT 270 en (140,0), XY(10,20)', 0, 1);
+        $pdf->StopTransform();
+
+        // Texto de control sin rotar
+        $pdf->SetXY(10, 10);
+        $pdf->Cell(100, 10, 'Texto sin rotacion XY(10,10)', 0, 1);
+
+        $pdf->Output('rotacion_tcpdf662.pdf', 'I');
+    }
+
+    public function imprimir_test() {
+        $this->load->view('vista_impresion');
     }
 }

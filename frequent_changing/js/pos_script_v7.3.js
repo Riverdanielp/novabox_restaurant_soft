@@ -305,25 +305,25 @@
     //             reject(event.target.error);
     //         };
             
-    //         request.onupgradeneeded = function(event) {
-    //             let db = event.target.result;
-    //             // Eliminar object stores existentes si los hay
-    //             if (db.objectStoreNames.contains("sales")) db.deleteObjectStore("sales");
-    //             // if (db.objectStoreNames.contains("future_sales")) db.deleteObjectStore("future_sales");
-    //             // if (db.objectStoreNames.contains("recent_sales")) db.deleteObjectStore("recent_sales");
-    //             if (db.objectStoreNames.contains("order_tables")) db.deleteObjectStore("order_tables");
-    //             if (db.objectStoreNames.contains("invoice_date_table")) db.deleteObjectStore("invoice_date_table");
-    //             // if (db.objectStoreNames.contains("pending_kitchen_orders")) db.deleteObjectStore("pending_kitchen_orders");
+        //     request.onupgradeneeded = function(event) {
+        //         let db = event.target.result;
+        //         // Eliminar object stores existentes si los hay
+        //         if (db.objectStoreNames.contains("sales")) db.deleteObjectStore("sales");
+        //         // if (db.objectStoreNames.contains("future_sales")) db.deleteObjectStore("future_sales");
+        //         // if (db.objectStoreNames.contains("recent_sales")) db.deleteObjectStore("recent_sales");
+        //         if (db.objectStoreNames.contains("order_tables")) db.deleteObjectStore("order_tables");
+        //         if (db.objectStoreNames.contains("invoice_date_table")) db.deleteObjectStore("invoice_date_table");
+        //         // if (db.objectStoreNames.contains("pending_kitchen_orders")) db.deleteObjectStore("pending_kitchen_orders");
                 
-    //             // Crear nuevos object stores
-    //             db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement: true});
-    //             db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement: true});
-    //             db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement: true});
-    //             db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement: true});
-    //             db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement: true});
-    //             db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement: false});
-    //         };
-    //     });
+        //         // Crear nuevos object stores
+        //         db.createObjectStore("sales", {keyPath: "sales_id", autoIncrement: true});
+        //         db.createObjectStore("future_sales", {keyPath: "sales_id", autoIncrement: true});
+        //         db.createObjectStore("recent_sales", {keyPath: "sales_id", autoIncrement: true});
+        //         db.createObjectStore("order_tables", {keyPath: "sales_id", autoIncrement: true});
+        //         db.createObjectStore("invoice_date_table", {keyPath: "sales_id", autoIncrement: true});
+        //         db.createObjectStore("pending_kitchen_orders", {keyPath: "sale_no", autoIncrement: false});
+        //     };
+        // });
     // }
 
     // Modificación de tus funciones para asegurar que db esté disponible
@@ -502,7 +502,7 @@
                 let user_id = Number(orderData.user_id);
                 let sale_no_plan = get_plan_string(rowData.sale_no);
     
-                if (user_id_login === user_id) {
+                // if (user_id_login === user_id) {
                     let orderElement = document.createElement("div");
                     orderElement.className = "running_order_custom single_order fix txt_5";
                     orderElement.setAttribute("data-sale-id", sales_id);
@@ -557,7 +557,7 @@
                     `;
     
                     fragment.appendChild(orderElement);
-                }
+                // }
                 cursor.continue();
             } else {
                 order_details_holder.innerHTML = ''; // Limpiar antes de agregar nuevos datos
@@ -15070,24 +15070,24 @@ $("#combo_item").on("click", function(){
                 // Primero verificamos todas las órdenes existentes en IndexedDB
                 const existingOrders = await getAllExistingOrders();
                 
-                // Procesamos las nuevas órdenes del servidor
-                for (const order of response.get_waiter_orders) {
-                    let order_info = JSON.parse(order.self_order_content);
-                    let sale_no_new = order_info.sale_no;
-                    processedOrders[sale_no_new] = true;
+                // // Procesamos las nuevas órdenes del servidor
+                // for (const order of response.get_waiter_orders) {
+                //     let order_info = JSON.parse(order.self_order_content);
+                //     let sale_no_new = order_info.sale_no;
+                //     processedOrders[sale_no_new] = true;
     
-                    // Verificamos si la orden ya existe antes de agregarla
-                    if (!existingOrders.includes(sale_no_new)) {
-                        if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
-                            await add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
+                //     // Verificamos si la orden ya existe antes de agregarla
+                //     if (!existingOrders.includes(sale_no_new)) {
+                //         if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
+                //             await add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
                             
-                            if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
-                                printExistingOrder(sale_no_new, order.self_order_content);
-                            }
-                        }
-                        setOrderPulled(order.id);
-                    }
-                }
+                //             if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
+                //                 printExistingOrder(sale_no_new, order.self_order_content, "1");
+                //             }
+                //         }
+                //         setOrderPulled(order.id);
+                //     }
+                // }
     
                 // Procesamos órdenes para actualización
                 for (const order of response.get_waiter_orders_for_update_receiver) {
@@ -15097,10 +15097,10 @@ $("#combo_item").on("click", function(){
                     // Actualizamos solo si la orden existe
                     if (existingOrders.includes(sale_no_new)) {
                         await updateOrderForWaiter(sale_no_new, order.self_order_content);
-                        setOrderInvoiceUpdated(order.id, 2);
+                        // setOrderInvoiceUpdated(order.id, 2);
                         
                         if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
-                            printExistingOrder(order.sale_no, order.self_order_content);
+                            printExistingOrder(order.sale_no, order.self_order_content, "0");
                         }
                     }
                 }
@@ -15131,7 +15131,7 @@ $("#combo_item").on("click", function(){
                             await add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
                             
                             if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
-                                printExistingOrder(sale_no_new, order.self_order_content);
+                                printExistingOrder(sale_no_new, order.self_order_content, "1");
                             }
                         }
                     }
@@ -15228,7 +15228,7 @@ $("#combo_item").on("click", function(){
         });
     }
 
-    function printExistingOrder(sale_no) {
+    function printExistingOrder(sale_no, orders = [], all = 0) {
         if (!checkInternetConnection()) {
             console.log('No hay conexión, no se puede imprimir');
             return;
@@ -15240,6 +15240,7 @@ $("#combo_item").on("click", function(){
             dataType: 'json',
             data: {
                 sale_no: sale_no,
+                all: all,
                 csrf_irestoraplus: csrf_value_
             },
             success: function(data) {
@@ -15249,6 +15250,7 @@ $("#combo_item").on("click", function(){
                 let content_data_direct_print = data.content_data_direct_print;
                 for (let key in content_data_direct_print) {
                     if(content_data_direct_print[key].ipvfour_address) {
+                        console.log(content_data_direct_print[key]);
                         // Usar Fetch API en lugar de jQuery.ajax para mejor control CORS
                         fetch(content_data_direct_print[key].ipvfour_address + "print_server/novabox_printer_server.php", {
                             method: 'POST',
@@ -16680,24 +16682,36 @@ $(document).on("click", "#register_close", function (e) {
         $(this).toggleClass("active");
       });
   
-    $(document).on("click", "#open__menu", function (e) {
+      $(document).on("click", "#open__menu", function (e) {
         let pos_23 = Number($("#pos_23").val());
-        if(pos_23){
+        
+        if(pos_23) {
             let status = true;
-            if(!checkInternetConnection()){
-                let action_error= $("#action_error").val();
+            if(!checkInternetConnection()) {
+                let action_error = $("#action_error").val();
                 status = false;
                 toastr['error']((action_error), '');
             }
-            if(status){
-                $("aside#pos__sidebar").addClass("active");
-                $(".pos__modal__overlay").fadeIn(200);
+            
+            if(status) {
+                // Toggle (alternar) la clase active
+                $("aside#pos__sidebar").toggleClass("active");
+                
+                // Alternar el overlay basado en si el sidebar tiene la clase active
+                if($("aside#pos__sidebar").hasClass("active")) {
+                    $(".pos__modal__overlay").fadeIn(200);
+                } else {
+                    $(".pos__modal__overlay").fadeOut(200);
+                }
             }
-        }else{
+        } else {
             toastr['error']((menu_not_permit_access + "!"), '');
         }
     });
-  
+    $(document).on("click", ".pos__modal__overlay", function() {
+        $("aside#pos__sidebar").removeClass("active");
+        $(this).fadeOut(200);
+    });
     // material icon init
     feather.replace();
     display_date_time();

@@ -65,7 +65,11 @@ class Kitchen extends Cl_Controller {
         }
         $id = d($id,2);
         $data = array();
-        $data['kitchen'] = $this->Common_model->getDataById($id, "tbl_kitchens");
+        $kitchen = $this->Common_model->getDataById($id, "tbl_kitchens");
+        $printer = $this->Common_model->getPrinterInfoById($kitchen->printer_id);
+        $printer = isset($printer) ? $printer : new stdClass(); 
+        $data['kitchen'] = $kitchen;
+        $data['printer'] = $printer;
         $data['kitchen_id'] = $id;
         $data['notifications'] = $this->get_new_notification($id);
         $this->load->view('kitchen/panel', $data);
@@ -332,10 +336,10 @@ class Kitchen extends Cl_Controller {
     public function get_all_information_of_a_sale_kitchen_type($sales_id,$kitchen_id){
         $sales_information = $this->Kitchen_model->getSaleBySaleId($sales_id);
         $items_by_sales_id = $this->Kitchen_model->getAllKitchenItemsFromSalesDetailBySalesId($sales_id,$kitchen_id);
-        foreach($items_by_sales_id as $single_item_by_sale_id){
-            $modifier_information = $this->Kitchen_model->getModifiersBySaleAndSaleDetailsId($sales_id,$single_item_by_sale_id->sales_details_id);
-            $single_item_by_sale_id->modifiers = $modifier_information;
-        }
+        // foreach($items_by_sales_id as $single_item_by_sale_id){
+        //     $modifier_information = $this->Kitchen_model->getModifiersBySaleAndSaleDetailsId($sales_id,$single_item_by_sale_id->sales_details_id);
+        //     $single_item_by_sale_id->modifiers = $modifier_information;
+        // }
         $sales_details_objects = $items_by_sales_id;
         $sale_object = $sales_information[0];
         $sale_object->items = $sales_details_objects;
@@ -347,7 +351,53 @@ class Kitchen extends Cl_Controller {
      * @return string
      * @param no
      */
-    public function get_new_orders($kitchen_id){
+    public function get_new_orders($kitchen_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+        // $kitchen = $this->Common_model->getDataById($kitchen_id, "tbl_kitchens");
+        
+        // Obtener todas las órdenes con datos completos
+        $orders = $this->Kitchen_model->getNewOrders($outlet_id, $kitchen_id);
+        
+        // Recolectar IDs de órdenes que necesitan actualización
+        $orders_to_update = [];
+        
+        foreach ($orders as &$order) {
+            // Verificar si necesita actualización de campana
+            if ($order->is_kitchen_bell == 1) {
+                $orders_to_update[] = $order->sales_id;
+            }
+            
+            // Obtener items con modificadores
+            $order->items = $this->Kitchen_model->getAllKitchenItemsFromSalesDetailBySalesId(
+                $order->sales_id, 
+                $kitchen_id
+            );
+            
+            // Procesar mesas
+            $tables = [];
+            if (!empty($order->table_ids)) {
+                $table_ids = explode(',', $order->table_ids);
+                foreach ($table_ids as $table_id) {
+                    if (!empty($table_id)) {
+                        $table = $this->Common_model->getDataById($table_id, 'tbl_tables');
+                        if ($table) {
+                            $tables[] = $table->name;
+                        }
+                    }
+                }
+            }
+            $order->orders_table_text = implode(', ', $tables);
+        }
+        
+        // Actualizar todas las órdenes necesarias en una sola consulta
+        if (!empty($orders_to_update)) {
+            $this->db->where_in('id', $orders_to_update);
+            $this->db->update('tbl_kitchen_sales', ['is_kitchen_bell' => 2]);
+        }
+        return $orders;
+    }
+
+    public function get_new_ordersOld($kitchen_id){
         $outlet_id = $this->session->userdata('outlet_id');
         $user_id = $this->session->userdata('user_id');
         $kitchen = $this->Common_model->getDataById($kitchen_id, "tbl_kitchens");
@@ -462,7 +512,67 @@ class Kitchen extends Cl_Controller {
      * @return void
      * @param no
      */
-    public function update_cooking_status_delivery_take_away_ajax(){
+    public function update_cooking_status_delivery_take_away_ajax() {
+        $previous_id = $this->input->post('previous_id');
+        $kitchen_id = $this->input->post('kitchen_id');
+        $previous_id_array = explode(",", $previous_id);
+        $cooking_status = $this->input->post('cooking_status');
+        $total_item = count($previous_id_array);
+        
+        foreach ($previous_id_array as $single_previous_id) {
+            $item_info = $this->Kitchen_model->getItemInfoByPreviousId($single_previous_id);
+            if (!$item_info) continue;
+            
+            $sale_id = $item_info->sales_id;
+            
+            $cooking_status_update_array = [
+                'cooking_status' => $cooking_status,
+                ($cooking_status == "Started Cooking" ? 'cooking_start_time' : 'cooking_done_time') => date('Y-m-d H:i:s')
+            ];
+            
+            // Actualizar el item
+            $this->db->where('previous_id', $single_previous_id);
+            $this->db->update('tbl_kitchen_sales_details', $cooking_status_update_array);
+            
+            // Actualizar la venta
+            $this->db->where('id', $sale_id);
+            $this->db->update('tbl_kitchen_sales', [
+                ($cooking_status == "Started Cooking" ? 'cooking_start_time' : 'cooking_done_time') => date('Y-m-d H:i:s')
+            ]);
+            
+            // Solo para pedidos completados
+            if ($cooking_status == "Done" && $single_previous_id == end($previous_id_array)) {
+                $sale_info = $this->get_all_information_of_a_sale_kitchen_type($sale_id, $kitchen_id);
+                
+                $order_types = [
+                    1 => '',
+                    2 => 'El pedido para llevar está listo',
+                    3 => 'Orden de Delivery está listo para llevar'
+                ];
+                
+                $order_name = $sale_info->sale_no;
+                $order_type_operation = $order_types[$sale_info->order_type] ?? '';
+                
+                $notification = sprintf('Cliente: %s, Orden Número: %s %s', 
+                                      $sale_info->customer_name, 
+                                      $order_name, 
+                                      $order_type_operation);
+                
+                $notification_data = [
+                    'notification' => $notification,
+                    'sale_id' => $sale_id,
+                    'waiter_id' => $sale_info->waiter_id,
+                    'outlet_id' => $this->session->userdata('outlet_id')
+                ];
+                
+                $this->db->insert('tbl_notifications', $notification_data);
+            }
+        }
+        
+        echo json_encode(['status' => 'success']);
+    }
+
+    public function update_cooking_status_delivery_take_away_ajaxOld(){
         $previous_id = $this->input->post('previous_id');
         $kitchen_id = $this->input->post('kitchen_id');
         $previous_id_array = explode(",",$previous_id);
@@ -969,6 +1079,7 @@ class Kitchen extends Cl_Controller {
         // Formato del ticket (items)
         $items = "\n";
         $count = 1;
+        $count_item_to_print = 0;
         foreach ($sale_items as $item) {
             // $items .= "#{$count} ".($item->menu_name).": " .($item->qty) . "\n";
             // $count++;
@@ -984,7 +1095,6 @@ class Kitchen extends Cl_Controller {
             //     }
             // }
             
-            $count_item_to_print = 0;
             $pass = false;
             if ($all == "1"){
                 $pass = true;
@@ -1017,12 +1127,7 @@ class Kitchen extends Cl_Controller {
                 
                 if (count($item->modifiers) > 0) {
                     foreach ($item->modifiers as $modifier) {
-                        if ($all == "1") {
-                            $mod_qty = $modifier->qty;
-                        } else {
-                            $mod_qty = $modifier->tmp_qty;
-                        }
-                        $items .= "   " . printText( ($mod_qty). " * " .(getPlanData($modifier->name))  , ($characters_per_line - 3)) . "\n";
+                        $items .= "   " . printText( ($qty). " * " .(getPlanData($modifier->name))  , ($characters_per_line - 3)) . "\n";
                     }
                 }
                 
