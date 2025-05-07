@@ -1457,7 +1457,7 @@ class Sale extends Cl_Controller {
             $data['outlet_id'] = $this->session->userdata('outlet_id');
             $data['company_id'] = $this->session->userdata('company_id');
             $data['sale_date'] = trim_checker(isset($order_details->open_invoice_date_hidden) && $order_details->open_invoice_date_hidden?$order_details->open_invoice_date_hidden:date('Y-m-d'));
-            $data['date_time'] = date('Y-m-d H:i:s',strtotime($order_details->date_time));
+            $data['date_time'] = date('Y-m-d H:i:s'); //,strtotime($order_details->date_time)
             $data['order_time'] = date("H:i:s",strtotime($order_details->order_time));
             $data['order_status'] = trim_checker($order_details->order_status);
             $data['table_id'] = trim_checker($order_details->table_id);

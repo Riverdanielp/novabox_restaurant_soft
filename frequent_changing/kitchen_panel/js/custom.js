@@ -1234,23 +1234,59 @@ $(document).ready(function () {
                           response[key].customer_name != null
                               ? response[key].customer_name
                               : "";
+                      // let booked_time = new Date(Date.parse(response[key].date_time));
+                      // let now = new Date();
+  
+                      // let days = parseInt((now - booked_time) / (1000 * 60 * 60 * 24));
+                      // let hours = parseInt(
+                      //     (Math.abs(now - booked_time) / (1000 * 60 * 60)) % 24
+                      // );
+                      // let minute = parseInt(
+                      //     (Math.abs(now.getTime() - booked_time.getTime()) / (1000 * 60)) % 60
+                      // );
+                      // let second = parseInt(
+                      //     (Math.abs(now.getTime() - booked_time.getTime()) / 1000) % 60
+                      // );
+                      // minute = minute.toString();
+                      // second = second.toString();
+                      // minute = minute.length == 1 ? "0" + minute : minute;
+                      // second = second.length == 1 ? "0" + second : second;
+
                       let booked_time = new Date(Date.parse(response[key].date_time));
                       let now = new Date();
-  
-                      let days = parseInt((now - booked_time) / (1000 * 60 * 60 * 24));
-                      let hours = parseInt(
-                          (Math.abs(now - booked_time) / (1000 * 60 * 60)) % 24
-                      );
-                      let minute = parseInt(
-                          (Math.abs(now.getTime() - booked_time.getTime()) / (1000 * 60)) % 60
-                      );
-                      let second = parseInt(
-                          (Math.abs(now.getTime() - booked_time.getTime()) / 1000) % 60
-                      );
-                      minute = minute.toString();
-                      second = second.toString();
-                      minute = minute.length == 1 ? "0" + minute : minute;
-                      second = second.length == 1 ? "0" + second : second;
+
+                      // Diferencia total en milisegundos
+                      let diffMs = now - booked_time;
+
+                      // Días completos (opcional, si los necesitas)
+                      let days = parseInt(diffMs / (1000 * 60 * 60 * 24));
+
+                      // Horas completas (opcional, si las necesitas)
+                      let hours = parseInt((diffMs / (1000 * 60 * 60)) % 24);
+
+                      // Total de minutos transcurridos (sin usar % 60)
+                      let totalMinutes = parseInt(diffMs / (1000 * 60));
+
+                      // Total de segundos transcurridos (sin usar % 60)
+                      let totalSeconds = parseInt(diffMs / 1000);
+
+                      // Si quieres los minutos "restantes" después de horas (opcional, como antes)
+                      let minute = parseInt((diffMs / (1000 * 60)) % 60);
+
+                      // Si quieres los segundos "restantes" después de minutos (opcional, como antes)
+                      let second = parseInt((diffMs / 1000) % 60);
+
+                      // Formateo a dos dígitos (opcional)
+                      minute = minute.toString().padStart(2, "0");
+                      second = second.toString().padStart(2, "0");
+
+                      // Si necesitas el tiempo total en minutos y segundos (sin descomponer en horas/días)
+                      // console.log(`Tiempo transcurrido: ${totalMinutes} minutos (${totalSeconds} segundos)`);
+
+                      // Si necesitas el formato anterior (días, horas, minutos, segundos)
+                      // console.log(`Formato desglosado: ${days}d ${hours}h ${minute}m ${second}s`);
+
+
   
                       let table_name_txt = '';
                       if (tables_booked > 0){
@@ -1269,7 +1305,7 @@ $(document).ready(function () {
                               '<div class="header_portion light-blue-background fix">';
                           order_list_left += '<div class="fix floatleft" style="width:70%;">';
                           order_list_left +='<p class="order_number table_no"><b>#' + comanda_name + '</b> - ' + order_name + '</p>';
-                          order_list_left += '<p class="order_number sale_no"> ' + usuario_name +  "</p> ";
+                          order_list_left += '<p class="order_number sale_no"> ' + response[key].waiter_name +  "</p> ";
                           order_list_left += '<p class="order_number customer_name">'+response[key].customer_name+'</p>';
                           order_list_left += "</div>";
                           order_list_left += '<div class="fix floatleft" style="width:30%;">';
@@ -1279,7 +1315,7 @@ $(document).ready(function () {
                           order_list_left += '<p class="order_duration "><span id="kitchen_time_minute_' +
                               response[key].sales_id +
                               '">' +
-                              minute +
+                              totalMinutes +
                               '</span>:<span id="kitchen_time_second_' +
                               response[key].sales_id +
                               '">' +

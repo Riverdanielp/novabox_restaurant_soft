@@ -1561,6 +1561,47 @@ class Common_model extends CI_Model {
      * @access public
      * @param string
      */
+    public function getWaiterOrdersForDeleteSenderNew() {
+        $sale_no_all = escape_output($this->input->post('sale_no_all'));
+        
+        if (empty($sale_no_all)) {
+            return '';
+        }
+    
+        $sale_nos = array_filter(explode(",", $sale_no_all), function($value) {
+            return !empty($value) && is_numeric($value);
+        });
+    
+        if (empty($sale_nos)) {
+            return '';
+        }
+    
+        $outlet_id = $this->session->userdata("outlet_id");
+        
+        // Subconsulta para obtener sale_no que existen en tbl_sales
+        $this->db->select('sale_no')
+                 ->from('tbl_sales')
+                 ->where_in('sale_no', $sale_nos)
+                 ->where('del_status', 'Live');
+        
+        $subquery = $this->db->get_compiled_select();
+        
+        // Consulta principal que verifica en kitchen_sales y la subconsulta
+        $this->db->select('sale_no')
+                 ->from('tbl_kitchen_sales')
+                 ->where_in('sale_no', $sale_nos)
+                 ->where('outlet_id', $outlet_id)
+                 ->where('del_status', 'Live')
+                 ->where("sale_no IN ($subquery)", null, false);
+        
+        $valid_sales = $this->db->get()->result_array();
+        $valid_sale_nos = array_column($valid_sales, 'sale_no');
+        
+        $to_delete = array_diff($sale_nos, $valid_sale_nos);
+        
+        return implode(",", $to_delete);
+    }
+
     public function getWaiterOrdersForDeleteSender() {
         $sale_no_all = escape_output($_POST['sale_no_all']);
         $sale_no_array = [];
@@ -1712,7 +1753,7 @@ class Common_model extends CI_Model {
      * @access public
      * @param no
      */
-    public function alreadyInvoicedOrders() {
+    public function alreadyInvoicedOrdersNew() {
         $sale_no_all = escape_output($this->input->post('sale_no_all'));
         
         if (empty($sale_no_all)) {
@@ -1738,8 +1779,8 @@ class Common_model extends CI_Model {
         
         return $query->result_array();
     }
-    
-    public function alreadyInvoicedOrdersOld() {
+
+    public function alreadyInvoicedOrders() {
         $sale_no_all = escape_output($_POST['sale_no_all']);
         $spt = explode(',',$sale_no_all);
         $arr = array();

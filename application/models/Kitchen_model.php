@@ -249,6 +249,7 @@ class Kitchen_model extends CI_Model {
         if ($kitchen_id) {
             $this->db->join('tbl_kitchen_categories kc', 'kc.cat_id = fm.category_id', 'left');
             $this->db->join('tbl_kitchens k', 'k.id = kc.kitchen_id', 'left');
+            $this->db->where("kc.del_status", "Live");
             $this->db->where('k.id', $kitchen_id);
         }
         

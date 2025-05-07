@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.54133';
+    return '?v=7.54134';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -1488,6 +1488,39 @@ function get_all_running_order_for_new_pc($user_id) {
     $outlet_id = $CI->session->userdata('outlet_id');
     $total_users = $CI->db->query("SELECT id,sale_no,self_order_content FROM tbl_kitchen_sales where Not FIND_IN_SET(`sale_no`, '$sale_no_all') AND `user_id`='$user_id' AND is_accept=1 AND company_id='$company_id' AND outlet_id='$outlet_id' AND del_status='Live'")->result();
     return $total_users;
+}
+
+function get_all_running_order_for_new_pc_allNew() {
+    $CI = & get_instance();
+
+    $sale_no_all = escape_output($CI->input->post('sale_no_all'));
+
+    // Procesa la lista solo si hay algo
+    $sale_nos = [];
+    if (!empty($sale_no_all)) {
+        $sale_nos = array_filter(explode(",", $sale_no_all), function($value) {
+            return !empty($value) && is_numeric($value);
+        });
+    }
+
+    $company_id = $CI->session->userdata('company_id');
+    $outlet_id = $CI->session->userdata('outlet_id');
+
+    $CI->db->select('ks.id, ks.sale_no, ks.self_order_content');
+    $CI->db->from('tbl_kitchen_sales ks');
+    $CI->db->join('tbl_sales s', 'ks.sale_no = s.sale_no', 'left');
+    $CI->db->where('ks.company_id', $company_id);
+    $CI->db->where('ks.outlet_id', $outlet_id);
+    $CI->db->where('ks.del_status', 'Live');
+    $CI->db->where('s.id IS NULL', null, false);
+
+    // Solo aplica where_not_in si hay elementos
+    if (!empty($sale_nos)) {
+        $CI->db->where_not_in('ks.sale_no', $sale_nos);
+    }
+
+    $query = $CI->db->get();
+    return $query->result();
 }
 
 function get_all_running_order_for_new_pc_all() {
