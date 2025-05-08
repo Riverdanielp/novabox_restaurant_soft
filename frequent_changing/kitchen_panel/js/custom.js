@@ -1141,23 +1141,63 @@ $(document).ready(function () {
               } else {
                   // Siguientes cargas: imprime los nuevos y modificados
                   for (let sale_no in current_sales) {
-                    // console.log(sale_no);
+                      // // console.log(sale_no);
+                      // // console.log(current_sales[sale_no]);
+                      // // console.log(current_info[sale_no]);
+                      // if (typeof window.printed_sales[sale_no] === "undefined") {
+                      //     // NUEVO pedido
+                      //     // console.log('NUEVO pedido');
+                      //     // console.log(current_info[sale_no]);
+                      //     // fetchAndPrint(sale_no, kitchen_id, "1");
+                      //     printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 1)
+                      //     window.printed_sales[sale_no] = current_sales[sale_no];
+                      // } else if (window.printed_sales[sale_no] !== current_sales[sale_no]) {
+                      //     // MODIFICADO
+                      //   // console.log('MODIFICADO');
+                      //   // console.log(current_info[sale_no]);
+                      //     // fetchAndPrint(sale_no, kitchen_id, "0");
+                      //     printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 0);
+                      //     window.printed_sales[sale_no] = current_sales[sale_no];
+                      // }
+                      // // Si no cambió, no imprime
+
                       if (typeof window.printed_sales[sale_no] === "undefined") {
                           // NUEVO pedido
-                          // console.log('NUEVO pedido');
-                          // console.log(current_info[sale_no]);
-                          // fetchAndPrint(sale_no, kitchen_id, "1");
-                          printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 1)
+                          printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 1);
                           window.printed_sales[sale_no] = current_sales[sale_no];
                       } else if (window.printed_sales[sale_no] !== current_sales[sale_no]) {
-                          // MODIFICADO
-                        // console.log('MODIFICADO');
-                        // console.log(current_info[sale_no]);
-                          // fetchAndPrint(sale_no, kitchen_id, "0");
-                          printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 0);
-                          window.printed_sales[sale_no] = current_sales[sale_no];
+                          // MODIFICADO - pero verificamos si hay cambios relevantes (tmp_qty > 0)
+                          const oldItems = JSON.parse(window.printed_sales[sale_no]);
+                          const newItems = JSON.parse(current_sales[sale_no]);
+                          
+                          let hasRelevantChanges = false;
+                          
+                          // Comparar item por item
+                          if (oldItems.length === newItems.length) {
+                              for (let i = 0; i < newItems.length; i++) {
+                                  const newItem = newItems[i];
+                                  const oldItem = oldItems.find(item => item.id === newItem.id);
+                                  
+                                  // Si encontramos un item con tmp_qty > 0, es un cambio relevante
+                                  if (oldItem && (parseFloat(newItem.tmp_qty) > 0 || 
+                                                (parseFloat(newItem.tmp_qty) !== parseFloat(oldItem.tmp_qty)))) {
+                                      hasRelevantChanges = true;
+                                      break;
+                                  }
+                              }
+                          } else {
+                              // Si la cantidad de items cambió, es un cambio relevante
+                              hasRelevantChanges = true;
+                          }
+                          
+                          if (hasRelevantChanges) {
+                              printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 0);
+                              window.printed_sales[sale_no] = current_sales[sale_no];
+                          }
                       }
-                      // Si no cambió, no imprime
+
+
+
                   }
                   // Limpia los pedidos que ya no existen
                   for (let sale_no in window.printed_sales) {

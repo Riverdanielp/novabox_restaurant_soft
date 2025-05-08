@@ -415,73 +415,73 @@
             });
         }
 
-        function printDirectlyFromOrderData(orderInfo, kitchen_id, all = 0) {
-            // Obtener configuración de la impresora desde los campos ocultos
-            const printerConfig = {
-                printer_port: $('#printer-printer_port').val(),
-                profile_: $('#printer-profile_').val(),
-                printer_ip_address: $('#printer-printer_ip_address').val(),
-                ipvfour_address: $('#printer-ipvfour_address').val(),
-                printer_name: $('#printer-title').val(),
-                path: $('#printer-path').val(),
-                characters_per_line: $('#printer-characters_per_line').val(),
-                open_cash_drawer_when_printing_invoice: $('#printer-open_cash_drawer_when_printing_invoice').val(),
-                printer_type: $('#printer-type').val(),
-                printer_width: '',
-                type: $('#printer-type').val(),
-                outlet_id: $('#printer-outlet_id').val()
-            };
+        // function printDirectlyFromOrderData(orderInfo, kitchen_id, all = 0) {
+        //     // Obtener configuración de la impresora desde los campos ocultos
+        //     const printerConfig = {
+        //         printer_port: $('#printer-printer_port').val(),
+        //         profile_: $('#printer-profile_').val(),
+        //         printer_ip_address: $('#printer-printer_ip_address').val(),
+        //         ipvfour_address: $('#printer-ipvfour_address').val(),
+        //         printer_name: $('#printer-title').val(),
+        //         path: $('#printer-path').val(),
+        //         characters_per_line: $('#printer-characters_per_line').val(),
+        //         open_cash_drawer_when_printing_invoice: $('#printer-open_cash_drawer_when_printing_invoice').val(),
+        //         printer_type: $('#printer-type').val(),
+        //         printer_width: '',
+        //         type: $('#printer-type').val(),
+        //         outlet_id: $('#printer-outlet_id').val()
+        //     };
 
-            // Preparar los datos para la impresión
-            const printData = {
-                ...printerConfig,
-                store_name: `COCINA:AREA ${kitchen_id} - ${orderInfo.waiter_name || 'SIN MESERO'}`,
-                sale_type: getOrderTypeText(orderInfo.order_type),
-                sale_no_p: orderInfo.sale_no,
-                date: formatDate(orderInfo.sale_date),
-                time_inv: orderInfo.order_time.split(' ')[1] || orderInfo.order_time,
-                sales_associate: orderInfo.full_name || 'Administrado',
-                customer_name: orderInfo.customer_name || 'Cliente Ocacional',
-                customer_phone: orderInfo.customer_phone || '',
-                selected_number_name: orderInfo.number_slot_name || '',
-                selected_number: orderInfo.number_slot || '',
-                customer_address: orderInfo.del_address || '',
-                waiter_name: orderInfo.waiter_name || 'POS1',
-                customer_table: orderInfo.table_name || orderInfo.orders_table_text || '',
-                lang_order_type: 'Tipo de pedido',
-                lang_Invoice_No: 'Factura nro',
-                lang_date: 'Fecha',
-                lang_Sales_Associate: 'Asociado de ventas',
-                lang_customer: 'Cliente',
-                lang_address: 'Dirección',
-                lang_gst_number: 'Número Doc.',
-                lang_waiter: 'Mesero',
-                lang_table: 'Mesa',
-                print_type: 'KOT',
-                items: formatItemsForPrint(orderInfo.items, all)
-            };
-            // console.log('items',formatItemsForPrint(orderInfo.items, all));
+        //     // Preparar los datos para la impresión
+        //     const printData = {
+        //         ...printerConfig,
+        //         store_name: `COCINA:AREA ${kitchen_id} - ${orderInfo.waiter_name || 'SIN MESERO'}`,
+        //         sale_type: getOrderTypeText(orderInfo.order_type),
+        //         sale_no_p: orderInfo.sale_no,
+        //         date: formatDate(orderInfo.sale_date),
+        //         time_inv: orderInfo.order_time.split(' ')[1] || orderInfo.order_time,
+        //         sales_associate: orderInfo.full_name || 'Administrado',
+        //         customer_name: orderInfo.customer_name || 'Cliente Ocacional',
+        //         customer_phone: orderInfo.customer_phone || '',
+        //         selected_number_name: orderInfo.number_slot_name || '',
+        //         selected_number: orderInfo.number_slot || '',
+        //         customer_address: orderInfo.del_address || '',
+        //         waiter_name: orderInfo.waiter_name || 'POS1',
+        //         customer_table: orderInfo.table_name || orderInfo.orders_table_text || '',
+        //         lang_order_type: 'Tipo de pedido',
+        //         lang_Invoice_No: 'Factura nro',
+        //         lang_date: 'Fecha',
+        //         lang_Sales_Associate: 'Asociado de ventas',
+        //         lang_customer: 'Cliente',
+        //         lang_address: 'Dirección',
+        //         lang_gst_number: 'Número Doc.',
+        //         lang_waiter: 'Mesero',
+        //         lang_table: 'Mesa',
+        //         print_type: 'KOT',
+        //         items: formatItemsForPrint(orderInfo.items, all)
+        //     };
+        //     // console.log('items',formatItemsForPrint(orderInfo.items, all));
 
-            // Enviar directamente a la impresora
-            return fetch(printerConfig.ipvfour_address + "print_server/novabox_printer_server.php", {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    content_data: "[" + JSON.stringify(printData) + "]",
-                    print_type: 'KOT',
-                })
-            })
-            .then(() => {
-                console.log('Orden de impresión enviada sale_no:', orderInfo.sale_no);
-            })
-            .catch(error => {
-                console.error('Error al imprimir:', error);
-                throw error;
-            });
-        }
+        //     // Enviar directamente a la impresora
+        //     return fetch(printerConfig.ipvfour_address + "print_server/novabox_printer_server.php", {
+        //         method: 'POST',
+        //         mode: 'no-cors',
+        //         headers: {
+        //             'Content-Type': 'application/x-www-form-urlencoded',
+        //         },
+        //         body: new URLSearchParams({
+        //             content_data: "[" + JSON.stringify(printData) + "]",
+        //             print_type: 'KOT',
+        //         })
+        //     })
+        //     .then(() => {
+        //         console.log('Orden de impresión enviada sale_no:', orderInfo.sale_no);
+        //     })
+        //     .catch(error => {
+        //         console.error('Error al imprimir:', error);
+        //         throw error;
+        //     });
+        // }
 
         // Funciones auxiliares (las mismas que antes)
         function getOrderTypeText(orderType) {
@@ -515,6 +515,10 @@
                 return Promise.resolve(); // Resuelve sin error para no romper el flujo
             }
 
+            let modificated = '';
+            if (all === 0) {
+                modificated = ' MODIFICADO';
+            }
             // Obtener configuración de la impresora desde los campos ocultos
             const printerConfig = {
                 printer_port: $('#printer-printer_port').val(),
@@ -536,7 +540,7 @@
                 ...printerConfig,
                 store_name: `COCINA:AREA ${kitchen_id} - ${orderInfo.waiter_name || 'SIN MESERO'}`,
                 sale_type: getOrderTypeText(orderInfo.order_type),
-                sale_no_p: orderInfo.sale_no,
+                sale_no_p: orderInfo.sale_no + modificated,
                 date: formatDate(orderInfo.sale_date),
                 time_inv: orderInfo.order_time.split(' ')[1] || orderInfo.order_time,
                 sales_associate: orderInfo.full_name || 'Administrado',
@@ -586,28 +590,37 @@
         function formatItemsForPrint(items, all) {
             if (!items || !Array.isArray(items)) return '';
             
+            const showTmpQty = (all === 0); // Variable de scope para manejar tmp_qty
+            
             const filteredItems = items.filter(item => {
-                // Si all=1, incluir todos los items
-                if (all === 1) return true;
+                // Calcular la cantidad relevante (tmp_qty o qty)
+                const relevantQty = showTmpQty ? parseFloat(item.tmp_qty || 0) : parseFloat(item.qty);
                 
-                // Si all=0, solo incluir items nuevos o sin estado de cocción
-                return !item.cooking_status || item.cooking_status === 'New';
+                // Si all=1, incluir solo items con qty >= 1
+                if (all === 1) return relevantQty >= 1;
+                
+                // Si all=0, incluir solo items nuevos/sin cocción con cantidad relevante >= 1
+                return (!item.cooking_status || item.cooking_status === 'New') && relevantQty >= 1;
             });
 
-            // Si no hay items después del filtro, retornar string vacío
             if (filteredItems.length === 0) return '';
 
             return filteredItems
                 .map(item => {
-                    let itemText = `${item.qty} * ${item.menu_name}`;
+                    // Usar tmp_qty si showTmpQty es true y tmp_qty > 0, sino usar qty
+                    const quantity = showTmpQty && parseFloat(item.tmp_qty || 0) > 0 
+                        ? item.tmp_qty 
+                        : item.qty;
                     
-                    if (item.modifiers && item.modifiers.length > 0) {
+                    let itemText = `${quantity} * ${item.menu_name}`;
+                    
+                    if (item.modifiers?.length > 0) {
                         const modifiers = item.modifiers.map(m => m.name).join(', ');
-                        itemText += ` (${modifiers})`;
+                        itemText += `\n       (${modifiers})`;
                     }
                     
-                    if (item.menu_note && item.menu_note.trim() !== '') {
-                        itemText += ` / ${item.menu_note.trim()}`;
+                    if (item.menu_note?.trim()) {
+                        itemText += `\n        NOTA: ${item.menu_note.trim()}`;
                     }
                     
                     return itemText;
