@@ -429,7 +429,127 @@ class Kitchen extends Cl_Controller {
      * @return void
      * @param no
      */
+    public function first_item_sales_id($previous_id)
+    {
+        // $previous_id = $this->input->post('previous_id');
+        // $kitchen_id = $this->input->post('kitchen_id');
+        $previous_id_array = explode(",", $previous_id);
+        // $cooking_status = $this->input->post('cooking_status');
+        
+        // Obtenemos el sale_id del primer ítem (todos pertenecen a la misma orden)
+        $first_item = $this->db->select('sales_id')
+                            ->where('previous_id', $previous_id_array[0])
+                            ->get('tbl_kitchen_sales_details')
+                            ->row();
+        
+        if (!$first_item) {
+            echo '<pre>';
+            var_dump($first_item); 
+            echo '<pre>';
+            
+            return false; // No hay ítems válidos
+        }
+        
+        $sale_id = $first_item->sales_id;
+        echo '<pre>';
+        echo 'Sale ID: '.$sale_id.'<br>';
+        echo 'Previous ID: '.$previous_id_array[0].'<br>';
+        var_dump($first_item); 
+        echo '<pre>';
+        $this->updateIsKitchenBySale($sale_id);
+        
+    }
     public function update_cooking_status_ajax()
+    {
+        $previous_id = $this->input->post('previous_id');
+        $kitchen_id = $this->input->post('kitchen_id');
+        $previous_id_array = explode(",", $previous_id);
+        $cooking_status = $this->input->post('cooking_status');
+        
+        // Obtenemos el sale_id del primer ítem (todos pertenecen a la misma orden)
+        $first_item = $this->db->select('sales_id')
+                            ->where('previous_id', $previous_id_array[0])
+                            ->get('tbl_kitchen_sales_details')
+                            ->row();
+        
+        if (!$first_item) {
+            return false; // No hay ítems válidos
+        }
+        
+        $sale_id = $first_item->sales_id;
+        
+        // Llamamos a la función para marcar los ítems de cocina
+        $this->updateIsKitchenBySale($sale_id);
+        // Procesamos cada ítem marcado
+        foreach ($previous_id_array as $single_previous_id) {
+            $previous_id = $single_previous_id;
+            $item_info = $this->Kitchen_model->getItemInfoByPreviousId($previous_id);
+            
+            // Si es el primer ítem, obtenemos la info de la venta
+            if (!isset($sale_info)) {
+                $sale_info = $this->Kitchen_model->getSaleBySaleId($sale_id);
+                $tables_booked = $sale_info[0]->orders_table_text;
+            }
+
+            if ($cooking_status == "Started Cooking") {
+                $cooking_status_update_array = [
+                    'cooking_status' => $cooking_status, 
+                    'cooking_start_time' => date('Y-m-d H:i:s')
+                ];
+                
+                $this->db->where('previous_id', $previous_id);
+                $this->db->update('tbl_kitchen_sales_details', $cooking_status_update_array);
+                
+                if ($sale_info[0]->date_time == strtotime('0000-00-00 00:00:00')) {
+                    $this->db->where('id', $sale_id);
+                    $this->db->update('tbl_kitchen_sales', [
+                        'cooking_start_time' => date('Y-m-d H:i:s')
+                    ]);
+                }
+            } else {
+                $cooking_status_update_array = [
+                    'cooking_status' => $cooking_status, 
+                    'cooking_done_time' => date('Y-m-d H:i:s')
+                ];
+                
+                $this->db->where('previous_id', $previous_id);
+                $this->db->update('tbl_kitchen_sales_details', $cooking_status_update_array);
+
+                $this->db->where('id', $sale_id);
+                $this->db->update('tbl_kitchen_sales', [
+                    'cooking_done_time' => date('Y-m-d H:i:s')
+                ]);
+
+                $order_name = $sale_info[0]->sale_no;
+                $notification = "Mesa: ".$tables_booked.', Cliente: '.$sale_info[0]->customer_name.', Item: '.$item_info->menu_name.' está listo para servir, Orden: '.$order_name;
+                
+                $this->db->insert('tbl_notifications', [
+                    'notification' => $notification,
+                    'sale_id' => $sale_id,
+                    'waiter_id' => $sale_info[0]->waiter_id,
+                    'outlet_id' => $this->session->userdata('outlet_id')
+                ]);
+            }
+        }
+        
+        
+        return true;
+    }
+
+    public function updateIsKitchenBySale($sales_id)
+    {
+        // Primero, selecciona los detalles de la venta y determina si tiene cocina
+        $sql = "
+            UPDATE tbl_kitchen_sales_details AS d
+            LEFT JOIN tbl_food_menus AS m ON m.id = d.food_menu_id
+            LEFT JOIN tbl_kitchen_categories AS c ON c.cat_id = m.category_id AND c.del_status = 'Live'
+            SET d.is_kitchen = IF(c.kitchen_id IS NULL OR c.kitchen_id = '', 0, 1)
+            WHERE d.sales_id = ?
+        ";
+        $this->db->query($sql, array($sales_id));
+    }
+
+    public function update_cooking_status_ajaxOld()
     {
         $previous_id = $this->input->post('previous_id');
         $kitchen_id = $this->input->post('kitchen_id');
@@ -480,6 +600,8 @@ class Kitchen extends Cl_Controller {
             }
         } 
     }
+
+
     public function get_update_kitchen_status_ajax()
     {
         $sale_no = $this->input->post('sale_no');
@@ -513,6 +635,67 @@ class Kitchen extends Cl_Controller {
      * @param no
      */
     public function update_cooking_status_delivery_take_away_ajax() {
+        $previous_id = $this->input->post('previous_id');
+        $kitchen_id = $this->input->post('kitchen_id');
+        $previous_id_array = explode(",", $previous_id);
+        $cooking_status = $this->input->post('cooking_status');
+        
+        // Obtener el sale_id una sola vez (del primer item)
+        $first_item_info = $this->Kitchen_model->getItemInfoByPreviousId($previous_id_array[0]);
+        if (!$first_item_info) {
+            echo json_encode(['status' => 'error', 'msg' => 'No se encontró el item']);
+            return;
+        }
+        $sale_id = $first_item_info->sales_id;
+        
+        // Llamamos a la función para marcar los ítems de cocina
+        $this->updateIsKitchenBySale($sale_id);
+        
+        $update_data = [
+            'cooking_status' => $cooking_status,
+            ($cooking_status == "Started Cooking" ? 'cooking_start_time' : 'cooking_done_time') => date('Y-m-d H:i:s')
+        ];
+        
+        // Actualizar todos los items de la orden seleccionados
+        $this->db->where_in('previous_id', $previous_id_array);
+        $this->db->update('tbl_kitchen_sales_details', $update_data);
+        
+        // Actualizar la venta (tbl_kitchen_sales)
+        $this->db->where('id', $sale_id);
+        $this->db->update('tbl_kitchen_sales', [
+            ($cooking_status == "Started Cooking" ? 'cooking_start_time' : 'cooking_done_time') => date('Y-m-d H:i:s')
+        ]);
+        
+        // Solo para pedidos completados
+        if ($cooking_status == "Done") {
+            $sale_info = $this->get_all_information_of_a_sale_kitchen_type($sale_id, $kitchen_id);
+            $order_types = [
+                1 => '',
+                2 => 'El pedido para llevar está listo',
+                3 => 'Orden de Delivery está listo para llevar'
+            ];
+            $order_name = $sale_info->sale_no;
+            $order_type_operation = $order_types[$sale_info->order_type] ?? '';
+            $notification = sprintf(
+                'Cliente: %s, Orden Número: %s %s', 
+                $sale_info->customer_name, 
+                $order_name, 
+                $order_type_operation
+            );
+            $notification_data = [
+                'notification' => $notification,
+                'sale_id' => $sale_id,
+                'waiter_id' => $sale_info->waiter_id,
+                'outlet_id' => $this->session->userdata('outlet_id')
+            ];
+            $this->db->insert('tbl_notifications', $notification_data);
+        }
+        
+        echo json_encode(['status' => 'success']);
+    }
+
+
+    public function update_cooking_status_delivery_take_away_ajaxOld2() {
         $previous_id = $this->input->post('previous_id');
         $kitchen_id = $this->input->post('kitchen_id');
         $previous_id_array = explode(",", $previous_id);

@@ -447,6 +447,7 @@ function getStatusOrdersItems($sale_id) {
     $CI->db->select('*');
     $CI->db->from('tbl_kitchen_sales_details');
     $CI->db->where('sales_id', $sale_id);
+    $CI->db->where("is_kitchen", 1);
     $CI->db->where('del_status', "Live");
     $main_row =  $CI->db->get()->result();
     return $main_row;
@@ -465,7 +466,7 @@ function getStatusOrders() {
     $CI->db->where("tbl_kitchen_sales.is_kitchen", 1);
     $CI->db->where('tbl_kitchen_sales.outlet_id', $outlet_id);
     // <-- AQUI EL FILTRO DE 6 HORAS -->
-    $CI->db->where("tbl_kitchen_sales.date_time >=", "DATE_SUB(NOW(), INTERVAL 6 HOUR)", false);
+    $CI->db->where("tbl_kitchen_sales.date_time >=", "DATE_SUB(NOW(), INTERVAL 3 HOUR)", false);
     $CI->db->order_by('tbl_kitchen_sales.date_time', 'ASC'); // Cambia a 'DESC' si quieres más recientes primero
 
     // O alternativamente:
@@ -473,6 +474,7 @@ function getStatusOrders() {
     $results =  $CI->db->get()->result();
     foreach ($results as $ky=>$value){
         $items = getStatusOrdersItems($value->id);
+        
         $new = 0;
         $inprogress = 0;
         $done = 0;

@@ -55,7 +55,7 @@ $(function () {
                     dataType:'json',
                     data:{sale_no:sale_no},
                     success: function (response) {
-                        get_cart_data();
+                        // get_cart_data();
                     }
                 });
             }
@@ -66,23 +66,44 @@ $(function () {
         toggleFullscreen();
     });
 
+    // function get_cart_data() {
+    //     let base_url = $("#base_url").val();
+    //     $.ajax({
+    //         url: base_url + "order-status-screen-data",
+    //         method: "POST",
+    //         dataType:'json',
+    //         success: function (response) {
+    //             $(".ready_div").html(response.ready_div);
+    //             $(".preparing_div").html(response.preparing_div);
+    //         }
+    //     });
+    // }
+
+    // setInterval(function(){
+    //     get_cart_data();
+    // }, 5000);
+    // get_cart_data();
     function get_cart_data() {
         let base_url = $("#base_url").val();
         $.ajax({
             url: base_url + "order-status-screen-data",
             method: "POST",
-            dataType:'json',
+            dataType: 'json',
             success: function (response) {
                 $(".ready_div").html(response.ready_div);
                 $(".preparing_div").html(response.preparing_div);
+            },
+            complete: function () {
+                // Llama a la función nuevamente después de 7 segundos
+                setTimeout(get_cart_data, 7000);
             }
         });
     }
-
-    setInterval(function(){
-        get_cart_data();
-    }, 5000);
+    
+    // Inicia la primera llamada
     get_cart_data();
+
+
 });
 
 

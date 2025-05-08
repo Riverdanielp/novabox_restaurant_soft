@@ -51,7 +51,7 @@ $getCompanyInfo = getCompanyInfo();
     <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/custom_tooltip.css">
     <!-- Google Font -->
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/local/google_font.css">
-    <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/order_display_screen.css">
+    <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/order_display_screen.css<?php echo VERS() ?>">
 </head>
 <body>
 <input type="hidden" value="<?=base_url()?>" id="base_url">
@@ -105,6 +105,6 @@ $getCompanyInfo = getCompanyInfo();
 <!-- AdminLTE for demo purposes -->
 <script src="<?php echo base_url(); ?>assets/dist/js/demo.js"></script>
 <!-- custom login page js -->
-<script src="<?php echo base_url(); ?>frequent_changing/js/order_status_panel.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/order_status_panel.js<?php echo VERS() ?>"></script>
 </body>
 </html>

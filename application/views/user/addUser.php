@@ -165,11 +165,11 @@
                                         <?php
                                         foreach ($waiters as $value):
                                             if($value->designation=="Cashier"):
-                                                if($user_details->id!=$value->id):
+                                                //if($user_details->id!=$value->id):
                                                     ?>
                                                     <option  <?php echo set_select('order_receiving_id',$value->id)?> value="<?=$value->id?>"><?=$value->full_name?></option>
                                                     <?php
-                                                endif;
+                                                //endif;
                                             endif;
                                         endforeach;
                                         ?>

@@ -429,6 +429,8 @@ class Authentication extends Cl_Controller {
                                                 redirect("Outlet/outlets");
                                             }elseif ($user_information->designation == 'Chef') {
                                                 redirect("Kitchen/kitchens");
+                                            }elseif ($user_information->designation == 'Normal User') {
+                                                redirect("order-status-screen");
                                             }else{
                                                 redirect("Sale/POS");
                                             }
@@ -520,6 +522,8 @@ class Authentication extends Cl_Controller {
                                                 redirect("Outlet/outlets");
                                             }elseif ($user_information->designation == 'Chef') {
                                                 redirect("Kitchen/kitchens");
+                                            }elseif ($user_information->designation == 'Normal User') {
+                                                redirect("order-status-screen");
                                             }else{
                                                 redirect("Sale/POS");
                                             }
@@ -2484,41 +2488,41 @@ class Authentication extends Cl_Controller {
                 $order_type_color = "#b40c0c";
             }
             if($value->status==2){
+                // <img src="'.base_url().'assets/media/prepare.png" widht="60" height="60">
                 $ready_div.='<div class="box_ready">
                                 <i style="cursor:pointer;font-size:35px;float:right;color:#FF503D;opacity:.3" data-sale_no="'.$sale_no.'" class="fa fa-times cancel_status"></i>
                             <div class="content1">
                                 <div class="cart_item">
-                                    <img src="'.base_url().'assets/media/prepare.png" widht="60" height="60">
                                     <div class="cart_item_inner_part">
                                         <span class="sale_order_no">#'.$value->number_slot_name.' '.$sale_no.'</span><br>
                                         <span class="">'.$value->waiter_name.' </span>
                                         <p class="order_type_screen_p">
-                                            <span>'.$order_type.'</span>
+                                            <span>'.$value->customer_name.'</span>
                                         </p>
                                     </div>
                                 </div>
                             </div>
                             <div class="header1">
-                                '.$value->customer_name.'
+                                '.$order_type.'
                             </div>
                         </div>';
             }else if($value->status==3){
+                // <img src="'.base_url().'assets/media/Group.png" widht="60" height="60">
                 $preparing_div.='<div class="box_started">
                 <i style="cursor:pointer;font-size:35px;float:right;color:#FF503D;opacity:.3" data-sale_no="'.$sale_no.'" class="fa fa-times cancel_status"></i>
                             <div class="content1">
                                 <div class="cart_item">
-                                    <img src="'.base_url().'assets/media/Group.png" widht="60" height="60">
                                     <div class="cart_item_inner_part">
                                         <span class="sale_order_no">#'.$value->number_slot_name.' '.$sale_no.'</span><br>
                                         <span class="">'.$value->waiter_name.' </span>
                                         <p class="order_type_screen_p">
-                                            <span>'.$order_type.'</span>
+                                            <span>'.$value->customer_name.'</span>
                                         </p>
                                     </div>
                                 </div>
                             </div>
                             <div class="header1">
-                               '.$value->customer_name.'
+                               '.$order_type .'
                             </div>
                         </div>';
             }

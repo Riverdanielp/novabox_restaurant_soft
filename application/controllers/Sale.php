@@ -1458,7 +1458,7 @@ class Sale extends Cl_Controller {
             $data['company_id'] = $this->session->userdata('company_id');
             $data['sale_date'] = trim_checker(isset($order_details->open_invoice_date_hidden) && $order_details->open_invoice_date_hidden?$order_details->open_invoice_date_hidden:date('Y-m-d'));
             $data['date_time'] = date('Y-m-d H:i:s'); //,strtotime($order_details->date_time)
-            $data['order_time'] = date("H:i:s",strtotime($order_details->order_time));
+            $data['order_time'] = date("H:i:s");//,strtotime($order_details->order_time));
             $data['order_status'] = trim_checker($order_details->order_status);
             $data['table_id'] = trim_checker($order_details->table_id);
             $data['is_merge'] = trim_checker(@$order_details->is_merge);
@@ -5855,7 +5855,7 @@ class Sale extends Cl_Controller {
         $this->db->select('n.id, n.sale_id, n.sale_no, n.user_id, n.name');
         $this->db->from('tbl_numeros n');
         $this->db->join('tbl_sales s', 'n.sale_no = s.sale_no AND s.outlet_id = n.outlet_id AND s.del_status = "Live"', 'left');
-        $this->db->where("n.outlet_id", $outlet_id);
+        // $this->db->where("n.outlet_id", $outlet_id);
         $this->db->where("n.del_status", "Live");
         $this->db->where("n.sale_id IS NOT NULL"); // Solo números ocupados
         $this->db->where("s.id IS NOT NULL"); // Que tengan venta existente
