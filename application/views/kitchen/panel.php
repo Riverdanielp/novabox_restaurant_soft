@@ -72,8 +72,8 @@
     <!-- Favicon -->
     <link rel="shortcut icon" href="<?php echo escape_output($favicon) ?>" type="image/x-icon">
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/css-framework/bootstrap-new/bootstrap.min.css">
-    <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/newDesign/style.css">
-    <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/kitchen_panel/css/custom_kitchen_panel.css">
+    <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/newDesign/style.css<?php echo VERS() ?>">
+    <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/kitchen_panel/css/custom_kitchen_panel.css<?php echo VERS() ?>">
     <style>
         <?php if ($this->session->has_userdata('language')) {
                 $font_detect=$this->session->userdata('language');
@@ -615,12 +615,13 @@
                     let itemText = `${quantity} * ${item.menu_name}`;
                     
                     if (item.modifiers?.length > 0) {
-                        const modifiers = item.modifiers.map(m => m.name).join(', ');
-                        itemText += `\n       (${modifiers})`;
+                        item.modifiers.forEach(modifier => {
+                            itemText += `\n    + ${modifier.name}`;
+                        });
                     }
                     
                     if (item.menu_note?.trim()) {
-                        itemText += `\n        NOTA: ${item.menu_note.trim()}`;
+                        itemText += `\n    NOTA: ${item.menu_note.trim()}`;
                     }
                     
                     return itemText;

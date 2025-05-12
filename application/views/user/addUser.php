@@ -46,7 +46,7 @@
                         <div class="col-sm-12 mb-2 col-md-3">
 
                             <div class="form-group">
-                                <label><?php echo lang('phone'); ?> <span class="required_star">*</span></label>
+                                <label><?php echo lang('phone'); ?> </label>
                                 <input tabindex="3" type="text" name="phone" class="form-control integerchk"
                                     placeholder="<?php echo lang('phone'); ?>"
                                     value="<?php echo set_value('phone'); ?>">
@@ -182,6 +182,44 @@
                                 <?php } ?>
                             </div>
 
+                            <div class="col-sm-12 mb-2 col-md-3">
+                                <div class="form-group radio_button_problem">
+                                    <label>Imprimir pedidos de Cocina Automaticamente</label>
+                                    <div class="radio">
+                                        <label>
+
+                                            <input type="radio" <?php echo set_checkbox('print_kitchen',"No")?> name="print_kitchen" id="print_kitchen_no" value="No"
+                                                checked><?php echo lang('no'); ?>
+                                        </label>
+                                        <label class="me-5">
+                                            <input <?php echo set_checkbox('print_kitchen',"Yes")?> tabindex="5" type="radio" name="print_kitchen" id="print_kitchen_yes"
+                                                value="Yes"><?php echo lang('yes'); ?> </label>
+
+                                    </div>
+                                </div>
+                                <?php if (form_error('print_kitchen')) { ?>
+                                <div class="callout callout-danger my-2">
+                                    <?php echo form_error('print_kitchen'); ?>
+                                </div>
+                                <?php } ?>
+                            </div>
+                            
+                            <div class="col-sm-12 mb-2 col-md-3">
+                                <div class="form-group">
+                                    <label>Imprimir automaticamente ordenes POS </label>
+                                    <select class="form-control select2" name="print_pos_id">
+                                        <option value="">No imprimir automaticamente</option>
+                                        <?php foreach ($printers as $printer):?>
+                                            <option <?php echo set_select('print_pos_id',$printer->id)?> value="<?php echo escape_output($printer->id); ?>"><?php echo escape_output($printer->title); ?></option>
+                                        <?php endforeach;?>
+                                    </select>
+                                </div>
+                                <?php if (form_error('print_pos_id')) { ?>
+                                    <div class="callout callout-danger my-2">
+                                        <?php echo form_error('print_pos_id'); ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
                             <div class="clearfix"></div>
                             <div class="col-sm-12 mb-2 col-md-3">
                                 <div class="form-group">

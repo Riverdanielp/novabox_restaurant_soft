@@ -51,7 +51,17 @@ class Authentication extends Cl_Controller {
     public function index() {
         
         if($this->session->userdata('user_id') > 0){
-            redirect("Dashboard/dashboard");
+            
+            if ($this->session->userdata('designation') == 'Admin') {
+                redirect("Outlet/outlets");
+            }elseif ($this->session->userdata('designation') == 'Chef') {
+                redirect("Kitchen/kitchens");
+            }elseif ($this->session->userdata('designation') == 'Normal User') {
+                redirect("order-status-screen");
+            }else{
+                redirect("Sale/POS");
+            }
+
         }
         $is_valid = isset($_POST['is_valid']) && $_POST['is_valid']?$_POST['is_valid']:'';
         $update_plan = isset($_GET['update_plan']) && $_GET['update_plan']?$_GET['update_plan']:'';
@@ -1668,7 +1678,11 @@ class Authentication extends Cl_Controller {
      * @return void
      */
     public function put_customer_panel_data() {
-        $order_details = json_decode(json_decode($this->input->post('order')));
+        $order_details = json_decode($this->input->post('order'));
+        // Si no es objeto, pero es string, intenta decodificar otra vez
+        if (!is_object($order_details) && is_string($order_details)) {
+            $order_details = json_decode($order_details);
+        }
         $data_main = array();
         $data_item_con = array();
         if (isset($order_details->items)){

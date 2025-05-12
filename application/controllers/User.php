@@ -118,17 +118,17 @@ class User extends Cl_Controller {
         }
         if (htmlspecialcharscustom($this->input->post('submit'))) {
             $this->form_validation->set_rules('full_name',  lang('name'), 'required|max_length[50]');
-            if ($id != '') {
-                $post_phone =htmlspecialcharscustom($this->input->post($this->security->xss_clean('phone')));
-                $existing_phone = $user_details->phone;
-                if ($post_phone != $existing_phone) {
-                    $this->form_validation->set_rules('phone',  lang('phone'), "required|numeric");
-                } else {
-                    $this->form_validation->set_rules('phone',  lang('phone'), "required|numeric");
-                }
-            } else {
-                $this->form_validation->set_rules('phone', lang('phone'), "required|numeric");
-            }
+            // if ($id != '') {
+            //     $post_phone =htmlspecialcharscustom($this->input->post($this->security->xss_clean('phone')));
+            //     $existing_phone = $user_details->phone;
+            //     if ($post_phone != $existing_phone) {
+            //         $this->form_validation->set_rules('phone',  lang('phone'), "required|numeric");
+            //     } else {
+            //         $this->form_validation->set_rules('phone',  lang('phone'), "required|numeric");
+            //     }
+            // } else {
+            //     $this->form_validation->set_rules('phone', lang('phone'), "required|numeric");
+            // }
 
             if ($id != '') {
                 $post_email_address =htmlspecialcharscustom($this->input->post($this->security->xss_clean('email_address')));
@@ -188,6 +188,8 @@ class User extends Cl_Controller {
                 $user_info['login_pin'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('login_pin')));
                 $user_info['will_login'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('will_login')));
                 $user_info['role_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('role_id')));
+                $user_info['print_pos_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('print_pos_id')));
+                $user_info['print_kitchen'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('print_kitchen')));
                 $user_info['order_receiving_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('order_receiving_id')));
                 $user_info['kitchens'] = $kitchens;
                 if($this->input->post($this->security->xss_clean('will_login'))=='Yes' && $this->input->post($this->security->xss_clean('password'))){
@@ -246,7 +248,8 @@ class User extends Cl_Controller {
                 $data['roles'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_roles");
                 $data['outlets'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
                 $data['kitchens'] = $this->Common_model->getAllViaPanel();
-                 $data['waiters'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_users");
+                $data['waiters'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_users");
+                $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                 $data['main_content'] = $this->load->view('user/addUser', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
@@ -256,7 +259,8 @@ class User extends Cl_Controller {
                 $data['user_details'] = $this->Common_model->getDataById($id, "tbl_users");
                 $data['outlets'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
                 $data['kitchens'] = $this->Common_model->getAllViaPanel();
-                 $data['waiters'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_users");
+                $data['waiters'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_users");
+                $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                 $data['main_content'] = $this->load->view('user/editUser', $data, TRUE);
                 $this->load->view('userHome', $data);
             }

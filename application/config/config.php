@@ -1,6 +1,12 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+// Configuración de Redis
+$config['redis_prefix'] = 'restora_';       // Prefijo para las claves de Redis de cada proyecto
+$config['redis_enabled'] = true;           // Habilitar o deshabilitar Redis
+$config['redis_host'] = '127.0.0.1';        // Dirección del servidor Redis
+$config['redis_port'] = 6379;               // Puerto del servidor Redis
+
 // $config["base_url"] = 'http://localhost/novabox_restaurant_soft/';
 //generate custom base url depend on browser url.
 $base_url=(isset($_SERVER["HTTPS"]) ? "https://" : "http://").$_SERVER["HTTP_HOST"];

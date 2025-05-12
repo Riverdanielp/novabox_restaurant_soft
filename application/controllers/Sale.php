@@ -1413,19 +1413,6 @@ class Sale extends Cl_Controller {
             $self_order_table_person = htmlspecialcharscustom($order_details->self_order_table_person);
             $self_order_table_id = htmlspecialcharscustom($order_details->self_order_table_id);
 
-            if($is_self_order=="Yes" && $is_online_order!="Yes"){
-                $data['is_self_order'] = "Yes";
-                $data['is_accept'] = 2;
-                $data['self_order_ran_code'] = $this->session->userdata('self_order_ran_code');
-                $data['online_self_order_receiving_id'] = getOnlineSelfOrderReceivingId($this->session->userdata('outlet_id'));
-            }
-          
-            if($is_online_order=="Yes"){
-                $data['is_online_order'] = "Yes";
-                $data['is_accept'] = 2;
-                $data['online_order_receiving_id'] = getOnlineOrderReceivingId($this->session->userdata('outlet_id'));
-            }
-
             $designation = $this->session->userdata('designation');
 
             if($designation!="Admin" && $designation!="Super Admin"){
@@ -1457,9 +1444,7 @@ class Sale extends Cl_Controller {
             $data['outlet_id'] = $this->session->userdata('outlet_id');
             $data['company_id'] = $this->session->userdata('company_id');
             $data['sale_date'] = trim_checker(isset($order_details->open_invoice_date_hidden) && $order_details->open_invoice_date_hidden?$order_details->open_invoice_date_hidden:date('Y-m-d'));
-            $data['date_time'] = date('Y-m-d H:i:s'); //,strtotime($order_details->date_time)
-            $data['order_time'] = date("H:i:s");//,strtotime($order_details->order_time));
-            $data['order_status'] = trim_checker($order_details->order_status);
+
             $data['table_id'] = trim_checker($order_details->table_id);
             $data['is_merge'] = trim_checker(@$order_details->is_merge);
             $data['zatca_value'] = trim_checker($order_details->zatca_invoice_value);
@@ -1467,10 +1452,6 @@ class Sale extends Cl_Controller {
             $data['number_slot_name'] = trim_checker($order_details->selected_number_name );
             $data['sale_no'] = $sale_no;
             $today_ = date('Y-m-d');
-            if($today_<$data['sale_date']){
-            //1 is runny sale, 2 is future sales, 3 is future status null
-                $data['future_sale_status'] = 2;
-            }
 
             $data['is_pickup_sale'] = 1;
             $total_tax = 0;
@@ -1487,6 +1468,13 @@ class Sale extends Cl_Controller {
             $sale_id = isset($sale_d->id) && $sale_d->id?$sale_d->id:'';
             if($sale_id>0){
                 $data['user_id'] = $sale_d->user_id;
+                $data['date_time'] = $sale_d->date_time;
+                $data['order_time'] = $sale_d->order_time;
+                $data['order_status'] = $sale_d->order_status;
+                $data['is_online_order'] = $sale_d->is_online_order;
+                $data['is_accept'] = $sale_d->is_accept;
+                $data['online_order_receiving_id'] = $sale_d->online_order_receiving_id;
+                
                 $data['modified'] = 'Yes';
                 $data['is_update_sender'] = 1;
                 $data['is_update_receiver'] = 1;
@@ -1523,6 +1511,24 @@ class Sale extends Cl_Controller {
                 $this->db->update('tbl_kitchen_sales', $data);
                 checkAndRemoveAllRemovedItem($order_details->items,$sale_id);
             }else{
+                $data['date_time'] = date('Y-m-d H:i:s'); //,strtotime($order_details->date_time) $sale_d->date
+                $data['order_time'] = date("H:i:s");//,strtotime($order_details->order_time));
+                $data['order_status'] = trim_checker($order_details->order_status);
+                
+                if($is_self_order=="Yes" && $is_online_order!="Yes"){
+                    $data['is_self_order'] = "Yes";
+                    $data['is_accept'] = 2;
+                    $data['self_order_ran_code'] = $this->session->userdata('self_order_ran_code');
+                    $data['online_self_order_receiving_id'] = getOnlineSelfOrderReceivingId($this->session->userdata('outlet_id'));
+                }
+            
+                if($is_online_order=="Yes"){
+                    $data['is_online_order'] = "Yes";
+                    $data['is_accept'] = 2;
+                    $data['online_order_receiving_id'] = getOnlineOrderReceivingId($this->session->userdata('outlet_id'));
+                }
+
+
                 $data['user_id'] = $this->session->userdata('user_id');
                 $data['random_code'] = trim_checker(isset($order_details->random_code) && $order_details->random_code?$order_details->random_code:'');
                 $this->db->insert('tbl_kitchen_sales', $data);
@@ -1539,7 +1545,7 @@ class Sale extends Cl_Controller {
                 }
 
                 if($is_self_order=="Yes" && $is_online_order!="Yes"){
-                    $notification = "a new self order has been placed, Order Number is: ".$sale_no;
+                    $notification = "se ha realizado un nuevo autopedido, el número de pedido es: ".$sale_no;
                     $notification_data = array();
                     $notification_data['notification'] = $notification;
                     $notification_data['sale_id'] = $sale_id;
@@ -1548,7 +1554,7 @@ class Sale extends Cl_Controller {
                     $this->db->insert('tbl_notifications', $notification_data);
                 }
                 if($is_online_order=="Yes"){
-                    $notification = "a new online order has been placed, Order Number is: ".$sale_no;
+                    $notification = "se ha realizado un nuevo pedido en línea, el número de pedido es: ".$sale_no;
                     $notification_data = array();
                     $notification_data['notification'] = $notification;
                     $notification_data['sale_id'] = $sale_id;
@@ -1592,7 +1598,7 @@ class Sale extends Cl_Controller {
                     if($tmp>0){
                         $tmp_var = $tmp;
                     }
-
+            
                     $item_data = array();
                     $item_data['food_menu_id'] = $item->food_menu_id;
                     $item_data['menu_name'] = $item->menu_name;
@@ -1601,7 +1607,7 @@ class Sale extends Cl_Controller {
                     }else{
                         $item_data['is_free_item'] = 0;
                     }
-
+            
                     $item_data['qty'] = $item->qty;
                     $item_data['tmp_qty'] = $tmp_var;
                     $item_data['menu_price_without_discount'] = $item->menu_price_without_discount;
@@ -1614,7 +1620,6 @@ class Sale extends Cl_Controller {
                     $item_data['menu_combo_items'] = $item->menu_combo_items;
                     $item_data['discount_amount'] = $item->item_discount_amount;
                     $item_data['item_type'] = "Kitchen Item";
-                    $item_data['cooking_status'] = ($item->item_cooking_status=="")?NULL:$item->item_cooking_status;
                     $item_data['cooking_start_time'] = ($item->item_cooking_start_time=="" || $item->item_cooking_start_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_start_time));
                     $item_data['cooking_done_time'] = ($item->item_cooking_done_time=="" || $item->item_cooking_done_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_done_time));
                     $item_data['previous_id'] = ($item->item_previous_id=="")?0:$item->item_previous_id;
@@ -1626,8 +1631,7 @@ class Sale extends Cl_Controller {
                         $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
                     }
                     $item_data['del_status'] = 'Live';
-                    $item_data['cooking_status'] = 'New';
-
+            
                     $sales_details_id = '';
                     if($sale_id){
                         $preview_id_counter_value = isset($arr_item_id[$item->food_menu_id]) && $arr_item_id[$item->food_menu_id]?$arr_item_id[$item->food_menu_id]:0;
@@ -1635,7 +1639,14 @@ class Sale extends Cl_Controller {
                         $check_exist_item = checkExistItem($sale_id,$item->food_menu_id,$preview_id_counter_value);
                         if(isset($check_exist_item) && $check_exist_item){
                             $sales_details_id = $check_exist_item->id;
-                            if($item->qty!=$check_exist_item->qty){
+                            // Solo marcar como 'New' si la cantidad aumentó
+                            if($item->qty > $check_exist_item->qty){
+                                $item_data['cooking_status'] = 'New';
+                            } else {
+                                // Mantener el estado de cocina anterior (NO sobreescribir)
+                                $item_data['cooking_status'] = $check_exist_item->cooking_status;
+                            }
+                            if($item->qty != $check_exist_item->qty){
                                 // $item_data['is_print'] = 1;
                                 $updated_notifications = $this->Common_model->getOrderedKitchens($sale_id);
                                 foreach ($updated_notifications as $k=>$kitchen){
@@ -1650,20 +1661,21 @@ class Sale extends Cl_Controller {
                             }
                             $this->Common_model->updateInformation($item_data, $sales_details_id, "tbl_kitchen_sales_details");
                         }else{
+                            $item_data['cooking_status'] = 'New';
                             $this->db->insert('tbl_kitchen_sales_details', $item_data);
                             $sales_details_id = $this->db->insert_id();
                         }
                     }else{
+                        $item_data['cooking_status'] = 'New';
                         $this->db->insert('tbl_kitchen_sales_details', $item_data);
                         $sales_details_id = $this->db->insert_id();
                     }
-
+            
                     $previous_food_id = $sales_details_id;
                     $update_previous_id = array();
                     $update_previous_id['previous_id'] = $previous_food_id;
                     $this->Common_model->updateInformation($update_previous_id, $sales_details_id, "tbl_kitchen_sales_details");
-
-
+            
                     $modifier_id_array = ($item->modifiers_id!="")?explode(",",$item->modifiers_id):null;
                     $modifier_price_array = ($item->modifiers_price!="")?explode(",",$item->modifiers_price):null;
                     $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat!="")?explode("|||",$item->modifier_vat):null;
@@ -1688,14 +1700,14 @@ class Sale extends Cl_Controller {
                                         $modifier_data['is_print'] = 1;
                                     }
                                     $this->Common_model->updateInformation($modifier_data, $sales_details_modifier_id, "tbl_kitchen_sales_details_modifiers");
-
+            
                                 }else{
                                     $this->db->insert('tbl_kitchen_sales_details_modifiers', $modifier_data);
                                 }
                             }else{
                                 $this->db->insert('tbl_kitchen_sales_details_modifiers', $modifier_data);
                             }
-
+            
                             $i++;
                         }
                     }
@@ -1706,9 +1718,17 @@ class Sale extends Cl_Controller {
                 $this->db->trans_rollback();
             } else {
                 $this->db->trans_commit();
-                $printers_popup_print = $this->Common_model->getOrderedPrinter($sale_id,1);
-                $printers_direct_print = $this->Common_model->getOrderedPrinter($sale_id,2);
-                $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id,3);
+                $user_id = $this->session->userdata('user_id');
+                $user_data = $this->Common_model->getDataById($user_id, "tbl_users");
+                if ($user_data->print_kitchen == 'Yes'){
+                    $printers_popup_print = $this->Common_model->getOrderedPrinter($sale_id,1);
+                    $printers_direct_print = $this->Common_model->getOrderedPrinter($sale_id,2);
+                    $printers_printer_app = $this->Common_model->getOrderedPrinter($sale_id,3);
+                } else {
+                    $printers_popup_print = [];
+                    $printers_direct_print = [];
+                    $printers_printer_app = [];
+                }
                 $is_printing_return = 1;
                 $printer_app_qty = 0;
                 foreach ($printers_popup_print as $ky=>$value){
@@ -4504,32 +4524,48 @@ class Sale extends Cl_Controller {
      * @param no
      */
     public function getWaiterOrders(){
+        // $this->load->library('Redis_library'); // Carga la librería de Redis
+    
         $return_data = array();
-        
-        // 1. Obtenemos el último sync del frontend (puede ser NULL en primera carga)
         $last_sync = $this->input->post('last_sync');
-        
-        // 2. Configuramos la hora actual del servidor (UTC)
         $return_data['server_time'] = gmdate('Y-m-d H:i:s');
+    
+        // Clave de caché para las órdenes de los meseros
+        $company_id = $this->session->userdata('company_id');
+        $outlet_id = $this->session->userdata('outlet_id');
+        // $cache_key = "waiter_orders_" . $company_id . "_" . $outlet_id;
+        // $cached_data = $this->redis_library->get($cache_key);
+    
+        // if ($cached_data) {
+        //     // Si hay datos en el caché, los usamos
+        //     $return_data = $cached_data;
+        //     $return_data['redis_status'] = 'Cargado desde REDIS...';
+        // } else {
 
-        $get_waiter_orders = []; //$this->Common_model->getWaiterOrders();
-        // $get_waiter_invoice_orders = $this->Common_model->getWaiterInvoiceOrders();
-        // $get_waiter_orders_for_update_sender = $this->Common_model->getWaiterOrdersForUpdateSender();
-        // $get_waiter_orders_for_update_receiver = $this->Common_model->getWaiterOrdersForUpdateReceiver();
-        $get_waiter_orders_for_delete_sender = $this->Common_model->getWaiterOrdersForDeleteSender();
-        $already_invoiced_orders = $this->Common_model->alreadyInvoicedOrders();
-        $user_id = $this->session->userdata('user_id');
+            $get_waiter_orders = []; //$this->Common_model->getWaiterOrders();
+            // $get_waiter_invoice_orders = $this->Common_model->getWaiterInvoiceOrders();
+            // $get_waiter_orders_for_update_sender = $this->Common_model->getWaiterOrdersForUpdateSender();
+            // $get_waiter_orders_for_update_receiver = $this->Common_model->getWaiterOrdersForUpdateReceiver();
+            $get_waiter_orders_for_delete_sender = $this->Common_model->getWaiterOrdersForDeleteSender();
+            $already_invoiced_orders = $this->Common_model->alreadyInvoicedOrders();
+            $user_id = $this->session->userdata('user_id');
 
-        $return_data['get_waiter_orders'] = $get_waiter_orders;
-        // $return_data['get_waiter_invoice_orders'] = $get_waiter_invoice_orders;
-        // $return_data['get_waiter_orders_for_update_sender'] = $get_waiter_orders_for_update_sender;
-        // $return_data['get_waiter_orders_for_update_receiver'] = $get_waiter_orders_for_update_receiver;
-        $return_data['get_waiter_orders_for_update_receiver'] = $this->Common_model->getFilteredUpdates($last_sync);
-        $return_data['get_waiter_orders_for_delete_sender'] = $get_waiter_orders_for_delete_sender; 
-        $return_data['already_invoiced_orders'] = $already_invoiced_orders;
-        // $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc($user_id);
-        $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc_all();
-        $return_data['occupied_numbers'] = $this->getUpdatedNumbers();
+            $return_data['get_waiter_orders'] = $get_waiter_orders;
+            // $return_data['get_waiter_invoice_orders'] = $get_waiter_invoice_orders;
+            // $return_data['get_waiter_orders_for_update_sender'] = $get_waiter_orders_for_update_sender;
+            // $return_data['get_waiter_orders_for_update_receiver'] = $get_waiter_orders_for_update_receiver;
+            $return_data['get_waiter_orders_for_update_receiver'] = $this->Common_model->getFilteredUpdates($last_sync);
+            $return_data['get_waiter_orders_for_delete_sender'] = $get_waiter_orders_for_delete_sender; 
+            $return_data['already_invoiced_orders'] = $already_invoiced_orders;
+            // $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc($user_id);
+            $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc_all();
+            $return_data['occupied_numbers'] = $this->getUpdatedNumbers();
+            $return_data['redis_status'] = 'Cargado desde BD...';
+
+
+            // Guardamos los datos en Redis con un TTL de 5 segundos
+            // $this->redis_library->set($cache_key, $return_data, 7);
+        // }
 
         echo json_encode($return_data);
     }

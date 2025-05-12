@@ -362,6 +362,19 @@ class Kitchen extends Cl_Controller {
         $orders_to_update = [];
         
         foreach ($orders as &$order) {
+            // Crear objeto DateTime con la fecha/hora del pedido
+            $orderDate = new DateTime($order->date_time);
+            // Fecha/hora actual
+            $now = new DateTime();
+            
+            // Calcular la diferencia
+            $diff = $now->diff($orderDate);
+            
+            // Calcular el total de minutos transcurridos
+            $totalMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
+            
+            // Formatear como mm:ss (asegurando 2 dígitos para los segundos)
+            $order->minutos = sprintf("%d:%02d", $totalMinutes, $diff->s);
             // Verificar si necesita actualización de campana
             if ($order->is_kitchen_bell == 1) {
                 $orders_to_update[] = $order->sales_id;
@@ -459,7 +472,7 @@ class Kitchen extends Cl_Controller {
         $this->updateIsKitchenBySale($sale_id);
         
     }
-    public function update_cooking_status_ajax()
+    public function update_cooking_status_ajaxOld()
     {
         $previous_id = $this->input->post('previous_id');
         $kitchen_id = $this->input->post('kitchen_id');
@@ -549,7 +562,7 @@ class Kitchen extends Cl_Controller {
         $this->db->query($sql, array($sales_id));
     }
 
-    public function update_cooking_status_ajaxOld()
+    public function update_cooking_status_ajax()
     {
         $previous_id = $this->input->post('previous_id');
         $kitchen_id = $this->input->post('kitchen_id');
@@ -647,9 +660,9 @@ class Kitchen extends Cl_Controller {
             return;
         }
         $sale_id = $first_item_info->sales_id;
-        
+
         // Llamamos a la función para marcar los ítems de cocina
-        $this->updateIsKitchenBySale($sale_id);
+        // $this->updateIsKitchenBySale($sale_id);
         
         $update_data = [
             'cooking_status' => $cooking_status,

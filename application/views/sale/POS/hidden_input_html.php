@@ -10,6 +10,7 @@ $default_waiter_id = 0;
 $outlet = getOutletById($this->session->userdata('outlet_id'));
 $role = $this->session->userdata('designation');
 $user_id = $this->session->userdata('user_id');
+$user_data = $this->Common_model->getDataById($user_id, "tbl_users");
 
 foreach ($waiters as $waiter){
 
@@ -45,6 +46,10 @@ foreach ($waiters as $waiter){
 
 
 <!--hidden fields for js usages-->
+<input type="hidden" id="print_kitchen" value="<?php echo escape_output($user_data->print_kitchen)?>">
+<input type="hidden" id="print_pos_id" value="<?php echo escape_output($user_data->print_pos_id)?>">
+
+
 <input type="hidden" id="base_url_pos" value="<?php echo base_url()?>">
 <input type="hidden" id="waiter_app_status" value="<?php echo escape_output($waiter_app_status)?>">
 <input type="hidden" id="is_self_order" value="<?php echo escape_output($is_self_order)?>">

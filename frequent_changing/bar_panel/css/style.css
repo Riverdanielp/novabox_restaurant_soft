@@ -387,12 +387,12 @@ width:30%;
     display:none;
 }
 .single_item_right_side{
-    width:36%;
+    width:30%;
     float:left;
     padding:0px 4% 0px 0px;
 }
 .single_item_left_side{
-    width:60%;
+    width:66%;
     float:left;
 }
 .single_item_cooking_status{

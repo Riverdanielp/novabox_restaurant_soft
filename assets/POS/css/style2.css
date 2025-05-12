@@ -2208,7 +2208,8 @@ button[data-selected="unselected"] {
 
 #notification_list_holder {
   position: relative;
-  height: 300px; }
+  height: 300px;
+  overflow: scroll; }
 
 #order_split_modal .alertCloseIcon:hover {
   color: white !important; }

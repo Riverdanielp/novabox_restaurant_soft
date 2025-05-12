@@ -149,6 +149,10 @@
       let not_booked_yet = $("#not_booked_yet").val();
       let transfer_transferred_msg = $("#transfer_transferred_msg").val();
       let assets_vers = $("#assets_vers").val();
+
+
+      let print_kitchen = $("#print_kitchen").val();
+      let print_pos_id = $("#print_pos_id").val();
       
       
         //INVOICE LABLE
@@ -1505,7 +1509,7 @@
     function push_online_for_kitchen(order_object, is_self_order, sale_no, is_print = 0) {
         const userDesignation = $("#user_designation").val();
     
-        if (is_print && userDesignation === "Waiter") {
+        if (is_print && print_kitchen != "Yes") {
             is_print = 0;
         }
     
@@ -1562,7 +1566,7 @@
     
                         let content_data_direct_print = data.content_data_direct_print;
     
-                        if (userDesignation !== "Waiter") {
+                        if (print_kitchen == "Yes") {
                             for (let key in content_data_direct_print) {
                                 if (content_data_direct_print[key].ipvfour_address) {
                                     $.ajax({
@@ -4740,7 +4744,7 @@
             }
         );
       $(document).on("click", "#create_bill_and_close", function (e) {
-            const userDesignation = $("#user_designation").val();
+            // const userDesignation = $("#user_designation").val();
           let pos_12 = Number($("#pos_12").val());
           if(pos_12){
   
@@ -4751,7 +4755,7 @@
               ) {
 
                   let sale_no = $(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
-                  const userDesignation = $("#user_designation").val();
+                //   const userDesignation = $("#user_designation").val();
                   let res = getSelectedOrderDetails(sale_no).then(function(data){
                       // var response = jQuery.parseJSON(data);
                       if(data !== null) {
@@ -4772,7 +4776,7 @@
                                         }
                                     });
                               }else if (print_type_bill == "direct_print"){
-                                if(userDesignation != "Waiter") {
+                                // if(print_kitchen == "Yes") {
                                   $.ajax({
                                       url: base_url + "Authentication/printSaleBillByAjax",
                                       method: "post",
@@ -4782,7 +4786,7 @@
                                           data_order: data,
                                       },
                                       success: function (data) {
-                                        if(userDesignation != "Waiter") {
+                                        // if(print_kitchen == "Yes") {
                                           if (data.printer_server_url) {
                                               $.ajax({
                                                   url:
@@ -4797,11 +4801,11 @@
                                                   error: function () {},
                                               });
                                           }
-                                        }
+                                        // }
                                       },
                                       error: function () {},
                                   });
-                                }
+                                // }
                               }
                           }else{
                               print_bill(data,sale_no)
@@ -12022,7 +12026,7 @@ $("#combo_item").on("click", function(){
       }
     });
     $(document).on("click", "#print_kot_modal", function (e) {
-        const userDesignation = $("#user_designation").val();
+        // const userDesignation = $("#user_designation").val();
         let selected_order_no = $(".holder .order_details .single_order[data-selected=selected]").find(".running_order_order_number").text();
         if(checkInternetConnection()){
             let kitchen_id = '';
@@ -12046,7 +12050,7 @@ $("#combo_item").on("click", function(){
                     success: function (data) {
                       let content_data_direct_print = data.content_data_direct_print;
                       for (let key in content_data_direct_print) {
-                        if(userDesignation != "Waiter") {
+                        if(print_kitchen == "Yes") {
                           if(content_data_direct_print[key].ipvfour_address){
                               $.ajax({
                                   url:
@@ -13989,7 +13993,7 @@ $("#combo_item").on("click", function(){
           }else if (print_type_invoice == "direct_print"){
             $("#finalize_order_modal").removeClass("active");
             $(".pos__modal__overlay").fadeOut(300);
-            const userDesignation = $("#user_designation").val();
+            // const userDesignation = $("#user_designation").val();
             getSelectedOrderDetailsRecentSale(sale_no).then(function(order_info){
                 if(checkInternetConnection()){
                     $.ajax({
@@ -14001,7 +14005,7 @@ $("#combo_item").on("click", function(){
                             data_order: order_info,
                         },
                         success: function (data) {
-                            if(userDesignation != "Waiter") {
+                            // if(print_kitchen == "Yes") {
                                 if (data.printer_server_url) {
                                     $.ajax({
                                         url:
@@ -14016,7 +14020,7 @@ $("#combo_item").on("click", function(){
                                         error: function () {},
                                     });
                                 }
-                            }
+                            // }
                         },
                         error: function () {},
                     });
@@ -15046,11 +15050,24 @@ $("#combo_item").on("click", function(){
     let lastServerSync = null;
 
     async function processWaiterOrders() {
+        // let sale_no_all = $(".running_order_order_number").map(function () {
+        //     return $(this).attr("data-added_offline_status") == 2 ? $(this).text() : null;
+        // }).get().join(",");
         let sale_no_all = $(".running_order_order_number").map(function () {
-            return $(this).attr("data-added_offline_status") == 2 ? $(this).text() : null;
-        }).get().join(",");
+            // Asegúrate de limpiar espacios y filtrar vacíos
+            if ($(this).attr("data-added_offline_status") == 2) {
+                let val = $(this).text().trim();
+                return val ? val : null;
+            }
+            return null;
+        }).get().filter(Boolean).join(",");
+
+        // Si necesitas que siempre exista la clave, aunque esté vacía:
+        if (typeof sale_no_all === "undefined" || sale_no_all === null) {
+            sale_no_all = "";
+        }
         
-        const userDesignation = $("#user_designation").val();
+        // const userDesignation = $("#user_designation").val();
     
         $.ajax({
             url: base_url + "Sale/getWaiterOrders",
@@ -15099,7 +15116,7 @@ $("#combo_item").on("click", function(){
                         await updateOrderForWaiter(sale_no_new, order.self_order_content);
                         // setOrderInvoiceUpdated(order.id, 2);
                         
-                        if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
+                        if ((print_kitchen == "Yes") && !isInitialSync) {
                             printExistingOrder(order.sale_no, order.self_order_content, "0");
                         }
                     }
@@ -15130,7 +15147,7 @@ $("#combo_item").on("click", function(){
                         if (!$(`#order_${get_plan_string(sale_no_new)}`).length) {
                             await add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
                             
-                            if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
+                            if ((print_kitchen == "Yes") && !isInitialSync) {
                                 printExistingOrder(sale_no_new, order.self_order_content, "1");
                             }
                         }
@@ -18782,7 +18799,7 @@ $(document).on("click", "#register_close", function (e) {
       }
     });
   
-      function put_cart_content(){
+      function put_cart_contentOld(){
           let total_items_in_cart = Number($("#total_items_in_cart_with_quantity").html());
           let total_cart_qty2 = 0;
           let counter = 0;
@@ -18921,7 +18938,135 @@ $(document).on("click", "#register_close", function (e) {
               },
           });
       }
-  
+
+      function put_cart_content() {
+        // let ir_precision = typeof ir_precision !== "undefined" ? ir_precision : 2;
+    
+        // Calcular totales de items y cantidades
+        let total_items_in_cart = 0;
+        let total_items_with_qty_in_cart = 0;
+        $(".decrease_item_table").each(function () {
+            let qty = Number($(this).parent().find('span').html());
+            if (!isNaN(qty)) {
+                total_items_with_qty_in_cart += qty;
+            }
+            total_items_in_cart++;
+        });
+    
+        // Obtener valores principales del resumen del carrito
+        let sub_total = parseFloat($("#sub_total_show").html() || 0).toFixed(ir_precision);
+        let discounted_sub_total_amount = pOrAmount($("#show_discount_amount").html() || 0);
+        let total_vat = parseFloat($("#show_vat_modal").html() || 0).toFixed(ir_precision);
+        let total_payable = parseCurrencyToNumber($("#total_payable").html() || 0);
+        let total_tips = parseFloat($("#show_tips_amount").html() || 0).toFixed(ir_precision);
+        let total_discount_amount = parseFloat($("#all_items_discount").html() || 0).toFixed(ir_precision);
+        let delivery_charge =
+            ($("#show_charge_amount").html() && $("#show_charge_amount").html() !== "0.00")
+                ? parseFloat($("#show_charge_amount").html()).toFixed(ir_precision)
+                : parseFloat(0).toFixed(ir_precision);
+        let sub_total_discount_value = $("#sub_total_discount1").val() || "";
+    
+        // Construimos el array de items
+        let items = [];
+        $(".customer_panel").each(function () {
+            let item_id = Number($(this).attr('data-id'));
+            let cp_type = Number($(this).attr('data-cp_type'));
+    
+            let item_name = '';
+            let item_note = '';
+            let item_unit_price = '';
+            let percentage_table = '';
+            let item_discount_table = '';
+            let item_quantity = '';
+            let total_price = '';
+            let row_type = cp_type;
+            let modifiers_name = '';
+            let modifiers_price = '';
+            let item_vat = 0; // Si hay campo real, puedes reemplazar este valor
+    
+            if (cp_type === 1) {
+                item_name = $(this).find(".first_column").find("span").eq(0).text().trim();
+                item_note = $(this).find(".third_portion").find('span').text().trim();
+    
+                let child_name = $(".customer_panel_child_" + item_id).text();
+                let cp_type_tmp = Number($(".customer_panel_child_" + item_id).attr('data-cp_type'));
+                if (child_name && cp_type_tmp === 33) {
+                    item_name += "<br>" + child_name;
+                }
+    
+                if (child_name && cp_type_tmp === 3) {
+                    let j = 1;
+                    let total_children = $(".customer_panel_child_" + item_id).length;
+                    $(".3_cp_price_" + item_id).each(function (i, obj) {
+                        $(this).attr('id', "3_cp_price_" + item_id + "" + (i + 1));
+                    });
+                    $(".customer_panel_child_" + item_id).each(function (i, obj) {
+                        modifiers_name += $(this).text();
+                        modifiers_name += (j === total_children) ? "" : "|||";
+                        modifiers_price += $('#3_cp_price_' + item_id + "" + j).text();
+                        modifiers_price += (j === total_children) ? "" : "|||";
+                        j++;
+                    });
+                }
+    
+                item_unit_price = $(this).find(".second_column").find('span').eq(0).text().trim();
+                item_quantity = $(this).find(".third_column").find('span').eq(0).text().trim();
+                item_discount_table = $(this).find(".forth_column").find('input').val();
+                total_price = $(this).find(".fifth_column").find('span').eq(0).text().trim();
+            } else if (cp_type === 4) {
+                item_name = $(this).parent().find(".first_column").find("span").eq(0).text().trim();
+                item_quantity = $(this).parent().find(".third_column").find('span').eq(0).text().trim();
+            }
+    
+            items.push({
+                item_id: String(item_id),
+                row_type: String(row_type),
+                item_name: item_name,
+                item_note: item_note,
+                modifiers_name: modifiers_name,
+                modifiers_price: modifiers_price,
+                item_vat: Number(item_vat),
+                item_unit_price: item_unit_price,
+                percentage_table: percentage_table,
+                item_discount_table: item_discount_table,
+                total_price: total_price,
+                item_quantity: item_quantity
+            });
+        });
+    
+        // Construimos el objeto final con todos los campos necesarios
+        let order_info = {
+            total_items_in_cart: String(total_items_in_cart),
+            total_items_with_qty_in_cart: String(total_items_with_qty_in_cart),
+            sub_total: String(sub_total),
+            total_vat: String(total_vat),
+            total_payable: String(total_payable),
+            total_discount_amount: String(total_discount_amount),
+            actual_discount: String(discounted_sub_total_amount),
+            delivery_charge: String(delivery_charge),
+            total_tips: String(total_tips),
+            sub_total_discount_value: String(sub_total_discount_value),
+            items: items
+        };
+    
+        // Enviamos el objeto serializado correctamente
+        $.ajax({
+            url: base_url + "put-customer-panel-data",
+            method: "POST",
+            dataType: 'json',
+            data: {
+                order: JSON.stringify(order_info)
+            },
+            success: function (response) {
+                $("#zatca_invoice_value").val(response);
+            },
+            error: function () {
+                // Manejo de errores opcional
+            }
+        });
+    }
+
+
       const dineIn_item_list = new PerfectScrollbar(".dineIn-table-list-of-item", {
         wheelSpeed: 2,
         wheelPropagation: true,
