@@ -177,6 +177,25 @@
                         <?php } ?>
                     </div>
 
+
+                    <div class="mb-3 col-sm-12 col-md-3 col-lg-3">
+                        <div class="form-group">
+                            <label> Factura Pre-impresa  </label>
+                            <select tabindex="7" class="form-control select2" name="preimpreso_printer_id"
+                                    id="preimpreso_printer_id">
+                                        <option value="">Usar Impresion de Navegador</option>
+                                        <?php foreach ($printers as $printer):?>
+                                            <option <?php echo $outlet_information->preimpreso_printer_id == $printer->id ? 'selected' : ''; ?> <?php echo set_select('preimpreso_printer_id',$printer->id)?> value="<?php echo escape_output($printer->id); ?>"><?php echo escape_output($printer->title); ?></option>
+                                        <?php endforeach;?>
+                            </select>
+                        </div>
+                        <?php if (form_error('preimpreso_printer_id')) { ?>
+                            <div class="callout callout-danger my-2">
+                                <?php echo form_error('preimpreso_printer_id'); ?>
+                            </div>
+                        <?php } ?>
+                    </div>
+
                         
                     <div class="mb-3 col-sm-12 col-md-3 col-lg-3">
                         <div class="form-group">

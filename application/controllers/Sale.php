@@ -5941,49 +5941,177 @@ class Sale extends Cl_Controller {
         $this->load->view("preimpreso_1", $data);
     }
 
-    public function factura_half_letter() {
-        require_once(APPPATH.'third_party/tcpdf/tcpdf.php');
-        // $ancho = 140; // mm
-        $ancho  = 220; // mm
-        $alto  = 140; // mm
-
-        $pdf = new TCPDF('L', 'mm', array($ancho, $alto), true, 'UTF-8', false);
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-        $pdf->SetMargins(0, 0, 0);
-        $pdf->SetAutoPageBreak(false, 0);
-        $pdf->AddPage();
-        $pdf->SetFont('courier', '', 12);
-
-        // --- PRUEBA 1: Rotar 90º en el punto (0, $ancho) ---
-        $pdf->StartTransform();
-        // El punto (0, $ancho) es la esquina inferior izquierda de la hoja
-        $pdf->Rotate(90, 0, $ancho);
-        // Después de rotar, el área visible va de (0,0) a ($alto, $ancho)
-        $pdf->SetXY(0, 0);
-        $pdf->Cell(100, 10, 'ROT 90 en (0,140), XY(0,0)', 0, 1);
-        $pdf->SetXY(10, 20);
-        $pdf->Cell(100, 10, 'ROT 90 en (0,140), XY(10,20)', 0, 1);
-        $pdf->StopTransform();
-
-        // --- PRUEBA 2: Rotar 270º en el punto ($ancho, 0) ---
-        $pdf->StartTransform();
-        // El punto ($ancho, 0) es la esquina superior derecha de la hoja
-        $pdf->Rotate(270, $ancho, 0);
-        $pdf->SetXY(0, 0);
-        $pdf->Cell(100, 10, 'ROT 270 en (140,0), XY(0,0)', 0, 1);
-        $pdf->SetXY(10, 20);
-        $pdf->Cell(100, 10, 'ROT 270 en (140,0), XY(10,20)', 0, 1);
-        $pdf->StopTransform();
-
-        // Texto de control sin rotar
-        $pdf->SetXY(10, 10);
-        $pdf->Cell(100, 10, 'Texto sin rotacion XY(10,10)', 0, 1);
-
-        $pdf->Output('rotacion_tcpdf662.pdf', 'I');
+    public function preimpreso_format_dataGOT() {
+        // Recibir los datos por POST
+        $data_order = $this->input->post('data_order');
+        $data = json_decode($data_order, true);
+    
+        // Extraer los datos principales
+        $fecha = ($data['fecha']) ? date('d/m/Y',strtotime($data['fecha'])) : '';
+        $tipo = 'CONTADO'; //$data['tipo'] ?? '';
+        $documento = $data['ruc'] ?? '';
+        $nombre = $data['nombre'] ?? '';
+        $direccion = $data['direccion'] ?? '';
+        // $total_texto = $this->num2letras($data['total'] ?? 0); // Implementa esta función si quieres
+        $items = $data['items_data'] ?? [];
+    
+        // Agrupa los items en lotes de 13
+        $items_por_hoja = 13;
+        $facturas = [];
+        $total_items = count($items);
+    
+        for ($i = 0; $i < $total_items; $i += $items_por_hoja) {
+            $hoja_items = array_slice($items, $i, $items_por_hoja);
+    
+            // Inicializar subtotales/IVA
+            $iva_cinco = 0;
+            $iva_diez = 0;
+            $subtotal_cinco = 0;
+            $subtotal_diez = 0;
+            $subtotal = 0;
+    
+            // Formatear los items
+            $detalle_items = [];
+            foreach ($hoja_items as $item) {
+                $cantidad = (float)($item['qty'] ?? 0);
+                $detalle = $item['menu_name'] ?? '';
+                $precio_unitario = (float)($item['menu_unit_price'] ?? 0);
+                $excenta = 0; // En tu caso siempre 0
+                $cinco = 0;   // Si hay rubros con 5%, aquí asignas el valor
+                $diez = number_format($cantidad * $precio_unitario, 0, '', ''); // Todo va a diez
+    
+                $subtotal += $cantidad * $precio_unitario;
+                $subtotal_diez += $cantidad * $precio_unitario;
+    
+                // IVA 10% (asumiendo que el precio es IVA incluido)
+                $iva10_item = round(($cantidad * $precio_unitario) / 11);
+    
+                $iva_diez += $iva10_item;
+    
+                $detalle_items[] = [
+                    'codigo' => $item['food_menu_id'] ?? '',
+                    'cantidad' => $cantidad,
+                    'detalle' => $detalle,
+                    'precio_unitario' => number_format($precio_unitario, 0, '', '.'),
+                    'excenta' => $excenta,
+                    'cinco' => $cinco ? number_format($cinco, 0, '', '.') : '',
+                    'diez' => $diez ? number_format($diez, 0, '', '.') : '',
+                ];
+            }
+    
+            // Formatear totales
+            $total_iva_cinco = round(($subtotal_cinco / 11),0);
+            $total_iva_diez = round(($subtotal_diez / 11),0);
+            $facturas[] = [
+                'fecha' => $fecha,
+                'tipo' => $tipo,
+                'documento' => $documento,
+                'nombre' => $nombre,
+                'iva_cinco' => $total_iva_cinco ? number_format($total_iva_cinco, 0, '', '.') : '',
+                'iva_diez' => $total_iva_diez ? number_format($total_iva_diez, 0, '', '.') : '',
+                'iva_total' => number_format($total_iva_cinco + $total_iva_diez, 0, '', '.'),
+                'subtotal' => number_format($subtotal, 0, '', '.'),
+                'total_texto' => numeroConDecimalesATexto(round($subtotal,0)),
+                'subtotal_cinco' => $subtotal_cinco ? number_format($subtotal_cinco, 0, '', '.') : '',
+                'subtotal_diez' => $subtotal_diez ? number_format($subtotal_diez, 0, '', '.') : '',
+                'items' => $detalle_items,
+            ];
+        }
+    
+        // Responder en formato JSON
+        echo json_encode(['content_data' => $facturas]);
     }
-
-    public function imprimir_test() {
-        $this->load->view('vista_impresion');
+    
+    public function preimpreso_format_data() {
+        // Recibir los datos por POST
+        $data_order = $this->input->post('data_order');
+        $data = json_decode($data_order, true);
+    
+        // Extraer los datos principales
+        $fecha = ($data['fecha']) ? date('d/m/Y',strtotime($data['fecha'])) : '';
+        $tipo_factura = 'CONTADO'; // El tipo de factura (contado/credito), siempre CONTADO aquí
+        $documento = $data['ruc'] ?? '';
+        $nombre = $data['nombre'] ?? '';
+        $direccion = $data['direccion'] ?? '';
+    
+        // Si se pasa un tipo diferente de "todos", forzar a items especiales
+        if (isset($data['tipo']) && $data['tipo'] !== 'todos') {
+            $item_nombre = ($data['tipo'] === 'Especifico') ? ($data['especifico'] ?? '') : $data['tipo'];
+            $item_total = (float)($data['total'] ?? 0);
+            $items = [[
+                'food_menu_id' => '',
+                'qty' => 1,
+                'menu_name' => $item_nombre,
+                'menu_unit_price' => $item_total,
+            ]];
+        } else {
+            $items = $data['items_data'] ?? [];
+        }
+    
+        // Agrupa los items en lotes de 13
+        $items_por_hoja = 13;
+        $facturas = [];
+        $total_items = count($items);
+    
+        for ($i = 0; $i < $total_items; $i += $items_por_hoja) {
+            $hoja_items = array_slice($items, $i, $items_por_hoja);
+    
+            // Inicializar subtotales/IVA
+            $iva_cinco = 0;
+            $iva_diez = 0;
+            $subtotal_cinco = 0;
+            $subtotal_diez = 0;
+            $subtotal = 0;
+    
+            // Formatear los items
+            $detalle_items = [];
+            foreach ($hoja_items as $item) {
+                $cantidad = (float)($item['qty'] ?? 0);
+                $detalle = $item['menu_name'] ?? '';
+                $precio_unitario = (float)($item['menu_unit_price'] ?? 0);
+                $excenta = 0; // Siempre 0 excepto rubros especiales
+                $cinco = 0;   // Si hay rubros con 5%, aquí asignas el valor
+                $diez = number_format($cantidad * $precio_unitario, 0, '', ''); // Todo va a diez
+    
+                $subtotal += $cantidad * $precio_unitario;
+                $subtotal_diez += $cantidad * $precio_unitario;
+    
+                // IVA 10% (asumiendo que el precio es IVA incluido)
+                $iva10_item = round(($cantidad * $precio_unitario) / 11);
+    
+                $iva_diez += $iva10_item;
+    
+                $detalle_items[] = [
+                    'codigo' => $item['food_menu_id'] ?? '',
+                    'cantidad' => $cantidad,
+                    'detalle' => $detalle,
+                    'precio_unitario' => number_format($precio_unitario, 0, '', '.'),
+                    'excenta' => $excenta,
+                    'cinco' => $cinco ? number_format($cinco, 0, '', '.') : '',
+                    'diez' => $diez ? number_format($diez, 0, '', '.') : '',
+                ];
+            }
+    
+            // Formatear totales
+            $total_iva_cinco = round(($subtotal_cinco / 11),0);
+            $total_iva_diez = round(($subtotal_diez / 11),0);
+            $facturas[] = [
+                'fecha' => $fecha,
+                'tipo' => $tipo_factura,
+                'documento' => $documento,
+                'nombre' => $nombre,
+                'iva_cinco' => $total_iva_cinco ? number_format($total_iva_cinco, 0, '', '.') : '',
+                'iva_diez' => $total_iva_diez ? number_format($total_iva_diez, 0, '', '.') : '',
+                'iva_total' => number_format($total_iva_cinco + $total_iva_diez, 0, '', '.'),
+                'subtotal' => number_format($subtotal, 0, '', '.'),
+                'total_texto' => numeroConDecimalesATexto(round($subtotal,0)),
+                'subtotal_cinco' => $subtotal_cinco ? number_format($subtotal_cinco, 0, '', '.') : '',
+                'subtotal_diez' => $subtotal_diez ? number_format($subtotal_diez, 0, '', '.') : '',
+                'items' => $detalle_items,
+            ];
+        }
+    
+        // Responder en formato JSON
+        echo json_encode(['content_data' => $facturas]);
     }
 }

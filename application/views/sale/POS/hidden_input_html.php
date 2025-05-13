@@ -11,6 +11,15 @@ $outlet = getOutletById($this->session->userdata('outlet_id'));
 $role = $this->session->userdata('designation');
 $user_id = $this->session->userdata('user_id');
 $user_data = $this->Common_model->getDataById($user_id, "tbl_users");
+$getOutletInfo = $this->Common_model->getDataById($this->session->userdata('outlet_id'), "tbl_outlets");
+$getPreimpresoPrinter = $this->Common_model->getDataById($getOutletInfo->preimpreso_printer_id, "tbl_printers");
+if ($getPreimpresoPrinter) {
+    $preimpreso_printer_name = $getPreimpresoPrinter->path;
+    $preimpreso_printer_ipv4 = $getPreimpresoPrinter->ipvfour_address;
+} else {
+    $preimpreso_printer_name = '';
+    $preimpreso_printer_ipv4 = '';
+}
 
 foreach ($waiters as $waiter){
 
@@ -48,6 +57,10 @@ foreach ($waiters as $waiter){
 <!--hidden fields for js usages-->
 <input type="hidden" id="print_kitchen" value="<?php echo escape_output($user_data->print_kitchen)?>">
 <input type="hidden" id="print_pos_id" value="<?php echo escape_output($user_data->print_pos_id)?>">
+<input type="hidden" id="preimpreso_mode" value="<?php echo escape_output($getOutletInfo->preimpreso_mode)?>">
+<input type="hidden" id="preimpreso_printer_id" value="<?php echo escape_output($getOutletInfo->preimpreso_printer_id)?>">
+<input type="hidden" id="preimpreso_printer_name" value="<?php echo escape_output($preimpreso_printer_name)?>">
+<input type="hidden" id="preimpreso_printer_ipv4" value="<?php echo escape_output($preimpreso_printer_ipv4)?>">
 
 
 <input type="hidden" id="base_url_pos" value="<?php echo base_url()?>">
@@ -654,5 +667,77 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 10000);
 
 });
+
+function numeroATexto(numero) {
+    const unidad = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
+    const decena = ['', 'diez', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
+    const centena = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
+    const especial = {10: 'diez', 11: 'once', 12: 'doce', 13: 'trece', 14: 'catorce', 15: 'quince'};
+
+    numero = parseInt(numero, 10);
+
+    if (numero < 0) {
+        return 'negativo ' + numeroATexto(Math.abs(numero));
+    } else if (numero < 10) {
+        return unidad[numero];
+    } else if (numero < 20) {
+        if (numero <= 15) {
+            return especial[numero];
+        } else {
+            return 'dieci' + unidad[numero % 10];
+        }
+    } else if (numero < 100) {
+        if (numero % 10 === 0) {
+            return decena[Math.floor(numero / 10)];
+        } else if (numero < 30) {
+            return 'veinti' + unidad[numero % 10];
+        } else {
+            return decena[Math.floor(numero / 10)] + ' y ' + unidad[numero % 10];
+        }
+    } else if (numero < 1000) {
+        if (numero === 100) {
+            return 'cien';
+        } else {
+            return centena[Math.floor(numero / 100)] + ' ' + numeroATexto(numero % 100);
+        }
+    } else if (numero < 1000000) {
+        if (numero < 2000) {
+            return 'mil ' + (numero % 1000 !== 0 ? numeroATexto(numero % 1000) : '');
+        } else {
+            return numeroATexto(Math.floor(numero / 1000)) + ' mil ' + (numero % 1000 > 0 ? numeroATexto(numero % 1000) : '');
+        }
+    } else if (numero < 1000000000) {
+        if (numero < 2000000) {
+            return 'un millón ' + (numero % 1000000 > 0 ? numeroATexto(numero % 1000000) : '');
+        } else {
+            return numeroATexto(Math.floor(numero / 1000000)) + ' millones ' + (numero % 1000000 > 0 ? numeroATexto(numero % 1000000) : '');
+        }
+    }
+
+    return 'Número fuera de rango';
+}
+
+function numeroConDecimalesATexto(numero) {
+    let partes = String(numero).split('.');
+    let entero = parseInt(partes[0], 10);
+
+    let texto;
+    if (entero < 0) {
+        texto = 'negativo ' + numeroATexto(Math.abs(entero));
+    } else if (entero < 1 && entero >= 0) {
+        texto = 'cero';
+    } else {
+        texto = numeroATexto(entero);
+    }
+
+    if (partes.length > 1) {
+        let parteDecimal = partes[1].replace(/0+$/, '');
+        if (parteDecimal !== '') {
+            texto += ' con ' + numeroATexto(parseInt(parteDecimal, 10));
+        }
+    }
+
+    return texto.trim();
+}
 
 </script>

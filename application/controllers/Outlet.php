@@ -118,6 +118,7 @@ class Outlet extends Cl_Controller {
                 $outlet_info['email'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('email')));
                 $outlet_info['online_order_module'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('online_order_module')));
                 $outlet_info['comanda_required'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('comanda_required')));
+                $outlet_info['preimpreso_printer_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('preimpreso_printer_id')));
                 if(str_rot13($language_manifesto)=="eriutoeri"):
                     $outlet_info['default_waiter'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('default_waiter')));
                     $outlet_info['active_status'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('active_status')));
@@ -198,6 +199,7 @@ class Outlet extends Cl_Controller {
                     $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
                     $data['outlet_code'] = $this->Outlet_model->generateOutletCode();
                     $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
+                    $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                     $data['main_content'] = $this->load->view('outlet/addOutlet', $data, TRUE);
                     $this->load->view('userHome', $data);
                 } else {
@@ -207,6 +209,7 @@ class Outlet extends Cl_Controller {
                     $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
                     $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
                     $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
+                    $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                     $data['main_content'] = $this->load->view('outlet/editOutlet', $data, TRUE);
                     $this->load->view('userHome', $data);
                 }
@@ -226,6 +229,7 @@ class Outlet extends Cl_Controller {
                 $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
                 $data['outlet_code'] = $this->Outlet_model->generateOutletCode();
                 $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
+                $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                 $data['main_content'] = $this->load->view('outlet/addOutlet', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
@@ -241,6 +245,7 @@ class Outlet extends Cl_Controller {
                     $selected_modules_arr[] = $value;
                 }
                 $data['selected_modules_arr'] = $selected_modules_arr;
+                $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                 $data['main_content'] = $this->load->view('outlet/editOutlet', $data, TRUE);
                 $this->load->view('userHome', $data);
             }

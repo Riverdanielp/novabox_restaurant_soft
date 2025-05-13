@@ -2349,6 +2349,8 @@ foreach ($notifications as $single_notification){
                             <p class="input_level">Dirección:</p>
                             <input type="text" class="add_customer_modal_input" id="preimpresa_direccion">
                         </div>
+
+                        <input type="hidden" id="preimpresa_items" value="">
                     </div>
 
                     <div class="right-item b">
@@ -2364,13 +2366,15 @@ foreach ($notifications as $single_notification){
                         </div>
 
                         <div class="customer_section">
-                            <p class="input_level">Total: <span class="ir_color_red">*</span></p>
-                            <input type="text" class="add_customer_modal_input" id="preimpresa_total" required>
-                        </div>
-                        
-                        <div class="customer_section">
                             <p class="input_level">Tipo: <span class="ir_color_red">*</span></p>
                             <select class="add_customer_modal_input" id="preimpresa_tipo" required>
+                                <?php 
+                                    $getOutletInfo = $this->Common_model->getDataById($this->session->userdata('outlet_id'), "tbl_outlets");
+                                    if ($getOutletInfo->preimpreso_mode == "direct_print") :
+                                ?>
+                                <option value="todos">Todos Los Items</option>
+                                <?php endif; ?>
+
                                 <option value="Consumición">Consumición</option>
                                 <option value="Almuerzo">Almuerzo</option>
                                 <option value="Desayuno">Desayuno</option>
@@ -2383,6 +2387,17 @@ foreach ($notifications as $single_notification){
                             <p class="input_level">Especifique: <span class="ir_color_red">*</span></p>
                             <input type="text" class="add_customer_modal_input" id="preimpresa_especifico">
                         </div>
+                        
+                        <div class="customer_section" id="preimpresa_total_container"
+                        <?php if ($getOutletInfo->preimpreso_mode == "direct_print") : ?>
+                            style="display: none;"
+                        <?php endif; ?>
+                        >
+                            <p class="input_level">Total: <span class="ir_color_red">*</span></p>
+                            <input type="text" class="add_customer_modal_input" id="preimpresa_total" required>
+                        </div>
+                        
+                        
                     </div>
                 </div>
             </div>
@@ -4978,9 +4993,21 @@ foreach ($notifications as $single_notification){
         // Mostrar/ocultar campo de texto específico según selección
         $(document).on("change", "#preimpresa_tipo", function() {
             if($(this).val() === "Especifico") {
+                $("#preimpresa_total_container").show();
                 $("#preimpresa_especifico_container").show();
+
                 $("#preimpresa_especifico").prop("required", true);
+                $("#preimpresa_total").prop("required", true);
+            } else if($(this).val() === "todos") {
+                $("#preimpresa_total_container").hide();
+                $("#preimpresa_total").prop("required", false);
+
+                $("#preimpresa_especifico_container").hide();
+                $("#preimpresa_especifico").prop("required", false);
             } else {
+                $("#preimpresa_total_container").show();
+                $("#preimpresa_total").prop("required", true);
+
                 $("#preimpresa_especifico_container").hide();
                 $("#preimpresa_especifico").prop("required", false);
             }

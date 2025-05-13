@@ -154,6 +154,10 @@
       let print_kitchen = $("#print_kitchen").val();
       let print_pos_id = $("#print_pos_id").val();
       
+      let preimpreso_mode = $("#preimpreso_mode").val();
+      let preimpreso_printer_id = $("#preimpreso_printer_id").val();
+      let preimpreso_printer_name = $("#preimpreso_printer_name").val();
+      let preimpreso_printer_ipv4 = $("#preimpreso_printer_ipv4").val();
       
         //INVOICE LABLE
         let product_label = $("#product_label").val();
@@ -4535,17 +4539,25 @@
         if ($(".single_last_ten_sale[data-selected=selected]").length > 0) {
             let sale_no = $(".single_last_ten_sale[data-selected=selected]").attr("data-sale_no");
             getSelectedOrderDetailsRecentSale(sale_no).then(function(data){
+                // console.log(data);
                 let order_info = jQuery.parseJSON(data);
-                console.log(order_info);
+                // console.log(order_info);
                 $("#pre_impresa_modal").addClass("active");
                 
                 // Rellenar los campos con los datos del pedido
                 $("#preimpresa_fecha").val(order_info.sale_date);
-                $("#preimpresa_ruc").val(order_info.customer_gst_number || "");
+                let ruc_txt = order_info.customer_gst_number || "";
+                if (ruc_txt == "null") {
+                    ruc_txt = "";
+                }
+                $("#preimpresa_ruc").val(ruc_txt);
                 $("#preimpresa_nombre").val(order_info.customer_name || "Cliente Ocasional");
                 $("#preimpresa_direccion").val(order_info.customer_address || "");
                 $("#preimpresa_total").val(order_info.total_payable || "0");
+                $("#preimpresa_total").val(order_info.total_payable || "0");
                 
+                $("#preimpresa_items").val(JSON.stringify((order_info.items)));
+                // console.log((order_info.items));
             });
         } else {
             toastr['error']((please_select_an_order), '');
@@ -4560,9 +4572,10 @@
         const total = $("#preimpresa_total").val();
         const tipo = $("#preimpresa_tipo").val();
         const especifico = $("#preimpresa_especifico").val();
-        
+        const items_data = jQuery.parseJSON($("#preimpresa_items").val());
+
         // Validar campos requeridos
-        if (!fecha || !ruc || !nombre || !total || !tipo || (tipo === "Especifico" && !especifico)) {
+        if (!fecha || !ruc || !nombre || (tipo != "todos" && !total) || !tipo || (tipo === "Especifico" && !especifico)) {
             toastr['error']('Por favor complete todos los campos requeridos', 'Error');
             return;
         }
@@ -4570,37 +4583,81 @@
         // Obtener el sale_no del pedido seleccionado
         const sale_no = $(".single_last_ten_sale[data-selected=selected]").attr("data-sale_no");
         
-        // Crear el array items con un solo elemento
-        const items = [{
-            quantity_purchased: 1, // Cantidad siempre 1
-            Producto: tipo === "Especifico" ? especifico : tipo, // Nombre del tipo o texto específico
-            item_unit_price: total, // Precio unitario = total
-            total: total // Total = total
-        }];
-        
-        // Construir objeto con los datos
-        const data = {
-            fecha: fecha,
-            ruc: ruc,
-            nombre: nombre,
-            direccion: direccion,
-            total: total,
-            tipo: tipo,
-            especifico: tipo === "Especifico" ? especifico : "",
-            sale_no: sale_no,
-            items: items // Incluimos el array items
-        };
-        
-        // Codificación segura en JavaScript
-        const dataJson = JSON.stringify(data);
-        const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
-        
-        // Construir URL con los parámetros
-        const url = base_url + 'sale/preimpreso/' + dataBase64;
-        
-        // Abrir ventana con la vista de CodeIgniter
-        window.open(url, '_blank', 'width=920,height=640,left=50,top=50,toolbar=yes');
-        
+        if (preimpreso_mode == 'direct_print') {
+            let url_ipv4 = preimpreso_printer_ipv4; 
+            let printer_name = preimpreso_printer_name;
+            // Armar datos para enviar a PHP
+            const dataToSend = {
+                fecha: fecha,
+                ruc: ruc,
+                nombre: nombre,
+                direccion: direccion,
+                total: total,
+                tipo: tipo,
+                especifico: especifico,
+                sale_no: sale_no,
+                items_data: items_data
+            };
+            $.ajax({
+                url: base_url + "Sale/preimpreso_format_data",
+                method: "post",
+                dataType: "json",
+                data: { data_order: JSON.stringify(dataToSend) },
+                success: function (response) {
+                    console.log(response);
+                    console.log(url_ipv4);
+                    // response.content_data contiene el array formateado
+                    if (url_ipv4) {
+                        $.ajax({
+                            url: url_ipv4 + "print_server/novabox_printer_server.php",
+                            method: "post",
+                            dataType: "json",
+                            data: {
+                                content_data: JSON.stringify(response.content_data),
+                                print_type: "Preimpreso",
+                                print_path: printer_name
+                            },
+                            success: function (data) {},
+                            error: function () {}
+                        });
+                    }
+                },
+                error: function () {}
+            });
+        } else {
+            // Crear el array items con un solo elemento
+            const items = [{
+                quantity_purchased: 1, // Cantidad siempre 1
+                Producto: tipo === "Especifico" ? especifico : tipo, // Nombre del tipo o texto específico
+                item_unit_price: total, // Precio unitario = total
+                total: total // Total = total
+            }];
+            
+            // Construir objeto con los datos
+            const data = {
+                preimpreso_mode: preimpreso_mode,
+                fecha: fecha,
+                ruc: ruc,
+                nombre: nombre,
+                direccion: direccion,
+                total: total,
+                tipo: tipo,
+                especifico: tipo === "Especifico" ? especifico : "",
+                sale_no: sale_no,
+                items: items // Incluimos el array items
+            };
+            
+            // Codificación segura en JavaScript
+            const dataJson = JSON.stringify(data);
+            const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
+            
+            // Construir URL con los parámetros
+            const url = base_url + 'sale/preimpreso/' + dataBase64;
+            
+            // Abrir ventana con la vista de CodeIgniter
+            window.open(url, '_blank', 'width=920,height=640,left=50,top=50,toolbar=yes');
+            
+        }
         // Cerrar el modal
         $("#pre_impresa_modal").removeClass("active");
     });
