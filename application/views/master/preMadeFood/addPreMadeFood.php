@@ -164,7 +164,7 @@
                                             class="required_star">*</span></label>
                                 <div class="d-flex">
                                     <input tabindex="4" type="text" name="conversion_rate"   onfocus="select()"  id="conversion_rate"
-                                           class="form-control integerchk change_consumption_cost"
+                                           class="form-control  change_consumption_cost"
                                            placeholder="="
                                            value="1">
 
@@ -230,7 +230,7 @@
                                             class="required_star">*</span></label>
                                 <div class="d-flex">
                                     <input tabindex="4" type="text" name="consumption_unit_cost" id="consumption_unit_cost"
-                                           class="form-control integerchk" readonly
+                                           class="form-control " readonly
                                            placeholder="<?php echo lang('consumption_unit_cost'); ?>"
                                            value="<?php echo set_value('consumption_unit_cost'); ?>">
 
@@ -248,9 +248,9 @@
                         <div class="col-sm-12 mb-2 col-md-3">
                             <div class="form-group">
                                 <label><?php echo lang('alert_qty'); ?> <span class="required_star">*</span></label>
-                                <input tabindex="5" type="text" name="alert_quantity" class="form-control integerchk"
+                                <input tabindex="5" type="text" name="alert_quantity" class="form-control "
                                        placeholder="<?php echo lang('alert_qty'); ?>"
-                                       value="<?php echo set_value('alert_quantity'); ?>">
+                                       value="<?php echo set_value('alert_quantity'); ?>" required > 
                             </div>
                             <?php if (form_error('alert_quantity')) { ?>
                                 <div class="callout callout-danger my-2">
