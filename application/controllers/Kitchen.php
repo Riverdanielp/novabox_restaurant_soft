@@ -570,6 +570,16 @@ class Kitchen extends Cl_Controller {
         $cooking_status = $this->input->post('cooking_status');
         $total_item = count($previous_id_array); 
 
+        if ($previous_id_array){
+            $first_item = $this->db->select('sales_id')
+                                ->where('previous_id', $previous_id_array[0])
+                                ->get('tbl_kitchen_sales_details')
+                                ->row();
+            if ($first_item){
+                $sale_id = $first_item->sales_id;
+                $this->updateIsKitchenBySale($sale_id);
+            }
+        }
         foreach($previous_id_array as $single_previous_id){
             $previous_id = $single_previous_id;
             $item_info = $this->Kitchen_model->getItemInfoByPreviousId($previous_id);
@@ -653,6 +663,10 @@ class Kitchen extends Cl_Controller {
         $previous_id_array = explode(",", $previous_id);
         $cooking_status = $this->input->post('cooking_status');
         
+        if (!$previous_id_array) {
+            echo json_encode(['status' => 'error', 'msg' => 'No se ha recibido items a cambiar!']);
+            return;
+        }
         // Obtener el sale_id una sola vez (del primer item)
         $first_item_info = $this->Kitchen_model->getItemInfoByPreviousId($previous_id_array[0]);
         if (!$first_item_info) {
@@ -662,7 +676,7 @@ class Kitchen extends Cl_Controller {
         $sale_id = $first_item_info->sales_id;
 
         // Llamamos a la función para marcar los ítems de cocina
-        // $this->updateIsKitchenBySale($sale_id);
+        $this->updateIsKitchenBySale($sale_id);
         
         $update_data = [
             'cooking_status' => $cooking_status,

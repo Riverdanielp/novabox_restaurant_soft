@@ -9,7 +9,7 @@
 <input type="hidden" id="consumption" value="<?php echo lang('consumption'); ?>">
 <input type="hidden" id="Edit_Variation" value="<?php echo lang('Edit_Variation'); ?>">
 <input type="hidden" id="tax_type_custom" value="<?php  echo escape_output($this->session->userdata('tax_type'))?>">
-<script src="<?php echo base_url(); ?>frequent_changing/js/add_premade_food.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/add_premade_food.js<?php echo VERS(); ?>"></script>
 <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/add_food_menu.css">
 <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/variation.css">
 <section class="main-content-wrapper">
