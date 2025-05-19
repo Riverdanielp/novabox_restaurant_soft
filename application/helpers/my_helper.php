@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.54140';
+    return '?v=7.54141';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -272,6 +272,7 @@ function getRandomCodeOne($length = 1) {
     }
     return $randomString;
 }
+
 function getRandomCodeTwoCapital($length = 2) {
     $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $charactersLength = strlen($characters);
@@ -281,7 +282,38 @@ function getRandomCodeTwoCapital($length = 2) {
     }
     return $randomString;
 }
-function getShortName() {
+
+function getShortName($user_id = '') 
+{
+    $CI = & get_instance();
+    $date_ymd = date('Ymd');
+    $max_tries = 50;
+    $tries = 0;
+    do {
+        $code = getRandomCodeTwoCapital(3);
+        $exists = $CI->db->where('code', $code)
+                           ->where('date_ymd', $date_ymd)
+                           ->count_all_results('tbl_short_codes') > 0;
+        $tries++;
+    } while ($exists && $tries < $max_tries);
+
+    if ($exists) {
+        // Si después de varios intentos sigue sin encontrar uno, puedes lanzar excepción o retornar false
+        return false;
+    }
+
+    // Insertar el nuevo código
+    $CI->db->insert('tbl_short_codes', [
+        'code' => $code,
+        'date_ymd' => $date_ymd,
+        'user_id' => $user_id,
+        'created_at' => date('Y-m-d H:i:s'),
+    ]);
+
+    return $code;
+}
+
+function getShortNameOld() {
     $CI = & get_instance();
     $short_name = strtolower(substr($CI->session->userdata('full_name'),0, 1));
     if(!$short_name){

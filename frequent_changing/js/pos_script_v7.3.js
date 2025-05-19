@@ -9062,7 +9062,7 @@ function getSafePrice(priceAttr) {
 
 
     
-    $(document).on("click", ".place_order_operation", function (e) {
+    $(document).on("click", ".place_order_operation", async function (e) {
         $("#is_first").val(1);
         let waiter_app_status = $("#waiter_app_status").val() || "";
         let action_type = Number($(this).attr('data-type')) || 0;
@@ -9260,6 +9260,8 @@ function getSafePrice(priceAttr) {
         } else {
             sale_no_new = generateSaleNo();
             random_code = getRandomCode(15);
+            // <<<<--- Aquí va la verificación AJAX
+            sale_no_new = await getUniqueSaleNo(sale_no_new);
         }
     
         let open_invoice_date_hidden = $("#open_invoice_date_hidden").val() || "";
@@ -13260,11 +13262,13 @@ $("#combo_item").on("click", function(){
         }
   
     }
+
       function removeLastAddedOrderTables(){
           //remove previous added table
           $(".old_added_table").remove();
           $(".new_book_to_table").remove();
       }
+
     async function add_sale_by_ajax(update_sale_id,order_object,outlet_id='',company_id='',sale_no_new='',is_direct_sale='',action_type='',is_merge='',clear_holder=true) {
         
         // Verificar primero si la orden ya existe
@@ -13497,7 +13501,7 @@ $("#combo_item").on("click", function(){
         }
     }
 
-    // Función auxiliar para verificar si una orden existe
+    // Función auxiliar para verificar si una orden existe (pero solo en el navegador local)
     function checkIfOrderExists(sale_no) {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(['sales'], "readonly");
@@ -14545,6 +14549,7 @@ $("#combo_item").on("click", function(){
  
     function get_details_of_a_particular_order_for_modal(sale_no) {
         
+            const userDesignation = $("#user_designation").val();
             $('#editar_orden_button').data('sale_no', sale_no);
             $('#print_bill_orden_button').data('sale_no', sale_no);
             $('#pagar_orden_button').data('sale_no', sale_no);
@@ -14768,7 +14773,11 @@ $("#combo_item").on("click", function(){
                   $("#total_items_in_cart_order_details").html(
                       total_items_in_cart_with_quantity
                   );
-                  $("#sub_total_show_order_details").html(response.sub_total);
+                  let subtotal_view = response.sub_total;
+                  if(userDesignation == "Waiter"){
+                    subtotal_view = ' ';
+                  }
+                  $("#sub_total_show_order_details").html(subtotal_view);
                   $("#sub_total_order_details").html(response.sub_total);
                   $("#total_item_discount_order_details").html(
                       response.total_item_discount_amount
@@ -14811,7 +14820,11 @@ $("#combo_item").on("click", function(){
                       $("#tips_amount_order_details").html((0).toFixed(ir_precision));
                   }
   
-                  $("#total_payable_order_details").html(formatNumberToCurrency(Number(response.total_payable)));
+                  let total_view = formatNumberToCurrency(Number(response.total_payable));
+                  if(userDesignation == "Waiter"){
+                    total_view = ' ';
+                  }
+                  $("#total_payable_order_details").html(total_view);
                 //   $("#total_payable_order_details").html(
                 //       Number(response.total_payable).toFixed(ir_precision)
                 //   );
@@ -22177,6 +22190,7 @@ $(document).on('click', '#print_bill_orden_button', function() {
         toastr['error']('No se pudo identificar la orden a imprimir', 'Error');
     }
 });
+
 
 
 

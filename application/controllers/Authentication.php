@@ -255,7 +255,7 @@ class Authentication extends Cl_Controller {
                                 $login_session['company_id'] = $user_information->company_id;
                                 $login_session['session_outlets'] = $user_information->outlets;
                                 $login_session['active_menu_tmp'] = 4;
-                                $login_session['code_short'] = getShortName();
+                                $login_session['code_short'] = getShortName($user_information->id);
 
                                 //Company Information
 
@@ -3024,7 +3024,7 @@ class Authentication extends Cl_Controller {
                                 $login_session['company_id'] = $user_information->company_id;
                                 $login_session['session_outlets'] = $user_information->outlets;
                                 $login_session['active_menu_tmp'] = 4;
-                                $login_session['code_short'] = getShortName();
+                                $login_session['code_short'] = getShortName($user_information->id);
 
                                 //Company Information
 

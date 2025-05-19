@@ -740,4 +740,25 @@ function numeroConDecimalesATexto(numero) {
     return texto.trim();
 }
 
+async function getUniqueSaleNo(sale_no) {
+    let base_url = $("base").attr("data-base");
+    let csrf_value_ = $('#csrf-token').val(); // o como corresponda en tu HTML
+
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: base_url + "Sale/get_unique_sale_no",
+            method: "POST",
+            data: { sale_no: sale_no, csrf_irestoraplus: csrf_value_ },
+            dataType: "json",
+            success: function(resp) {
+                resolve(resp.sale_no);
+            },
+            error: function() {
+                // Fallback: si hay error, devolver el original pero deberías manejar este caso
+                resolve(sale_no);
+            }
+        });
+    });
+}
+
 </script>

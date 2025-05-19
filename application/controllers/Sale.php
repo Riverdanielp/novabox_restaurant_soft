@@ -6114,4 +6114,39 @@ class Sale extends Cl_Controller {
         // Responder en formato JSON
         echo json_encode(['content_data' => $facturas]);
     }
+
+    public function check_sale_no_exists() {
+        $sale_no = $this->input->post('sale_no');
+        $exists = $this->db->where('sale_no', $sale_no)->get('tbl_kitchen_sales')->num_rows() > 0;
+        echo json_encode(['exists' => $exists]);
+    }
+
+    public function get_unique_sale_no() {
+        $sale_no = $this->input->post('sale_no');
+        $original_sale_no = $sale_no;
+        $letters = range('A', 'Z');
+        $prefixIndex = 0;
+    
+        // Verifica si el sale_no existe
+        while ($this->db->where('sale_no', $sale_no)->get('tbl_kitchen_sales')->num_rows() > 0) {
+            if ($prefixIndex < count($letters)) {
+                $sale_no = $letters[$prefixIndex] . $original_sale_no;
+                $prefixIndex++;
+            } else {
+                // Si se acaban las letras, usa timestamp como prefijo (garantiza unicidad)
+                $sale_no = time() . $original_sale_no;
+                break;
+            }
+        }
+        echo json_encode(['sale_no' => $sale_no]);
+    }
+
+    public function set_short_code(){
+        $code = 'YWB';
+        
+        $this->session->set_userdata([
+            'code_short' => $code,
+        ]);
+        echo $this->session->userdata('code_short');
+    }
 }
