@@ -110,7 +110,7 @@ $(function () {
         });
         return status;
     }
-    $(document).on("click", ".register_details", function (e) {
+    $(document).on("click", ".register_details_old", function (e) {
         let status = true;
         if(!checkInternetConnection()){
             toastr.options = {
@@ -177,6 +177,181 @@ $(function () {
         }
 
     });
+    
+    $(document).on("click", ".register_details", function (e) {
+        // Mostrar modal y loader de inmediato
+        $("#register_modal").addClass("active");
+        $(".pos__modal__overlay").fadeIn(200);
+        $(".modal_loader").show();
+        $(".html_content").html(""); // Limpia el contenido hasta que llegue
+    
+        let status = true;
+        if(!checkInternetConnection()){
+            toastr.options = { positionClass:'toast-bottom-right' };
+            let register_error = $("#register_error").val();
+            status = false;
+            toastr['error']((register_error), '');
+        }
+        if(status){
+            let not_closed_yet = $("#not_closed_yet").val();
+            let base_url = $("#base_url_customer").val();
+            let csrf_value_ = $("#csrf_value_").val();
+            $.ajax({
+                url: base_url + "Sale/registerDetailCalculationToShowAjax",
+                method: "POST",
+                data: { csrf_name_: csrf_value_ },
+                success: function (response) {
+                    response = JSON.parse(response);
+    
+                    $(".modal_loader").hide();
+                    $(".html_content").html(response.html_content_for_div);
+    
+                    // DataTable para la tabla principal
+                    $(`#datatable`).DataTable({
+                        'autoWidth'   : false,
+                        'ordering'    : false,
+                        'paging'    : false,
+                        'bFilter'    : false,
+                        dom: 'Blfrtip',
+                        buttons: [
+                            {
+                                extend: "print",
+                                text: '<i class="fa fa-print"></i> Print',
+                                titleAttr: "print",
+                            },
+                            {
+                                extend: "excelHtml5",
+                                text: '<i class="fa fa-file-excel-o"></i> Excel',
+                                titleAttr: "Excel",
+                            },
+                            {
+                                extend: "csvHtml5",
+                                text: '<i class="fa fa-file-text-o"></i> CSV',
+                                titleAttr: "CSV",
+                            },
+                            {
+                                extend: "pdfHtml5",
+                                text: '<i class="fa fa-file-pdf-o"></i> PDF',
+                                titleAttr: "PDF",
+                            },
+                        ]
+                    });
+    
+                    // DataTable para tablas detalle
+                    $('.table_sale_details').DataTable({
+                        'autoWidth': false,
+                        'ordering': false,
+                        'paging': false,
+                        'bFilter': false,
+                        'info': false,
+                        'responsive': true,
+                        'language': { 'emptyTable': 'Sin datos de ventas' }
+                    });
+                    $('.table_expense_details').DataTable({
+                        'autoWidth': false,
+                        'ordering': false,
+                        'paging': false,
+                        'bFilter': false,
+                        'info': false,
+                        'responsive': true,
+                        'language': { 'emptyTable': 'Sin gastos registrados' }
+                    });
+                },
+                error: function () {
+                    $(".modal_loader").hide();
+                    $(".html_content").html('<div class="alert alert-danger">Error al cargar los datos</div>');
+                },
+            });
+        }
+    });
+
+    $(document).on('click', '#register_expense_add', function() {
+        // Cierra el modal de caja 
+        $("#register_modal").removeClass("active");
+        $(".pos__modal__overlay").hide();
+        // Abre el modal de gasto y muestra un loader
+        $("#expense_modal_registro").addClass("active");
+        // $("#").show();
+        $(".expense_form_content").html('<div class="modal_loader" style="text-align:center;padding:30px;"><i class="fa fa-spinner fa-spin fa-3x fa-fw"></i></div>');
+    
+        // Carga el formulario vía AJAX
+        $.ajax({
+            url: $("#base_url_customer").val() + "Sale/addExpenseAjax", // Crea este endpoint en PHP
+            method: "GET",
+            success: function(html) {
+                $(".expense_form_content").html(html);
+                // Inicializa select2 si usas
+                if ($.fn.select2) $('.select2').select2();
+            },
+            error: function(){
+                $(".expense_form_content").html('<div class="alert alert-danger">Error al cargar el formulario</div>');
+            }
+        });
+    });
+    
+    // Cerrar modal de gasto
+    $(document).on('click', '.close_expense_modal', function() {
+        $("#expense_modal_registro").removeClass("active");
+        $(".expense_form_content").html('');
+    });
+
+    $(document).on('click', '#expense_submit_btn', function() {
+        let $btn = $(this);
+        $btn.prop('disabled', true);
+    
+
+        // Obteniendo todos los campos
+        let dateVal = $('#expense_date').val();
+        let amountVal = $('#expense_amount').val();
+        let categoryVal = $('#expense_category_id').val();
+        let employeeVal = $('#expense_employee_id').val();
+        let paymentVal = $('#expense_payment_id').val();
+        let noteVal = $('#expense_note').val();
+
+        // Validación local
+        if(!dateVal || !amountVal || !categoryVal || !employeeVal || !paymentVal || !noteVal) {
+            toastr['error']('Por favor completa los campos requeridos', '');
+            $btn.prop('disabled', false);
+            return;
+        }
+
+        let formData = {
+            date: dateVal,
+            amount: amountVal,
+            category_id: categoryVal,
+            employee_id: employeeVal,
+            payment_id: paymentVal,
+            note: noteVal
+            // agrega CSRF si lo necesitas
+        };
+    
+        $.ajax({
+            url: $("#base_url_customer").val() + "Sale/addExpenseAjaxSubmit",
+            method: "POST",
+            data: formData,
+            dataType: "json",
+            success: function(resp) {
+                if (resp.status == "ok") {
+                    toastr['success'](resp.msg, '');
+                    $("#expense_modal_registro").removeClass("active");
+                    $(".expense_form_content").html('');
+                    // Opcional: recargar la caja automáticamente
+                    $(".register_details").trigger("click");
+                } else {
+                    toastr['error'](resp.msg, '');
+                    // Puedes mostrar validaciones campo a campo aquí.
+                }
+            },
+            error: function(){
+                toastr['error']('Error en el servidor', '');
+            },
+            complete: function(){
+                $("#expense_modal_registro").removeClass("active");
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+
 
     $(document).on("click", ".reservation_list", function (e) {
         let title = $(this).attr('data-title');

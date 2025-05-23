@@ -119,6 +119,7 @@ class PaymentMethod extends Cl_Controller {
                 $fmc_info = array();
                 $fmc_info['name'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('name')));
                 $fmc_info['description'] =escape_output($this->input->post($this->security->xss_clean('description')));
+                $fmc_info['tipo_trx'] =escape_output($this->input->post($this->security->xss_clean('tipo_trx')));
                 $fmc_info['user_id'] = $this->session->userdata('user_id');
                 $fmc_info['company_id'] = $this->session->userdata('company_id');
                 if ($id == "") {

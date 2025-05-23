@@ -1,19 +1,5 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Master_model Model
-  ###########################################################
- */
+
 class Master_model extends CI_Model {
 
      /**
@@ -170,6 +156,30 @@ class Master_model extends CI_Model {
         return $this->db->get()->result();
     }
     
+    public function get_food_menus_without_ingredients_grouped_by_category()
+    {
+        $this->db->select('fm.*, fmc.category_name');
+        $this->db->from('tbl_food_menus fm');
+        $this->db->join('tbl_food_menu_categories fmc', 'fmc.id = fm.category_id AND fmc.del_status = "Live"', 'left');
+        $this->db->where('fm.del_status', 'Live');
+        $this->db->where('(
+            SELECT COUNT(*) FROM tbl_food_menus_ingredients fmi
+            WHERE fmi.food_menu_id = fm.id AND fmi.del_status = "Live"
+        ) =', 0, FALSE);
+        $this->db->order_by('fmc.order_by', 'ASC');
+        $this->db->order_by('fmc.category_name', 'ASC');
+        $this->db->order_by('fm.name', 'ASC');
+        $query = $this->db->get();
+        $result = $query->result();
+
+        // Agrupar por categoría
+        $grouped = [];
+        foreach ($result as $row) {
+            $cat = $row->category_name ?: 'Sin Categoría';
+            $grouped[$cat][] = $row;
+        }
+        return $grouped;
+    }
     
 
 }

@@ -172,6 +172,46 @@
                                 <?php } ?>
                             </div>
                         
+                            <div class="mb-3 col-sm-12 col-md-3 col-lg-3">
+                                <div class="form-group">
+                                    <label> Ocultar Total Antes Cierre de Caja  </label>
+                                    <select tabindex="7" class="form-control select2" name="registro_ocultar"
+                                            id="registro_ocultar">
+                                        <option
+                                            <?= isset($outlet_information) && $outlet_information->registro_ocultar== "No" ? 'selected' : '' ?>
+                                                value="No"><?php echo lang('no')?></option>
+                                        <option
+                                            <?= isset($outlet_information) && $outlet_information->registro_ocultar== "Yes" ? 'selected' : '' ?>
+                                                value="Yes"><?php echo lang('yes')?></option>
+                                    </select>
+                                </div>
+                                <?php if (form_error('registro_ocultar')) { ?>
+                                    <div class="callout callout-danger my-2">
+                                        <?php echo form_error('registro_ocultar'); ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
+
+                            <div class="mb-3 col-sm-12 col-md-3 col-lg-3">
+                                <div class="form-group">
+                                    <label>  Mostrar todas las ventas en Cierre de Caja  </label>
+                                    <select tabindex="7" class="form-control select2" name="registro_detallado"
+                                            id="registro_detallado">
+                                        <option
+                                            <?= isset($outlet_information) && $outlet_information->registro_detallado== "No" ? 'selected' : '' ?>
+                                                value="No"><?php echo lang('no')?></option>
+                                        <option
+                                            <?= isset($outlet_information) && $outlet_information->registro_detallado== "Yes" ? 'selected' : '' ?>
+                                                value="Yes"><?php echo lang('yes')?></option>
+                                    </select>
+                                </div>
+                                <?php if (form_error('registro_detallado')) { ?>
+                                    <div class="callout callout-danger my-2">
+                                        <?php echo form_error('registro_detallado'); ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
+
                         <div class="mb-3 col-sm-12 col-md-3 col-lg-3">
                                     <div class="form-group">
                                         <label> <?php echo lang('online_order_module'); ?> </label>

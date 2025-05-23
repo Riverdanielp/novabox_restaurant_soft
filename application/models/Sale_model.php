@@ -1959,83 +1959,100 @@ class Sale_model extends CI_Model {
           return false;
         }
     }
-    /**
-     * custom table data return
-     * @access public
-     * @param int
-     * @param int
-     * @param int
-     * @param int
-     */
+    
     public function make_query($outlet_id){
-        $this->db->select("tbl_sales.*,tbl_users.full_name,tbl_customers.name as customer_name,tbl_payment_methods.name,tbl_customers.phone as customer_phone");
-        $this->db->from('tbl_sales');
-        $this->db->join('tbl_customers', 'tbl_customers.id = tbl_sales.customer_id', 'left');
-        $this->db->join('tbl_users', 'tbl_users.id = tbl_sales.user_id', 'left');
-        $this->db->join('tbl_payment_methods', 'tbl_payment_methods.id = tbl_sales.payment_method_id', 'left');
-        if (!empty($_POST["search"]["value"])) {
-            $this->db->like("sale_no",$_POST["search"]["value"]);
-            $this->db->or_like("tbl_customers.name",$_POST["search"]["value"]);
-            $this->db->or_like("tbl_customers.phone",$_POST["search"]["value"]);
-            $this->db->or_like("tbl_users.full_name",$_POST["search"]["value"]);
-        }
-        $this->db->where("tbl_sales.outlet_id", $outlet_id);
-        $this->db->where("tbl_sales.order_status", '3');
-        $this->db->where("tbl_sales.del_status", "Live");
-        $this->db->order_by('tbl_sales.id', 'DESC');
-    }
-    /**
-     * return table limit row
-     * @access public
-     * @param int
-     * @param int
-     * @param int
-     * @param int
-     */
-    public function make_datatables($outlet_id){
-        $this->make_query($outlet_id);
-        if(!empty($_POST["length"]) != -1){
-          $this->db->limit(!empty($_POST["length"]), !empty($_POST["start"]));
-        }
-        return $this->db->get()->result();
-    }
-    /**
-     * draw the datatable
-     * @access public
-     * @param string
-     */
-    public function getDrawData(){
-      return !empty($_POST["draw"]);
-    }
-    /**
-     * filtered the ajax datatable
-     * @access public
-     * @param int
-     * @param int
-     * @param int
-     * @param int
-     */
-    public function get_filtered_data($outlet_id){
-        $this->make_query($outlet_id);
-        $result = $this->db->get();
-        return $result->num_rows();
-    }
-    /**
-     * return all data
-     * @access public
-     * @param int
-     * @param int
-     * @param int
-     * @param int
-     */
-    public function get_all_data($outlet_id){
-        $this->db->select("*");
-        $this->db->from('tbl_sales');
-        $this->db->where("outlet_id", $outlet_id);
-        $this->db->where("order_status", '3');
-        $this->db->where("del_status", "Live");
-        return $this->db->count_all_results();
-    }
+      $this->db->select("tbl_sales.*,tbl_users.full_name,tbl_customers.name as customer_name,tbl_payment_methods.name as payment_method_name,tbl_customers.phone as customer_phone");
+      $this->db->from('tbl_sales');
+      $this->db->join('tbl_customers', 'tbl_customers.id = tbl_sales.customer_id', 'left');
+      $this->db->join('tbl_users', 'tbl_users.id = tbl_sales.user_id', 'left');
+      $this->db->join('tbl_payment_methods', 'tbl_payment_methods.id = tbl_sales.payment_method_id', 'left');
+      // Busqueda global
+      if (!empty($_POST["search"]["value"])) {
+          $search = $_POST["search"]["value"];
+          $this->db->group_start();
+          $this->db->like("sale_no", $search);
+          $this->db->or_like("tbl_customers.name", $search);
+          $this->db->or_like("tbl_customers.phone", $search);
+          $this->db->or_like("tbl_users.full_name", $search);
+          $this->db->group_end();
+      }
+      $this->db->where("tbl_sales.outlet_id", $outlet_id);
+      $this->db->where("tbl_sales.order_status", '3');
+      $this->db->where("tbl_sales.del_status", "Live");
+  
+      // Orden dinámico desde DataTables
+      if(isset($_POST['order'])){
+          // Define aquí tus columnas de DataTables (ajusta a tus columnas visibles)
+          $columns = [
+              0 => 'tbl_sales.id',
+              1 => 'tbl_sales.sale_no',
+              2 => 'tbl_sales.order_type',
+              3 => 'tbl_sales.sale_date',
+              4 => 'tbl_customers.name',
+              5 => 'tbl_sales.total_payable',
+              6 => 'tbl_sales.total_refund',
+              7 => 'tbl_payment_methods.name',
+              8 => 'tbl_users.full_name'
+          ];
+          $colIndex = $_POST['order'][0]['column'];
+          $colName = isset($columns[$colIndex]) ? $columns[$colIndex] : 'tbl_sales.id';
+          $colDir = $_POST['order'][0]['dir'];
+          $this->db->order_by($colName, $colDir);
+      } else {
+          $this->db->order_by('tbl_sales.id', 'DESC');
+      }
+  }
+  
+  public function make_datatables($outlet_id){
+      $this->make_query($outlet_id);
+      // Solo limita si length != -1
+      if(isset($_POST["length"]) && $_POST["length"] != -1){
+          $this->db->limit(intval($_POST["length"]), intval($_POST["start"]));
+      }
+      return $this->db->get()->result();
+  }
+  
+  public function getDrawData() {
+      return isset($_POST["draw"]) ? intval($_POST["draw"]) : 1;
+  }
+  
+  public function get_filtered_data($outlet_id){
+      $this->make_query($outlet_id);
+      return $this->db->count_all_results();
+  }
+  
+  public function get_all_data($outlet_id){
+      $this->db->from('tbl_sales');
+      $this->db->where("outlet_id", $outlet_id);
+      $this->db->where("order_status", '3');
+      $this->db->where("del_status", "Live");
+      return $this->db->count_all_results();
+  }
+  
+  public function getDetailedExpenses($from_datetime, $to_datetime, $counter_id, $outlet_id) {
+      $this->db->select("amount, note, payment_id, date, category_id, employee_id,added_date_time");
+      $this->db->from("tbl_expenses");
+      $this->db->where("del_status", "Live");
+      $this->db->where("outlet_id", $outlet_id);
+      $this->db->where("counter_id", $counter_id);
+      // Rango de fechas/hora
+      $this->db->where("added_date_time >=", $from_datetime);
+      $this->db->where("added_date_time <=", $to_datetime);
+      $query = $this->db->get();
+      return $query->result();
+  }
 
+  public function getDetailedSales($outlet_id, $from_datetime, $to_datetime = null) {
+      $this->db->select("date_time, number_slot_name, sale_no, paid_amount as amount");
+      $this->db->from('tbl_sales');
+      $this->db->where("outlet_id", $outlet_id);
+      $this->db->where("date_time >=", $from_datetime);
+      if ($to_datetime) {
+          $this->db->where("date_time <=", $to_datetime);
+      }
+      $this->db->where('del_status', 'Live');
+      $this->db->order_by('date_time', 'asc');
+      return $this->db->get()->result();
+  }
 }
 

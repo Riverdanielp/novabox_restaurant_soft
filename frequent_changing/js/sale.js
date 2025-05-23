@@ -6,6 +6,7 @@ $(document).ready(function(){
       autoWidth: false,
       ordering: true,
       processing: true,
+      serverSide: true, 
       order: [[0, "desc"]],
       ajax: {
           url: base_url + "Sale/getAjaxData",

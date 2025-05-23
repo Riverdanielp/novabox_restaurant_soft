@@ -228,4 +228,4 @@ if ($this->session->flashdata('exception_1')) {
 <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
 
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/jquery.cookie.js"></script>
-<script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/sale.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/sale.js<?php echo VERS() ?>"></script>

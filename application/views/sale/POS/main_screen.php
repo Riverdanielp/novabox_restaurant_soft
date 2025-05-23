@@ -936,7 +936,7 @@ foreach ($notifications as $single_notification){
                         <?php    if($designation!="Waiter"):?>
                         <li>
                             <a href="#" id="register_details" class="header_menu_icon <?php echo escape_output($is_self_order_class) ?> register_details"
-                                data-tippy-content="<?php echo lang('register'); ?>">
+                                data-tippy-content="<?php echo 'Registro de Caja' //lang('register'); ?>">
                                 <i class="fal fa-registered"></i>
                             </a>
                         </li>
@@ -2144,7 +2144,7 @@ foreach ($notifications as $single_notification){
                             
                             <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
                             
-                        <button class="btn bg-blue-btn w-10" id="ruc_search"><i class="icon ti-search"></i>Buscar RUC</button>
+                        <button class="btn btn-default w-10" id="ruc_search"><i class="icon ti-search"></i>Buscar RUC</button>
                         <br>
                         <span id="ruc_message" class="mt-2 text-info">(Ingrese RUC y presione 'Enter')</span> 
                             <br>
@@ -2358,7 +2358,7 @@ foreach ($notifications as $single_notification){
                             
                             <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
                                 
-                            <button class="btn bg-blue-btn w-10" id="ruc_search_preimpreso"><i class="icon ti-search"></i>Buscar RUC</button>
+                            <button class="btn btn-default w-10" id="ruc_search_preimpreso"><i class="icon ti-search"></i>Buscar RUC</button>
                             <br>
                             <span id="ruc_message_preimpreso" class="mt-2 text-info">(Ingrese RUC y presione 'Enter')</span> 
                             <br>
@@ -2367,7 +2367,7 @@ foreach ($notifications as $single_notification){
 
                         <div class="customer_section">
                             <p class="input_level">Tipo: <span class="ir_color_red">*</span></p>
-                            <select class="add_customer_modal_input" id="preimpresa_tipo" required>
+                            <select class="add_customer_modal_input form-control" id="preimpresa_tipo" required>
                                 <?php 
                                     $getOutletInfo = $this->Common_model->getDataById($this->session->userdata('outlet_id'), "tbl_outlets");
                                     if ($getOutletInfo->preimpreso_mode == "direct_print") :
@@ -2966,6 +2966,9 @@ foreach ($notifications as $single_notification){
         <div class="pos__modal__body scrollbar-macosx">
             <div class="default_inner_body" id="register_details_content_o">
                 <input type="hidden" class="datatable_name" data-title="<?php echo lang('register_details'); ?>" data-id_name="datatable">
+                <div class="modal_loader" style="display:none;text-align:center;padding:30px;">
+                    <i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>
+                </div>
                 <div class="html_content">
 
                 </div>
@@ -2974,11 +2977,25 @@ foreach ($notifications as $single_notification){
         <footer class="pos__modal__footer">
             <div class="right_box">
                 <button type="button"  id="register_close"><?php echo lang('close_register'); ?></button>
-                <button type="button"  id="register_printer_app">Printer App</button>
+                <!-- <button type="button"  id="register_printer_app">Printer App</button> -->
+                <button type="button" id="register_expense_add"><?php echo lang('add_expense'); ?></button>
+
                 <button type="button" class="modal_hide_register"><?php echo lang('cancel'); ?></button>
             </div>
         </footer>
     </div>
+
+    <div class="cus_pos_modal" id="expense_modal_registro">
+        <header class="pos__modal__header">
+            <h3 class="pos__modal__title"><?php echo lang('add_expense'); ?></h3>
+            <a href="javascript:void(0)" class="pos__modal__close close_expense_modal"><i class="fal fa-times"></i></a>
+        </header>
+        <div class="pos__modal__body scrollbar-macosx">
+            <div class="expense_form_content"></div>
+        </div>
+    </div>
+
+
 <div class="cus_pos_modal"  id="reservation_modal">
     <header class="pos__modal__header">
         <h3 class="pos__modal__title title_custom"><?php echo lang('register_details'); ?> </h3>
@@ -5025,7 +5042,7 @@ foreach ($notifications as $single_notification){
     <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/pdfmake.min.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js?v=7.5"></script>
-    <script src="<?php echo base_url(); ?>frequent_changing/js/register_details.js?v=7.5"></script>
+    <script src="<?php echo base_url(); ?>frequent_changing/js/register_details.js<?php echo VERS() ?>"></script>
 </body>
 
 </html>

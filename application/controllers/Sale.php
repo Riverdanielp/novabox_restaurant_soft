@@ -1466,7 +1466,9 @@ class Sale extends Cl_Controller {
             $data['order_type'] = trim_checker($order_details->order_type);
             $this->db->trans_begin();
             $sale_id = isset($sale_d->id) && $sale_d->id?$sale_d->id:'';
+            $is_new = 1;
             if($sale_id>0){
+                $is_new = 0;
                 $data['user_id'] = $sale_d->user_id;
                 $data['date_time'] = $sale_d->date_time;
                 $data['order_time'] = $sale_d->order_time;
@@ -1511,6 +1513,7 @@ class Sale extends Cl_Controller {
                 $this->db->update('tbl_kitchen_sales', $data);
                 checkAndRemoveAllRemovedItem($order_details->items,$sale_id);
             }else{
+                $is_new = 1;
                 $data['date_time'] = date('Y-m-d H:i:s'); //,strtotime($order_details->date_time) $sale_d->date
                 $data['order_time'] = date("H:i:s");//,strtotime($order_details->order_time));
                 $data['order_status'] = trim_checker($order_details->order_status);
@@ -1593,12 +1596,16 @@ class Sale extends Cl_Controller {
                 $arr_item_id = array();
                 foreach($order_details->items as $key_counter=>$item){
                     $tmp_var_111 = isset($item->p_qty) && $item->p_qty && $item->p_qty!='undefined'?$item->p_qty:0;
-                    $tmp = $item->qty-$tmp_var_111;
+                    $tmp = intval($item->qty)-intval($tmp_var_111);
                     $tmp_var = 0;
-                    if($tmp>0){
-                        $tmp_var = $tmp;
+                    if($is_new>0){
+                        $tmp_var = $item->qty;
+                    } else {
+                        if($tmp>0){
+                            $tmp_var = $tmp;
+                        }    
+
                     }
-            
                     $item_data = array();
                     $item_data['food_menu_id'] = $item->food_menu_id;
                     $item_data['menu_name'] = $item->menu_name;
@@ -1832,7 +1839,8 @@ class Sale extends Cl_Controller {
                             }
                             $printers_direct_print[$ky]->store_name = lang('KOT').":".($value->kitchen_name);
                             $printers_direct_print[$ky]->sale_type = $order_type;
-                            $printers_direct_print[$ky]->sale_no_p = $sale_no;
+                            $is_modified = ($is_new==0)?' MODIFICADO':'';
+                            $printers_direct_print[$ky]->sale_no_p = $sale_no .$is_modified;
                             $printers_direct_print[$ky]->date = escape_output(date($this->session->userdata('date_format'), strtotime($data['sale_date'])));
                             $printers_direct_print[$ky]->time_inv = $data['order_time'];
                             $printers_direct_print[$ky]->sales_associate = $order_details->user_name;
@@ -1854,28 +1862,32 @@ class Sale extends Cl_Controller {
                             $printers_direct_print[$ky]->lang_table = lang('table');
                             $items = "\n";
                             $count = 1;
+                            $count_item_to_print = 0;
                             foreach ($sale_items as $item){
                                 if($item->tmp_qty):
-                                    $items.= printLine(("#".$count." ".(getPlanData($item->menu_name))).": " .($item->tmp_qty), $value->characters_per_line)."\n";
+                                    $items .= printText((($item->tmp_qty) . " * ".(getPlanData($item->menu_name))), $value->characters_per_line)."\n";
                                     $count++;
                                     if($item->menu_combo_items && $item->menu_combo_items!=null){
                                         $items.= (printText(lang('combo_txt').': '.$item->menu_combo_items,$value->characters_per_line)."\n");
                                     }
-                                    if(isset($item->menu_note)){
+                                    if(isset($item->menu_note) && strlen($item->menu_note) > 0){
                                         $items.= (printText(lang('note').': '.$item->menu_note,$value->characters_per_line)."\n");
                                     }
-                                    if(isset($item->item_note)){
+                                    if(isset($item->item_note) && strlen($item->item_note) > 0){
                                         $items.= (printText(lang('note').': '.$item->item_note,$value->characters_per_line)."\n");
                                     }
                                     if(count($item->modifiers)>0){
                                         foreach($item->modifiers as $modifier){
-                                            $items.= "   ".printLine((getPlanData($modifier->name)).": " .($item->tmp_qty), ($value->characters_per_line - 3))."\n";
+                                            $items .= "   " . printText(" + " .(getPlanData($modifier->name))  , ($value->characters_per_line - 3)) . "\n";
                                         }
                                     }
                                     $count++;
+                                    $count_item_to_print++;
                                 endif;
                             }
-                            $printers_direct_print[$ky]->items = $items;
+                            if ($count_item_to_print > 0) {
+                                $printers_direct_print[$ky]->items = $items;
+                            }
                         }else{
                             $printers_direct_print[$ky]->ipvfour_address = '';
                         }
@@ -2179,7 +2191,7 @@ class Sale extends Cl_Controller {
                             
                             if (count($item->modifiers) > 0) {
                                 foreach ($item->modifiers as $modifier) {
-                                    $items .= "   " . printLine(($qty). " * " .(getPlanData($modifier->name))  , ($value->characters_per_line - 3)) . "\n";
+                                    $items .= "   " . printText(" + " .(getPlanData($modifier->name))  , ($value->characters_per_line - 3)) . "\n";
                                 }
                             }
                             
@@ -3229,10 +3241,10 @@ class Sale extends Cl_Controller {
      */
     public function get_all_information_of_a_sale_modify($sales_id){
         $sales_information = $this->Sale_model->getSaleBySaleId($sales_id);
-    //     echo 'get_all_information_of_a_sale_modify';
-    //    echo '<pre>';
-    //    var_dump($sales_information); 
-    //    echo '<pre>';
+        //     echo 'get_all_information_of_a_sale_modify';
+        //    echo '<pre>';
+        //    var_dump($sales_information); 
+        //    echo '<pre>';
        
         $sales_information[0]->selected_number = isset($sales_information[0]->number_slot) && $sales_information[0]->number_slot?$sales_information[0]->number_slot:'';
         $sales_information[0]->selected_number_name = isset($sales_information[0]->number_slot_name) && $sales_information[0]->number_slot_name?$sales_information[0]->number_slot_name:'';
@@ -3264,19 +3276,34 @@ class Sale extends Cl_Controller {
         }
         
         $sales_details_objects = $items_by_sales_id;
-        $sales_details_objects[0]->menu_price_without_discount = getAmtP(isset($sales_details_objects[0]->menu_price_without_discount) && $sales_details_objects[0]->menu_price_without_discount?$sales_details_objects[0]->menu_price_without_discount:0);
-        $sales_details_objects[0]->menu_price_with_discount = getAmtP(isset($sales_details_objects[0]->menu_price_with_discount) && $sales_details_objects[0]->menu_price_with_discount?$sales_details_objects[0]->menu_price_with_discount:0);
-        $sales_details_objects[0]->menu_unit_price = getAmtP(isset($sales_details_objects[0]->menu_unit_price) && $sales_details_objects[0]->menu_unit_price?$sales_details_objects[0]->menu_unit_price:0);
-        $sales_details_objects[0]->menu_vat_percentage = getAmtP(isset($sales_details_objects[0]->menu_vat_percentage) && $sales_details_objects[0]->menu_vat_percentage?$sales_details_objects[0]->menu_vat_percentage:0);
-        $sales_details_objects[0]->discount_amount = getAmtP(isset($sales_details_objects[0]->discount_amount) && $sales_details_objects[0]->discount_amount?$sales_details_objects[0]->discount_amount:0);
-
-        $this_value = $sales_details_objects[0]->menu_discount_value;
-        $disc_fields = explode('%',$this_value);
-        $discP = isset($disc_fields[1]) && $disc_fields[1]?$disc_fields[1]:'';
-        if ($discP == "") {
-        } else {
-            $sales_details_objects[0]->menu_discount_value = getAmtP(isset($sales_details_objects[0]->menu_discount_value) && $sales_information[0]->menu_discount_value?$sales_details_objects[0]->menu_discount_value:0);
+        if (isset($sales_details_objects[0])) {
+            $sales_details_objects[0]->menu_price_without_discount = getAmtP(isset($sales_details_objects[0]->menu_price_without_discount) && $sales_details_objects[0]->menu_price_without_discount?$sales_details_objects[0]->menu_price_without_discount:0);
+            $sales_details_objects[0]->menu_price_with_discount = getAmtP(isset($sales_details_objects[0]->menu_price_with_discount) && $sales_details_objects[0]->menu_price_with_discount?$sales_details_objects[0]->menu_price_with_discount:0);
+            $sales_details_objects[0]->menu_unit_price = getAmtP(isset($sales_details_objects[0]->menu_unit_price) && $sales_details_objects[0]->menu_unit_price?$sales_details_objects[0]->menu_unit_price:0);
+            $sales_details_objects[0]->menu_vat_percentage = getAmtP(isset($sales_details_objects[0]->menu_vat_percentage) && $sales_details_objects[0]->menu_vat_percentage?$sales_details_objects[0]->menu_vat_percentage:0);
+            $sales_details_objects[0]->discount_amount = getAmtP(isset($sales_details_objects[0]->discount_amount) && $sales_details_objects[0]->discount_amount?$sales_details_objects[0]->discount_amount:0);
+        
+            $this_value = $sales_details_objects[0]->menu_discount_value;
+            $disc_fields = explode('%',$this_value);
+            $discP = isset($disc_fields[1]) && $disc_fields[1]?$disc_fields[1]:'';
+            if ($discP == "") {
+            } else {
+                $sales_details_objects[0]->menu_discount_value = getAmtP(isset($sales_details_objects[0]->menu_discount_value) && $sales_information[0]->menu_discount_value?$sales_details_objects[0]->menu_discount_value:0);
+            }
         }
+        // $sales_details_objects[0]->menu_price_without_discount = getAmtP(isset($sales_details_objects[0]->menu_price_without_discount) && $sales_details_objects[0]->menu_price_without_discount?$sales_details_objects[0]->menu_price_without_discount:0);
+        // $sales_details_objects[0]->menu_price_with_discount = getAmtP(isset($sales_details_objects[0]->menu_price_with_discount) && $sales_details_objects[0]->menu_price_with_discount?$sales_details_objects[0]->menu_price_with_discount:0);
+        // $sales_details_objects[0]->menu_unit_price = getAmtP(isset($sales_details_objects[0]->menu_unit_price) && $sales_details_objects[0]->menu_unit_price?$sales_details_objects[0]->menu_unit_price:0);
+        // $sales_details_objects[0]->menu_vat_percentage = getAmtP(isset($sales_details_objects[0]->menu_vat_percentage) && $sales_details_objects[0]->menu_vat_percentage?$sales_details_objects[0]->menu_vat_percentage:0);
+        // $sales_details_objects[0]->discount_amount = getAmtP(isset($sales_details_objects[0]->discount_amount) && $sales_details_objects[0]->discount_amount?$sales_details_objects[0]->discount_amount:0);
+
+        // $this_value = $sales_details_objects[0]->menu_discount_value;
+        // $disc_fields = explode('%',$this_value);
+        // $discP = isset($disc_fields[1]) && $disc_fields[1]?$disc_fields[1]:'';
+        // if ($discP == "") {
+        // } else {
+        //     $sales_details_objects[0]->menu_discount_value = getAmtP(isset($sales_details_objects[0]->menu_discount_value) && $sales_information[0]->menu_discount_value?$sales_details_objects[0]->menu_discount_value:0);
+        // }
 
         $sale_object = $sales_information[0];
         $sale_object->items = $sales_details_objects;
@@ -4096,7 +4123,213 @@ class Sale extends Cl_Controller {
      * @return array
      * @param no
      */
-    public function registerDetailCalculationToShow(){
+    public function registerDetailCalculationToShow() {
+        $opening_date_time = $this->getOpeningDateTime();
+        $closing_date_time = $this->getClosingDateTime();
+        $outlet_id = $this->session->userdata('outlet_id');
+        $counter_id = $this->session->userdata('counter_id');
+    
+        // Obtener opciones de outlet
+        $getOutletInfo = $this->Common_model->getDataById($outlet_id, "tbl_outlets");
+        $registro_ocultar = $getOutletInfo->registro_ocultar;
+        $registro_detallado = $getOutletInfo->registro_detallado;
+    
+        $opening_details = $this->getOpeningDetails();
+        $opening_details_decode = json_decode($opening_details);
+    
+        $show_main_table = true;
+        if($registro_ocultar === "Yes" && !$closing_date_time){
+            $show_main_table = false;
+        }
+    
+        $html_content = "";
+    
+        // Tabla de gastos detallados
+        $fromDate = $opening_date_time;
+        $toDate = $closing_date_time ? $closing_date_time : date('Y-m-d H:i:s');
+        $detailed_expenses = $this->Sale_model->getDetailedExpenses($fromDate, $toDate, $counter_id, $outlet_id);
+        if ($detailed_expenses && count($detailed_expenses) > 0) {
+            $html_content .= '<h3>Registro de Gastos</h3>';
+            $html_content .= '<table class="table_register_details table_expense_details top_margin_15">
+                <thead>
+                    <tr>
+                        <th>Fecha/Hora</th>
+                        <th>Descripción</th>
+                        <th class="text_right">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>';
+            foreach ($detailed_expenses as $exp) {
+                $html_content .= '<tr>
+                    <td>'.date("Y-m-d H:i", strtotime($exp->added_date_time)).'</td>
+                    <td>'.htmlspecialchars($exp->note).'</td>
+                    <td class="text_right">'.getAmtPCustom($exp->amount).'</td>
+                </tr>';
+            }
+            $html_content .= '</tbody></table>';
+        }
+    
+        // Tabla de ventas detalladas si "registro_detallado"
+        if($registro_detallado === "Yes"){
+            $html_content .= '<h3>Registro de Ventas</h3>';
+            $detailed_sales = $this->Sale_model->getDetailedSales($outlet_id, $fromDate, $toDate);
+            if ($detailed_sales && count($detailed_sales) > 0) {
+                $html_content .= '<table class="table_register_details table_sale_details top_margin_15">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Número</th>
+                            <th class="text_right">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>';
+                foreach ($detailed_sales as $sale) {
+                    $html_content .= '<tr>
+                        <td>'.date("Y-m-d H:i", strtotime($sale->date_time)).'</td>
+                        <td>#'.$sale->number_slot_name.' '.$sale->sale_no.'</td>
+                        <td class="text_right">'.getAmtPCustom($sale->amount).'</td>
+                    </tr>';
+                }
+                $html_content .= '</tbody></table>';
+            }
+        }
+
+        // Tabla principal (solo si corresponde mostrarla)
+        if($show_main_table){
+            $html_content .= '<table id="datatable" class="table_register_details top_margin_15"><thead>
+                <tr><th></th><th></th><th></th><th></th></tr></thead><tbody>
+                <tr>
+                    <th>'.lang('counter').' '.lang('name').'</th>
+                    <th>'.getCounterName($counter_id).'</th>
+                    <th></th><th></th>
+                </tr>
+                <tr>
+                    <th>'.lang('Time_Range').'</th>
+                    <th>'.(date("Y-m-d h:i:s A",strtotime($opening_date_time))).' to '.($closing_date_time ? date("Y-m-d h:i:s A",strtotime($closing_date_time)) : date("Y-m-d h:i:s A")).'</th>
+                    <th></th><th></th>
+                </tr>
+                <tr><td>&nbsp;</td><td>&nbsp;</td><th>&nbsp;</th><th class="text_right">&nbsp;</th></tr>
+                <tr>
+                    <th>'.lang('sn').'</th>
+                    <th>'.lang('payment_method').'</th>
+                    <th>'.lang('Transactions').'</th>
+                    <th class="text_right">'.lang('amount').'</th>
+                </tr>';
+    
+            $array_p_name = array();
+            $array_p_amount = array();
+            if(isset($opening_details_decode) && $opening_details_decode){
+                foreach ($opening_details_decode as $key=>$value){
+                    $key++;
+                    $payments = explode("||",$value);
+    
+                    $total_purchase = $this->Sale_model->getAllPurchaseByPayment($opening_date_time,$payments[0]);
+                    $total_due_receive = $this->Sale_model->getAllDueReceiveByPayment($opening_date_time,$payments[0]);
+                    $total_due_payment = $this->Sale_model->getAllDuePaymentByPayment($opening_date_time,$payments[0]);
+                    $total_expense = $this->Sale_model->getAllExpenseByPayment($opening_date_time,$payments[0]);
+                    $refund_amount = $this->Sale_model->getAllRefundByPayment($opening_date_time,$payments[0]);
+                    $total_sale =  $this->Sale_model->getAllSaleByPayment($opening_date_time,$payments[0]);
+    
+                    $inline_total = $payments[2] - $total_purchase + $total_sale + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
+    
+                    $array_p_name[] = $payments[1];
+                    $array_p_amount[] = $inline_total;
+    
+                    $html_content .= '<tr>
+                                <td>'.$key.'</td>
+                                <td>'.$payments[1].'</td>
+                                <td>'.lang('register_detail_1').'</td>
+                                <td class="text_right">'.getAmtPCustom($payments[2]).'</td>
+                            </tr>
+                            <tr>
+                                <td></td><td></td>
+                                <td>'.lang('register_detail_2').'</td>
+                                <td class="text_right">'.getAmtPCustom($total_purchase).'</td>
+                            </tr>
+                            <tr>
+                                <td></td><td></td>
+                                <td>'.lang('register_detail_3').'</td>
+                                <td class="text_right">'.getAmtPCustom($total_sale).'</td>
+                            </tr>';
+                    if($payments[0]==1):
+                        $total_sale_mul_c_rows =  $this->Sale_model->getAllSaleByPaymentMultiCurrencyRows($opening_date_time,$payments[0]);
+                        if($total_sale_mul_c_rows){
+                            foreach ($total_sale_mul_c_rows as $value1):
+                                $html_content .= '<tr>
+                                            <td></td><td></td>
+                                            <td>&nbsp;&nbsp;&nbsp;&nbsp;'.$value1->multi_currency.'</td>
+                                            <td class="text_right">'.getAmtPCustom($value1->total_amount).'</td>
+                                        </tr>';
+                            endforeach;
+                        }
+                    endif;
+                    $html_content .= '<tr>
+                                <td></td><td></td>
+                                <td>'.lang('register_detail_5').'</td>
+                                <td class="text_right">'.getAmtPCustom($total_due_receive).'</td>
+                            </tr>
+                            <tr>
+                                <td></td><td></td>
+                                <td>'.lang('register_detail_6').'</td>
+                                <td class="text_right">'.getAmtPCustom($total_due_payment).'</td>
+                            </tr>
+                            <tr>
+                                <td></td><td></td>
+                                <td>'.lang('register_detail_7').'</td>
+                                <td class="text_right">'.getAmtPCustom($total_expense).'</td>
+                            </tr>
+                            <tr>
+                                <td></td><td></td>
+                                <td>'.lang('refund_amount').'(-)</td>
+                                <td class="text_right">'.getAmtPCustom($refund_amount).'</td>
+                            </tr>
+                            <tr>
+                                <td></td><td></td>
+                                <th>'.lang('closing_balance').'</th>
+                                <th class="text_right">'.getAmtPCustom($inline_total).'</th>
+                            </tr>
+                             <tr>
+                                <td>&nbsp;</td><td>&nbsp;</td>
+                                <th>&nbsp;</th>
+                                <th class="text_right">&nbsp;</th>
+                            </tr>';
+                }
+            }
+    
+            $html_content .= '<tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th>'.lang('summary').'</th>
+                                    <th></th>
+                            </tr>
+                            <tr>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <th>&nbsp;</th>
+                                <th class="text_right">&nbsp;</th>
+                            </tr>';
+            foreach ($array_p_name as $key=>$value){
+                $html_content .= '<tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th>'.$value.'</th>
+                                    <th class="text_right">'.getAmtPCustom($array_p_amount[$key]).'</th>
+                            </tr>';
+            }
+    
+            $html_content.='</tbody></table>';
+        }
+    
+    
+        $register_detail = array(
+            'opening_date_time' => date('Y-m-d h:i A', strtotime($opening_date_time)),
+            'closing_date_time' => $closing_date_time,
+            'html_content_for_div' => $html_content,
+        );
+        return $register_detail;
+    }
+
+    public function registerDetailCalculationToShowOld(){
         $opening_date_time = $this->getOpeningDateTime();
         $opening_details= $this->getOpeningDetails();
 
@@ -4710,6 +4943,72 @@ class Sale extends Cl_Controller {
      * @return json
      */
     public function getAjaxData() {
+        $outlet_id = $this->session->userdata('outlet_id');
+        $user_id = $this->session->userdata('user_id');
+        $sales = $this->Sale_model->make_datatables($outlet_id);
+        $data = array();
+    
+        $i = $_POST['start'] + 1;
+        foreach ($sales as $value){
+            if($value->del_status=="Live"):
+                $order_type = "";
+                if($value->order_type=='1'){
+                    $order_type = "Mesa";
+                }elseif($value->order_type=='2'){
+                    $order_type = "Para Llevar";
+                }elseif($value->order_type=='3'){
+                    $order_type = "Delivery";
+                }
+    
+                $html = '';
+                $html .= '<a data-access="refund-123" class="btn btn-deep-purple menu_assign_class" href="'.base_url().'Sale/refund/'.($this->custom->encrypt_decrypt($value->id, 'encrypt')).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('refund').'"><i class="fas fa-money-bill-alt"></i></a>';
+                $html .= '<a data-access="view_invoice-123" class="btn btn-unique menu_assign_class" onclick="viewInvoice('.$value->id.')" href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('view_invoice').'"><i class="fas fa-print"></i></a>';
+                if($order_type=="Delivery"):
+                    $html .= '<a data-access="change_delivery_address-123" class="btn btn-cyan menu_assign_class change_delivery_details" data-status="'.escape_output($value->status).'" data-id="'.escape_output($value->id).'" href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('change_delivery_address').'"><i class="fa fa-truck tiny-icon"></i></a>';
+                endif;
+                $html .= '<a data-access="view_invoice-123" class="btn btn-warning menu_assign_class" href="'.base_url().'Sale/POS/'.$user_id.'/'.$outlet_id.'/'.$value->id.'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('edit_sale').'"><i class="far fa-edit"></i></a>';
+                $html .= '<a class="delete btn btn-danger menu_assign_class" href="'.base_url().'Sale/deleteSale/'.($this->custom->encrypt_decrypt($value->id, 'encrypt')).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('delete').'"><i class="fa-regular fa-trash-can"></i></a>';
+    
+                $sub_array =  array();
+                $sub_array[] = escape_output($i++);
+                $sub_array[] = escape_output($value->sale_no);
+                $sub_array[] = escape_output($order_type);
+                $sub_array[] = escape_output(date($this->session->userdata['date_format'], strtotime($value->sale_date)))." ".escape_output($value->order_time);
+                $sub_array[] = escape_output($value->customer_name).''.escape_output($value->customer_phone?' ('.$value->customer_phone.')':'');
+                $sub_array[] = escape_output(getAmtPCustom($value->total_payable));
+                $sub_array[] = (($value->total_refund?escape_output(getAmtPCustom($value->total_refund)).' <i data-id="'.$value->id.'" class="fa fa-eye getDetailsRefund pointer_class"></i>':''));
+                $payment_details = '';
+                $outlet_id = $this->session->userdata('outlet_id');
+                $salePaymentDetails = salePaymentDetails($value->id,$outlet_id);
+                if(isset($salePaymentDetails) && $salePaymentDetails):
+                    foreach ($salePaymentDetails as $ky=>$payment):
+                        $txt_point = '';
+                        if($payment->id==5){
+                            $txt_point = " (Usage Point:".$payment->usage_point.")";
+                        }
+                        $payment_details.=(escape_output($payment->payment_name.$txt_point).":".escape_output(getAmtPCustom($payment->amount)));
+                        if($ky<(sizeof($salePaymentDetails))-1){
+                            $payment_details.=" - ";
+                        }
+                    endforeach;
+                endif;
+                $sub_array[] = $payment_details;
+                $sub_array[] = escape_output($value->full_name);
+                $sub_array[] = '<div class="btn_group_wrap">'.$html.'</div>';
+                $data[] = $sub_array;
+            endif;
+        }
+    
+        $output = array(
+            "draw" => intval($this->Sale_model->getDrawData()),
+            "recordsTotal" => $this->Sale_model->get_all_data($outlet_id),
+            "recordsFiltered" => $this->Sale_model->get_filtered_data($outlet_id),
+            "data" => $data
+        );
+        echo json_encode($output);
+    }
+
+    public function getAjaxDataOld() {
         $outlet_id = $this->session->userdata('outlet_id');
         $user_id = $this->session->userdata('user_id');
         $sales = $this->Sale_model->make_datatables($outlet_id);
@@ -5604,6 +5903,213 @@ class Sale extends Cl_Controller {
     }
 
     public function printer_app_register_report() {
+        // Obtener datos de apertura y cierre
+        $opening_date_time = $this->getOpeningDateTime();
+        $closing_date_time = $this->getClosingDateTime();
+        $opening_details = $this->getOpeningDetails();
+        $opening_details_decode = json_decode($opening_details);
+    
+        // Información de la empresa
+        $company = [
+            'name' => $this->session->userdata('outlet_name'),
+            'address' => $this->session->userdata('address'),
+            'phone' => $this->session->userdata('phone'),
+            'invoice_logo' => $this->session->userdata('invoice_logo'),
+            'footer' => $this->session->userdata('invoice_footer'),
+        ];
+    
+        $content = [
+            ['type' => 'text', 'align' => 'center', 'text' => 'REPORTE DE CIERRE DE CAJA'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Sucursal: ' . $company['name']],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Caja: ' . getCounterName($this->session->userdata('counter_id'))],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Apertura: ' . date('Y-m-d h:i A', strtotime($opening_date_time))],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Cierre: ' . ($closing_date_time ? $closing_date_time : date('Y-m-d h:i A') )], //date('Y-m-d h:i A')
+            ['type' => 'text', 'align' => 'left', 'text' => 'Usuario: ' . $this->session->userdata('full_name')],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+            // ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'],
+            // ['type' => 'text', 'align' => 'center', 'text' => ''],
+        ];
+    
+        $summary_names = [];
+        $summary_amounts = [];
+        if ($opening_details_decode) {
+            foreach ($opening_details_decode as $key => $value) {
+                $payments = explode('||', $value);
+    
+                $payment_id = $payments[0];
+                $payment_name = $payments[1];
+                $opening_balance = (float) $payments[2];
+    
+                $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id);
+                $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id);
+                $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id);
+                $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id);
+                $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id);
+                $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id);
+    
+                $closing_balance = $opening_balance - $total_purchase + $total_sale + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
+    
+                // Checar si todos los valores están en 0
+                $all_zeros = (
+                    $opening_balance == 0 &&
+                    $total_purchase == 0 &&
+                    $total_due_receive == 0 &&
+                    $total_due_payment == 0 &&
+                    $total_expense == 0 &&
+                    $refund_amount == 0 &&
+                    $total_sale == 0 &&
+                    $closing_balance == 0
+                );
+    
+                // Si todos los valores son 0, no imprimir este método de pago
+                if ($all_zeros) {
+                    continue;
+                }
+    
+                // Guardar para resumen final
+                $summary_names[] = $payment_name;
+                $summary_amounts[] = $closing_balance;
+    
+                // Detalle por método de pago
+                $detail_section = [];
+    
+                $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+                $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => strtoupper($payment_name)];
+    
+                if ($opening_balance != 0) {
+                    $detail_section[] = ['type' => 'extremos', 'textLeft' => 'Saldo inicial', 'textRight' => getAmtPCustom($opening_balance)];
+                }
+    
+                if ($total_purchase != 0) {
+                    $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_2'), 'textRight' => getAmtPCustom($total_purchase)];
+                }
+    
+                if ($total_sale != 0) {
+                    $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_3'), 'textRight' => getAmtPCustom($total_sale)];
+                }
+    
+                // Multimoneda solo si es efectivo (id==1)
+                if ($payment_id == 1) {
+                    $total_sale_mul_c_rows = $this->Sale_model->getAllSaleByPaymentMultiCurrencyRows($opening_date_time, $payment_id);
+                    if ($total_sale_mul_c_rows) {
+                        foreach ($total_sale_mul_c_rows as $value1) {
+                            if ((float)$value1->total_amount != 0) {
+                                $detail_section[] = [
+                                    'type' => 'extremos',
+                                    'textLeft' => '    ' . $value1->multi_currency,
+                                    'textRight' => number_format($value1->total_amount,2, ',', '.')
+                                ];
+                            }
+                        }
+                    }
+                }
+    
+                if ($total_due_receive != 0) {
+                    $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_5'), 'textRight' => getAmtPCustom($total_due_receive)];
+                }
+                if ($total_due_payment != 0) {
+                    $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_6'), 'textRight' => getAmtPCustom($total_due_payment)];
+                }
+                if ($total_expense != 0) {
+                    $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_7'), 'textRight' => getAmtPCustom($total_expense)];
+                }
+                if ($refund_amount != 0) {
+                    $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('refund_amount') . '(-)', 'textRight' => getAmtPCustom($refund_amount)];
+                }
+    
+                // Línea de total solo si el closing_balance es distinto de 0
+                if ($closing_balance != 0) {
+                    // $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+                    $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+                    $detail_section[] = ['type' => 'extremos', 'textLeft' => 'TOTAL ' . strtoupper($payment_name), 'textRight' => getAmtPCustom($closing_balance)];
+                }
+    
+                $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+                // Añadir sección de detalles al contenido final
+                $content = array_merge($content, $detail_section);
+            }
+        }
+
+        // Obtener gastos detallados
+        $from_datetime = $opening_date_time;
+        $to_datetime = $closing_date_time ? $closing_date_time : date('Y-m-d H:i:s');
+        $counter_id = $this->session->userdata('counter_id');
+        $outlet_id = $this->session->userdata('outlet_id');
+
+        $gastos = $this->Sale_model->getDetailedExpenses($from_datetime, $to_datetime, $counter_id, $outlet_id);
+
+        if (!empty($gastos)) {
+            $total_gastos = 0;
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DETALLE DE GASTOS'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            foreach ($gastos as $gasto) {
+                if (floatval($gasto->amount) != 0) {
+                    $total_gastos += floatval($gasto->amount);
+                    $nota = $gasto->note ? $gasto->note : '(Sin nota)';
+                    $content[] = [
+                        'type' => 'extremos',
+                        'textLeft' => $nota,
+                        'textRight' => getAmtPCustom($gasto->amount)
+                    ];
+                }
+            }
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            $content[] = [
+                'type' => 'extremos',
+                'textLeft' => 'TOTAL GASTOS',
+                'textRight' => getAmtPCustom($total_gastos)
+            ];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        }
+
+        // Agregar resumen final (sólo los mayores a 0 o menores a 0)
+        if (!empty($summary_names)) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'RESUMEN FINAL'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            foreach ($summary_names as $i => $name) {
+                if ($summary_amounts[$i] != 0) {
+                    $content[] = [
+                        'type' => 'extremos',
+                        'textLeft' => $name,
+                        'textRight' => getAmtPCustom($summary_amounts[$i])
+                    ];
+                }
+            }
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        }
+    
+        // Pie del ticket
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'FIN REPORTE DE CAJA'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'cut'];
+    
+        // Configuración de la impresora (igual que antes)
+        $company_id = $this->session->userdata('company_id');
+        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
+        $counter_details = $this->Common_model->getPrinterIdByCounterId($this->session->userdata('counter_id'));
+        $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
+        $path = @$printer->path;
+    
+        $print_format = $company_data->print_format_bill;
+        $width = ($print_format == "80mm") ? 80 : 58;
+    
+        $printRequest = [
+            'printer' => $path,
+            'width' => $width,
+            'content' => filterArrayRecursivelyEscPos($content)
+        ];
+    
+        $data = json_encode($printRequest);
+        $compressed = gzdeflate($data, 9);
+        $base64 = base64_encode($compressed);
+    
+        echo $base64;
+    }
+    
+    public function printer_app_register_reportOld() {
         // Obtener los datos del informe de caja
         $register_detail = $this->registerDetailCalculationToShow();
         
@@ -6148,5 +6654,42 @@ class Sale extends Cl_Controller {
             'code_short' => $code,
         ]);
         echo $this->session->userdata('code_short');
+    }
+
+    
+    public function addExpenseAjax() {
+        $company_id = $this->session->userdata('company_id');
+        $data['payment_methods'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_payment_methods");
+        $data['expense_categories'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_expense_items");
+        $data['employees'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_users");
+        $this->load->view('expense/addExpense_ajax', $data); // crea esta vista
+    }
+    
+    public function addExpenseAjaxSubmit() {
+        // Validaciones igual que en addEditExpense, pero responde JSON
+        $this->form_validation->set_rules('date',lang('date'), 'required|max_length[50]');
+        $this->form_validation->set_rules('amount',lang('amount'), 'required|max_length[50]');
+        $this->form_validation->set_rules('category_id',lang('category'), 'required|max_length[10]');
+        $this->form_validation->set_rules('employee_id',lang('responsible_person'), 'required|max_length[10]');
+        $this->form_validation->set_rules('payment_id', lang('payment_method'), 'required|numeric|max_length[50]');
+        $this->form_validation->set_rules('note',lang('note'), 'max_length[200]');
+        if ($this->form_validation->run() == TRUE) {
+            $expnse_info = array();
+            $expnse_info['date'] = date("Y-m-d", strtotime($this->input->post('date')));
+            $expnse_info['amount'] = htmlspecialcharscustom($this->input->post('amount'));
+            $expnse_info['category_id'] = htmlspecialcharscustom($this->input->post('category_id'));
+            $expnse_info['employee_id'] = htmlspecialcharscustom($this->input->post('employee_id'));
+            $expnse_info['note'] = htmlspecialcharscustom($this->input->post('note'));
+            $expnse_info['counter_id'] = $this->session->userdata('counter_id');
+            $expnse_info['user_id'] = $this->session->userdata('user_id');
+            $expnse_info['outlet_id'] = $this->session->userdata('outlet_id');
+            $expnse_info['payment_id'] = htmlspecialcharscustom($this->input->post('payment_id'));
+            $expnse_info['added_date_time'] = date('Y-m-d H:i:s');
+            $this->Common_model->insertInformation($expnse_info, "tbl_expenses");
+            echo json_encode(['status'=>'ok', 'msg'=>'Gasto registrado exitosamente']);
+        } else {
+            echo json_encode(['status'=>'error', 'msg'=>validation_errors()]);
+        }
+        exit;
     }
 }

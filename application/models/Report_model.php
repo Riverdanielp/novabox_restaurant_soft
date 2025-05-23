@@ -2470,5 +2470,18 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
         return $result;
     }
 
+    public function getDetailedExpenses($from_datetime, $to_datetime, $counter_id, $outlet_id) {
+        $this->db->select("amount, note, payment_id, date, category_id, employee_id");
+        $this->db->from("tbl_expenses");
+        $this->db->where("del_status", "Live");
+        $this->db->where("outlet_id", $outlet_id);
+        $this->db->where("counter_id", $counter_id);
+        // Rango de fechas/hora
+        $this->db->where("date >=", $from_datetime);
+        $this->db->where("date <=", $to_datetime);
+        $query = $this->db->get();
+        return $query->result();
+    }
+    
 }
 

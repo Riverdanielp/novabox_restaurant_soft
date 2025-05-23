@@ -53,4 +53,4 @@
 <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/pdfmake.min.js"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
-<script src="<?php echo base_url(); ?>frequent_changing/js/register_details.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/register_details.js<?php echo VERS() ?>"></script>

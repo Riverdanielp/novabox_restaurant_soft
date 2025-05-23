@@ -288,7 +288,7 @@
                             </tr>
                                     <?php
                                     else:
-                                        $txt_multi_currency = "Paid in ".$payment->multi_currency." ".$payment->amount." where 1".getCurrency('')." = ".($payment->multi_currency_rate)." ".$payment->multi_currency;
+                                        $txt_multi_currency = "Pagado en ".$payment->multi_currency." ".$payment->amount." tasa c. 1".getCurrency('')." = ".($payment->multi_currency_rate)." ".$payment->multi_currency;
                                     ?>
                                         <tr>
                                             <th colspan="2" class="text-center"><?php echo escape_output($txt_multi_currency); ?></th>

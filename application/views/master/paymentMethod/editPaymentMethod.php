@@ -47,6 +47,29 @@
 
                         </div>
 
+                        
+                        <div class="mb-3 col-sm-12 col-md-3 col-lg-3">
+                            <div class="form-group">
+                                <label>Tipo de Transacción </label>
+                                <select tabindex="7" class="form-control select2" name="tipo_trx"
+                                        id="tipo_trx">
+                                    <option
+                                        <?= isset($payment_method_information) && $payment_method_information->tipo_trx== "Contado" ? 'selected' : '' ?>
+                                            value="Contado">Contado</option>
+                                    <option
+                                        <?= isset($payment_method_information) && $payment_method_information->tipo_trx== "Crédito" ? 'selected' : '' ?>
+                                            value="Crédito">Crédito</option>
+                                    <option
+                                        <?= isset($payment_method_information) && $payment_method_information->tipo_trx== "Sin" ? 'selected' : '' ?>
+                                            value="Sin">Sin Clasificación</option>
+                                </select>
+                            </div>
+                            <?php if (form_error('tipo_trx')) { ?>
+                                <div class="callout callout-danger my-2">
+                                    <?php echo form_error('tipo_trx'); ?>
+                                </div>
+                            <?php } ?>
+                        </div>
                     </div>
                     <!-- /.box-body -->
                 </div>

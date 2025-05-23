@@ -2440,7 +2440,7 @@ class Authentication extends Cl_Controller {
                     $multi_currency_rate = trim_checker($sale->multi_currency_rate);
                     $multi_currency_amount = trim_checker($sale->multi_currency_amount);
                     if($currency_type==1){
-                        $txt_multi_currency = "Paid in ".$multi_currency." ".$multi_currency_amount." where 1".$company->currency." = ".$multi_currency_rate." ".$multi_currency;
+                        $txt_multi_currency = "Pagado en ".$multi_currency." ".$multi_currency_amount." tasa c. 1".$company->currency." = ".$multi_currency_rate." ".$multi_currency;
                         $payments .= printLine( ($txt_multi_currency) . ":  ", $printer->characters_per_line, ' ') . "\n";
                     }else{
                         foreach ($payment_details as $value){

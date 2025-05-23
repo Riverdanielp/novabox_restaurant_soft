@@ -2756,7 +2756,7 @@
             });
         }
         if(Number(order.is_multi_currency) ==1){
-            let txt_multi_currency = "Paid in "+order.multi_currency+" "+order.multi_currency_amount+" where 1"+inv_currency+" = "+order.multi_currency_rate+" "+order.multi_currency;
+            let txt_multi_currency = "Pagado en "+order.multi_currency+" "+order.multi_currency_amount+" tasa c. 1"+inv_currency+" = "+order.multi_currency_rate+" "+order.multi_currency;
             invoice_print += `<tr>
                                                                                 <th colspan="2" class="ir_txt_center">`+txt_multi_currency+`
                                                                                   
@@ -9095,6 +9095,7 @@ function getSafePrice(priceAttr) {
         focusSearch();
     
         let update_sale_id = ($("#update_sale_id").val() || "");
+        // let sale_no_new, random_code;
         if (update_sale_id) removeOrderTablesBySaleId(update_sale_id, '');
     
         if (typeof pre_or_post_payment !== "undefined" && pre_or_post_payment == 2) {
@@ -9261,7 +9262,7 @@ function getSafePrice(priceAttr) {
             sale_no_new = generateSaleNo();
             random_code = getRandomCode(15);
             // <<<<--- Aquí va la verificación AJAX
-            sale_no_new = await getUniqueSaleNo(sale_no_new);
+            // sale_no_new = await getUniqueSaleNo(sale_no_new);
         }
     
         let open_invoice_date_hidden = $("#open_invoice_date_hidden").val() || "";
@@ -9310,6 +9311,7 @@ function getSafePrice(priceAttr) {
             let tmp_qty = $(this).find(".tmp_qty").val() || item_quantity || "0";
             let rounding_amount_hidden = $(this).find("#rounding_amount_hidden").val() || "0";
             let p_qty = $(this).find(".p_qty").val() || item_quantity || "0";
+            console.log('item:',item_id,'item_quantity:', item_quantity,'tmp_qty:', tmp_qty,'p_qty:', p_qty);
             let item_price_with_discount = $(this).find("#item_total_price_table_" + item_id).html() || item_price_without_discount || "0";
             let item_discount_amount = (parseFloat(item_price_without_discount) - parseFloat(item_price_with_discount)).toFixed(ir_precision);
     
@@ -16157,6 +16159,27 @@ $(document).on("click", "#register_close", function (e) {
             },
             function () {
                 $.ajax({
+                    url: base_url + "Sale/printer_app_register_report/",
+                    method: "GET",
+                    success: function(base64) {
+                        // Crear un iframe temporal para la impresión
+                        const iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.src = 'print://' + base64;
+                        document.body.appendChild(iframe);
+                        
+                        // Eliminar el iframe después de un tiempo y resolver la promesa
+                        setTimeout(() => {
+                            document.body.removeChild(iframe);
+                            resolve();
+                        }, 300);
+                    },
+                    error: function() {
+                        alert("Error al generar el ticket para la impresora.");
+                        resolve(); // Asegurar que siempre se resuelva
+                    }
+                });
+                $.ajax({
                     url: base_url + "Sale/closeRegister",
                     method: "POST",
                     data: {
@@ -20145,7 +20168,7 @@ $(document).on("click", "#register_close", function (e) {
   
       $(document).on("click", "#change_currency_btn", function (e) {
           //for mobile view
-          $("#order-split-bill-payment-amount").click();
+        //   $("#order-split-bill-payment-amount").click();
   
           if(Number($(".payment_list_counter").length)){
             let your_added_payment_method_will_remove = $("#your_added_payment_method_will_remove").val();
@@ -22078,6 +22101,16 @@ function openPaymentModalForNumber(saleNo) {
     // 1. Deseleccionar todas las órdenes
     $('.single_order').attr('data-selected', 'unselected');
     
+    $(".set_no_access").removeClass('no_access');
+    $(".finalize_modal_is_mul_currency").hide(300);
+    $("#is_multi_currency").val('');
+    $("#multi_currency").val('').change();
+    $("#multi_currency_amount").val('');
+    $("#sub_total_discount_finalize").val('');
+    $(".order-payment-wrapper").find('.order-payment-list').fadeIn(0);
+    cal_finalize_modal('');
+    set_finalize_discount();
+
     // 2. Seleccionar la orden correspondiente
     let $order = $(`.single_order[data-sale_no="${saleNo}"]`);
     if ($order.length) {

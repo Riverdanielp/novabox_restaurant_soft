@@ -547,6 +547,15 @@ class Common_model extends CI_Model {
      * @param string
      */
     public function getFoodMenuForOutlet($company_id, $table_name) {
+        $this->db->select('*');
+        $this->db->from($table_name);
+        $this->db->where('company_id', $company_id);
+        $this->db->where('del_status', 'Live');
+        $this->db->order_by('name', 'asc');
+        return $this->db->get()->result();
+    }
+
+    public function getFoodMenuForOutletOld($company_id, $table_name) {
         $where = "";
         $result = $this->db->query("SELECT * 
           FROM $table_name 

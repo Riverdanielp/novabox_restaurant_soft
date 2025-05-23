@@ -31,13 +31,16 @@
                         <i data-feather="plus"></i> <?php echo lang('Add'); ?> <?php echo lang('food_menu'); ?>
                     </a>
                     <a data-access="upload_food_menu-234" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>foodMenu/uploadFoodMenu">
-                        <i data-feather="upload"></i> <?php echo lang('upload_food_menu'); ?>
+                        <i data-feather="upload"></i> <?php echo lang('upload'); ?>
                     </a>
                     <a data-access="upload_food_menu_ingredients-234" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>foodMenu/uploadFoodMenuIngredients">
                         <i data-feather="upload-cloud"></i> <?php echo lang('upload_food_menu_ingredients'); ?>
                     </a>
+                    <a data-access="add-234" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>foodMenu/assign">
+                        <i data-feather="plus"></i> Menús sin Ingredientes
+                    </a>
                     <a data-access="item_barcode-234" class="btn bg-blue-btn menu_assign_class" href="<?php echo base_url() ?>foodMenu/foodMenuBarcode">
-                        <i class="m-right fa fa-qrcode"></i> <?php echo lang('food_menu_barcode'); ?>
+                        <i class="m-right fa fa-qrcode"></i> <?php echo lang('barcode'); ?>
                     </a>
                 </div>
             </div>
