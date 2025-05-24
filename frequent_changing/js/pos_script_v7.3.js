@@ -9062,7 +9062,7 @@ function getSafePrice(priceAttr) {
 
 
     
-    $(document).on("click", ".place_order_operation", async function (e) {
+    $(document).on("click", ".place_order_operation", function (e) {
         $("#is_first").val(1);
         let waiter_app_status = $("#waiter_app_status").val() || "";
         let action_type = Number($(this).attr('data-type')) || 0;
@@ -9311,7 +9311,7 @@ function getSafePrice(priceAttr) {
             let tmp_qty = $(this).find(".tmp_qty").val() || item_quantity || "0";
             let rounding_amount_hidden = $(this).find("#rounding_amount_hidden").val() || "0";
             let p_qty = $(this).find(".p_qty").val() || item_quantity || "0";
-            console.log('item:',item_id,'item_quantity:', item_quantity,'tmp_qty:', tmp_qty,'p_qty:', p_qty);
+            // console.log('item:',item_id,'item_quantity:', item_quantity,'tmp_qty:', tmp_qty,'p_qty:', p_qty);
             let item_price_with_discount = $(this).find("#item_total_price_table_" + item_id).html() || item_price_without_discount || "0";
             let item_discount_amount = (parseFloat(item_price_without_discount) - parseFloat(item_price_with_discount)).toFixed(ir_precision);
     
@@ -14776,9 +14776,9 @@ $("#combo_item").on("click", function(){
                       total_items_in_cart_with_quantity
                   );
                   let subtotal_view = response.sub_total;
-                  if(userDesignation == "Waiter"){
-                    subtotal_view = ' ';
-                  }
+                //   if(userDesignation == "Waiter"){
+                //     subtotal_view = ' ';
+                //   }
                   $("#sub_total_show_order_details").html(subtotal_view);
                   $("#sub_total_order_details").html(response.sub_total);
                   $("#total_item_discount_order_details").html(
@@ -14823,9 +14823,9 @@ $("#combo_item").on("click", function(){
                   }
   
                   let total_view = formatNumberToCurrency(Number(response.total_payable));
-                  if(userDesignation == "Waiter"){
-                    total_view = ' ';
-                  }
+                //   if(userDesignation == "Waiter"){
+                //     total_view = ' ';
+                //   }
                   $("#total_payable_order_details").html(total_view);
                 //   $("#total_payable_order_details").html(
                 //       Number(response.total_payable).toFixed(ir_precision)
@@ -15141,98 +15141,108 @@ $("#combo_item").on("click", function(){
         
         // const userDesignation = $("#user_designation").val();
     
-        $.ajax({
-            url: base_url + "Sale/getWaiterOrders",
-            method: "POST",
-            dataType: 'json',
-            data: { 
-                sale_no_all: sale_no_all,
-                last_sync: lastServerSync,
-                csrf_irestoraplus: csrf_value_
-            },
-            success: async function (response) {
-                lastServerSync = response.server_time;
-                let outlet_id_indexdb = $("#outlet_id_indexdb").val();
-                let company_id_indexdb = $("#company_id_indexdb").val();
-                let processedOrders = {};
-    
-                // Primero verificamos todas las órdenes existentes en IndexedDB
-                const existingOrders = await getAllExistingOrders();
-                
-                // // Procesamos las nuevas órdenes del servidor
-                // for (const order of response.get_waiter_orders) {
-                //     let order_info = JSON.parse(order.self_order_content);
-                //     let sale_no_new = order_info.sale_no;
-                //     processedOrders[sale_no_new] = true;
-    
-                //     // Verificamos si la orden ya existe antes de agregarla
-                //     if (!existingOrders.includes(sale_no_new)) {
-                //         if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
-                //             await add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
-                            
-                //             if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
-                //                 printExistingOrder(sale_no_new, order.self_order_content, "1");
-                //             }
-                //         }
-                //         setOrderPulled(order.id);
-                //     }
-                // }
-    
-                // Procesamos órdenes para actualización
-                for (const order of response.get_waiter_orders_for_update_receiver) {
-                    let order_info = JSON.parse(order.self_order_content);
-                    let sale_no_new = order_info.sale_no;
-                    
-                    // Actualizamos solo si la orden existe
-                    if (existingOrders.includes(sale_no_new)) {
-                        await updateOrderForWaiter(sale_no_new, order.self_order_content);
-                        // setOrderInvoiceUpdated(order.id, 2);
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: base_url + "Sale/getWaiterOrders",
+                method: "POST",
+                dataType: 'json',
+                data: { 
+                    sale_no_all: sale_no_all,
+                    last_sync: lastServerSync,
+                    csrf_irestoraplus: csrf_value_
+                },
+                success: async function (response) {
+                    try {
+                        lastServerSync = response.server_time;
+                        let outlet_id_indexdb = $("#outlet_id_indexdb").val();
+                        let company_id_indexdb = $("#company_id_indexdb").val();
+                        let processedOrders = {};
+            
+                        // Primero verificamos todas las órdenes existentes en IndexedDB
+                        const existingOrders = await getAllExistingOrders();
                         
-                        if ((print_kitchen == "Yes") && !isInitialSync) {
-                            printExistingOrder(order.sale_no, order.self_order_content, "0");
-                        }
-                    }
-                }
-    
-                // Procesamos órdenes para eliminar
-                if (response.get_waiter_orders_for_delete_sender) {
-                    for (const sale_no_tmp of response.get_waiter_orders_for_delete_sender.split(",")) {
-                        if (sale_no_tmp && existingOrders.includes(sale_no_tmp)) {
-                            await deleteOrderForWaiter(sale_no_tmp);
-                        }
-                    }
-                }
-    
-                // Procesamos órdenes ya facturadas
-                if (pre_or_post_payment != 2) {
-                    for (const order of response.already_invoiced_orders) {
-                        if (existingOrders.includes(order.sale_no)) {
-                            await deleteOrderForWaiter(order.sale_no);
-                        }
-                    }
-                }
-    
-                // Procesamos todas las órdenes en ejecución
-                for (const order of response.get_all_running_order_for_new_pc) {
-                    let sale_no_new = order.sale_no;
-                    if (!processedOrders[sale_no_new] && !existingOrders.includes(sale_no_new)) {
-                        if (!$(`#order_${get_plan_string(sale_no_new)}`).length) {
-                            await add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
+                        // // Procesamos las nuevas órdenes del servidor
+                        // for (const order of response.get_waiter_orders) {
+                        //     let order_info = JSON.parse(order.self_order_content);
+                        //     let sale_no_new = order_info.sale_no;
+                        //     processedOrders[sale_no_new] = true;
+            
+                        //     // Verificamos si la orden ya existe antes de agregarla
+                        //     if (!existingOrders.includes(sale_no_new)) {
+                        //         if (!$(`.running_order_order_number:contains(${sale_no_new})`).length) {
+                        //             await add_sale_by_ajax('', JSON.stringify(order_info), outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
+                                    
+                        //             if ((userDesignation == "Cashier" || userDesignation == "Admin") && !isInitialSync) {
+                        //                 printExistingOrder(sale_no_new, order.self_order_content, "1");
+                        //             }
+                        //         }
+                        //         setOrderPulled(order.id);
+                        //     }
+                        // }
+            
+                        // Procesamos órdenes para actualización
+                        for (const order of response.get_waiter_orders_for_update_receiver) {
+                            let order_info = JSON.parse(order.self_order_content);
+                            let sale_no_new = order_info.sale_no;
                             
-                            if ((print_kitchen == "Yes") && !isInitialSync) {
-                                printExistingOrder(sale_no_new, order.self_order_content, "1");
+                            // Actualizamos solo si la orden existe
+                            if (existingOrders.includes(sale_no_new)) {
+                                await updateOrderForWaiter(sale_no_new, order.self_order_content);
+                                // setOrderInvoiceUpdated(order.id, 2);
+                                
+                                if ((print_kitchen == "Yes") && !isInitialSync) {
+                                    printExistingOrder(order.sale_no, order.self_order_content, "0");
+                                }
                             }
                         }
-                    }
-                }
-    
-                // Después de la primera sincronización, cambiamos el estado
-                if (isInitialSync) {
-                    isInitialSync = false;
-                }
+            
+                        // Procesamos órdenes para eliminar
+                        if (response.get_waiter_orders_for_delete_sender) {
+                            for (const sale_no_tmp of response.get_waiter_orders_for_delete_sender.split(",")) {
+                                if (sale_no_tmp && existingOrders.includes(sale_no_tmp)) {
+                                    await deleteOrderForWaiter(sale_no_tmp);
+                                }
+                            }
+                        }
+            
+                        // Procesamos órdenes ya facturadas
+                        if (pre_or_post_payment != 2) {
+                            for (const order of response.already_invoiced_orders) {
+                                if (existingOrders.includes(order.sale_no)) {
+                                    await deleteOrderForWaiter(order.sale_no);
+                                }
+                            }
+                        }
+            
+                        // Procesamos todas las órdenes en ejecución
+                        for (const order of response.get_all_running_order_for_new_pc) {
+                            let sale_no_new = order.sale_no;
+                            if (!processedOrders[sale_no_new] && !existingOrders.includes(sale_no_new)) {
+                                if (!$(`#order_${get_plan_string(sale_no_new)}`).length) {
+                                    await add_sale_by_ajax('', order.self_order_content, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", "", "", false);
+                                    
+                                    if ((print_kitchen == "Yes") && !isInitialSync) {
+                                        printExistingOrder(sale_no_new, order.self_order_content, "1");
+                                    }
+                                }
+                            }
+                        }
+            
+                        // Después de la primera sincronización, cambiamos el estado
+                        if (isInitialSync) {
+                            isInitialSync = false;
+                        }
 
-                updateOccupiedNumbers(response.occupied_numbers);
-            }
+                        updateOccupiedNumbers(response.occupied_numbers);
+                    } finally {
+                        // SIEMPRE llamar resolve al final
+                        resolve();
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    reject(errorThrown);
+                }
+            });
         });
     }
     
@@ -15251,8 +15261,8 @@ $("#combo_item").on("click", function(){
                 console.error("🔴 Error general en repeatSync:", outerError);
             }
             // OJO: El finally ya no es necesario.
-            // Esperamos 4 segundos DESPUÉS de que acabe todo el ciclo, no en paralelo.
-            setTimeout(repeatSync, 4000);
+            // Esperamos 5 segundos DESPUÉS de que acabe todo el ciclo, no en paralelo.
+            setTimeout(repeatSync, 5000);
         }
     
         repeatSync(); // Iniciar la primera vez

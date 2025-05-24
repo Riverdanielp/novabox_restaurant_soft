@@ -953,6 +953,12 @@ foreach ($notifications as $single_notification){
                             </a>
                         </li>
                         <li>
+                            <a href="#" id="inventario_print" class="header_menu_icon inventario_print"
+                                data-tippy-content="<?php echo 'Impresión de Inventario' //lang('inventory_print'); ?>">
+                                <i class="fas fa-clipboard-list"></i>
+                            </a>
+                        </li>
+                        <li>
                             <a href="<?php echo base_url()?>customer-panel" class="header_menu_icon  <?php echo escape_output($is_self_order_class) ?>" target="_blank"  data-tippy-content="<?php
                             echo lang('customer_panel');
                             ?>">
@@ -1504,6 +1510,12 @@ foreach ($notifications as $single_notification){
                         <i class="fal fa-bell"></i> <?php echo lang('kitchen_notification'); ?>
                         <span id="notification_counter"
                             class="c_badge <?php echo escape_output($notification_number)?'':'txt_11'?>"><?php echo escape_output($notification_number);?></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="inventario_print" >
+                        <i class="fas fa-clipboard-list"></i>
+                        <?php echo 'Impresión de Inventario' //lang('inventory_print'); ?>
                     </a>
                 </li>
                 <li>
@@ -2995,6 +3007,21 @@ foreach ($notifications as $single_notification){
         </div>
     </div>
 
+    <div class="cus_pos_modal" id="control_inventario_modal">
+        <header class="pos__modal__header">
+            <h3 class="pos__modal__title">Control de Inventario</h3>
+            <a href="javascript:void(0)" class="pos__modal__close close_inventario_modal"><i class="fal fa-times"></i></a>
+        </header>
+        <div class="pos__modal__body scrollbar-macosx">
+            <div class="inventario_form_content"></div>
+        </div>
+        <footer class="pos__modal__footer">
+            <div class="right_box">
+                <button id="btn_print_ticket_inventario" class="btn btn-success">Inventario Ticket</button>
+                <button type="button" class="close_inventario_modal"><?php echo lang('cancel'); ?></button>
+            </div>
+        </footer>
+    </div>
 
 <div class="cus_pos_modal"  id="reservation_modal">
     <header class="pos__modal__header">

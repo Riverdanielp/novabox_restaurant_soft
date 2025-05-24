@@ -305,8 +305,8 @@
     <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/kitchen_panel/js/custom.js<?php echo VERS() ?>"></script>
     <!-- material icon -->
     <!-- Incluye estas librerías en tu HTML -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-base64@3.7.5/base64.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-base64@3.7.5/base64.min.js"></script> -->
 
     <script>
         

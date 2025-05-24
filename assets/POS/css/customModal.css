@@ -74,6 +74,7 @@
 
 .cus_pos_modal .pos__modal__body {
   padding: 10px !important;
+  height: 500px;
 }
 
 .cus_pos_modal .pos__modal__body .default_inner_body {

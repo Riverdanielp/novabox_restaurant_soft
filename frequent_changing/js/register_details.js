@@ -351,7 +351,131 @@ $(function () {
             }
         });
     });
-
+    $(document).on('click', '#inventario_print', function() {
+        $("#control_inventario_modal").addClass("active");
+        $(".inventario_form_content").html('<div style="text-align:center;padding:30px;"><i class="fa fa-spinner fa-spin fa-2x"></i> Cargando...</div>');
+    
+        $.ajax({
+            url: $("#base_url_customer").val() + "Sale/getInventarioTicketAjax", // Ajusta el path según tu estructura
+            method: "GET",
+            dataType: "json",
+            success: function(res) {
+                if (!res.inventory || res.inventory.length === 0) {
+                    $(".inventario_form_content").html('<div class="alert alert-warning">No hay datos de inventario.</div>');
+                    return;
+                }
+                renderInventarioTicket(res.inventory, res.ingredient_categories);
+            },
+            error: function() {
+                $(".inventario_form_content").html('<div class="alert alert-danger">Error al cargar inventario.</div>');
+            }
+        });
+    });
+    
+    // Cerrar modal
+    $(document).on('click', '.close_inventario_modal', function() {
+        $("#control_inventario_modal").removeClass("active");
+        $(".inventario_form_content").html('');
+    });
+    
+    // Función para renderizar el ticket dentro del modal
+    function renderInventarioTicket(inventoryData, ingredientCategories) {
+        // Agrupa por categoría
+        let grouped = {};
+        inventoryData.forEach(function(item) {
+            let cat = item.category_name || 'Sin categoría';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(item);
+        });
+    
+        let ticketWidth = 80; // mm
+        let html = `
+            <div id="ticket_print_area" style="width:${ticketWidth}mm; margin:auto; font-size:8px; font-family:Arial, sans-serif;">
+                <div class="center" style="text-align:center;">
+                    <h3 style="margin:5px 0;font-size:14px;">Reporte de inventario</h3>
+                </div>
+        `;
+    
+        for (const [category, items] of Object.entries(grouped)) {
+            html += `<div style="margin-top:8px;font-weight:bold;">${category}</div>`;
+            html += `<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+                <thead>
+                    <tr>
+                        <th style="width:22%;">Cod</th>
+                        <th style="width:48%;">Prod</th>
+                        <th style="width:20%;">Cant</th>
+                        <th style="width:10%;">...</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            items.forEach(function(item) {
+                let conversion = parseFloat(item.conversion_rate) || 1;
+                let totalStock = (item.total_purchase * conversion)
+                    - item.total_consumption - item.total_modifiers_consumption - item.total_waste
+                    + item.total_consumption_plus - item.total_consumption_minus
+                    + (item.total_transfer_plus * conversion) - (item.total_transfer_minus * conversion)
+                    + (item.total_transfer_plus_2 * conversion) - (item.total_transfer_minus_2 * conversion)
+                    + (item.total_production * conversion);
+    
+                let total_sale_unit = conversion == 0 ? 0 : (totalStock / conversion);
+                total_sale_unit = Math.floor(total_sale_unit);
+    
+                let cantidad = (item.ing_type == "Plain Ingredient" && item.is_direct_food != 2 && conversion != 1)
+                    ? total_sale_unit+ " " + (totalStock % conversion)
+                    : (parseFloat(total_sale_unit) + ((totalStock) ? (totalStock % conversion) : 0));
+    
+                html += `
+                    <tr>
+                        <td style="">${item.code}</td>
+                        <td style="">${item.name}</td>
+                        <td style="">${cantidad}</td>
+                        <td style="font-size:10px;letter-spacing:2px;color:#ccc;text-align:center;">.............</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+        }
+    
+        // html += `<div style="text-align:center;margin-top:10px;">
+        //     <button id="btn_print_ticket_inventario" class="btn btn-primary btn-sm">Imprimir Ticket</button>
+        // </div>`;
+        html += `</div>`;
+    
+        $(".inventario_form_content").html(html);
+    }
+    
+    // Imprimir el área del ticket (solo el contenido, no el modal completo)
+    $(document).on('click', '#btn_print_ticket_inventario', function() {
+        let printContents = document.getElementById('ticket_print_area').innerHTML;
+        let mywindow = window.open('', 'PRINT', 'height=600,width=400');
+        mywindow.document.write(`
+            <html>
+            <head>
+                <title>Reporte de Inventario</title>
+                <style>
+                    @media print {
+                        body, html { width: 80mm; }
+                    }
+                    body { width: 80mm; font-family: Arial, sans-serif; font-size: 8px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+                    th, td { border-bottom: 1px dotted #ccc; padding: 3px; text-align: left;; font-size: 10px; }
+                    th { font-weight: bold; }
+                    .dots { letter-spacing: 2px; color: #ccc; font-size: 11px; text-align: center; }
+                    .category-title { margin-top: 8px; margin-bottom: 2px; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                ${printContents}
+            </body>
+            </html>
+        `);
+        mywindow.document.close();
+        setTimeout(function(){
+            mywindow.focus();
+            mywindow.print();
+            // mywindow.close(); // Descomenta si quieres cerrar automáticamente
+        }, 200);
+    });
 
     $(document).on("click", ".reservation_list", function (e) {
         let title = $(this).attr('data-title');

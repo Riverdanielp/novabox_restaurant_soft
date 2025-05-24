@@ -1155,37 +1155,65 @@ class FoodMenu extends Cl_Controller {
         $data['main_content'] = $this->load->view('master/foodMenu/assign_ingredients', $data, TRUE);
         $this->load->view('userHome', $data);
     }
-
     public function assign_submit() {
         $menu_options = $this->input->post('menu_option'); // [food_menu_id => opcion]
         $company_id = $this->session->userdata('company_id');
         $user_id = $this->session->userdata('user_id');
         $unit_id = 5; // unitario
     
-        // 1. Traer todos los food_menus "Live" (puedes limitar a los que están en $menu_options si gustas)
+        // 1. Traer todos los food_menus "Live"
         $this->db->where('del_status', 'Live');
         $food_menus = $this->db->get('tbl_food_menus')->result();
     
-        // 2. Procesar cada menú seleccionado
         foreach ($food_menus as $food_menu) {
             $menu_id = $food_menu->id;
     
-            // ¿Este menú fue marcado por el usuario?
             if (isset($menu_options[$menu_id])) {
                 $option = $menu_options[$menu_id];
                 if ($option == 'no_change') {
-                    continue; // No hacer nada con los "sin modificar"
+                    continue;
                 }
     
-                // Determinar tipo de ingrediente
                 $ing_type = ($option == 'pre_production') ? 'Pre-made Item' : 'Plain Ingredient';
     
-                // 3. Crear ingrediente
+                // Obtener el nombre de categoría del menú
+                $category_name = '';
+                if ($food_menu->category_id) {
+                    // Busca el nombre de la categoría del menú
+                    $cat = $this->db->get_where('tbl_food_menu_categories', [
+                        'id' => $food_menu->category_id,
+                        'del_status' => 'Live'
+                    ])->row();
+                    $category_name = $cat ? $cat->category_name : '';
+                }
+    
+                // Buscar categoría de ingredientes con ese nombre
+                $ingredient_cat = $this->db->get_where('tbl_ingredient_categories', [
+                    'category_name' => $category_name,
+                    'company_id' => $company_id,
+                    'del_status' => 'Live'
+                ])->row();
+    
+                if ($ingredient_cat) {
+                    $ingredient_category_id = $ingredient_cat->id;
+                } else {
+                    // Si no existe, crearla
+                    $cat_data = [
+                        'category_name' => $category_name ?: 'Sin Categoría',
+                        'description' => '',
+                        'user_id' => $user_id,
+                        'company_id' => $company_id,
+                        'del_status' => 'Live'
+                    ];
+                    $ingredient_category_id = $this->Common_model->insertInformation($cat_data, 'tbl_ingredient_categories');
+                }
+    
+                // Crear el ingrediente
                 $ingredient_data = [
                     'name' => $food_menu->name,
                     'code' => $this->Master_model->generateIngredientCode(),
-                    'category_id' => $food_menu->ing_category_id ?: 1, // Default 1 si no tiene
-                    'purchase_price' => 0, // $food_menu->purchase_price ?: $food_menu->sale_price,
+                    'category_id' => $ingredient_category_id,
+                    'purchase_price' => 0,
                     'alert_quantity' => $food_menu->alert_quantity ?: 0,
                     'unit_id' => $unit_id,
                     'purchase_unit_id' => $unit_id,
@@ -1200,22 +1228,17 @@ class FoodMenu extends Cl_Controller {
                     'is_direct_food' => 1
                 ];
     
-                // Insertar el ingrediente
                 $ingredient_id = $this->Common_model->insertInformation($ingredient_data, 'tbl_ingredients');
     
-                // 4. Asociar ingrediente al menú en tbl_food_menus_ingredients SOLO si es ingrediente simple
-                // if ($ing_type == 'Plain Ingredient') {
-                    $association_data = [
-                        'ingredient_id' => $ingredient_id,
-                        'consumption' => 1,
-                        'food_menu_id' => $menu_id,
-                        'user_id' => $user_id,
-                        'company_id' => $company_id,
-                        'del_status' => 'Live'
-                    ];
-                    $this->Common_model->insertInformation($association_data, 'tbl_food_menus_ingredients');
-                // }
-                // Si es pre-fabricado, NO asocias ingredientes hijos (por requerimiento)
+                $association_data = [
+                    'ingredient_id' => $ingredient_id,
+                    'consumption' => 1,
+                    'food_menu_id' => $menu_id,
+                    'user_id' => $user_id,
+                    'company_id' => $company_id,
+                    'del_status' => 'Live'
+                ];
+                $this->Common_model->insertInformation($association_data, 'tbl_food_menus_ingredients');
             }
         }
     

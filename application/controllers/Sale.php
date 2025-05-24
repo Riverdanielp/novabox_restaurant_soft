@@ -12,6 +12,7 @@ class Sale extends Cl_Controller {
         $this->load->model('Kitchen_model');
         $this->load->model('Waiter_model');
         $this->load->model('Master_model');
+        $this->load->model('Inventory_model');
         $this->load->library('form_validation');
         // $this->load->driver('cache', array('adapter' => 'apc', 'backup' => 'file'));
         $this->Common_model->setDefaultTimezone();
@@ -4173,6 +4174,7 @@ class Sale extends Cl_Controller {
         if($registro_detallado === "Yes"){
             $html_content .= '<h3>Registro de Ventas</h3>';
             $detailed_sales = $this->Sale_model->getDetailedSales($outlet_id, $fromDate, $toDate);
+            
             if ($detailed_sales && count($detailed_sales) > 0) {
                 $html_content .= '<table class="table_register_details table_sale_details top_margin_15">
                     <thead>
@@ -4183,13 +4185,20 @@ class Sale extends Cl_Controller {
                         </tr>
                     </thead>
                     <tbody>';
+                $total_ventas_detalladas = 0;
                 foreach ($detailed_sales as $sale) {
                     $html_content .= '<tr>
-                        <td>'.date("Y-m-d H:i", strtotime($sale->date_time)).'</td>
+                        <td>'.date("Y-m-d H:i", strtotime($sale->paid_date_time)).'</td>
                         <td>#'.$sale->number_slot_name.' '.$sale->sale_no.'</td>
                         <td class="text_right">'.getAmtPCustom($sale->amount).'</td>
                     </tr>';
+                    $total_ventas_detalladas += $sale->amount;
                 }
+                $html_content .= '<tr>
+                    <td></td>
+                    <td><b>TOTAL</b></td>
+                    <td class="text_right"><b>'.getAmtPCustom($total_ventas_detalladas).'</b></td>
+                </tr>';
                 $html_content .= '</tbody></table>';
             }
         }
@@ -5903,12 +5912,18 @@ class Sale extends Cl_Controller {
     }
 
     public function printer_app_register_report() {
+        $outlet_id = $this->session->userdata('outlet_id');
         // Obtener datos de apertura y cierre
         $opening_date_time = $this->getOpeningDateTime();
         $closing_date_time = $this->getClosingDateTime();
         $opening_details = $this->getOpeningDetails();
         $opening_details_decode = json_decode($opening_details);
     
+        // Obtener opciones de outlet
+        $getOutletInfo = $this->Common_model->getDataById($outlet_id, "tbl_outlets");
+        $registro_ocultar = $getOutletInfo->registro_ocultar;
+        $registro_detallado = $getOutletInfo->registro_detallado;
+
         // Información de la empresa
         $company = [
             'name' => $this->session->userdata('outlet_name'),
@@ -5931,6 +5946,32 @@ class Sale extends Cl_Controller {
             // ['type' => 'text', 'align' => 'center', 'text' => ''],
         ];
     
+        $fromDate = $opening_date_time;
+        $toDate = $closing_date_time ? $closing_date_time : date('Y-m-d H:i:s');
+        // Tabla de ventas detalladas si "registro_detallado"
+        if($registro_detallado === "Yes"){
+            $detailed_sales = $this->Sale_model->getDetailedSales($outlet_id, $fromDate, $toDate);
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DETALLE DE VENTAS'];
+            $total_ventas_detalladas = 0;
+            foreach ($detailed_sales as $sale) {
+                $content[] = [
+                    'type' => 'extremos',
+                    'textLeft' => '#'.$sale->number_slot_name.' '.$sale->sale_no,
+                    'textRight' => getAmtPCustom($sale->amount)
+                ];
+                $total_ventas_detalladas += $sale->amount;
+            }
+            $content[] = [
+                'type' => 'extremos',
+                'textLeft' => '---------------',
+                'textRight' => '---------------'
+            ];
+            $content[] = [
+                'type' => 'extremos',
+                'textLeft' => 'TOTAL VENTAS',
+                'textRight' => getAmtPCustom($total_ventas_detalladas)
+            ];
+        }
         $summary_names = [];
         $summary_amounts = [];
         if ($opening_details_decode) {
@@ -6692,4 +6733,22 @@ class Sale extends Cl_Controller {
         }
         exit;
     }
+
+    public function getInventarioTicketAjax() {
+        // Acceso restringido si usas session
+        if (!$this->session->userdata('user_id')) {
+            show_404();
+        }
+    
+        $company_id = $this->session->userdata('company_id');
+        $inventory = $this->Inventory_model->getInventory(null, null, null); // O filtra por params si deseas
+        $ingredient_categories = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_ingredient_categories");
+    
+        // Puedes enviar solo los datos necesarios para reducir el payload
+        echo json_encode([
+            'inventory' => $inventory,
+            'ingredient_categories' => $ingredient_categories
+        ]);
+    }
+
 }

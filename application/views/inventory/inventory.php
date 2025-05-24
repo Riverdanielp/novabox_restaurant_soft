@@ -7,6 +7,9 @@
                 <h3 class="top-left-header"><?php echo lang('inventory'); ?> </h3>
             </div>
             <div class="col-sm-12 mb-2 col-md-3">
+                <button type="button" class="btn bg-blue-btn" id="printTicketBtn">
+                    Imprimir ticket
+                </button>
 
             </div>
             <div class="col-sm-12 mb-2 col-md-3">
@@ -189,3 +192,98 @@
 <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
 
 <script src="<?php echo base_url(); ?>frequent_changing/js/custom_report.js"></script>
+
+<script>
+  var inventoryData = <?php echo json_encode($inventory); ?>;
+  var ingredientCategories = <?php echo json_encode($ingredient_categories); ?>;
+</script>
+<script>
+document.getElementById('printTicketBtn').addEventListener('click', function() {
+    // Organizar inventario por categoría
+    var groupedByCategory = {};
+    inventoryData.forEach(function(item) {
+        var cat = item.category_name || 'Sin categoría';
+        if (!groupedByCategory[cat]) groupedByCategory[cat] = [];
+        groupedByCategory[cat].push(item);
+    });
+
+    // Generar HTML para el ticket
+    var ticketWidth = 80; // Cambia a 56 para 56mm
+    var html = `
+    <html>
+      <head>
+        <title>Reporte de Inventario</title>
+        <style>
+          @media print {
+            body, html { width: ${ticketWidth}mm; }
+          }
+          body { width: ${ticketWidth}mm; font-family: Arial, sans-serif; font-size: 8px; }
+          .center { text-align: center; }
+          h3 { margin: 5px 0; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+          th, td { border-bottom: 1px dotted #ccc; padding: 3px; text-align: left; font-size: 10px; }
+          th { font-weight: bold; }
+          .dots { letter-spacing: 2px; color: #ccc; font-size: 9px; text-align: center; }
+          .category-title { margin-top: 8px; margin-bottom: 2px; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <h3>Reporte de inventario</h3>
+        </div>
+    `;
+
+    for (const [category, items] of Object.entries(groupedByCategory)) {
+        html += `<div class="category-title">${category}</div>`;
+        html += `<table>
+                  <thead>
+                    <tr>
+                      <th style="width:22%;">Cod</th>
+                      <th style="width:48%;">Prod</th>
+                      <th style="width:20%;">Cant</th>
+                      <th style="width:10%;">...</th>
+                    </tr>
+                  </thead>
+                  <tbody>`;
+        items.forEach(function(item) {
+            // Calcula cantidad como lo haces en la vista original:
+            var conversion = parseFloat(item.conversion_rate) || 1;
+            var totalStock = (item.total_purchase * conversion)
+                - item.total_consumption - item.total_modifiers_consumption - item.total_waste
+                + item.total_consumption_plus - item.total_consumption_minus
+                + (item.total_transfer_plus * conversion) - (item.total_transfer_minus * conversion)
+                + (item.total_transfer_plus_2 * conversion) - (item.total_transfer_minus_2 * conversion)
+                + (item.total_production * conversion);
+
+            var total_sale_unit = conversion == 0 ? 0 : (totalStock / conversion);
+            total_sale_unit = Math.floor(total_sale_unit);
+
+            var cantidad = (item.ing_type == "Plain Ingredient" && item.is_direct_food != 2 && conversion != 1)
+                ? total_sale_unit + " " + (totalStock % conversion)
+                : (parseFloat(total_sale_unit) + ((totalStock) ? (totalStock % conversion) : 0));
+
+            html += `
+              <tr>
+                <td>${item.code}</td>
+                <td>${item.name}</td>
+                <td>${cantidad}</td>
+                <td class="dots">.............</td>
+              </tr>
+            `;
+        });
+        html += `</tbody></table>`;
+    }
+
+    html += `</body></html>`;
+
+    // Abrir ventana y mandar a imprimir
+    var win = window.open("", "Imprimir Ticket", "width=400,height=600");
+    win.document.write(html);
+    win.document.close();
+    setTimeout(function() {
+      win.focus();
+      win.print();
+      // win.close(); // Descomenta si quieres cerrar automáticamente después de imprimir
+    }, 500);
+});
+</script>

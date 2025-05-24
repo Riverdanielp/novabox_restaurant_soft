@@ -2043,15 +2043,15 @@ class Sale_model extends CI_Model {
   }
 
   public function getDetailedSales($outlet_id, $from_datetime, $to_datetime = null) {
-      $this->db->select("date_time, number_slot_name, sale_no, paid_amount as amount");
+      $this->db->select("date_time, paid_date_time, number_slot_name, sale_no, paid_amount as amount");
       $this->db->from('tbl_sales');
       $this->db->where("outlet_id", $outlet_id);
-      $this->db->where("date_time >=", $from_datetime);
+      $this->db->where("paid_date_time >=", $from_datetime);
       if ($to_datetime) {
-          $this->db->where("date_time <=", $to_datetime);
+          $this->db->where("paid_date_time <=", $to_datetime);
       }
       $this->db->where('del_status', 'Live');
-      $this->db->order_by('date_time', 'asc');
+      $this->db->order_by('paid_date_time', 'asc');
       return $this->db->get()->result();
   }
 }
