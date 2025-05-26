@@ -77,6 +77,10 @@ class Inventory extends Cl_Controller {
         $ingredient_id = $this->input->post('ingredient_id');
         $category_id = $this->input->post('category_id');
         $food_id = $this->input->post('food_id');
+        $outlet = getOutletById($this->session->userdata('outlet_id'));
+        $data['hora'] = date('d/m/Y H:i:s'); 
+        $data['outlet_name'] = $outlet->outlet_name; 
+        $data['username'] = $this->session->userdata('full_name'); 
         $data['ingredient_id'] = $ingredient_id;
         $company_id = $this->session->userdata('company_id');
         $data['ingredient_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_ingredient_categories");

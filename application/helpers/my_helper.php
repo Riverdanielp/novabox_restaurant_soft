@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.54202';
+    return '?v=7.54204';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -717,6 +717,15 @@ function checkExistItem($sale_id,$item_id,$row_counter) {
     $CI->db->limit(1, $row_counter);
     $selected_row =   $CI->db->get()->row();
     return $selected_row;
+}
+function getAllOrderItems($sale_id) {
+    $CI = & get_instance();
+    $CI->db->select('*');
+    $CI->db->from('tbl_kitchen_sales_details');
+    $CI->db->where('sales_id', $sale_id);
+    $CI->db->where('del_status', "Live");
+    $CI->db->order_by('id', 'ASC'); // Orden consistente
+    return $CI->db->get()->result();
 }
 function checkExistItemModifer($sale_id,$item_id,$sales_details_id,$single_modifier_id) {
     $CI = & get_instance();

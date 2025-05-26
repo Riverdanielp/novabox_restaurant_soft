@@ -64,7 +64,7 @@ $(document).ready(function () {
     });
   $("#order_holder.order_holder .single_order .items_holder")
     .slimscroll({
-      height: "180px",
+      height: "270px",
     })
     .parent()
     .css({
@@ -948,7 +948,7 @@ $(document).ready(function () {
         });
     $("#items_holder_of_order")
         .slimscroll({
-            height: "430px",
+            height: "270px",
         })
         .parent()
         .css({
@@ -1102,18 +1102,14 @@ $(document).ready(function () {
       $("#refresh_it_or_not").html("Yes");
   
       // ---- CONTROL DE IMPRESIONES PERSISTENTE ----
-      // Usar localStorage para persistir sales impresos hasta 20hs atrás
-      // Estructura: { sale_no: { hash: "...", time: timestamp_ms } }
       const PRINTED_SALES_KEY = "kitchen_printed_sales";
-      const PRINTED_SALES_MAX_AGE_MS = 20 * 60 * 60 * 1000; // 20 horas en ms
+      const PRINTED_SALES_MAX_AGE_MS = 20 * 60 * 60 * 1000; // 20 horas
   
-      // Cargar historial persistente al inicio de la sesión JS
       if (typeof window.printed_sales === "undefined") {
           window.printed_sales = loadPrintedSales();
           window.is_first_load = true;
       }
   
-      // Carga desde localStorage, limpia los viejos window.localStorage.getItem("kitchen_printed_sales")
       function loadPrintedSales() {
           let obj = {};
           try {
@@ -1121,7 +1117,6 @@ $(document).ready(function () {
               if (raw) {
                   let data = JSON.parse(raw);
                   let now = Date.now();
-                  // limpiar los que tienen más de 20hs
                   for (let sale_no in data) {
                       if (now - data[sale_no].time <= PRINTED_SALES_MAX_AGE_MS) {
                           obj[sale_no] = data[sale_no];
@@ -1132,17 +1127,15 @@ $(document).ready(function () {
           return obj;
       }
   
-      // Guardar a localStorage
       function savePrintedSales(obj) {
           try {
               window.localStorage.setItem(PRINTED_SALES_KEY, JSON.stringify(obj));
           } catch (e) { }
       }
   
-      // Limpiar todos los sales impresos (solo al recargar página)
-      function resetPrintedSales() {
-          window.localStorage.removeItem(PRINTED_SALES_KEY);
-      }
+      // function resetPrintedSales() {
+      //     window.localStorage.removeItem(PRINTED_SALES_KEY);
+      // }
   
       // ---- FIN CONTROL DE IMPRESIONES PERSISTENTE ----
   
@@ -1159,18 +1152,20 @@ $(document).ready(function () {
               response = JSON.parse(response);
               window.last_orders = response;
   
-              // --- Control de impresión persistente ---
               let current_sales = {};
               let current_info = {};
               let now = Date.now();
               for (let key in response) {
                   let sale_no = response[key].sale_no;
-                  // El hash de "items" define si cambió (puedes ampliar según tu lógica)
-                  current_sales[sale_no] = JSON.stringify(response[key].items);
+                  // Serializa SOLO los items con sus campos relevantes
+                  current_sales[sale_no] = JSON.stringify(response[key].items.map(item => ({
+                      id: item.previous_id || item.id || item.sales_details_id,
+                      tmp_qty: item.tmp_qty,
+                      qty: item.qty
+                  })));
                   current_info[sale_no] = JSON.stringify(response[key]);
               }
   
-              // PRIMERA CARGA: registra pero NO imprime, solo si no había nada en memoria
               if (window.is_first_load) {
                   for (let sale_no in current_sales) {
                       window.printed_sales[sale_no] = {
@@ -1181,11 +1176,9 @@ $(document).ready(function () {
                   savePrintedSales(window.printed_sales);
                   window.is_first_load = false;
               } else {
-                  // SIGUIENTES CARGAS: imprime solo nuevos o modificados
                   for (let sale_no in current_sales) {
                       let sale = window.printed_sales[sale_no];
   
-                      // NUEVO pedido: no existe en memoria persistente (ni en window ni en localStorage)
                       if (typeof sale === "undefined") {
                           printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 1);
                           window.printed_sales[sale_no] = {
@@ -1194,27 +1187,60 @@ $(document).ready(function () {
                           };
                           savePrintedSales(window.printed_sales);
                       } else if (sale.hash !== current_sales[sale_no]) {
-                          // MODIFICADO: existe pero la hash cambió
-                          // Comparar item por item solo si cambió el largo o hay cambios relevantes
+                          // --- Comparador robusto de items ---
                           const oldItems = JSON.parse(sale.hash);
                           const newItems = JSON.parse(current_sales[sale_no]);
                           let hasRelevantChanges = false;
-                          if (oldItems.length === newItems.length) {
-                              for (let i = 0; i < newItems.length; i++) {
-                                  const newItem = newItems[i];
-                                  const oldItem = oldItems.find(item => item.id === newItem.id);
   
-                                  if (oldItem && (parseFloat(newItem.tmp_qty) > 0 ||
-                                      (parseFloat(newItem.tmp_qty) !== parseFloat(oldItem.tmp_qty)))) {
+                          // 1. Hay un item nuevo o qty cambió
+                          for (let i = 0; i < newItems.length; i++) {
+                              const newItem = newItems[i];
+                              const oldItem = oldItems.find(item => item.id == newItem.id);
+                              if (!oldItem) {
+                                  hasRelevantChanges = true; // Nuevo item
+                                  break;
+                              }
+                              if (parseFloat(newItem.tmp_qty) > 0 || (parseFloat(newItem.tmp_qty) !== parseFloat(oldItem.tmp_qty))) {
+                                  hasRelevantChanges = true; // Cambio qty
+                                  break;
+                              }
+                          }
+                          // 2. Algún item fue eliminado
+                          if (!hasRelevantChanges) {
+                              for (let i = 0; i < oldItems.length; i++) {
+                                  const oldItem = oldItems[i];
+                                  const newItem = newItems.find(item => item.id == oldItem.id);
+                                  if (!newItem) {
                                       hasRelevantChanges = true;
                                       break;
                                   }
                               }
-                          } else {
-                              hasRelevantChanges = true;
                           }
+  
                           if (hasRelevantChanges) {
-                              printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 0);
+                              // printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 0);
+                              
+                              // Comparar items por ID para saber cuáles son realmente nuevos
+                              const oldItems = JSON.parse(sale.hash);
+                              const newItems = JSON.parse(current_sales[sale_no]);
+                              const allOrderItems = JSON.parse(current_info[sale_no]).items;
+
+                              // Detectar ids de items nuevos
+                              const newItemIds = newItems
+                                  .filter(newItem => !oldItems.some(oldItem => oldItem.id == newItem.id))
+                                  .map(item => item.id);
+
+                              // Filtrar los items nuevos por ID
+                              const onlyNewItems = allOrderItems.filter(item =>
+                                  newItemIds.includes(item.previous_id || item.id || item.sales_details_id)
+                              );
+
+                              if (onlyNewItems.length > 0) {
+                                  const orderInfoSelected = {...JSON.parse(current_info[sale_no]), items: onlyNewItems};
+                                  printDirectlyFromOrderData(orderInfoSelected, kitchen_id, 0);
+                              } else {
+                                  printDirectlyFromOrderData(JSON.parse(current_info[sale_no]), kitchen_id, 0);
+                              }
                               window.printed_sales[sale_no] = {
                                   hash: current_sales[sale_no],
                                   time: now
@@ -1222,12 +1248,10 @@ $(document).ready(function () {
                               savePrintedSales(window.printed_sales);
                           }
                       }
-                      // Si no cambió, no imprime ni actualiza tiempo
                   }
   
-                  // Elimina de la memoria persistente los sale_no que ya no existen en backend
-                  // (opcional: si quieres mantenerlos hasta 20hs aunque ya no estén activos, puedes omitir esto)
-                  // Si quieres limpiar solo al recargar página, comenta este bloque:
+                  // Si NO quieres borrar los tickets impresos aunque el backend ya no los mande:
+                  // (esto previene que reimprima como "nuevo" si vuelve el ticket)
                   /*
                   for (let sale_no in window.printed_sales) {
                       if (!(sale_no in current_sales)) {
@@ -1239,7 +1263,7 @@ $(document).ready(function () {
               }
               // --- Fin control impresión ---
   
-              // Render de la UI de pedidos (igual que tu código)
+              // Render de la UI de pedidos
               let order_list_left = "";
               let i = 1;
               for (let key in response) {
@@ -1314,13 +1338,13 @@ $(document).ready(function () {
                       let totalMinutes = parseInt(diffMs / (1000 * 60));
                       let totalSeconds = parseInt(diffMs / 1000);
                       let minute = parseInt((diffMs / (1000 * 60)) % 60);
-                      let second = parseInt((diffMs / 1000) % 60);
+                      let second = parseInt((diffMs / (1000) % 60));
                       minute = minute.toString().padStart(2, "0");
                       second = second.toString().padStart(2, "0");
   
                       let table_name_txt = '';
-                      if (tables_booked > 0){
-                          table_name_txt = table +': ' + tables_booked;
+                      if (tables_booked > 0) {
+                          table_name_txt = table + ': ' + tables_booked;
                       }
                       if (total_kitchen_type_items != total_kitchen_type_done_items) {
                           order_list_left +=
@@ -1334,12 +1358,12 @@ $(document).ready(function () {
                           order_list_left +=
                               '<div class="header_portion light-blue-background fix">';
                           order_list_left += '<div class="fix floatleft" style="width:70%;">';
-                          order_list_left +='<p class="order_number table_no"><b>#' + comanda_name + '</b> - ' + order_name + '</p>';
-                          order_list_left += '<p class="order_number sale_no"> ' + response[key].waiter_name +  "</p> ";
-                          order_list_left += '<p class="order_number customer_name">'+response[key].customer_name+'</p>';
+                          order_list_left += '<p class="order_number table_no"><b>#' + comanda_name + '</b> - ' + order_name + '</p>';
+                          order_list_left += '<p class="order_number sale_no"> ' + response[key].waiter_name + "</p> ";
+                          order_list_left += '<p class="order_number customer_name">' + response[key].customer_name + '</p>';
                           order_list_left += "</div>";
                           order_list_left += '<div class="fix floatleft" style="width:30%;">';
-                          order_list_left += '<p class="order_duration  order_number order_type"><span>'+order_type+'</span></p>';
+                          order_list_left += '<p class="order_duration  order_number order_type"><span>' + order_type + '</span></p>';
                           order_list_left += "</div>";
                           order_list_left += '<div class="fix floatleft" style="width:30%;">';
                           order_list_left += '<p class="order_duration "><span id="kitchen_time_minute_' +
@@ -1353,17 +1377,16 @@ $(document).ready(function () {
                           order_list_left += "</div>";
                           order_list_left += "</div>";
                           order_list_left += '<div class="fix items_holder">';
+  
+                          // Renderiza TODOS los items (no deduplicar)
                           let items = response[key].items;
                           let i_counter = 0;
-                          order_list_left += '<div class="single_el_wrapper"><div class="el_wrapper"><label for="all_select_all_of_an_order_' + response[key].sales_id +'" id="select_all_of_an_order_' + response[key].sales_id +'" class="select_all_of_an_order"><input id="all_select_all_of_an_order_' + response[key].sales_id +'" type="checkbox"><span>Select. Todo</span></label></div></div>'
-  
+                          order_list_left += '<div class="single_el_wrapper"><div class="el_wrapper"><label for="all_select_all_of_an_order_' + response[key].sales_id + '" id="select_all_of_an_order_' + response[key].sales_id + '" class="select_all_of_an_order"><input id="all_select_all_of_an_order_' + response[key].sales_id + '" type="checkbox"><span>Select. Todo</span></label></div></div>'
                           for (let key_item in items) {
                               let single_item = items[key_item];
-                              let searched_found = searchItems(single_item.menu_name);
-                              if (searched_found.length == 0) {
-                                  window.order_items.push(single_item);
-                              }
-                              let alternative_name = single_item.alternative_name?" ("+single_item.alternative_name+")":'';
+                              window.order_items.push(single_item);
+  
+                              let alternative_name = single_item.alternative_name ? " (" + single_item.alternative_name + ")" : '';
                               let item_background = "";
                               let font_style = "color: #212121";
                               let cook_status_btn = '';
@@ -1375,103 +1398,50 @@ $(document).ready(function () {
                                   cooking_status = text_in_preparation_ln;
                                   cook_status_btn = 'start_cooking_button';
                               }
-                              let qty_str = '<p class="item_qty" style="font-weight:bold; ' +
-                                  font_style +
-                                  '">'+quantity_ln+': ' +
-                                  single_item.qty +
-                                  "</p>";
-                              if(single_item.qty!=single_item.tmp_qty && parseFloat(single_item.tmp_qty)){
-                                  qty_str = '<p class="item_qty" style="font-weight:bold; ' +
-                                          font_style +
-                                          '">'+Qty_Old+': ' +
-                                          (single_item.qty - single_item.tmp_qty) +
-                                          "</p>";
-                                  qty_str += '<p class="item_qty" style="font-weight:bold; ' +
-                                          font_style +
-                                          '">'+Qty_New+': ' +
-                                          single_item.tmp_qty +
-                                          "</p>";
+                              let qty_str = quantity_ln + ': ' + single_item.qty;
+                              if (single_item.qty != single_item.tmp_qty && parseFloat(single_item.tmp_qty)) {
+                                  qty_str = Qty_Old + ': ' + (single_item.qty - single_item.tmp_qty) + " | " + Qty_New + ': ' + single_item.tmp_qty;
                               }
-                              order_list_left +=
-                                  '<div data-selected="unselected" class="fix single_item ' +
-                                  item_background +
-                                  '" data-order-id="' +
-                                  response[key].sales_id +
-                                  '" data-item-id="' +
-                                  single_item.previous_id +
-                                  '" id="detail_item_id_' +
-                                  single_item.previous_id +
-                                  '" data-cooking-status="' +
-                                  single_item.cooking_status +
-                                  '">';
-                              order_list_left += '<div class="single_item_left_side fix">';
-                              order_list_left += '<div class="fix floatleft item_quantity">';
-                              order_list_left +=
-                                  '<p class="item_quanity_text" style="' +
-                                  font_style +
-                                  '">' +
-                                  single_item.qty +
-                                  "</p>";
-                              order_list_left += "</div>";
-                              order_list_left += '<div class="fix floatleft item_detail"><div><label ><input type="checkbox" class="select_single_item">';
-                              order_list_left +=
-                                  '<span class="item_name" style="' +
-                                  font_style +
-                                  '">' +
-                                  single_item.menu_name +
-                                  "</span></label>"+alternative_name+"</div>";
-                              if (single_item.menu_combo_items != "" && single_item.menu_combo_items!=undefined && single_item.menu_combo_items!="undefined") {
-                                  order_list_left +=
-                                      '<p class="note" style="' +
-                                      font_style +
-                                      '">Items- ' +
-                                      single_item.menu_combo_items +
-                                      "</p>";
-                              }
-                              order_list_left += qty_str;
   
+                              // NUEVO BLOQUE HTML PARA ITEM
+                              order_list_left +=
+                                  '<div data-selected="unselected" class="fix single_item ' + item_background +
+                                  '" data-order-id="' + response[key].sales_id +
+                                  '" data-item-id="' + single_item.previous_id +
+                                  '" id="detail_item_id_' + single_item.previous_id +
+                                  '" data-cooking-status="' + single_item.cooking_status + '">' +
+                                  '<div class="single_item_content">' +
+                                  '<div class="item_name_row">' +
+                                  '<label><input type="checkbox" class="select_single_item">' +
+                                  '<span class="item_name" style="' + font_style + '">' + single_item.menu_name + alternative_name + '</span></label>' +
+                                  '</div>' +
+                                  '<div class="item_details_row">' +
+                                  '<span class="item_qty" style="font-weight:bold;' + font_style + '">' + qty_str + '</span>' +
+                                  '<span class="single_item_cooking_status ' + cook_status_btn + '" style="' + font_style + '">' + cooking_status + '</span>' +
+                                  '</div>';
+  
+                              // Modificadores y notas (opcional)
                               let modifiers = single_item.modifiers;
                               let modifiers_length = modifiers.length;
-                              let w = 1;
-                              let modifiers_name = "";
-                              for (let key_modifier in modifiers) {
-                                  if (w == modifiers_length) {
-                                      modifiers_name += modifiers[key_modifier].name;
-                                  } else {
-                                      modifiers_name += modifiers[key_modifier].name + ", ";
-                                  }
-                                  w++;
-                              }
                               if (modifiers_length > 0) {
+                                  let modifiers_name = "";
+                                  for (let m = 0; m < modifiers_length; m++) {
+                                      modifiers_name += modifiers[m].name + (m < modifiers_length - 1 ? ", " : "");
+                                  }
                                   order_list_left +=
-                                      '<p class="modifiers" style="' +
-                                      font_style +
-                                      '">- ' +
-                                      modifiers_name +
-                                      "</p>";
+                                      '<div class="item_modifiers_row" style="' + font_style + '"><small>- ' +
+                                      modifiers_name + '</small></div>';
                               }
   
-                              if (single_item.menu_note != "" && single_item.menu_note!=undefined && single_item.menu_note!="undefined") {
+                              if (single_item.menu_note && single_item.menu_note != "" && single_item.menu_note != undefined && single_item.menu_note != "undefined") {
                                   order_list_left +=
-                                      '<p class="note" style="' +
-                                      font_style +
-                                      '">- ' +
-                                      single_item.menu_note +
-                                      "</p>";
+                                      '<div class="item_note_row" style="' + font_style + '"><small><b>Nota: </b> ' +
+                                      single_item.menu_note + '</small></div>';
                               }
+                              order_list_left += '</div>'; // single_item_content
+                              order_list_left += '</div>'; // single_item
   
-                              order_list_left += "</div>";
-                              order_list_left += "</div>";
-                              order_list_left += '<div class="single_item_right_side fix">';
-                              order_list_left +=
-                                  '<p class="single_item_cooking_status '+cook_status_btn+'" style="' +
-                                  font_style +
-                                  ';">' +
-                                  cooking_status +
-                                  "</p>";
-                              order_list_left += "</div>";
-                              order_list_left += "</div>";
-                              if((items.length-1)>i_counter){
+                              if ((items.length - 1) > i_counter) {
                                   order_list_left += "<hr class='hr_kitchen_panel'>";
                               }
                               i_counter++;
@@ -1504,7 +1474,7 @@ $(document).ready(function () {
               bgColorAdd();
               $("#order_holder.order_holder .single_order .items_holder")
                   .slimscroll({
-                      height: "180px",
+                      height: "270px",
                   })
                   .parent()
                   .css({
@@ -1984,7 +1954,7 @@ $(document).ready(function () {
               bgColorAdd();
               $("#order_holder.order_holder .single_order .items_holder")
                   .slimscroll({
-                      height: "180px",
+                      height: "270px",
                   })
                   .parent()
                   .css({

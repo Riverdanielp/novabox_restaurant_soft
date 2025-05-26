@@ -595,10 +595,10 @@
             const filteredItems = items.filter(item => {
                 // Calcular la cantidad relevante (tmp_qty o qty)
                 const relevantQty = showTmpQty ? parseFloat(item.tmp_qty || 0) : parseFloat(item.qty);
-                
+
                 // Si all=1, incluir solo items con qty >= 1
                 if (all === 1) return relevantQty >= 1;
-                
+
                 // Si all=0, incluir solo items nuevos/sin cocción con cantidad relevante >= 1
                 return (!item.cooking_status || item.cooking_status === 'New') && relevantQty >= 1;
             });

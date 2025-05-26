@@ -1211,7 +1211,7 @@ class FoodMenu extends Cl_Controller {
                 // Crear el ingrediente
                 $ingredient_data = [
                     'name' => $food_menu->name,
-                    'code' => $this->Master_model->generateIngredientCode(),
+                    'code' => $food_menu->code,
                     'category_id' => $ingredient_category_id,
                     'purchase_price' => 0,
                     'alert_quantity' => $food_menu->alert_quantity ?: 0,

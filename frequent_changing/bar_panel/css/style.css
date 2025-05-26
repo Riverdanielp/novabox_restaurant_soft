@@ -5,7 +5,7 @@ body{
     overflow-x: hidden;
 }
 p,h1,h2,h3,h4,h5,h6,div,td,tr,ul,li{
-    font-size: 14px;
+    font-size: 12px;
     margin:0px;
     line-height: 20px;
 }
@@ -142,7 +142,7 @@ width:30%;
 .wrapper .main_bottom { 
     background-color:#E4E4E4;
 }
-#order_holder.order_holder {
+/* #order_holder.order_holder {
     min-height: 610px;
 }
 #order_holder.order_holder .single_order {
@@ -152,7 +152,49 @@ width:30%;
     background: #fff;
     position: relative;
     height: 312px;
+} */
+#order_holder.order_holder {
+    min-height: 610px;
+    display: grid;
+    gap: 10px 1%; /* Espacio vertical/horizontal entre tarjetas */
+    grid-template-columns: repeat(1, 1fr); /* Default: 1 columna */
 }
+
+#order_holder.order_holder .single_order {
+    /* width: 24%;   <-- ELIMINA esta línea si usas Grid */
+    margin: 5px 0; /* Deja solo margen vertical, el horizontal lo da el gap del grid */
+    border-radius: 5px;
+    background: #fff;
+    position: relative;
+    height: 312px;
+    box-sizing: border-box;
+}
+
+/* 2 columnas en tablets */
+@media (min-width: 600px) {
+    #order_holder.order_holder {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+/* 4 columnas en escritorio normal */
+@media (min-width: 1024px) {
+    #order_holder.order_holder {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+/* 5 columnas en pantallas grandes */
+@media (min-width: 1400px) {
+    #order_holder.order_holder {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+/* 6 columnas en ultrawide */
+@media (min-width: 1800px) {
+    #order_holder.order_holder {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
 #order_holder.order_holder .single_order .header_portion {
     
     color: #fff;
@@ -175,7 +217,7 @@ width:30%;
     /*margin: 0px 0px 36px 0px;*/
 }
 #order_holder.order_holder .single_order .items_holder .single_item {
-    padding: 8px 0px;
+    /* padding: 8px 0px; */
     cursor: pointer;
 }
 #order_holder.order_holder .single_order .items_holder .single_item .item_quantity {

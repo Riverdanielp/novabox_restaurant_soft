@@ -5920,7 +5920,10 @@ function getSafePrice(priceAttr) {
                           item_price +
                           "</span></div>";
                       draw_table_for_order +=
-                          '<div class="single_order_column third_column fix"><i class="fal fa-minus decrease_item_table txt_5" id="decrease_item_table_' +
+                          '<div class="single_order_column third_column fix">' +
+                          '<input type="hidden" class="tmp_qty" name="tmp_qty" value="' + item_quantity + '" id="tmp_qty_' + item_id + '">'  + 
+                          '<input type="hidden" class="p_qty" name="p_qty" value="0" id="p_qty_' + item_id + '">' +
+                          '<i class="fal fa-minus decrease_item_table txt_5" id="decrease_item_table_' +
                           item_id +
                           '"></i> <span data-is_kot_print="1" class="qty_item_custom 1_cp_qty_'+item_id+'" id="item_quantity_table_' +
                           item_id +
@@ -9308,9 +9311,9 @@ function getSafePrice(priceAttr) {
             let item_unit_price = $(this).find("#item_price_table_" + item_id).html() || "0";
             let item_quantity = $(this).find("#item_quantity_table_" + item_id).html() || "0";
             let is_kot_print = $(this).find("#item_quantity_table_" + item_id).attr('data-is_kot_print') || "1";
-            let tmp_qty = $(this).find(".tmp_qty").val() || item_quantity || "0";
+            let tmp_qty = $(this).find(".tmp_qty").val() || "0";
+            let p_qty = $(this).find(".p_qty").val() || "0";
             let rounding_amount_hidden = $(this).find("#rounding_amount_hidden").val() || "0";
-            let p_qty = $(this).find(".p_qty").val() || item_quantity || "0";
             // console.log('item:',item_id,'item_quantity:', item_quantity,'tmp_qty:', tmp_qty,'p_qty:', p_qty);
             let item_price_with_discount = $(this).find("#item_total_price_table_" + item_id).html() || item_price_without_discount || "0";
             let item_discount_amount = (parseFloat(item_price_without_discount) - parseFloat(item_price_with_discount)).toFixed(ir_precision);

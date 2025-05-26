@@ -1595,27 +1595,48 @@ class Sale extends Cl_Controller {
             if($sale_id>0 && count($order_details->items)>0){
                 $previous_food_id = 0;
                 $arr_item_id = array();
-                foreach($order_details->items as $key_counter=>$item){
-                    $tmp_var_111 = isset($item->p_qty) && $item->p_qty && $item->p_qty!='undefined'?$item->p_qty:0;
-                    $tmp = intval($item->qty)-intval($tmp_var_111);
-                    $tmp_var = 0;
-                    if($is_new>0){
-                        $tmp_var = $item->qty;
-                    } else {
-                        if($tmp>0){
-                            $tmp_var = $tmp;
-                        }    
+                // Trae todos los ítems existentes de la orden, ordenados por id ascendente
+                $existing_items = getAllOrderItems($sale_id);
 
+                // Indexar por food_menu_id y ocurrencia
+                $existing_items_by_id = [];
+                foreach ($existing_items as $ex_item) {
+                    $fid = $ex_item->food_menu_id;
+                    if (!isset($existing_items_by_id[$fid])) $existing_items_by_id[$fid] = [];
+                    $existing_items_by_id[$fid][] = $ex_item;
+                }
+                
+                // Contadores de ocurrencia
+                $counter_by_id = [];
+                foreach($order_details->items as $key_counter=>$item){
+                    $fid = $item->food_menu_id;
+                    if (!isset($counter_by_id[$fid])) $counter_by_id[$fid] = 0;
+                    $occurrence = $counter_by_id[$fid]++;
+                
+                    $existing_item = isset($existing_items_by_id[$fid][$occurrence]) ? $existing_items_by_id[$fid][$occurrence] : null;
+                
+                    // Lógica de cantidades
+                    if ($is_new > 0) { // Es una orden nueva
+                        $tmp_var = intval($item->qty);
+                    } else {
+                        if ($existing_item) {
+                            $tmp = intval($item->qty) - intval($existing_item->qty);
+                            $tmp_var = ($tmp > 0) ? $tmp : 0;
+                        } else {
+                            // Ítem nuevo (más ocurrencias de este food_menu_id que antes)
+                            $tmp_var = intval($item->qty);
+                        }
                     }
+                
                     $item_data = array();
                     $item_data['food_menu_id'] = $item->food_menu_id;
                     $item_data['menu_name'] = $item->menu_name;
-                    if($item->is_free==1){
+                    if ($item->is_free==1) {
                         $item_data['is_free_item'] = $previous_food_id;
-                    }else{
+                    } else {
                         $item_data['is_free_item'] = 0;
                     }
-            
+                
                     $item_data['qty'] = $item->qty;
                     $item_data['tmp_qty'] = $tmp_var;
                     $item_data['menu_price_without_discount'] = $item->menu_price_without_discount;
@@ -1639,23 +1660,18 @@ class Sale extends Cl_Controller {
                         $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
                     }
                     $item_data['del_status'] = 'Live';
-            
+                
                     $sales_details_id = '';
-                    if($sale_id){
-                        $preview_id_counter_value = isset($arr_item_id[$item->food_menu_id]) && $arr_item_id[$item->food_menu_id]?$arr_item_id[$item->food_menu_id]:0;
-                        $arr_item_id[$item->food_menu_id] = $preview_id_counter_value + 1;
-                        $check_exist_item = checkExistItem($sale_id,$item->food_menu_id,$preview_id_counter_value);
-                        if(isset($check_exist_item) && $check_exist_item){
-                            $sales_details_id = $check_exist_item->id;
+                    if ($sale_id) {
+                        if ($existing_item) {
+                            $sales_details_id = $existing_item->id;
                             // Solo marcar como 'New' si la cantidad aumentó
-                            if($item->qty > $check_exist_item->qty){
+                            if ($item->qty > $existing_item->qty) {
                                 $item_data['cooking_status'] = 'New';
                             } else {
-                                // Mantener el estado de cocina anterior (NO sobreescribir)
-                                $item_data['cooking_status'] = $check_exist_item->cooking_status;
+                                $item_data['cooking_status'] = $existing_item->cooking_status;
                             }
-                            if($item->qty != $check_exist_item->qty){
-                                // $item_data['is_print'] = 1;
+                            if ($item->qty != $existing_item->qty) {
                                 $updated_notifications = $this->Common_model->getOrderedKitchens($sale_id);
                                 foreach ($updated_notifications as $k=>$kitchen){
                                     $notification_message = 'La Orden:'.$sale_no.' fue modificada. Item Modificado: '.$item->menu_name.", Cant:".$item->qty;
@@ -1668,22 +1684,22 @@ class Sale extends Cl_Controller {
                                 }
                             }
                             $this->Common_model->updateInformation($item_data, $sales_details_id, "tbl_kitchen_sales_details");
-                        }else{
+                        } else {
                             $item_data['cooking_status'] = 'New';
                             $this->db->insert('tbl_kitchen_sales_details', $item_data);
                             $sales_details_id = $this->db->insert_id();
                         }
-                    }else{
+                    } else {
                         $item_data['cooking_status'] = 'New';
                         $this->db->insert('tbl_kitchen_sales_details', $item_data);
                         $sales_details_id = $this->db->insert_id();
                     }
-            
+                
                     $previous_food_id = $sales_details_id;
                     $update_previous_id = array();
                     $update_previous_id['previous_id'] = $previous_food_id;
                     $this->Common_model->updateInformation($update_previous_id, $sales_details_id, "tbl_kitchen_sales_details");
-            
+                
                     $modifier_id_array = ($item->modifiers_id!="")?explode(",",$item->modifiers_id):null;
                     $modifier_price_array = ($item->modifiers_price!="")?explode(",",$item->modifiers_price):null;
                     $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat!="")?explode("|||",$item->modifier_vat):null;
@@ -1704,18 +1720,16 @@ class Sale extends Cl_Controller {
                                 $check_exist_modifer = checkExistItemModifer($sale_id,$item->food_menu_id,$sales_details_id,$single_modifier_id);
                                 if(isset($check_exist_modifer) && $check_exist_modifer){
                                     $sales_details_modifier_id = $check_exist_modifer->id;
-                                    if($item->qty!=$check_exist_item->qty){
+                                    if($existing_item && $item->qty!=$existing_item->qty){
                                         $modifier_data['is_print'] = 1;
                                     }
                                     $this->Common_model->updateInformation($modifier_data, $sales_details_modifier_id, "tbl_kitchen_sales_details_modifiers");
-            
                                 }else{
                                     $this->db->insert('tbl_kitchen_sales_details_modifiers', $modifier_data);
                                 }
                             }else{
                                 $this->db->insert('tbl_kitchen_sales_details_modifiers', $modifier_data);
                             }
-            
                             $i++;
                         }
                     }
@@ -6743,9 +6757,17 @@ class Sale extends Cl_Controller {
         $company_id = $this->session->userdata('company_id');
         $inventory = $this->Inventory_model->getInventory(null, null, null); // O filtra por params si deseas
         $ingredient_categories = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_ingredient_categories");
+
+        $outlet = getOutletById($this->session->userdata('outlet_id'));
+        $outlet_name = $outlet->outlet_name; 
+        $username = $this->session->userdata('full_name'); 
+        $hora = date('d/m/Y H:i:s'); // Formato de fecha y hora
     
         // Puedes enviar solo los datos necesarios para reducir el payload
         echo json_encode([
+            'hora' => $hora,
+            'outlet_name' => $outlet_name,
+            'username' => $username,
             'inventory' => $inventory,
             'ingredient_categories' => $ingredient_categories
         ]);

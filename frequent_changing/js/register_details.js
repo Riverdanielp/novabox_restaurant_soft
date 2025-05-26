@@ -351,6 +351,7 @@ $(function () {
             }
         });
     });
+
     $(document).on('click', '#inventario_print', function() {
         $("#control_inventario_modal").addClass("active");
         $(".inventario_form_content").html('<div style="text-align:center;padding:30px;"><i class="fa fa-spinner fa-spin fa-2x"></i> Cargando...</div>');
@@ -364,7 +365,7 @@ $(function () {
                     $(".inventario_form_content").html('<div class="alert alert-warning">No hay datos de inventario.</div>');
                     return;
                 }
-                renderInventarioTicket(res.inventory, res.ingredient_categories);
+                renderInventarioTicket(res.inventory, res.ingredient_categories, res.hora, res.outlet_name, res.username);
             },
             error: function() {
                 $(".inventario_form_content").html('<div class="alert alert-danger">Error al cargar inventario.</div>');
@@ -379,7 +380,7 @@ $(function () {
     });
     
     // Función para renderizar el ticket dentro del modal
-    function renderInventarioTicket(inventoryData, ingredientCategories) {
+    function renderInventarioTicket(inventoryData, ingredientCategories, hora, outletName, username) {
         // Agrupa por categoría
         let grouped = {};
         inventoryData.forEach(function(item) {
@@ -393,7 +394,10 @@ $(function () {
             <div id="ticket_print_area" style="width:${ticketWidth}mm; margin:auto; font-size:8px; font-family:Arial, sans-serif;">
                 <div class="center" style="text-align:center;">
                     <h3 style="margin:5px 0;font-size:14px;">Reporte de inventario</h3>
+                    <h3>${outletName}</h3>
                 </div>
+                <h3>USUARIO: ${username}</h3>
+                <h3>HORA: ${hora}</h3>
         `;
     
         for (const [category, items] of Object.entries(grouped)) {

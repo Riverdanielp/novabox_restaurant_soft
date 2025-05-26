@@ -55,7 +55,7 @@ class Kitchen_model extends CI_Model {
         $this->db->where("s.outlet_id", $outlet_id);
         $this->db->where("(s.order_status='1' OR s.order_status='2')");
         $this->db->where("s.is_accept", 1);
-        $this->db->where("s.date_time >=", "DATE_SUB(NOW(), INTERVAL 2 HOUR)", false);
+        $this->db->where("s.date_time >=", "DATE_SUB(NOW(), INTERVAL 3 HOUR)", false);
         
         $this->db->join('tbl_tables t', 't.id = s.table_id', 'left');
         $this->db->join('tbl_users u', 'u.id = s.waiter_id', 'left');

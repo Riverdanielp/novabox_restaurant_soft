@@ -194,6 +194,9 @@
 <script src="<?php echo base_url(); ?>frequent_changing/js/custom_report.js"></script>
 
 <script>
+  var outlet_name = "<?php echo ($outlet_name); ?>";
+  var username = "<?php echo ($username); ?>";
+  var hora = "<?php echo ($hora); ?>";
   var inventoryData = <?php echo json_encode($inventory); ?>;
   var ingredientCategories = <?php echo json_encode($ingredient_categories); ?>;
 </script>
@@ -217,7 +220,7 @@ document.getElementById('printTicketBtn').addEventListener('click', function() {
           @media print {
             body, html { width: ${ticketWidth}mm; }
           }
-          body { width: ${ticketWidth}mm; font-family: Arial, sans-serif; font-size: 8px; }
+          body { width: ${ticketWidth}mm; font-family: Arial, sans-serif; font-size: 12px; }
           .center { text-align: center; }
           h3 { margin: 5px 0; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
@@ -229,8 +232,11 @@ document.getElementById('printTicketBtn').addEventListener('click', function() {
       </head>
       <body>
         <div class="center">
-          <h3>Reporte de inventario</h3>
+          <h2>Reporte de inventario</h2>
+          <h3>${outlet_name}</h3>
         </div>
+          <h3>USUARIO: ${username}</h3>
+          <h3>HORA: ${hora}</h3>
     `;
 
     for (const [category, items] of Object.entries(groupedByCategory)) {
