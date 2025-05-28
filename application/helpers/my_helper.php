@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.54204';
+    return '?v=7.54205';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto

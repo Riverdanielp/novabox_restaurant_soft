@@ -1,19 +1,5 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Inventory_adjustment_model Model
-  ###########################################################
- */
+
 class Inventory_adjustment_model extends CI_Model {
 
      /**
@@ -40,11 +26,12 @@ class Inventory_adjustment_model extends CI_Model {
      * @param int
      */
     public function getInventoryAdjustmentIngredients($id) {
-        $this->db->select("*");
+        $this->db->select("tbl_inventory_adjustment_ingredients.*, tbl_ingredients.name, tbl_ingredients.code");
         $this->db->from("tbl_inventory_adjustment_ingredients");
-        $this->db->order_by('id', 'ASC');
-        $this->db->where("inventory_adjustment_id", $id);
-        $this->db->where("del_status", 'Live');
+        $this->db->join('tbl_ingredients', 'tbl_ingredients.id = tbl_inventory_adjustment_ingredients.ingredient_id', 'left');
+        $this->db->order_by('tbl_inventory_adjustment_ingredients.id', 'ASC');
+        $this->db->where("tbl_inventory_adjustment_ingredients.inventory_adjustment_id", $id);
+        $this->db->where("tbl_inventory_adjustment_ingredients.del_status", 'Live');
         return $this->db->get()->result();
     }
      /**
@@ -59,6 +46,13 @@ class Inventory_adjustment_model extends CI_Model {
         $reference_no = str_pad($inventory_adjustment_count + 1, 6, '0', STR_PAD_LEFT);
         return $reference_no;
     }
-
+    public function getIngredientByCode($code) {
+        return $this->db->where('code', $code)->where('del_status', 'Live')->get('tbl_ingredients')->row();
+    }
+    
+    public function getLastPurchasePrice($ingredient_id) {
+        $row = $this->db->select('purchase_price')->where('ingredient_id', $ingredient_id)->where('del_status', 'Live')->order_by('id', 'DESC')->get('tbl_purchase_ingredients')->row();
+        return $row ? $row->purchase_price : 0;
+    }
 }
 

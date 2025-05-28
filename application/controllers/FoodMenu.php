@@ -50,6 +50,8 @@ class FoodMenu extends Cl_Controller {
 
         if($segment_2=="downloadPDF"){
 
+        }elseif($segment_2=="assign" || $segment_2=="assign_submit" ){
+
         }else{
             if(!checkAccess($controller,$function)){
                 $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));

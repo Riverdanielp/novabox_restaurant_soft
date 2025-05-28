@@ -112,6 +112,9 @@
             border-radius: 4px;
             cursor: pointer;
         }
+        /* .single_item.status-started { background: #f0f6ff; }
+        .single_item.status-done { background: #e4ffe4; }
+        .single_item.status-new { background: #fff; } */
     </style>
 </head>
 

@@ -27,9 +27,10 @@
                 <table id="datatable" class="table">
                     <thead>
                     <tr>
-                        <th class="title" class="ir_w_5"><?php echo lang('sn'); ?></th>
+                        <th class="title" class="ir_w_5">#</th>
+                        <th class="title" class="ir_w_5"><?php echo lang('code'); ?></th>
                         <th class="title" class="ir_w_37">
-                            <?php echo lang('ingredient'); ?>(<?php echo lang('code'); ?>)</th>
+                            <?php echo lang('ingredient'); ?></th>
                         <th class="title" class="ir_w_20"><?php echo lang('category'); ?></th>
                         <th class="title" class="ir_w_20"><?php echo lang('stock_qty_amount'); ?></th>
                         <th class="title" class="ir_w_20"><?php echo lang('alert_qty_amount'); ?></th>
@@ -64,7 +65,8 @@
                                 ?>
                                 <tr>
                                     <td class="ir_txt_center"><?php echo escape_output($key); ?></td>
-                                    <td><?= escape_output($value->name . "(" . $value->code . ")") ?></td>
+                                    <td class="ir_txt_center"><?php echo escape_output($value->code); ?></td>
+                                    <td><?= escape_output($value->name) ?></td>
                                     <td><?php echo escape_output($value->category_name); ?></td>
                                     <?php if(($value->ing_type=="Plain Ingredient" && $value->is_direct_food!=2) && $value->conversion_rate!=1):?>
                                             <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>"><?php echo floatval($total_sale_unit); ?><?php echo " " . $value->unit_name2 ?></span> <span><?= ($totalStock) ? floatval($totalStock%$conversion_rate) : getAmtP(0) ?><?= " " . escape_output($value->unit_name)?></span></td>
@@ -289,7 +291,7 @@ document.getElementById('printTicketBtn').addEventListener('click', function() {
     setTimeout(function() {
       win.focus();
       win.print();
-      // win.close(); // Descomenta si quieres cerrar automáticamente después de imprimir
+      win.close(); // Descomenta si quieres cerrar automáticamente después de imprimir
     }, 500);
 });
 </script>

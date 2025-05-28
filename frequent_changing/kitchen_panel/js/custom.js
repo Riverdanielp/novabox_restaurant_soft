@@ -19,6 +19,10 @@ $(document).ready(function () {
     let text_not_ready_ln = $("#text_not_ready_ln").val();
     let text_ready_ln = $("#text_ready_ln").val();
     let text_in_preparation_ln = $("#text_in_preparation_ln").val();
+    let text_ready = $("#text_ready").val();
+    let text_done = $("#text_done").val();
+    let text_not_ready = $("#text_not_ready").val();
+    let text_in_preparation = $("#text_in_preparation").val();
 
   $(document).on("click", "#refresh_orders_button", function () {
     $("#refresh_it_or_not").html("Yes");
@@ -92,11 +96,11 @@ $(document).ready(function () {
         $(this).find(".select_single_item").prop("checked",false);
       } else {
         $(this).attr("data-selected", "selected");
-        if ($(this).find(".single_item_cooking_status").html() == "No está listo") {
+        if ($(this).find(".single_item_cooking_status").html() == text_not_ready) {
           single_order.find(".start_cooking_button").fadeIn();
         }
         if (
-          $(this).find(".single_item_cooking_status").html() == "En Preparacion"
+          $(this).find(".single_item_cooking_status").html() == text_in_preparation
         ) {
           single_order.find(".done_cooking").fadeIn();
         }
@@ -251,20 +255,27 @@ $(document).ready(function () {
       );
       let previous_id_array = previous_id.split(",");
       previous_id_array.forEach(function (entry) {
+        
         $("#detail_item_id_" + entry).attr("data-selected", "selected");
-       
-       
-        $(
-          "#detail_item_id_" +
-            entry +
-            " .single_item_right_side .single_item_cooking_status"
-        ).html("En Preparacion");
+        $("#detail_item_id_" + entry).css("background-color", "#B5D6F6");
+        // Si quieres actualizar el texto de estado en tiempo real:
+        $("#detail_item_id_" + entry + " .single_item_cooking_status").html(text_in_preparation);
+        $("#detail_item_id_" + entry + " .single_item_cooking_status").addClass("start_cooking_button");
 
-        $(
-          "#detail_item_id_" +
-            entry +
-            " .single_item_right_side .single_item_cooking_status"
-        ).addClass("start_cooking_button");
+        // $("#detail_item_id_" + entry).attr("data-selected", "selected");
+       
+       
+        // $(
+        //   "#detail_item_id_" +
+        //     entry +
+        //     " .single_item_right_side .single_item_cooking_status"
+        // ).html(text_in_preparation);
+
+        // $(
+        //   "#detail_item_id_" +
+        //     entry +
+        //     " .single_item_right_side .single_item_cooking_status"
+        // ).addClass("start_cooking_button");
       });
       if (previous_id != "") {
         let url =
@@ -326,25 +337,11 @@ $(document).ready(function () {
         let previous_id_array = previous_id.split(",");
         previous_id_array.forEach(function (entry) {
           $("#detail_item_id_" + entry).attr("data-selected", "selected");
-          $("#detail_item_id_" + entry).removeClass("light-blue-background");
-          
-          $(
-            "#detail_item_id_" +
-              entry +
-              " .single_item_right_side .single_item_cooking_status"
-          ).html(text_ready_ln);
-          
-          $(
-            "#detail_item_id_" +
-              entry +
-              " .single_item_right_side .single_item_cooking_status"
-          ).addClass("done_cooking");
-
-          $(
-            "#detail_item_id_" +
-              entry +
-              " .single_item_right_side .single_item_cooking_status"
-          ).removeClass("start_cooking_button");
+          $("#detail_item_id_" + entry).css("background-color", "#5DB745");
+          // Opcional: cambia el texto de estado
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").html(text_ready);
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").addClass("done_cooking");
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").removeClass("start_cooking_button");
 
         });
       
@@ -401,23 +398,13 @@ $(document).ready(function () {
         });
         let previous_id_array = previous_id.split(",");
         previous_id_array.forEach(function (entry) {
+          console.log('entry', entry);
           $("#detail_item_id_" + entry).attr("data-selected", "selected");
-         
-          $(
-            "#detail_item_id_" +
-              entry +
-              " .single_item_right_side .single_item_cooking_status"
-          ).html(text_ready_ln);
-          $(
-            "#detail_item_id_" +
-              entry +
-              " .single_item_right_side .single_item_cooking_status"
-          ).addClass("done_cooking");;
-          $(
-            "#detail_item_id_" +
-              entry +
-              " .single_item_right_side .single_item_cooking_status"
-          ).removeClass("start_cooking_button");
+          $("#detail_item_id_" + entry).css("background-color", "#5DB745");
+          // Opcional: cambia el texto de estado
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").html(text_ready);
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").addClass("done_cooking");
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").removeClass("start_cooking_button");
         });
         if (previous_id != "") {
           let url =
@@ -552,9 +539,17 @@ $(document).ready(function () {
           j++;
         });
         let previous_id_array = previous_id.split(",");
+
         previous_id_array.forEach(function (entry) {
-          $("#single_item_" + entry).attr("data-selected", "selected");
-          $("#single_item_" + entry).css("background-color", "#B5D6F6");
+          console.log('entry', entry);
+          // CAMBIA AQUÍ EL SELECTOR:
+          $("#detail_item_id_" + entry).attr("data-selected", "selected");
+          $("#detail_item_id_" + entry).css("background-color", "#B5D6F6");
+          // Si quieres actualizar el texto de estado en tiempo real:
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").html(text_in_preparation);
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").addClass("start_cooking_button");
+          // $("#single_item_" + entry).attr("data-selected", "selected");
+          // $("#single_item_" + entry).css("background-color", "#B5D6F6");
         });
         if (previous_id != "") {
           $.ajax({
@@ -602,8 +597,14 @@ $(document).ready(function () {
       });
       let previous_id_array = previous_id.split(",");
       previous_id_array.forEach(function (entry) {
-        $("#single_item_" + entry).attr("data-selected", "selected");
-        $("#single_item_" + entry).css("background-color", "#B5D6F6");
+        // console.log('entry', entry);
+        $("#detail_item_id_" + entry).attr("data-selected", "selected");
+        $("#detail_item_id_" + entry).css("background-color", "#B5D6F6");
+        // Si quieres actualizar el texto de estado en tiempo real:
+        $("#detail_item_id_" + entry + " .single_item_cooking_status").html(text_in_preparation);
+        $("#detail_item_id_" + entry + " .single_item_cooking_status").addClass("start_cooking_button");
+        // $("#single_item_" + entry).attr("data-selected", "selected");
+        // $("#single_item_" + entry).css("background-color", "#B5D6F6");
       });
       if (previous_id != "") {
         $.ajax({
@@ -660,8 +661,14 @@ $(document).ready(function () {
         });
         let previous_id_array = previous_id.split(",");
         previous_id_array.forEach(function (entry) {
-          $("#single_item_" + entry).attr("data-selected", "selected");
-          $("#single_item_" + entry).css("background-color", "#B5D6F6");
+          $("#detail_item_id_" + entry).attr("data-selected", "selected");
+          $("#detail_item_id_" + entry).css("background-color", "#5DB745");
+          // Opcional: cambia el texto de estado
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").html(text_ready);
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").addClass("done_cooking");
+          $("#detail_item_id_" + entry + " .single_item_cooking_status").removeClass("start_cooking_button");
+          // $("#single_item_" + entry).attr("data-selected", "selected");
+          // $("#single_item_" + entry).css("background-color", "#B5D6F6");
         });
         if (previous_id != "") {
           $.ajax({
@@ -708,31 +715,37 @@ $(document).ready(function () {
       });
       let previous_id_array = previous_id.split(",");
       previous_id_array.forEach(function (entry) {
-        $("#single_item_" + entry).attr("data-selected", "selected");
-        $("#single_item_" + entry).css("background-color", "#B5D6F6");
+        $("#detail_item_id_" + entry).attr("data-selected", "selected");
+        $("#detail_item_id_" + entry).css("background-color", "#5DB745");
+        // Opcional: cambia el texto de estado
+        $("#detail_item_id_" + entry + " .single_item_cooking_status").html(text_ready);
+        $("#detail_item_id_" + entry + " .single_item_cooking_status").addClass("done_cooking");
+        $("#detail_item_id_" + entry + " .single_item_cooking_status").removeClass("start_cooking_button");
+        // $("#single_item_" + entry).attr("data-selected", "selected");
+        // $("#single_item_" + entry).css("background-color", "#B5D6F6");
       });
       if (previous_id != "") {
-        $.ajax({
-          url:
-            base_url + "Kitchen/update_cooking_status_delivery_take_away_ajax",
-          method: "POST",
-          data: {
-            previous_id: previous_id,
-            cooking_status: "Done",
-            csrf_irestoraplus: csrf_value_,
-              kitchen_id: kitchen_id,
-          },
-          success: function (response) {
-            // swal({
-            //   title: "Alert",
-            //   text: "Cooking Done!!",
-            //   confirmButtonColor: "#b6d6f6",
-            // });
-          },
-          error: function () {
-            alert("error");
-          },
-        });
+        // $.ajax({
+        //   url:
+        //     base_url + "Kitchen/update_cooking_status_delivery_take_away_ajax",
+        //   method: "POST",
+        //   data: {
+        //     previous_id: previous_id,
+        //     cooking_status: "Done",
+        //     csrf_irestoraplus: csrf_value_,
+        //       kitchen_id: kitchen_id,
+        //   },
+        //   success: function (response) {
+        //     // swal({
+        //     //   title: "Alert",
+        //     //   text: "Cooking Done!!",
+        //     //   confirmButtonColor: "#b6d6f6",
+        //     // });
+        //   },
+        //   error: function () {
+        //     alert("error");
+        //   },
+        // });
       }
     }
   });
@@ -1082,19 +1095,26 @@ $(document).ready(function () {
     }
 
     refresh_orders();
-    function bgColorAdd(){
+    function bgColorAdd() {
       $(".header_portion").each(function() {
         let counter = 1;
-        $(this).parent().find(".single_item_cooking_status").each(function() {
-           let this_text = $(this).text();
-           if(this_text=="En Preparacion"){
-            counter++;
-           }
-       });
-       if(counter!=1){
-        $(this).addClass("light-yellow-background");
-       }
-     });
+        // Busca los .single_item_cooking_status dentro de los items de ESTA orden
+        $(this)
+          .closest(".single_order")
+          .find(".single_item .single_item_cooking_status")
+          .each(function() {
+            let this_text = $(this).text().trim();
+            if (this_text === text_in_preparation || this_text === text_in_preparation_ln) {
+              counter++;
+            }
+          });
+        // Si hay algún item "En Preparacion", pinta la cabecera
+        if (counter != 1) {
+          $(this).addClass("light-yellow-background");
+        } else {
+          $(this).removeClass("light-yellow-background");
+        }
+      });
     }
 
     function refresh_orders() {
@@ -1402,12 +1422,16 @@ $(document).ready(function () {
                               if (single_item.qty != single_item.tmp_qty && parseFloat(single_item.tmp_qty)) {
                                   qty_str = Qty_Old + ': ' + (single_item.qty - single_item.tmp_qty) + " | " + Qty_New + ': ' + single_item.tmp_qty;
                               }
-  
+                              let status_class = "";
+                              if (single_item.cooking_status == "Done") status_class = "status-done";
+                              else if (single_item.cooking_status == "Started Cooking") status_class = "status-started";
+                              else status_class = "status-new";
                               // NUEVO BLOQUE HTML PARA ITEM
                               order_list_left +=
-                                  '<div data-selected="unselected" class="fix single_item ' + item_background +
+                                  '<div data-selected="unselected" class="fix single_item ' + status_class + ' ' + item_background +
                                   '" data-order-id="' + response[key].sales_id +
                                   '" data-item-id="' + single_item.previous_id +
+                                  '" data-item-uid="' + (single_item.previous_id || single_item.id || single_item.sales_details_id) +
                                   '" id="detail_item_id_' + single_item.previous_id +
                                   '" data-cooking-status="' + single_item.cooking_status + '">' +
                                   '<div class="single_item_content">' +

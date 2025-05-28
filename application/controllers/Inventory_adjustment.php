@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Inventory_adjustment Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -24,6 +9,7 @@ class Inventory_adjustment extends Cl_Controller {
         $this->load->model('Authentication_model');
         $this->load->model('Common_model');
         $this->load->model('Inventory_adjustment_model');
+        $this->load->model('Inventory_model');
         $this->Common_model->setDefaultTimezone();
         $this->load->library('form_validation');
         
@@ -55,15 +41,32 @@ class Inventory_adjustment extends Cl_Controller {
             $function = "add";
         }elseif($segment_2=="deleteInventoryAdjustment"){
             $function = "delete";
+        }elseif($segment_2=="ajuste"){
+            $function = "ajuste";
+        }elseif($segment_2=="ajaxBuscarIngredientePorCodigo"){
+            $function = "ajaxBuscarIngredientePorCodigo";
+        }elseif($segment_2=="ajaxGuardarAjusteDinamico"){
+            $function = "ajaxGuardarAjusteDinamico";
+        }elseif($segment_2=="ajaxListarAjusteDetalles"){
+            $function = "ajaxListarAjusteDetalles";
         }else{
             $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
             redirect('Authentication/userProfile');
         }
 
-        if(!checkAccess($controller,$function)){
-            $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
-            redirect('Authentication/userProfile');
+        
+        if( $segment_2=="ajuste" ||
+            $segment_2=="ajaxBuscarIngredientePorCodigo" ||
+            $segment_2=="ajaxGuardarAjusteDinamico" ||
+            $segment_2=="ajaxListarAjusteDetalles"
+            ){
+        } else {
+            if(!checkAccess($controller,$function)){
+                $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
+                redirect('Authentication/userProfile');
+            }
         }
+        
         //end check access function
 
         $login_session['active_menu_tmp'] = '';
@@ -206,6 +209,113 @@ class Inventory_adjustment extends Cl_Controller {
         $data['inventory_adjustment_ingredients'] = $this->Inventory_adjustment_model->getInventoryAdjustmentIngredients($id);
         $data['main_content'] = $this->load->view('inventoryAdjustment/inventoryAdjustmentDetails', $data, TRUE);
         $this->load->view('userHome', $data);
+    }
+
+    public function ajuste($id = null) {
+        $this->load->model('Inventory_adjustment_model');
+        $outlet_id = $this->session->userdata('outlet_id');
+        $company_id = $this->session->userdata('company_id');
+        $user_id = $this->session->userdata('user_id');
+        $user_txt = $this->session->userdata('full_name');
+    
+        if ($id) {
+            $ajuste = $this->Common_model->getDataById($id, "tbl_inventory_adjustment");
+            $ajuste_items = $this->Inventory_adjustment_model->getInventoryAdjustmentIngredients($id);
+        } else {
+            $ajuste = null;
+            $ajuste_items = [];
+        }
+    
+        $data = [
+            'ajuste' => $ajuste,
+            'ajuste_items' => $ajuste_items,
+            'reference_no' => isset($ajuste->reference_no) ? $ajuste->reference_no : $this->Inventory_adjustment_model->generateReferenceNo($outlet_id),
+            'date' => isset($ajuste->date) ? $ajuste->date : date('Y-m-d'),
+            'note' => isset($ajuste->note) ? $ajuste->note : '',
+            'outlet_id' => $outlet_id,
+            'user_id' => $user_id,
+            'user_txt' => $user_txt,
+        ];
+        $data['main_content'] = $this->load->view('inventoryAdjustment/ajusteInventario', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+    
+    /**
+     * Ajax: Buscar ingrediente por código
+     */
+    public function ajaxBuscarIngredientePorCodigo() {
+        $code = $this->input->post('codigo', true);
+        $row = $this->Inventory_adjustment_model->getIngredientByCode($code);
+        if ($row) {
+            $stock = $this->Inventory_model->getCurrentInventory($row->id);
+            // $last_purchase_cost = $this->Inventory_adjustment_model->getLastPurchasePrice($row->id);
+            echo json_encode([
+                'success' => true,
+                'id' => $row->id,
+                'code' => $row->code,
+                'name' => $row->name,
+                'unit' => $row->unit_id,
+                'stock' => $stock['total_stock'],
+                'costo' => $row->consumption_unit_cost,
+            ]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+    }
+    
+    /**
+     * Ajax: Guardar ajuste dinámico
+     */
+    public function ajaxGuardarAjusteDinamico() {
+        $ajuste_id = $this->input->post('ajuste_id', true);
+    
+        // Si $ajuste_id es null, creamos el ajuste
+        if (!$ajuste_id) {
+            $data = [
+                'reference_no' => $this->input->post('reference_no'),
+                'date' => $this->input->post('date'),
+                'note' => $this->input->post('note'),
+                'user_id' => $this->session->userdata('user_id'),
+                'outlet_id' => $this->session->userdata('outlet_id'),
+                'employee_id' => $this->session->userdata('user_id'),
+                'del_status' => 'Live'
+            ];
+            $ajuste_id = $this->Common_model->insertInformation($data, "tbl_inventory_adjustment");
+        }
+    
+        // Guardar el detalle
+        $detalle = [
+            'ingredient_id'      => $this->input->post('ingredient_id'),
+            'consumption_amount' => abs($this->input->post('qty_dif')),
+            'inventory_adjustment_id' => $ajuste_id,
+            'consumption_status' => ($this->input->post('qty_dif') >= 0) ? 'Plus' : 'Minus',
+            'outlet_id'          => $this->session->userdata('outlet_id'),
+            'del_status'         => 'Live',
+            'codigo'             => $this->input->post('codigo'),
+            'qty_old'            => $this->input->post('qty_old'),
+            'qty_new'            => $this->input->post('qty_new'),
+            'qty_dif'            => $this->input->post('qty_dif'),
+            'costo'              => $this->input->post('costo'),
+            'costo_dif'          => $this->input->post('costo_dif'),
+            'user'               => $this->session->userdata('user_id'),
+            'user_txt'           => $this->session->userdata('full_name'),
+            'datetime'           => date('Y-m-d H:i:s')
+        ];
+        $this->Common_model->insertInformation($detalle, "tbl_inventory_adjustment_ingredients");
+    
+        echo json_encode([
+            'success' => true,
+            'ajuste_id' => $ajuste_id
+        ]);
+    }
+    
+    /**
+     * Ajax: Listar detalles del ajuste (para refrescar la tabla)
+     */
+    public function ajaxListarAjusteDetalles() {
+        $ajuste_id = $this->input->post('ajuste_id');
+        $items = $this->Inventory_adjustment_model->getInventoryAdjustmentIngredients($ajuste_id);
+        echo json_encode(['success' => true, 'items' => $items]);
     }
 
 }

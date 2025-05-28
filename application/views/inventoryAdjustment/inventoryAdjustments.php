@@ -18,7 +18,9 @@
                     <input type="hidden" class="datatable_name" data-title="<?php echo lang('inventory_Adjustments'); ?>" data-id_name="datatable">
                 </div>
                 <div class="col-md-6">
-
+                    <a class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() . 'Inventory_adjustment/ajuste/' ?>">
+                        <i class="fa fa-plus" aria-hidden="true"></i> Nuevo Ajuste
+                    </a>
                 </div>
             </div>
         </section>
@@ -58,17 +60,17 @@
 
                                  <td>
                                     <div class="btn_group_wrap">
-                                        <a class="btn btn-cyan" href="<?php echo base_url() ?>Inventory_adjustment/inventoryAdjustmentDetails/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        <a class="btn btn-blue" href="<?php echo base_url() ?>Inventory_adjustment/ajuste/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
                                         data-bs-original-title="<?php echo lang('view_details'); ?>">
                                             <i class="far fa-eye"></i>
                                         </a>
-                                        <a class="btn btn-warning" href="<?php echo base_url() ?>Inventory_adjustment/addEditInventoryAdjustment/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        <!-- <a class="btn btn-warning" href="<?php echo base_url() ?>Inventory_adjustment/addEditInventoryAdjustment/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
                                         data-bs-original-title="<?php echo lang('edit'); ?>">
                                             <i class="far fa-edit"></i>
-                                        </a>
-                                        <a class="delete btn btn-danger" href="<?php echo base_url() ?>Inventory_adjustment/deleteInventoryAdjustment/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="<?php echo lang('delete'); ?>">
+                                        </a> -->
+                                        <!-- <a class="delete btn btn-danger" href="<?php echo base_url() ?>Inventory_adjustment/deleteInventoryAdjustment/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="<?php echo lang('delete'); ?>">
                                             <i class="fa-regular fa-trash-can"></i>
-                                        </a>
+                                        </a> -->
                                     </div>
                                 </td>
                              </tr>

@@ -760,5 +760,25 @@ async function getUniqueSaleNo(sale_no) {
         });
     });
 }
+function getUniqueSaleNoSync(sale_no) {
+    let base_url = $("base").attr("data-base");
+    let csrf_value_ = $('#csrf-token').val();
+    let final_sale_no = sale_no;
 
+    $.ajax({
+        url: base_url + "Sale/get_unique_sale_no",
+        method: "POST",
+        data: { sale_no: sale_no, csrf_irestoraplus: csrf_value_ },
+        dataType: "json",
+        async: false, // <-- Esto es lo importante
+        success: function(resp) {
+            final_sale_no = resp.sale_no;
+        },
+        error: function() {
+            // Si hay error, regresa el original
+            final_sale_no = sale_no;
+        }
+    });
+    return final_sale_no;
+}
 </script>

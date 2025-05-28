@@ -252,6 +252,56 @@
 <input type="hidden" id="user_id" value="<?php echo escape_output($this->session->userdata('user_id')); ?>">
 <input type="hidden" class="active_menu_tmp" value="<?php echo escape_output($this->session->userdata('active_menu_tmp'))?>">
 <input type="hidden" class="is_saas" value="<?php echo isServiceAccess('','','sGmsJaFJE')?>">
+
+
+<input type="hidden" id="decimals_separator" value="<?php echo escape_output($this->session->userdata('decimals_separator'))?>">
+<input type="hidden" id="thousands_separator" value="<?php echo escape_output($this->session->userdata('thousands_separator'))?>">
+
+<script>
+        
+    // Función que formatea un número como cadena de moneda
+    function formatNumberToCurrency(number) {
+        // console.log(number);
+        // Obtenemos los valores de los inputs ocultos
+        const decimalsSeparator = document.getElementById('decimals_separator').value;
+        const thousandsSeparator = document.getElementById('thousands_separator').value;
+        const precision = parseInt(document.getElementById('ir_precision').value, 10);
+
+        number = Number(number);
+        // Convertimos el número a string con la precisión deseada
+        const fixedNumber = number.toFixed(precision);
+
+        // Separamos la parte entera y la parte decimal
+        let [integerPart, fractionPart] = fixedNumber.split('.');
+
+        // Aplicamos el separador de miles a la parte entera
+        integerPart = integerPart.split("").reverse().join("")
+            .replace(/(\d{3})(?=\d)/g, "$1" + thousandsSeparator)
+            .split("").reverse().join("");
+
+        // Reconstruimos la cadena final usando el separador de decimales
+        const formatted = fractionPart ? integerPart + decimalsSeparator + fractionPart : integerPart;
+        return formatted;
+    }
+
+    // Función que convierte una cadena de moneda en un número
+    function parseCurrencyToNumber(formattedString) {
+        const decimalsSeparator = document.getElementById('decimals_separator').value;
+        const thousandsSeparator = document.getElementById('thousands_separator').value;
+
+        // Eliminamos el separador de miles
+        let cleanedString = formattedString.split(thousandsSeparator).join('');
+        // Reemplazamos el separador de decimales por el punto para que parseFloat lo interprete correctamente
+        if (decimalsSeparator !== '.') {
+            cleanedString = cleanedString.replace(decimalsSeparator, '.');
+        }
+
+        // Convertimos la cadena a número
+        const number = parseFloat(cleanedString);
+        return number;
+    }
+
+</script>
     <div class="main-preloader">
         <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
     </div>
@@ -743,7 +793,7 @@
                                         <?php echo lang('ingredients_alert'); ?></a></li>
                                 <li data-access="veiw-346" class="menu_assign_class" data-menu__cid="irp_9"><a class="child-menu" href="<?php echo base_url()?>Inventory/inventoryFoodMenu">
                                         <?php echo lang('inventory_food_menu'); ?></a></li>
-                                <li data-access="add-131" class="menu_assign_class" data-menu__cid="irp_9"><a class="child-menu" href="<?php echo base_url()?>Inventory_adjustment/addEditInventoryAdjustment">
+                                <li data-access="add-131" class="menu_assign_class" data-menu__cid="irp_9"><a class="child-menu" href="<?php echo base_url()?>Inventory_adjustment/ajuste">
                                         <?php echo lang('Add'); ?> <?php echo lang('inventory_adjustment'); ?></a></li>
                                 <li data-access="view-131" class="menu_assign_class" data-menu__cid="irp_9"><a class="child-menu" href="<?php echo base_url()?>Inventory_adjustment/inventoryAdjustments">
                                         <?php echo lang('List'); ?> <?php echo lang('inventory_adjustment'); ?></a></li>

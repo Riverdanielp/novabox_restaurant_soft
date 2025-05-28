@@ -9266,6 +9266,7 @@ function getSafePrice(priceAttr) {
             random_code = getRandomCode(15);
             // <<<<--- Aquí va la verificación AJAX
             // sale_no_new = await getUniqueSaleNo(sale_no_new);
+            // sale_no_new = getUniqueSaleNoSync(generateSaleNo());
         }
     
         let open_invoice_date_hidden = $("#open_invoice_date_hidden").val() || "";

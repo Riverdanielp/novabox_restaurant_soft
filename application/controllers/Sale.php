@@ -2798,8 +2798,12 @@ class Sale extends Cl_Controller {
 
         if($sales_id>0 && count($order_details->items)>0){
             foreach($order_details->items as $item){
-                $tmp_var_111 = isset($item->p_qty) && $item->p_qty && $item->p_qty!='undefined'?$item->p_qty:0;
-                $tmp = $item->qty-$tmp_var_111;
+                // $tmp_var_111 = isset($item->p_qty) && $item->p_qty && $item->p_qty!='undefined'?$item->p_qty:0;
+                // $tmp = $item->qty-$tmp_var_111;
+                $qty = isset($item->qty) && is_numeric($item->qty) ? (int)$item->qty : 0;
+                $p_qty = isset($item->p_qty) && is_numeric($item->p_qty) ? (int)$item->p_qty : 0;
+                $tmp = $qty - $p_qty;
+
                 $tmp_var = 0;
                 if($tmp>0){
                     $tmp_var = $tmp;
