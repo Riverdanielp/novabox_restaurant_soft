@@ -1228,6 +1228,43 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
      */
     public function foodMenuSales($startMonth = '', $endMonth = '',$outlet_id='',$top_less='',$is_direct_food='') {
         if ($startMonth || $endMonth):
+            if ($startMonth && strlen($startMonth) == 16) {
+                $startMonth .= ':00';
+            }
+            if ($endMonth && strlen($endMonth) == 16) {
+                $endMonth .= ':59';
+            }
+            $this->db->select('sum(qty) as totalQty,food_menu_id,menu_name,code,sale_date,date_time,tbl_kitchen_sales.sale_no,tbl_kitchen_sales.id as sale_id,tbl_food_menu_categories.category_name');
+            $this->db->from('tbl_kitchen_sales_details');
+            $this->db->join('tbl_kitchen_sales', 'tbl_kitchen_sales.id = tbl_kitchen_sales_details.sales_id', 'left');
+            $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id', 'left');
+            $this->db->join('tbl_food_menu_categories', 'tbl_food_menu_categories.id = tbl_food_menus.category_id', 'left');
+
+            if ($startMonth != '' && $endMonth != '') {
+                $this->db->where('date_time>=', $startMonth);
+                $this->db->where('date_time <=', $endMonth);
+            }
+            if ($startMonth != '' && $endMonth == '') {
+                $this->db->where('date_time', $startMonth);
+            }
+            if ($startMonth == '' && $endMonth != '') {
+                $this->db->where('date_time', $endMonth);
+            }
+            if ($is_direct_food != '') {
+                $this->db->where('tbl_food_menus.product_type', $is_direct_food);
+            }
+            $this->db->where('tbl_kitchen_sales_details.outlet_id', $outlet_id);
+            $this->db->where('tbl_kitchen_sales_details.del_status', 'Live');
+            // $this->db->where('tbl_kitchen_sales.order_status', '3');
+            $this->db->group_by('tbl_kitchen_sales_details.food_menu_id');
+            $this->db->order_by('totalQty', $top_less);
+            $query_result = $this->db->get();
+            $result = $query_result->result();
+            return $result;
+        endif;
+    }
+    public function foodMenuSalesOld($startMonth = '', $endMonth = '',$outlet_id='',$top_less='',$is_direct_food='') {
+        if ($startMonth || $endMonth):
             $this->db->select('sum(qty) as totalQty,food_menu_id,menu_name,code,sale_date,tbl_sales.sale_no,tbl_sales.id as sale_id,tbl_food_menu_categories.category_name');
             $this->db->from('tbl_sales_details');
             $this->db->join('tbl_sales', 'tbl_sales.id = tbl_sales_details.sales_id', 'left');

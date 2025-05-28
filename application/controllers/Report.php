@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Report Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -770,22 +755,28 @@ class Report extends Cl_Controller {
     public function foodMenuSales() {
         $data = array();
         $company_id = $this->session->userdata('company_id');
-        if (htmlspecialcharscustom($this->input->post('submit'))) {
-            $outlet_id  = isset($_POST['outlet_id']) && $_POST['outlet_id']?$_POST['outlet_id']:'';
+        if (htmlspecialcharscustom($this->input->get('submit'))) {
+            $outlet_id  = isset($_GET['outlet_id']) && $_GET['outlet_id']?$_GET['outlet_id']:'';
             if(!$outlet_id){
                 $outlet_id = $this->session->userdata('outlet_id');
             }
             $data['outlet_id'] = $outlet_id;
-            $start_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('startDate')));
-            $end_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('endDate')));
-            $top_less =htmlspecialcharscustom($this->input->post($this->security->xss_clean('top_less')));
-            $product_type =htmlspecialcharscustom($this->input->post($this->security->xss_clean('product_type')));
+            $start_date =htmlspecialcharscustom($this->input->get($this->security->xss_clean('startDate')));
+            $end_date =htmlspecialcharscustom($this->input->get($this->security->xss_clean('endDate')));
+            
+            // NUEVO: Convertir formato T a espacio
+            if ($start_date) $start_date = str_replace('T', ' ', $start_date);
+            if ($end_date) $end_date = str_replace('T', ' ', $end_date);
+            
+            $top_less =htmlspecialcharscustom($this->input->get($this->security->xss_clean('top_less')));
+            $product_type =htmlspecialcharscustom($this->input->get($this->security->xss_clean('product_type')));
             $data['product_type'] = $product_type;
             $data['start_date'] = $start_date;
             $data['end_date'] = $end_date;
             $data['outlet_id'] = $outlet_id;
             $data['top_less'] = $top_less;
             $data['foodMenuSales'] = $this->Report_model->foodMenuSales($start_date, $end_date,$outlet_id,$top_less,$product_type);
+
         }
         $data['main_content'] = $this->load->view('report/foodMenuSales', $data, TRUE);
         $this->load->view('userHome', $data);

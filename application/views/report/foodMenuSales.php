@@ -24,67 +24,75 @@
 
     <div class="box-wrapper">
         <div class="table-box">
-        <div class="row">
-            <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
-                            <?php echo form_open(base_url() . 'Report/foodMenuSales', $arrayName = array('id' => 'foodMenuSales')) ?>
-                            <div class="form-group">
-                                <input tabindex="1" type="text" id="" name="startDate" readonly class="form-control customDatepicker"
-                                    placeholder="<?php echo lang('start_date'); ?>" value="<?php echo set_value('startDate'); ?>">
-                            </div>
-            </div>
-            <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
-
-                            <div class="form-group">
-                                <input tabindex="2" type="text" id="endMonth" name="endDate" readonly
-                                    class="form-control customDatepicker" placeholder="<?php echo lang('end_date'); ?>"
-                                    value="<?php echo set_value('endDate'); ?>">
-                            </div>
-            </div>
-            <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
-                <div class="form-group">
-                    <select tabindex="2" class="form-control select2 ir_w_100" id="top_less" name="top_less">
-                        <option <?php echo set_select('top_less',"DESC")?> value="DESC"><?php echo lang('Less'); ?></option>
-                        <option <?php echo set_select('top_less',"ASC")?> value="ASC"><?php echo lang('Top'); ?></option>
-                    </select>
-                </div>
-            </div>
-            <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
-                <div class="form-group">
-                    <select tabindex="2" class="form-control select2 ir_w_100" id="product_type" name="product_type">
-                        <option  value=""><?php echo lang('select_product_type'); ?></option>
-                        <option <?php echo set_select('product_type',1)?> value="1"><?php echo lang('Regular'); ?></option>
-                        <option <?php echo set_select('product_type',2)?> value="2"><?php echo lang('Combo'); ?></option>
-                        <option <?php echo set_select('product_type',3)?> value="3"><?php echo lang('Product'); ?></option>
-                    </select>
-                </div>
-            </div>
-            <?php
-            if(isLMni()):
-                ?>
+            <div class="row">
                 <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
-                                <div class="form-group">
-                                    <select tabindex="2" class="form-control select2 ir_w_100" id="outlet_id" name="outlet_id">
-                                        <?php
-                                        $outlets = getAllOutlestByAssign();
-                                        foreach ($outlets as $value):
-                                            ?>
-                                            <option <?= set_select('outlet_id',$value->id)?>  value="<?php echo escape_output($value->id) ?>"><?php echo escape_output($value->outlet_name) ?></option>
-                                            <?php
-                                        endforeach;
-                                        ?>
-                                    </select>
-                                </div>
+                    <?php echo form_open(base_url() . 'Report/foodMenuSales', array('id' => 'foodMenuSales', 'method' => 'get')) ?>
+                    <div class="form-group">
+                        <input tabindex="1" type="datetime-local" id="startDate" name="startDate"
+                            class="form-control"
+                            placeholder="<?php echo lang('start_date'); ?>"
+                            value="<?php
+                                // Si hay valor y tiene espacio, formatear a datetime-local
+                                if (isset($start_date) && $start_date) {
+                                    echo str_replace(' ', 'T', substr($start_date, 0, 16));
+                                }
+                            ?>">
+                    </div>
                 </div>
-                <?php
-            endif;
-            ?>
-            <div class="col-sm-12 col-md-4 col-lg-2">
-                            <div class="form-group">
-                                <button type="submit" name="submit" value="submit"
-                                    class="btn bg-blue-btn w-100"><?php echo lang('submit'); ?></button>
-                            </div>
+                <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
+                    <div class="form-group">
+                        <input tabindex="2" type="datetime-local" id="endDate" name="endDate"
+                            class="form-control"
+                            placeholder="<?php echo lang('end_date'); ?>"
+                            value="<?php
+                                if (isset($end_date) && $end_date) {
+                                    echo str_replace(' ', 'T', substr($end_date, 0, 16));
+                                }
+                            ?>">
+                    </div>
+                </div>
+                <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
+                    <div class="form-group">
+                        <select tabindex="2" class="form-control select2 ir_w_100" id="top_less" name="top_less">
+                            <option value="DESC" <?php echo (isset($top_less) && $top_less == "DESC") ? "selected" : ""; ?>><?php echo lang('Less'); ?></option>
+                            <option value="ASC" <?php echo (isset($top_less) && $top_less == "ASC") ? "selected" : ""; ?>><?php echo lang('Top'); ?></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
+                    <div class="form-group">
+                        <select tabindex="2" class="form-control select2 ir_w_100" id="product_type" name="product_type">
+                            <option value=""><?php echo lang('select_product_type'); ?></option>
+                            <option value="1" <?php echo (isset($product_type) && $product_type == "1") ? "selected" : ""; ?>><?php echo lang('Regular'); ?></option>
+                            <option value="2" <?php echo (isset($product_type) && $product_type == "2") ? "selected" : ""; ?>><?php echo lang('Combo'); ?></option>
+                            <option value="3" <?php echo (isset($product_type) && $product_type == "3") ? "selected" : ""; ?>><?php echo lang('Product'); ?></option>
+                        </select>
+                    </div>
+                </div>
+                <?php if(isLMni()): ?>
+                <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
+                    <div class="form-group">
+                        <select tabindex="2" class="form-control select2 ir_w_100" id="outlet_id" name="outlet_id">
+                            <?php
+                                $outlets = getAllOutlestByAssign();
+                                foreach ($outlets as $value):
+                            ?>
+                                <option value="<?php echo escape_output($value->id) ?>" <?php echo (isset($outlet_id) && $outlet_id == $value->id) ? 'selected' : ''; ?>>
+                                    <?php echo escape_output($value->outlet_name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <div class="col-sm-12 col-md-4 col-lg-2">
+                    <div class="form-group">
+                        <button type="submit" name="submit" value="submit"
+                            class="btn bg-blue-btn w-100"><?php echo lang('submit'); ?></button>
+                    </div>
+                </div>
+                <!-- Recuerda cerrar el form donde corresponde -->
             </div>
-        </div>
         </div>
             <div class="table-box">
                 <!-- /.box-header -->
@@ -142,4 +150,4 @@
 <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
 
-<script src="<?php echo base_url(); ?>frequent_changing/js/custom_report.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/custom_report_full.js<?php echo VERS() ?>"></script>
