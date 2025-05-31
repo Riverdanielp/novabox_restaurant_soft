@@ -1,6 +1,8 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+// $config['tipo_consulta_ruc'] = 'RNC';
+
 // Configuración de Redis
 $config['redis_prefix'] = 'restora_';       // Prefijo para las claves de Redis de cada proyecto
 $config['redis_enabled'] = true;           // Habilitar o deshabilitar Redis

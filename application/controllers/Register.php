@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Register Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -53,8 +38,23 @@ class Register extends Cl_Controller {
     public function openRegister(){
         $data = array();
         $company_id = $this->session->userdata('company_id'); 
-        $data = array();
         $outlet_id = $this->session->userdata('outlet_id'); 
+        $user_id = $this->session->userdata('user_id'); 
+        // Verifica si ya hay una caja abierta para ese counter y outlet
+        $where = array(
+            'user_id'    => $user_id,
+            'outlet_id'     => $outlet_id,
+            'company_id'    => $company_id,
+            'register_status' => 1 // Abierta
+        );
+        $this->db->where($where);
+        $exists = $this->db->get('tbl_register')->result();
+        if($exists && count($exists) > 0){
+            redirect('POSChecker/posAndWaiterMiddleman');
+            return;
+        }
+        // fin verificación de caja abierta
+
         $data['counters'] = $this->Common_model->getAllByCustomResultsId($outlet_id,"outlet_id","tbl_counters",$order='ASC');
         $data['payment_methods'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_payment_methods");
         $data['main_content'] = $this->load->view('register/openRegister', $data, TRUE);
@@ -97,8 +97,25 @@ class Register extends Cl_Controller {
      * @param int
      */
     public function addBalance($encrypted_id = ""){
-        $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
         $company_id = $this->session->userdata('company_id'); 
+        $outlet_id = $this->session->userdata('outlet_id'); 
+        $user_id = $this->session->userdata('user_id'); 
+        // Verifica si ya hay una caja abierta para ese counter y outlet
+        $where = array(
+            'user_id'    => $user_id,
+            'outlet_id'     => $outlet_id,
+            'company_id'    => $company_id,
+            'register_status' => 1 // Abierta
+        );
+        $this->db->where($where);
+        $exists = $this->db->get('tbl_register')->result();
+        if($exists && count($exists) > 0){
+            redirect('POSChecker/posAndWaiterMiddleman');
+            return;
+        }
+        // fin verificación de caja abierta
+
+        $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
         if (htmlspecialcharscustom($this->input->post('submit'))) {
             $this->form_validation->set_rules('opening_balance', lang('opening_balance'), 'required');
             $this->form_validation->set_rules('counter_id', lang('counter_name'), 'required|max_length[11]');
@@ -183,6 +200,7 @@ class Register extends Cl_Controller {
                 //     }
                 // }
             }else {
+                $this->session->set_flashdata('error_message', validation_errors());
                 $data = array();
                 $outlet_id = $this->session->userdata('outlet_id'); 
                 $data['counters'] = $this->Common_model->getAllByCustomResultsId($outlet_id,"outlet_id","tbl_counters",$order='ASC');
@@ -190,6 +208,7 @@ class Register extends Cl_Controller {
                 $this->load->view('userHome', $data);
             }
         }else{
+            $this->session->set_flashdata('error_message', 'No se ha recibido variable submit');
             $data = array();
             $outlet_id = $this->session->userdata('outlet_id'); 
             $data['counters'] = $this->Common_model->getAllByCustomResultsId($outlet_id,"outlet_id","tbl_counters",$order='ASC');
@@ -262,6 +281,7 @@ class Register extends Cl_Controller {
                     }
                 }
             }else {
+                $this->session->set_flashdata('error_message', validation_errors());
                 $data = array();
                 $outlet_id = $this->session->userdata('outlet_id'); 
                 $data['counters'] = $this->Common_model->getAllByCustomResultsId($outlet_id,"outlet_id","tbl_counters",$order='ASC');
@@ -269,6 +289,7 @@ class Register extends Cl_Controller {
                 $this->load->view('userHome', $data);
             }
         }else{
+            $this->session->set_flashdata('error_message', 'No se ha recibido variable submit');
             $data = array();
             $outlet_id = $this->session->userdata('outlet_id'); 
             $data['counters'] = $this->Common_model->getAllByCustomResultsId($outlet_id,"outlet_id","tbl_counters",$order='ASC');

@@ -2111,9 +2111,10 @@ foreach ($notifications as $single_notification){
             <div class="customer_add_modal_info_holder">
                 <div class="content">
 
+                    <?php $tipoConsultaRuc = tipoConsultaRuc(); $RUC = ($tipoConsultaRuc == 'RNC') ? 'RNC' : 'RUC' ; ?>
                     <div class="left-item b">
                         <div class="customer_section">
-                            <p class="input_level"> Ingrese CI/RUC Para Verificar: <span class="ir_color_red">*</span></p>
+                            <p class="input_level"> Ingrese CI/<?php echo $RUC ?> Para Verificar: <span class="ir_color_red">*</span></p>
                             <input type="text" class="add_customer_modal_input" id="customer_gst_number_modal" required>
 
                         </div>
@@ -2156,9 +2157,9 @@ foreach ($notifications as $single_notification){
                             
                             <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
                             
-                        <button class="btn btn-default w-10" id="ruc_search"><i class="icon ti-search"></i>Buscar RUC</button>
+                        <button class="btn btn-default w-10" id="ruc_search"><i class="icon ti-search"></i>Buscar <?php echo $RUC ?></button>
                         <br>
-                        <span id="ruc_message" class="mt-2 text-info">(Ingrese RUC y presione 'Enter')</span> 
+                        <span id="ruc_message" class="mt-2 text-info">(Ingrese <?php echo $RUC ?> y presione 'Enter')</span> 
                             <br>
                         </div>
                         <div class="customer_section">
@@ -2342,7 +2343,7 @@ foreach ($notifications as $single_notification){
                 <div class="content">
                     <div class="left-item b">
                         <div class="customer_section">
-                            <p class="input_level">RUC: <span class="ir_color_red">*</span></p>
+                            <p class="input_level"><?php echo $RUC ?>: <span class="ir_color_red">*</span></p>
                             <input type="text" class="add_customer_modal_input" id="preimpresa_ruc" required>
                         </div>
                         
@@ -2370,9 +2371,9 @@ foreach ($notifications as $single_notification){
                             
                             <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
                                 
-                            <button class="btn btn-default w-10" id="ruc_search_preimpreso"><i class="icon ti-search"></i>Buscar RUC</button>
+                            <button class="btn btn-default w-10" id="ruc_search_preimpreso"><i class="icon ti-search"></i>Buscar <?php echo $RUC ?></button>
                             <br>
-                            <span id="ruc_message_preimpreso" class="mt-2 text-info">(Ingrese RUC y presione 'Enter')</span> 
+                            <span id="ruc_message_preimpreso" class="mt-2 text-info">(Ingrese <?php echo $RUC ?> y presione 'Enter')</span> 
                             <br>
 
                         </div>
@@ -3004,6 +3005,55 @@ foreach ($notifications as $single_notification){
         </header>
         <div class="pos__modal__body scrollbar-macosx">
             <div class="expense_form_content"></div>
+        </div>
+    </div>
+
+    <div class="cus_pos_modal" id="statement_modal_registro">
+        <header class="pos__modal__header">
+            <h3 class="pos__modal__title">Declaración de cierre</h3>
+            <a href="javascript:void(0)" class="pos__modal__close close_statement_modal"><i class="fal fa-times"></i></a>
+        </header>
+        <div class="pos__modal__body scrollbar-macosx">
+            <form action="statement_form">
+                <div class="row">
+                    <h3 class="" style="margin-left: 50px;margin-right: 50px;">Declaración de cierre de caja</h3>
+                    <table class="table_register_details top_margin_15" style="margin-left: 50px;margin-right: 50px;">
+                        <tbody>
+                                <?php foreach ($payment_methods as $key => $value) :
+                                    ?>
+                                    <tr>
+                                            <td>
+                                                <label for="statement_amount"><?php echo escape_output($value->name); ?></label>
+                                            </td>
+                                            <td>
+                                                    <input type="number" class="form-control statement_input" 
+                                                        data-id="<?php echo escape_output($value->id); ?>" 
+                                                        data-name="<?php echo escape_output($value->name); ?>"
+                                                        name="statement_input[]"
+                                                        value="0">
+                                                        <input type="hidden" name="payment_method_id[]" value="<?php echo escape_output($value->id); ?>">
+                                            </td>
+                                            <td>
+                                                <span id="statement_input_<?php echo escape_output($value->id); ?>"></span>
+                                            </td>
+                                    </tr>
+                                    <?php
+                                endforeach; ?>
+                        </tbody>
+                    </table>
+                    <table class="table_register_details top_margin_15" style="margin-left: 50px;margin-right: 50px;">
+                        <tbody>
+                            <tr>
+                                <td style="width:300px"></td>
+                                <td>
+                                    <button type="button" id="btn_cerrar_caja" class="btn btn-primary" style="background:#f1f9f9">Cerrar Caja</button>
+                                    <br><br>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -4852,7 +4902,7 @@ foreach ($notifications as $single_notification){
     <input type="hidden" id="is_offline_system" value="">
     <div class="kot_exist_checker ir_display_none"></div>
     <div id="fullScreenLoader" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;justify-content:center;align-items:center;color:white;font-size:24px;">
-        Sincronizando, aguarde un momento... 
+        Sincronizando, aguarde un momento...  &nbsp;
         <span id="fullScreenLoaderCounter"></span>
     </div>
     <script src="<?php echo base_url(); ?>frequent_changing/notify/toastr.js?v=7.5"></script>
@@ -4914,63 +4964,130 @@ foreach ($notifications as $single_notification){
     </script>
 
     <script>
-        document.getElementById("ruc_search").addEventListener("click", function() {
-            let rucInput = document.getElementById("customer_gst_number_modal").value;
-            
-            // Eliminar cualquier guion y tomar solo los números antes del guion
-            let ruc = rucInput.split('-')[0];
+        <?php if (tipoConsultaRuc() == 'RNC') : ?>
 
-            // Obtener el contenedor del mensaje
-            let messageContainer = document.getElementById("ruc_message");
-            
-            // Limpiar el mensaje de error o éxito antes de hacer la búsqueda
-            messageContainer.textContent = "Buscando RUC..."; // Mensaje de búsqueda
-            messageContainer.classList.remove('text-danger', 'text-success');
-            messageContainer.classList.add('text-warning'); // Color de advertencia mientras buscamos
+            document.getElementById("ruc_search").addEventListener("click", function() {
+                let rucInput = document.getElementById("customer_gst_number_modal").value;
 
-            // Si el RUC tiene más de 4 dígitos y no contiene guion, hacemos la solicitud
-            if (ruc.length > 4 && !rucInput.includes('-')) {
-                // Crear un objeto FormData y añadir el ruc
-                let formData = new FormData();
-                formData.append("ruc", ruc);
+                // Tomar solo los números antes de cualquier guion y eliminar espacios
+                let ruc = rucInput.split('-')[0].trim();
 
-                // Realizar el fetch a la API de RUC con form-data
-                fetch('https://ruc.novabox.work/consultas/ruc', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error || !data.ruc) {
-                        // Si no se encuentra el RUC, mostrar el mensaje de error
-                        messageContainer.textContent = "No se encontraron datos para este RUC.";
+                // Obtener el contenedor del mensaje
+                let messageContainer = document.getElementById("ruc_message");
+
+                // Limpiar el mensaje antes de buscar
+                messageContainer.textContent = "Buscando RNC...";
+                messageContainer.classList.remove('text-danger', 'text-success');
+                messageContainer.classList.add('text-warning');
+
+                // Validar longitud del RNC (9 a 11 caracteres numéricos)
+                if (/^\d{9,11}$/.test(ruc)) {
+                    // Construir el cuerpo del post como formulario urlencoded
+                    const params = new URLSearchParams();
+                    params.append('rnc', ruc);
+
+                    fetch('<?php echo URL_consulta_rnc(); ?>', {
+                        method: 'POST',
+                        body: params,
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(text => {
+                        // Manejar posibles respuestas
+                        if (text.includes("no encontrado")) {
+                            messageContainer.textContent = "No se encontró el RNC.";
+                            messageContainer.classList.remove('text-warning', 'text-success');
+                            messageContainer.classList.add('text-danger');
+                        } else if (text.includes("Solo 9 a 11")) {
+                            messageContainer.textContent = "Debe ingresar un RNC válido (9 a 11 dígitos numéricos).";
+                            messageContainer.classList.remove('text-warning', 'text-success');
+                            messageContainer.classList.add('text-danger');
+                        } else {
+                            // Separar la respuesta por el pipe y extraer el nombre
+                            const datos = text.split('|');
+                            const nombre = datos[1] ? datos[1].trim() : '';
+                            document.getElementById("customer_name_modal").value = nombre;
+
+                            messageContainer.textContent = "RNC encontrado!";
+                            messageContainer.classList.remove('text-warning', 'text-danger');
+                            messageContainer.classList.add('text-success');
+                        }
+                    })
+                    .catch(error => {
+                        messageContainer.textContent = "Error al consultar el RNC.";
                         messageContainer.classList.remove('text-warning', 'text-success');
-                        messageContainer.classList.add('text-danger'); // Mensaje en rojo
-                    } else {
-                        // Si se encuentra el RUC, completar los campos con los datos
-                        document.getElementById("customer_name_modal").value = data.nombre + ' ' + data.apellido || '';
-                        // Formatear el RUC con el dígito verificador y actualizar el campo
-                        let fullRuc = `${ruc}-${data.dv}`;
-                        document.getElementById("customer_gst_number_modal").value = fullRuc;
+                        messageContainer.classList.add('text-danger');
+                    });
+                } else {
+                    // Si el RNC no tiene la longitud adecuada
+                    messageContainer.textContent = "(Ingrese RNC de 9 a 11 dígitos y presione 'Buscar')";
+                    messageContainer.classList.remove('text-warning', 'text-danger', 'text-success');
+                }
+            });
 
-                        // Mostrar el mensaje de éxito
-                        messageContainer.textContent = "RUC encontrado!";
-                        messageContainer.classList.remove('text-warning', 'text-danger');
-                        messageContainer.classList.add('text-success'); // Mensaje en verde
-                    }
-                })
-                .catch(error => {
-                    // En caso de error en la API
-                    messageContainer.textContent = "Error al obtener los datos.";
-                    messageContainer.classList.remove('text-warning', 'text-success');
-                    messageContainer.classList.add('text-danger'); // Mensaje de error
-                });
-            } else {
-                // Si el RUC tiene menos de 5 caracteres, no se hace nada
-                messageContainer.textContent = "(Ingrese RUC y presione 'Enter')";
-                messageContainer.classList.remove('text-warning', 'text-danger', 'text-success');
-            }
-        });
+        <?php else : ?>
+
+            document.getElementById("ruc_search").addEventListener("click", function() {
+                let rucInput = document.getElementById("customer_gst_number_modal").value;
+                
+                // Eliminar cualquier guion y tomar solo los números antes del guion
+                let ruc = rucInput.split('-')[0];
+
+                // Obtener el contenedor del mensaje
+                let messageContainer = document.getElementById("ruc_message");
+                
+                // Limpiar el mensaje de error o éxito antes de hacer la búsqueda
+                messageContainer.textContent = "Buscando RUC..."; // Mensaje de búsqueda
+                messageContainer.classList.remove('text-danger', 'text-success');
+                messageContainer.classList.add('text-warning'); // Color de advertencia mientras buscamos
+
+                // Si el RUC tiene más de 4 dígitos y no contiene guion, hacemos la solicitud
+                if (ruc.length > 4 && !rucInput.includes('-')) {
+                    // Crear un objeto FormData y añadir el ruc
+                    let formData = new FormData();
+                    formData.append("ruc", ruc);
+
+                    // Realizar el fetch a la API de RUC con form-data
+                    fetch('https://ruc.novabox.work/consultas/ruc', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error || !data.ruc) {
+                            // Si no se encuentra el RUC, mostrar el mensaje de error
+                            messageContainer.textContent = "No se encontraron datos para este RUC.";
+                            messageContainer.classList.remove('text-warning', 'text-success');
+                            messageContainer.classList.add('text-danger'); // Mensaje en rojo
+                        } else {
+                            // Si se encuentra el RUC, completar los campos con los datos
+                            document.getElementById("customer_name_modal").value = data.nombre + ' ' + data.apellido || '';
+                            // Formatear el RUC con el dígito verificador y actualizar el campo
+                            let fullRuc = `${ruc}-${data.dv}`;
+                            document.getElementById("customer_gst_number_modal").value = fullRuc;
+
+                            // Mostrar el mensaje de éxito
+                            messageContainer.textContent = "RUC encontrado!";
+                            messageContainer.classList.remove('text-warning', 'text-danger');
+                            messageContainer.classList.add('text-success'); // Mensaje en verde
+                        }
+                    })
+                    .catch(error => {
+                        // En caso de error en la API
+                        messageContainer.textContent = "Error al obtener los datos.";
+                        messageContainer.classList.remove('text-warning', 'text-success');
+                        messageContainer.classList.add('text-danger'); // Mensaje de error
+                    });
+                } else {
+                    // Si el RUC tiene menos de 5 caracteres, no se hace nada
+                    messageContainer.textContent = "(Ingrese RUC y presione 'Enter')";
+                    messageContainer.classList.remove('text-warning', 'text-danger', 'text-success');
+                }
+            });
+
+        <?php endif; ?>
     </script>
 
 <script>

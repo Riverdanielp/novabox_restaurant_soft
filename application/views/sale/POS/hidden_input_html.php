@@ -13,6 +13,9 @@ $user_id = $this->session->userdata('user_id');
 $user_data = $this->Common_model->getDataById($user_id, "tbl_users");
 $getOutletInfo = $this->Common_model->getDataById($this->session->userdata('outlet_id'), "tbl_outlets");
 $getPreimpresoPrinter = $this->Common_model->getDataById($getOutletInfo->preimpreso_printer_id, "tbl_printers");
+$registro_ocultar = $getOutletInfo->registro_ocultar;
+$registro_detallado = $getOutletInfo->registro_detallado;
+
 if ($getPreimpresoPrinter) {
     $preimpreso_printer_name = $getPreimpresoPrinter->path;
     $preimpreso_printer_ipv4 = $getPreimpresoPrinter->ipvfour_address;
@@ -62,6 +65,8 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="preimpreso_printer_name" value="<?php echo escape_output($preimpreso_printer_name)?>">
 <input type="hidden" id="preimpreso_printer_ipv4" value="<?php echo escape_output($preimpreso_printer_ipv4)?>">
 
+<input type="hidden" id="registro_ocultar" value="<?php echo escape_output($getOutletInfo->registro_ocultar)?>">
+<input type="hidden" id="registro_detallado" value="<?php echo escape_output($getOutletInfo->registro_detallado)?>">
 
 <input type="hidden" id="base_url_pos" value="<?php echo base_url()?>">
 <input type="hidden" id="waiter_app_status" value="<?php echo escape_output($waiter_app_status)?>">

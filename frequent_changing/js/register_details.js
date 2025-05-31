@@ -1,6 +1,179 @@
+
+function hideLoaderAll() {
+    document.getElementById("fullScreenLoader").style.display = "none";
+}
+
 $(function () {
     "use strict";
     let base_url = $("#base_url_customer").val();
+    let registro_ocultar = $("#registro_ocultar").val();
+    let registro_detallado = $("#registro_detallado").val();
+    let txt_err_pos_1 = $("#txt_err_pos_1").val();
+    let txt_err_pos_2 = $("#txt_err_pos_2").val();
+    let txt_err_pos_3 = $("#txt_err_pos_3").val();
+    let txt_err_pos_4 = $("#txt_err_pos_4").val();
+    let txt_err_pos_5 = $("#txt_err_pos_5").val();
+    let warning = $("#warning").val();
+    let a_error = $("#a_error").val();
+    let ok = $("#ok").val();
+    let cancel = $("#cancel").val();
+
+    function showLoader() {
+        document.getElementById("fullScreenLoader").style.display = "flex";
+        $("#fullScreenLoaderCounter").html(' Procesando Cierre de Caja.');
+            
+    }
+
+    
+    // Manejador del cierre de caja modificado
+    $(document).on("click", "#register_close", function (e) {
+        let pos_21 = Number($("#pos_21").val());
+        if(pos_21){
+            if (registro_ocultar != "Yes") {
+                let csrf_name_ = $("#csrf_name_").val();
+                let csrf_value_ = $("#csrf_value_").val();
+                swal(
+                    {
+                        title: warning + "!",
+                        text: txt_err_pos_2,
+                        confirmButtonColor: "#3c8dbc",
+                        confirmButtonText: ok,
+                        showCancelButton: true,
+                    },
+                    function () {
+                        showLoader();
+                        // Cerrar el registro después de la impresión
+                        $.ajax({
+                            url: base_url + "Sale/closeRegister",
+                            method: "POST",
+                            dataType: "json", 
+                            data: {
+                                csrf_name_: csrf_value_,
+                            },
+                            success: function (response) {
+                                let base64 = response.printerApp; 
+                                // Crear un iframe temporal para la impresión
+                                const iframe = document.createElement('iframe');
+                                iframe.style.display = 'none';
+                                iframe.src = 'print://' + base64;
+                                document.body.appendChild(iframe);
+                                
+                                // Eliminar el iframe después de un tiempo y resolver la promesa
+                                setTimeout(() => {
+                                    document.body.removeChild(iframe);
+                                }, 300);
+                                
+                                // Mostrar notificación
+                                toastr['success']((register_close), '');
+                                $("#close_register_button").hide();
+                                
+                                // Redireccionar después de un breve retraso
+                                setTimeout(() => {
+                                    window.location.href = base_url + "Register/openRegister";
+                                }, 2000);
+                            },
+                            error: function () {
+                                hideLoaderAll();
+                                toastr['error']("Ocurrió un error al cerrar la caja.", '');
+                            },
+                        });
+                        
+                    }
+                );
+            } else {
+                e.preventDefault();
+                $("#statement_modal_registro").addClass("active");
+                setTimeout(function() {
+                    $("#statement_modal_registro .statement_input").first().focus().select();
+                }, 300); // Un pequeño delay para asegurar que el modal está visible
+            }
+        } else {
+            toastr['error']((menu_not_permit_access + "!"), '');
+        }
+    });
+
+    // Cerrar modal
+    $(document).on("click", ".close_statement_modal", function() {
+        $("#statement_modal_registro").removeClass("active");
+    });
+
+    // Al ingresar valores, formatea y muestra en el span
+    $(document).on("input", ".statement_input", function() {
+        let value = $(this).val();
+        let parsedValue = formatNumberToCurrency(value);
+        let id = $(this).data("id");
+        $("#statement_input_" + id).text(parsedValue);
+    });
+
+    // Seleccionar todo el texto al enfocar el input
+    $(document).on("focus", ".statement_input", function() {
+        $(this).select();
+    });
+
+    // Al presionar Enter, pasa al siguiente input
+    $(document).on("keydown", ".statement_input", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            let $inputs = $(".statement_input");
+            let idx = $inputs.index(this);
+            if (idx < $inputs.length - 1) {
+                $inputs.eq(idx + 1).focus().select();
+            } else {
+                $("#btn_cerrar_caja").focus();
+            }
+        }
+    });
+
+    // Botón cerrar caja - recolecta y envía los datos
+    $(document).on("click", "#btn_cerrar_caja", function() {
+        showLoader();
+        let data = [];
+        $(".statement_input").each(function() {
+            data.push({
+                payment_method_id: $(this).data("id"),
+                payment_method_name: $(this).data("name"),
+                amount: parseFloat($(this).val()) || 0
+            });
+        });
+        console.log(data);
+
+        // Aquí puedes hacer el AJAX para enviar el cierre
+        $.ajax({
+            url: base_url + "Sale/closeRegister",
+            method: "POST",
+            dataType: "json", 
+            data: { 
+                statement: data,
+                csrf_name_: $("#csrf_name_").val(),
+                csrf_value_: $("#csrf_value_").val()
+            },
+            success: function(response) {
+                let base64 = response.printerApp; 
+                // Crear un iframe temporal para la impresión
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = 'print://' + base64;
+                document.body.appendChild(iframe);
+                
+                // Eliminar el iframe después de un tiempo y resolver la promesa
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                }, 300);
+
+                // Cierra modal, muestra notificación, etc.
+                // $("#statement_modal_registro").removeClass("active");
+                toastr['success']("Cierre de caja realizado correctamente", '');
+                setTimeout(() => {
+                    window.location.href = base_url + "Register/openRegister";
+                }, 2000);
+            },
+            error: function() {
+                hideLoaderAll();
+                toastr['error']("Ocurrió un error al cerrar la caja.", '');
+            }
+        });
+    });
+
     function show_details_for_details_page() {
         let csrf_value_ = $("#csrf_value_").val();
         $.ajax({

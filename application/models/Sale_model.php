@@ -1,19 +1,5 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Sale_model Model
-  ###########################################################
- */
+
 class Sale_model extends CI_Model {
 
     /**
@@ -1331,11 +1317,12 @@ class Sale_model extends CI_Model {
     }
     public function getAllPurchaseByPayment($date,$payment_id)
     {
-      $counter_id = $this->session->userdata('counter_id');
+      $this->session->userdata('user_id');
+      $user_id = $this->session->userdata('user_id');
       $outlet_id = $this->session->userdata('outlet_id');
       $this->db->select("sum(paid) as total_amount");
       $this->db->from('tbl_purchase');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time>=", $date);
@@ -1346,11 +1333,11 @@ class Sale_model extends CI_Model {
     }
     public function getAllDueReceiveByPayment($date,$payment_id)
     {
-      $counter_id = $this->session->userdata('counter_id');
+      $user_id = $this->session->userdata('user_id');
       $outlet_id = $this->session->userdata('outlet_id');
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_customer_due_receives');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date>=", $date);
@@ -1361,11 +1348,11 @@ class Sale_model extends CI_Model {
     }
     public function getAllDuePaymentByPayment($date,$payment_id)
     {
-      $counter_id = $this->session->userdata('counter_id');
+      $user_id = $this->session->userdata('user_id');
       $outlet_id = $this->session->userdata('outlet_id');
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_supplier_payments');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time	>=", $date);
@@ -1376,11 +1363,11 @@ class Sale_model extends CI_Model {
     }
     public function getAllExpenseByPayment($date,$payment_id)
     {
-      $counter_id = $this->session->userdata('counter_id');
+      $user_id = $this->session->userdata('user_id');
       $outlet_id = $this->session->userdata('outlet_id');
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_expenses');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time	>=", $date);
@@ -1391,11 +1378,11 @@ class Sale_model extends CI_Model {
     }
     public function getAllSaleByPayment($date,$payment_id)
     {
-      $counter_id = $this->session->userdata('counter_id');
+      $user_id = $this->session->userdata('user_id');
       $outlet_id = $this->session->userdata('outlet_id');
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_sale_payments');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
@@ -1407,11 +1394,11 @@ class Sale_model extends CI_Model {
     }
     public function getAllRefundByPayment($date,$payment_id)
     {
-      $counter_id = $this->session->userdata('counter_id');
+      $user_id = $this->session->userdata('user_id');
       $outlet_id = $this->session->userdata('outlet_id');
       $this->db->select("sum(total_refund) as total_amount");
       $this->db->from('tbl_sales');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("refund_date_time	>=", $date);
       $this->db->where("refund_date_time	<=", date('Y-m-d H:i:s'));
@@ -1422,11 +1409,11 @@ class Sale_model extends CI_Model {
     }
     public function getAllSaleByPaymentMultiCurrency($date,$payment_id)
     {
-      $counter_id = $this->session->userdata('counter_id');
+      $user_id = $this->session->userdata('user_id');
       $outlet_id = $this->session->userdata('outlet_id');
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_sale_payments');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
@@ -1438,11 +1425,11 @@ class Sale_model extends CI_Model {
     }
     public function getAllSaleByPaymentMultiCurrencyRows($date,$payment_id)
     {
-      $counter_id = $this->session->userdata('counter_id');
+      $user_id = $this->session->userdata('user_id');
       $outlet_id = $this->session->userdata('outlet_id');
       $this->db->select("sum(amount) as total_amount,multi_currency");
       $this->db->from('tbl_sale_payments');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
@@ -1533,11 +1520,11 @@ class Sale_model extends CI_Model {
      * @param int
      * @param string
      */
-    public function getOpeningBalance($counter_id, $outlet_id, $date)
+    public function getOpeningBalance($user_id, $outlet_id, $date)
     {
       $this->db->select("opening_balance as amount");
       $this->db->from('tbl_register');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("register_status", 1);
       $this->db->order_by('id', 'DESC');
@@ -1551,11 +1538,11 @@ class Sale_model extends CI_Model {
      * @param int
      * @param string
      */
-    public function getOpeningDateTime($counter_id, $outlet_id, $date)
+    public function getOpeningDateTime($user_id, $outlet_id, $date)
     {
       $this->db->select("opening_balance_date_time as opening_date_time");
       $this->db->from('tbl_register');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("register_status", 1);
       $this->db->order_by('id', 'DESC');
@@ -1569,11 +1556,11 @@ class Sale_model extends CI_Model {
      * @param int
      * @param string
      */
-    public function getOpeningDetails($counter_id, $outlet_id, $date)
+    public function getOpeningDetails($user_id, $outlet_id, $date)
     {
       $this->db->select("opening_details");
       $this->db->from('tbl_register');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("register_status", 1);
       $this->db->order_by('id', 'DESC');
@@ -1587,11 +1574,11 @@ class Sale_model extends CI_Model {
      * @param int
      * @param string
      */
-    public function getClosingDateTime($counter_id, $outlet_id, $date)
+    public function getClosingDateTime($user_id, $outlet_id, $date)
     {
       $this->db->select("closing_balance_date_time as closing_date_time");
       $this->db->from('tbl_register');
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("register_status", 1);
       $this->db->order_by('id', 'DESC');
@@ -2029,12 +2016,12 @@ class Sale_model extends CI_Model {
       return $this->db->count_all_results();
   }
   
-  public function getDetailedExpenses($from_datetime, $to_datetime, $counter_id, $outlet_id) {
+  public function getDetailedExpenses($from_datetime, $to_datetime, $user_id, $outlet_id) {
       $this->db->select("amount, note, payment_id, date, category_id, employee_id,added_date_time");
       $this->db->from("tbl_expenses");
       $this->db->where("del_status", "Live");
       $this->db->where("outlet_id", $outlet_id);
-      $this->db->where("counter_id", $counter_id);
+      $this->db->where("user_id", $user_id);
       // Rango de fechas/hora
       $this->db->where("added_date_time >=", $from_datetime);
       $this->db->where("added_date_time <=", $to_datetime);

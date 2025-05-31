@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.54205';
+    return '?v=7.54206';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -2272,7 +2272,7 @@ function getCurrentStockById($getFMIds) {
     $company_id = $CI->session->userdata('company_id');
     $outlet_id = $CI->session->userdata('outlet_id');
     $where = '';
-    $result = $this->db->query("SELECT ingr_tbl.*,i.food_menu_id,ingr_cat_tbl.category_name,ingr_unit_tbl.unit_name, (select SUM(quantity_amount) from tbl_purchase_ingredients where ingredient_id=i.ingredient_id AND outlet_id=$outlet_id AND del_status='Live') total_purchase, 
+    $result = $CI->db->query("SELECT ingr_tbl.*,i.food_menu_id,ingr_cat_tbl.category_name,ingr_unit_tbl.unit_name, (select SUM(quantity_amount) from tbl_purchase_ingredients where ingredient_id=i.ingredient_id AND outlet_id=$outlet_id AND del_status='Live') total_purchase, 
         (select SUM(consumption) from tbl_sale_consumptions_of_menus where ingredient_id=i.ingredient_id AND outlet_id=$outlet_id AND del_status='Live') total_consumption,
         (select SUM(consumption) from tbl_sale_consumptions_of_modifiers_of_menus where ingredient_id=i.ingredient_id AND outlet_id=$outlet_id AND  del_status='Live') total_modifiers_consumption,
         (select SUM(waste_amount) from tbl_waste_ingredients  where ingredient_id=i.ingredient_id AND outlet_id=$outlet_id AND tbl_waste_ingredients.del_status='Live') total_waste,
@@ -4462,4 +4462,17 @@ function numeroConDecimalesATexto($numero) {
     }
 
     return $texto;
+}
+
+function tipoConsultaRuc(){
+    $CI =& get_instance();
+    $CI->load->config('config');  // Cargar el archivo de configuración
+
+    // Obtener las configuraciones desde config.php
+    $tipo_consulta_ruc = $CI->config->item('tipo_consulta_ruc') ?? 'CI/RUC';
+    return $tipo_consulta_ruc;
+}
+
+function URL_consulta_rnc(){
+    return 'https://consultas-rnc.visuallytecnologic.com/consultas/db_rnc_dgii/';
 }

@@ -4760,32 +4760,6 @@
         }
       );
 
-      function printer_app_register_report() {
-            return new Promise((resolve) => {
-                $.ajax({
-                    url: base_url + "Sale/printer_app_register_report/",
-                    method: "GET",
-                    success: function(base64) {
-                        // Crear un iframe temporal para la impresión
-                        const iframe = document.createElement('iframe');
-                        iframe.style.display = 'none';
-                        iframe.src = 'print://' + base64;
-                        document.body.appendChild(iframe);
-                        
-                        // Eliminar el iframe después de un tiempo y resolver la promesa
-                        setTimeout(() => {
-                            document.body.removeChild(iframe);
-                            resolve();
-                        }, 300);
-                    },
-                    error: function() {
-                        alert("Error al generar el ticket para la impresora.");
-                        resolve(); // Asegurar que siempre se resuelva
-                    }
-                });
-            });
-        }
-
         $(document).on("click", "#register_printer_app", function (e) {
                 $.ajax({
                     url: base_url + "Sale/printer_app_register_report/",
@@ -16157,71 +16131,6 @@ $("#combo_item").on("click", function(){
   
 
 
-// Manejador del cierre de caja modificado
-$(document).on("click", "#register_close", function (e) {
-    let pos_21 = Number($("#pos_21").val());
-    if(pos_21){
-        let csrf_name_ = $("#csrf_name_").val();
-        let csrf_value_ = $("#csrf_value_").val();
-        swal(
-            {
-                title: warning + "!",
-                text: txt_err_pos_2,
-                confirmButtonColor: "#3c8dbc",
-                confirmButtonText: ok,
-                showCancelButton: true,
-            },
-            function () {
-                $.ajax({
-                    url: base_url + "Sale/printer_app_register_report/",
-                    method: "GET",
-                    success: function(base64) {
-                        // Crear un iframe temporal para la impresión
-                        const iframe = document.createElement('iframe');
-                        iframe.style.display = 'none';
-                        iframe.src = 'print://' + base64;
-                        document.body.appendChild(iframe);
-                        
-                        // Eliminar el iframe después de un tiempo y resolver la promesa
-                        setTimeout(() => {
-                            document.body.removeChild(iframe);
-                            resolve();
-                        }, 300);
-                    },
-                    error: function() {
-                        alert("Error al generar el ticket para la impresora.");
-                        resolve(); // Asegurar que siempre se resuelva
-                    }
-                });
-                $.ajax({
-                    url: base_url + "Sale/closeRegister",
-                    method: "POST",
-                    data: {
-                        csrf_name_: csrf_value_,
-                    },
-                    success: async function (response) {
-                        // Esperar a que termine la impresión
-                        await printer_app_register_report();
-                        
-                        // Mostrar notificación
-                        toastr['error']((register_close), '');
-                        $("#close_register_button").hide();
-                        
-                        // Redireccionar después de un breve retraso
-                        setTimeout(() => {
-                            window.location.href = base_url + "Register/openRegister";
-                        }, 500);
-                    },
-                    error: function () {
-                        alert("error");
-                    },
-                });
-            }
-        );
-    } else {
-        toastr['error']((menu_not_permit_access + "!"), '');
-    }
-});
 
 
     //initial the select2
