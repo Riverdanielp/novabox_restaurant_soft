@@ -34,6 +34,8 @@ class Outlet extends Cl_Controller {
             $function = "add";
         }elseif($segment_2=="deleteOutlet"){
             $function = "delete";
+        }elseif($segment_2=="phpinfo"){
+            $function = "phpinfo";
         }else{
            
             $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
@@ -46,6 +48,9 @@ class Outlet extends Cl_Controller {
         //end check access function
     }
 
+    public function phpinfo() {
+        phpinfo();
+    }
     /**
      * outlets info
      * @access public

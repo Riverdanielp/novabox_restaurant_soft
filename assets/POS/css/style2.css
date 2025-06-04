@@ -1628,7 +1628,8 @@ button[data-selected="unselected"] {
   height: 100%;
   width: calc(100% - 10px);
   padding: 0 5px;
-  border-radius: 5px; }
+  border-radius: 5px; 
+  overflow: scroll;}
 .modal .modal-content .order-payment-wrapper .payment-list li {
   margin-bottom: 5px; }
 .modal .modal-content .order-payment-wrapper .payment-list li.head {
@@ -1660,7 +1661,7 @@ button[data-selected="unselected"] {
   transition: all 0.2s;
   font-weight: 500;
   text-align: center;
-  position: absolute;
+  /* position: absolute; */
   bottom: 0px;
   margin-bottom: 5px;
   width: 95%; }
@@ -1677,7 +1678,9 @@ button[data-selected="unselected"] {
   left: 0;
   width: 100%;
   height: 100%;
-  padding: 22px 5px; }
+  padding: 22px 5px; 
+  overflow: scroll;
+  box-sizing: border-box; }
 .modal .modal-content .order-payment-wrapper .payment-content header {
   display: flex;
   justify-content: space-between;

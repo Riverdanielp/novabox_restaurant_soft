@@ -18,13 +18,75 @@ class Common_model extends CI_Model {
      * @param int
      * @param int
      */
-
-    public function isOpenRegister($user_id, $outlet_id){
-        $counter_id = $this->session->userdata('counter_id');
+    public function isOpenRegister($user_id, $outlet_id) {
+        // Buscar el último registro abierto para este usuario y sucursal
+        $this->db->select('*');
+        $this->db->from('tbl_register');
+        $this->db->where('user_id', $user_id);
+        $this->db->where('outlet_id', $outlet_id);
+        $this->db->where('register_status', 1);
+        $this->db->order_by('id', 'DESC');
+        $row_details = $this->db->get()->row();
+    
+        if ($row_details) {
+            // Revisar si ya existen en session y son del mismo counter/outlet
+            $session_counter_id = $this->session->userdata('counter_id');
+            $session_outlet_id  = $this->session->userdata('outlet_id');
+            
+            // Solo actualizar si NO coincide el counter_id o outlet_id en session con el registro abierto
+            if ($session_counter_id != $row_details->counter_id || $session_outlet_id != $outlet_id) {
+                // Obtener detalles del counter y de la impresora
+                $counter_details = $this->Common_model->getPrinterIdByCounterId($row_details->counter_id);
+                $printer_info    = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
+    
+                $print_arr = [];
+                $print_arr['counter_id']   = $row_details->counter_id;
+                $print_arr['counter_name'] = $counter_details->name;
+                $print_arr['printer_id']   = $counter_details->invoice_printer_id;
+                
+                if ($printer_info) {
+                    $print_arr['path']                   = $printer_info->path;
+                    $print_arr['title']                  = $printer_info->title;
+                    $print_arr['type']                   = $printer_info->type;
+                    $print_arr['characters_per_line']    = $printer_info->characters_per_line;
+                    $print_arr['printer_ip_address']     = $printer_info->printer_ip_address;
+                    $print_arr['printer_port']           = $printer_info->printer_port;
+                    $print_arr['printing_choice']        = $printer_info->printing_choice;
+                    $print_arr['ipvfour_address']        = $printer_info->ipvfour_address;
+                    $print_arr['print_format']           = $printer_info->print_format;
+                    $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
+                }
+                // bill printer
+                $printer_info_bill = $this->Common_model->getPrinterInfoById($counter_details->bill_printer_id);
+                $print_arr['bill_printer_id'] = $counter_details->bill_printer_id;
+                if ($printer_info_bill) {
+                    $print_arr['path_bill']                   = $printer_info_bill->path;
+                    $print_arr['title_bill']                  = $printer_info_bill->title;
+                    $print_arr['type_bill']                   = $printer_info_bill->type;
+                    $print_arr['characters_per_line_bill']    = $printer_info_bill->characters_per_line;
+                    $print_arr['printer_ip_address_bill']     = $printer_info_bill->printer_ip_address;
+                    $print_arr['printer_port_bill']           = $printer_info_bill->printer_port;
+                    $print_arr['printing_choice_bill']        = $printer_info_bill->printing_choice;
+                    $print_arr['ipvfour_address_bill']        = $printer_info_bill->ipvfour_address;
+                    $print_arr['print_format_bill']           = $printer_info_bill->print_format;
+                    $print_arr['inv_qr_code_enable_status_bill'] = $printer_info_bill->inv_qr_code_enable_status;
+                }
+                // GUARDA TODO EN SESIÓN
+                $this->session->set_userdata($print_arr);
+            }
+            return true;
+        } else {
+            // Si no hay registro abierto
+            return 0;
+        }
+    }
+    
+    public function isOpenRegisterOld($user_id, $outlet_id){
+        // $user_id = $this->session->userdata('user_id');
         
         $this->db->select('id');
         $this->db->from('tbl_register');
-        $this->db->where("counter_id", $counter_id);
+        $this->db->where("user_id", $user_id);
         $this->db->where("outlet_id", $outlet_id);
         $this->db->where("register_status", 1);
         $this->db->order_by('id', 'DESC');

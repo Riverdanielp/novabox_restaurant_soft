@@ -1418,7 +1418,7 @@ foreach ($notifications as $single_notification){
 
                                     <button id="cancel_button"><i class="fas fa-times"></i>
                                         <?php echo lang('cancel'); ?></button>
-                                    <button id="hold_sale" class="<?php echo escape_output($is_self_order_class) ?>" <?php echo ($this->session->userdata('designation') == 'Waiter') ? 'style="display: none;"' : '' ?>><i class="fas fa-hand-rock"></i>
+                                    <button id="hold_sale" class="<?php echo escape_output($is_self_order_class) ?>" <?php echo 'style="display: none;"'  //($this->session->userdata('designation') == 'Waiter') ? : '' ?>><i class="fas fa-hand-rock"></i>
                                         <?php echo lang('hold'); ?></button>
 
                                     <button data-type="1" class="<?php echo escape_output(isset($is_online_order) && $is_online_order=="Yes"?'self_order_skip':'')?> <?php echo escape_output(isset($is_self_order) && $is_self_order=="Yes"?'self_order_skip':'')?> placeOrderSound place_order_operation <?php echo isset($place_order_tooltip) && $place_order_tooltip=="show"?"btn_tip":'' ?>"  data-tippy-content="<?php echo lang('place_order_tooltip_txt'); ?>" <?php echo ($this->session->userdata('designation') == 'Waiter') ? 'style="display: none;"' : '' ?>><i
@@ -3759,6 +3759,12 @@ foreach ($notifications as $single_notification){
                             <?php endif;?>
 
                         <?php endforeach;?>
+                        <li class="">
+                            <!--  -->
+                            <a id="set_due_payment_btn" class="set_due_payment_btn" href="#" style="display:none;" >
+                                <?php echo 'Crédito a Cliente' // lang('leave_as_due'); ?>
+                            </a>
+                        </li>
                         <li class=""> <a  id="change_currency_btn" class="change_currency_btn" href="#"><?php echo lang('change_currency'); ?></a> </li>
                     </ul>
                 </div>
@@ -3841,7 +3847,7 @@ foreach ($notifications as $single_notification){
                                             </div>
 
                                             <div class="item">
-                                                <h3 class="title"><?php echo lang('due') ?></h3>
+                                                <h3 class="title" id="finalize_total_due_title"><?php echo lang('due') //'Falta'  ?></h3>
                                                 <p><?php echo escape_output($this->session->userdata('currency')); ?><span class="spincrement" id="finalize_total_due"><?php echo getAmt(0)?></span></p>
                                             </div>
                                               <?php

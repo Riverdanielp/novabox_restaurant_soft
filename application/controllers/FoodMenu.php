@@ -637,155 +637,102 @@ class FoodMenu extends Cl_Controller {
         $company_id = $this->session->userdata('company_id');
         if ($_FILES['userfile']['name'] != "") {
             if ($_FILES['userfile']['name'] == "Food_Menu_Upload.xlsx") {
-                //Path of files were you want to upload on localhost (C:/xampp/htdocs/ProjectName/uploads/excel/)
                 $configUpload['upload_path'] = FCPATH . 'asset/excel/';
                 $configUpload['allowed_types'] = 'xls|xlsx';
                 $configUpload['max_size'] = '5000';
                 $this->load->library('upload', $configUpload);
                 if ($this->upload->do_upload('userfile')) {
-                    $upload_data = $this->upload->data(); //Returns array of containing all of the data related to the file you uploaded.
-                    $file_name = $upload_data['file_name']; //uploded file name
-                    $extension = $upload_data['file_ext'];    // uploded file extension
-                    //$objReader =PHPExcel_IOFactory::createReader('Excel5');     //For excel 2003
-                    $objReader = PHPExcel_IOFactory::createReader('Excel2007'); // For excel 2007
-                    //Set to read only
+                    $upload_data = $this->upload->data();
+                    $file_name = $upload_data['file_name'];
+                    $extension = $upload_data['file_ext'];
+                    $objReader = PHPExcel_IOFactory::createReader('Excel2007');
                     $objReader->setReadDataOnly(true);
-                    //Load excel file
                     $objPHPExcel = $objReader->load(FCPATH . 'asset/excel/' . $file_name);
-                    $totalrows = $objPHPExcel->setActiveSheetIndex(0)->getHighestRow();   //Count Numbe of rows avalable in excel
+                    $totalrows = $objPHPExcel->setActiveSheetIndex(0)->getHighestRow();
                     $objWorksheet = $objPHPExcel->setActiveSheetIndex(0);
-
-                    //loop from first data untill last data
+    
+                    // Helper para limpiar números
+                    function limpiar_num_php($valor) {
+                        $v = trim($valor);
+                        if ($v === "" || $v === "-" || strtolower($v) == "none" || strtolower($v) == "nan") {
+                            return 0;
+                        }
+                        return is_numeric($v) ? $v : 0;
+                    }
+    
                     if ($totalrows > 2 && $totalrows < 504) {
                         $arrayerror = '';
                         for ($i = 4; $i <= $totalrows; $i++) {
                             $name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(0, $i)->getValue()));
-                            $code = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(1, $i)->getValue())); //Excel Column 1
-                            $category = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(2, $i)->getValue())); //Excel Column 2
-                            $sale_prices = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(3, $i)->getValue())); //Excel Column 3
-                            $take_sale_prices = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(4, $i)->getValue())); //Excel Column 3
-                            $del_sale_prices = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(5, $i)->getValue())); //Excel Column 3
-                            $vat_name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(6, $i)->getValue())); //Excel Column 4
-                            $vat_percent = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(7, $i)->getValue())); //Excel Column 5
-                            $description = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(8, $i)->getValue())); //Excel Column 5
-                            $isVegItem = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(9, $i)->getValue())); //Excel Column 7
-                            $isBeverage = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(10, $i)->getValue())); //Excel Column 8
-
-
+                            $code = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(1, $i)->getValue()));
+                            $category = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(2, $i)->getValue()));
+                            $sale_prices = limpiar_num_php(htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(3, $i)->getValue())));
+                            $take_sale_prices = limpiar_num_php(htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(4, $i)->getValue())));
+                            $del_sale_prices = limpiar_num_php(htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(5, $i)->getValue())));
+                            $vat_name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(6, $i)->getValue()));
+                            $vat_percent = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(7, $i)->getValue()));
+                            $description = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(8, $i)->getValue()));
+                            $isVegItem = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(9, $i)->getValue()));
+                            $isBeverage = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(10, $i)->getValue()));
+    
                             if ($name == '') {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column A required";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column A required";
-                                }
+                                $arrayerror .= ($arrayerror == '') ? "Row Number $i column A required" : "<br>Row Number $i column A required";
                             }
-
                             if ($code == '') {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column B required";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column B required";
-                                }
+                                $arrayerror .= ($arrayerror == '') ? "Row Number $i column B required" : "<br>Row Number $i column B required";
                             }
-
                             if ($category == '') {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column C required";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column C required";
-                                }
+                                $arrayerror .= ($arrayerror == '') ? "Row Number $i column C required" : "<br>Row Number $i column C required";
                             }
-
-                            if ($sale_prices == '' || !is_numeric($sale_prices)) {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column D required or can not be text";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column D required or can not be text";
-                                }
-                            }
-                            if ($take_sale_prices == '' || !is_numeric($take_sale_prices)) {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column E required or can not be text";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column E required or can not be text";
-                                }
-                            }
-                            if ($del_sale_prices == '') {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column F required";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column F required";
-                                }
-                            }
+                            // Ya no mostramos error por D/E/F porque los limpiamos arriba
+    
                             $tmp_vat_name = explode(',',$vat_name);
                             $tmp_vat_percent = explode(',',$vat_percent);
-
+    
                             if ($vat_name || $tmp_vat_percent) {
-                                if(sizeof($tmp_vat_name) != sizeof($tmp_vat_percent))
-
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column G & H does not match";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column G & H does not match";
+                                if(sizeof($tmp_vat_name) != sizeof($tmp_vat_percent)) {
+                                    $arrayerror .= ($arrayerror == '') ? "Row Number $i column G & H does not match" : "<br>Row Number $i column G & H does not match";
                                 }
                             }
-
+    
                             if (($isVegItem == '')) {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column J required";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column J required";
-                                }
+                                $arrayerror .= ($arrayerror == '') ? "Row Number $i column J required" : "<br>Row Number $i column J required";
                             }
-
+    
                             if (($isVegItem != 'Veg Yes') && ($isVegItem != 'Veg No')) {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column J required or should be Veg Yes or Veg No";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column required J required or should be Veg Yes or Veg No";
-                                }
+                                $arrayerror .= ($arrayerror == '') ? "Row Number $i column J required or should be Veg Yes or Veg No" : "<br>Row Number $i column J required or should be Veg Yes or Veg No";
                             }
-
+    
                             if (($isBeverage == '')) {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column K required";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column K required";
-                                }
+                                $arrayerror .= ($arrayerror == '') ? "Row Number $i column K required" : "<br>Row Number $i column K required";
                             }
-
+    
                             if (($isBeverage != 'Bev Yes') && ($isBeverage != 'Bev No')) {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column K required or should be Bev Yes or Bev No";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column required K required or should be Bev Yes or Bev No";
-                                }
+                                $arrayerror .= ($arrayerror == '') ? "Row Number $i column K required or should be Bev Yes or Bev No" : "<br>Row Number $i column K required or should be Bev Yes or Bev No";
                             }
                         }
                         if ($arrayerror == '') {
-
-
                             $company = getCompanyInfo();
                             $outlet_taxes = json_decode($company->tax_setting);
-
+    
                             for ($i = 4; $i <= $totalrows; $i++) {
                                 $name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(0, $i)->getValue()));
-                                $code = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(1, $i)->getValue())); //Excel Column 1
-                                $category = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(2, $i)->getValue())); //Excel Column 2
-                                $sale_prices = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(3, $i)->getValue())); //Excel Column 3
-                                $take_sale_prices = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(4, $i)->getValue())); //Excel Column 3
-                                $del_sale_prices = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(5, $i)->getValue())); //Excel Column 3
-                                $vat_name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(6, $i)->getValue())); //Excel Column 4
-                                $vat_percent = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(7, $i)->getValue())); //Excel Column 5
-                                $description = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(8, $i)->getValue())); //Excel Column 5
-                                $isVegItem = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(9, $i)->getValue())); //Excel Column 7
-                                $isBeverage = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(10, $i)->getValue())); //Excel Column 8
-                                $image = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(11, $i)->getValue())); //Excel Column 5
-                                $loyalty_point = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(12, $i)->getValue())); //Excel Column 5
-                                $alternative_name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(13, $i)->getValue())); //Excel Column 5
+                                $code = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(1, $i)->getValue()));
+                                $category = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(2, $i)->getValue()));
+                                $sale_prices = limpiar_num_php(htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(3, $i)->getValue())));
+                                $take_sale_prices = limpiar_num_php(htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(4, $i)->getValue())));
+                                $del_sale_prices = limpiar_num_php(htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(5, $i)->getValue())));
+                                $vat_name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(6, $i)->getValue()));
+                                $vat_percent = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(7, $i)->getValue()));
+                                $description = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(8, $i)->getValue()));
+                                $isVegItem = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(9, $i)->getValue()));
+                                $isBeverage = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(10, $i)->getValue()));
+                                $image = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(11, $i)->getValue()));
+                                $loyalty_point = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(12, $i)->getValue()));
+                                $alternative_name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(13, $i)->getValue()));
                                 $tmp_vat_name = explode(',',$vat_name);
                                 $tmp_vat_percent = explode(',',$vat_percent);
-
+    
                                 $tax_information = array();
                                 $tax_string = '';
                                 foreach($outlet_taxes as $key=>$value){
@@ -813,7 +760,7 @@ class FoodMenu extends Cl_Controller {
                                 $fmc_info['sale_price'] = $sale_prices;
                                 $fmc_info['sale_price_take_away'] = $take_sale_prices;
                                 $fmc_info['loyalty_point'] = $loyalty_point;
-
+    
                                 $delivery_partners = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
                                 $json_data = array();
                                 if($delivery_partners){
@@ -824,7 +771,7 @@ class FoodMenu extends Cl_Controller {
                                                 if($key==$k1){
                                                     $json_data["index_".$value->id] = $val;
                                                 }
-
+    
                                             }
                                         }
                                         $fmc_info['delivery_price'] = json_encode($json_data);
@@ -832,8 +779,7 @@ class FoodMenu extends Cl_Controller {
                                 }else{
                                     $fmc_info['sale_price_delivery'] = $del_sale_prices;
                                 }
-
-
+    
                                 $fmc_info['description'] = $description;
                                 $fmc_info['veg_item'] = $isVegItem;
                                 $fmc_info['beverage_item'] = $isBeverage;
@@ -845,22 +791,22 @@ class FoodMenu extends Cl_Controller {
                                 $fmc_info['user_id'] = $this->session->userdata('user_id');
                                 $fmc_info['company_id'] = $this->session->userdata('company_id');
                                 $id = $this->Common_model->insertInformation($fmc_info, "tbl_food_menus");
- 
+    
                                 if(isLMni()):
                                     updatePrice($this->session->userdata('company_id'),$id,$fmc_info['sale_price'],$fmc_info['sale_price_take_away'],json_encode($json_data),$fmc_info['sale_price_delivery']);
                                 endif;
-
+    
                             }
-                            unlink(FCPATH . 'asset/excel/' . $file_name); //File Deleted After uploading in database .
+                            unlink(FCPATH . 'asset/excel/' . $file_name);
                             $this->session->set_flashdata('exception', 'Imported successfully!');
                             redirect('foodMenu/foodMenus');
                         } else {
-                            unlink(FCPATH . 'asset/excel/' . $file_name); //File Deleted After uploading in database .
+                            unlink(FCPATH . 'asset/excel/' . $file_name);
                             $this->session->set_flashdata('exception_err', "Required Data Missing:$arrayerror");
                         }
                     } else {
-                        unlink(FCPATH . 'asset/excel/' . $file_name); //File Deleted After uploading in database .
-                        $this->session->set_flashdata('exception_err', "Entry is more than 50 or No entry found.");
+                        unlink(FCPATH . 'asset/excel/' . $file_name);
+                        $this->session->set_flashdata('exception_err', "Entry is more than 500 or No entry found.");
                     }
                 } else {
                     $error = $this->upload->display_errors();

@@ -908,7 +908,7 @@
 
 
       function update_split_parent_sale(order_object_split, sale_no,is_ignore='') {
-  
+        
           let res = getSelectedOrderDetails(sale_no).then(function(data){
               let rowData = jQuery.parseJSON(data);
               let rowData2 = JSON.parse(order_object_split);
@@ -1415,9 +1415,9 @@
        
    
           if(need_print_popup!=1){     
-            console.log('need_print_popup!=1');
+            // console.log('need_print_popup!=1');
             if(no_print!=1){
-                console.log('no_print!=1');
+                // console.log('no_print!=1');
                 reset_finalize_modal();
                 let popup = window.open("", "popup","width=100","height=600");
                 popup.document.write(invoice_print);
@@ -5806,12 +5806,20 @@ function getSafePrice(priceAttr) {
                           parseFloat(100)
                       ).toFixed(ir_precision);
   
-                      //get item/menu total price from modal
-                      let item_total_price = parseFloat(item_price).toFixed(ir_precision);
   
                       //get item/menu quantity from modal
                       let item_quantity = "1";
+                      // Si vino cantidad de balanza, úsala
+                      let cantidad_balanza = $(this).attr("data-cantidad-barcode");
+                      if (cantidad_balanza) {
+                          item_quantity = cantidad_balanza;
+                          // Elimina el atributo para que no afecte otros clicks
+                          $(this).removeAttr("data-cantidad-barcode");
+                      }
   
+                      //get item/menu total price from modal
+                      let item_total_price = (parseFloat(item_price) * parseFloat(item_quantity)).toFixed(ir_precision);
+
                       //get vat amount for specific item/menu
                       let item_vat_amount_for_all_quantity = (
                           parseFloat(item_vat_amount_for_unit_item) * parseFloat(item_quantity)
@@ -5923,6 +5931,7 @@ function getSafePrice(priceAttr) {
                           item_id +
                           "'  class='fal fa-times removeCartItem'></i></div>";
                       draw_table_for_order += "</div>";
+                    //   console.log(item_total_price);
                       if (product_type == 2  &&  product_comb!= "") {
                           draw_table_for_order += '<div class="third_portion fix">';
                           draw_table_for_order +=
@@ -6009,6 +6018,21 @@ function getSafePrice(priceAttr) {
                       // return false;
                       //do calculation on table
                       do_addition_of_item_and_modifiers_price();
+
+                      
+                    if (cantidad_balanza) {
+                        // Llama a la función especial DESPUÉS de agregar el item visualmente al DOM:
+                        // 1. Espera a que el HTML esté en el DOM (puedes ponerlo en un setTimeout de 0ms si es necesario)
+                        setTimeout(function() {
+                            set_quantity_for_balanza_item(
+                                item_id,                 // el ID del producto
+                                cantidad_balanza,        // la cantidad decimal
+                                item_price               // el precio unitario (ya lo tienes calculado arriba)
+                            );
+                        }, 100);
+                    
+                        // Ya no necesitas tocar el resto del flujo, el handler global sigue funcionando
+                    }                 
                   }
               }
   
@@ -10142,6 +10166,99 @@ function getSafePrice(priceAttr) {
           }
         }
       );
+// SNIPPET: Arma el array de pagos incluyendo vuelto (cash negativo) y deuda (si la hay)
+function getPaymentArrayWithChangeAndDue() {
+    let totalPayable = parseFloat($("#finalize_total_payable").text().replace(",", "")) || 0;
+    let payments = [];
+    let totalPaid = 0;
+
+    $(".payment_list_counter").each(function () {
+        let payment_id = $(this).attr("data-payment_id");
+        let payment_name = $(this).attr("data-payment_name");
+        let usage_point = $(this).attr("data-usage_point") || "";
+        let amount = parseFloat($(this).attr("data-amount")) || 0;
+        payments.push({
+            payment_id: payment_id,
+            payment_name: payment_name,
+            usage_point: usage_point,
+            amount: amount
+        });
+        totalPaid += amount;
+    });
+
+    let diff = totalPaid - totalPayable;
+
+    // Si hay vuelto (pagó de más), agregar un pago negativo en efectivo
+    if (diff > 0) {
+        payments.push({
+            payment_id: "1", // Asumiendo que "1" es efectivo/cash
+            payment_name: "Cash (Vuelto)",
+            usage_point: "",
+            amount: -diff // Monto negativo para marcar el vuelto
+        });
+    }
+    // Si hay deuda (pagó de menos) y NO se agregó la deuda explícitamente, bloquear el guardado
+    if (diff < 0) {
+        // ¿Ya existe un pago "Deuda Cliente"?
+        let has_due = payments.some(p => p.payment_id == "999");
+        if (!has_due) {
+            return false; // Falta agregar deuda, no guardar aún
+        }
+    }
+    return payments;
+}
+        function updateFinalizeDueVisual() {
+            // let totalPayable = parseCurrencyToNumber($("#finalize_total_payable").text());
+            // let totalPaid = 0;
+            // $(".payment_list_counter").each(function () {
+            //     totalPaid += Number($(this).attr('data-amount'));
+            // });
+        
+            // let diff = totalPaid - totalPayable;
+            // $("#finalize_total_due").text(Math.abs(diff).toFixed(ir_precision));
+        
+            let diff = parseCurrencyToNumber($("#finalize_total_due").text());
+            // console.log(diff);
+            if (diff < 0) {
+                // Hay vuelto
+                $("#finalize_total_due_title").text("Vuelto");
+                $("#set_due_payment_btn").hide();
+                $("#finalize_order_button").prop("disabled", false); // Habilita finalizar
+            } else if (diff > 0) {
+                // Falta dinero
+                $("#finalize_total_due_title").text("Falta");
+                $("#set_due_payment_btn").show();
+                $("#finalize_order_button").prop("disabled", true); // Deshabilita finalizar
+            } else {
+                // Exacto
+                $("#finalize_total_due_title").text("Falta");
+                $("#set_due_payment_btn").hide();
+                $("#finalize_order_button").prop("disabled", false); // Habilita finalizar
+            }
+        }
+
+        $(document).on("click", "#set_due_payment_btn", function(e) {
+            e.preventDefault();
+            // Dejar el faltante como deuda solo si hay diferencia negativa
+            let totalPayable = parseCurrencyToNumber($("#finalize_total_payable").text());
+            let totalPaid = 0;
+            $(".payment_list_counter").each(function () {
+                totalPaid += Number($(this).attr('data-amount'));
+            });
+            let diff = totalPaid - totalPayable;
+        
+            if (diff < 0) {
+                // Agrega un pago de tipo "Deuda"
+                let html = '<li class="payment_list_counter" data-payment_name="Deuda Cliente" data-payment_id="999" data-amount="'+ (Math.abs(diff)).toFixed(ir_precision) +'">' +
+                    '<span class="payment-type-name">Deuda Cliente</span>' +
+                    '<div>'+currency+'<span class="payment_list_amount">'+formatNumberToCurrency(Math.abs(diff))+'</span>' +
+                    '<i class="fas fa-times-circle remove_paid_item"></i>' +
+                    '</div></li>';
+                $("#payment_list_div").append(html);
+                updateFinalizeDueVisual();
+            }
+        });
+
       let isProcessingPayment = false; // Variable global
 
       $(document).on("click", "#finalize_order_button", function (e) {
@@ -10153,7 +10270,9 @@ function getSafePrice(priceAttr) {
             status = false;
           }
         }
-        if (status == true) {
+        let paymentsStatus = getPaymentArrayWithChangeAndDue();
+        // console.log(paymentsStatus);
+        if (paymentsStatus !== false) {
   
             $(".change_amount_div").hide();
             $("#change_amount_div_").text(0);
@@ -10183,6 +10302,7 @@ function getSafePrice(priceAttr) {
   
               localStorage["last_sale_id"] = sale_no;
             if(is_split_bill!=1){
+                // console.log('is_split_bill',is_split_bill);
                 $("#last_invoice_id").val(sale_no);
                 if(pre_or_post_payment==2){
                     getSelectedOrderDetails(sale_no).then(function(data){
@@ -10195,6 +10315,7 @@ function getSafePrice(priceAttr) {
                 remove_kot_invoice(current_sale_no);
                 reset_finalize_modal();
             }else{
+                // console.log('is_split_bill != 1',is_split_bill);
                 let open_invoice_date_hidden = $("#open_invoice_date_hidden").val();
                 let selected_action = '';
                 $(".goto_to_payment").each(function (i, obj) {
@@ -10509,55 +10630,6 @@ function getSafePrice(priceAttr) {
                 }
                 items_info += "]";
                 order_info += items_info + "}";
-  
-                // add_to_recent_sale_by_ajax((order_info),'',sale_no_new);
-                // update_split_parent_sale((order_info), sale_no_new,'');
-  
-                // setTimeout(function () {
-                //     let last_sale_id_split = localStorage["last_sale_id_split"];
-                //     print_invoice(last_sale_id_split);
-                // }, 1000);
-  
-                // //update split box
-                // let is_show_split_modal = false;
-                // let remove_div_action = '';
-                // $(".goto_to_payment").each(function (i, obj) {
-                //     let is_remove = $(this).attr('data-is_remove');
-                //     if(is_remove==="yes"){
-                //         is_show_split_modal = true;
-                //         remove_div_action = $(this);
-                //     }
-                // });
-                //   //remove order tables
-                // remove_kot_invoice(sale_no_new);
-                // removeOrderTablesBySaleId(sale_no_new,'Yes');
-  
-                // if(is_split_bill==1 && is_show_split_modal && ($(".goto_to_payment").length>1)){
-                //     //set total split bill box, and remove last generated_invoice
-                //     let current_split = Number($("#maximum_spit").html());
-                //     $("#spit_modal_input").attr('max',(current_split-1));
-                //     $("#spit_modal_input").val((current_split-1));
-                //     $("#maximum_spit").html((current_split-1));
-                //     remove_div_action.parent().parent().parent().remove();
-                //     $("#order_split_modal").addClass("active");
-                //     $(".pos__modal__overlay").fadeIn(200);
-                // }else{
-                //     let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-                //     objectStore.openCursor().onsuccess = function(event) {
-                //         let cursor = event.target.result;
-  
-                //         if (cursor) {
-                //             if(cursor.value.sale_no == sale_no_new) {
-                //                 let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
-                //                 request.onsuccess = function(event) {
-                //                     $("#order_" + get_plan_string(sale_no_new)).remove();
-                //                 }
-                //             }
-                //             cursor.continue();
-                //         }
-                //     }
-                // }
-                // clearButtonNumber(sale_no);
 
                 add_to_recent_sale_by_ajax(order_info, '', sale_no_new, 
                     function(response) {
@@ -10662,9 +10734,12 @@ function getSafePrice(priceAttr) {
             toastr['error']((please_select_open_order), '');
           }
         } else {
-          toastr['error'](("No se puede procesar credito a cliente predeterminado!"), '');
+            // toastr['error'](("No se puede procesar credito a cliente predeterminado!"), '');
+          toastr['error'](("No ha terminado de cargar los medios de pago!"), '');
         }
       });
+
+
       $("body").on("click", "#add_customer", function(e) {
         let is_online_order = $("#is_online_order").val();
         let customer_id = $("#customer_id_modal").val();
@@ -10998,7 +11073,7 @@ function getSafePrice(priceAttr) {
           let item_total_price_without_discount = (
               parseFloat(item_quantity) * parseFloat(item_unit_price)
           ).toFixed(ir_precision);
-          console.log(parseFloat(item_quantity),parseFloat(item_unit_price),ir_precision);
+        //   console.log(parseFloat(item_quantity),parseFloat(item_unit_price),ir_precision);
           //set item total price without discount
           $("#modal_item_price_variable_without_discount").html(
               item_total_price_without_discount
@@ -11849,13 +11924,45 @@ $(document).on("keyup", "#search_old", function (e) {
         }, 200);
     }
 });
+function esCodigoVariable(codigo) {
+    // Ejemplo: 2 000005 020353 (puede venir sin espacios) 2000005020353
+    // EAN-13 de balanza: empieza con 2, 02, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29 (pero el más común es 2)
+    // Longitud típica: 13 dígitos
+    let limpio = codigo.replace(/\D/g, ''); // Solo números
+    return limpio.length === 13 && limpio.startsWith("2");
+}
 
+function decodificarCodigoVariable(codigo) {
+    // Quita todo lo que no sea número
+    let limpio = codigo.replace(/\D/g, '');
+    // Estructura: 2 + 5 dígitos (PLU) + 5 dígitos (peso/precio) + 1 dígito (control)
+    let plu = limpio.substr(1, 6); // Ej: 000005
+    // El peso/precio está en los siguientes 5 dígitos
+    let valor = limpio.substr(7, 5); // Ej: 02035 => 2.035 kg
+    let valor_num = parseInt(valor, 10) / 1000;
+    return {
+        plu: plu,
+        cantidad: valor_num
+    };
+}
 $(document).on("keyup", "#search", function (e) {
     clearTimeout(searchTimeout);
     let searched_string = $(this).val().trim();
 
+    // Detecta si es código variable de balanza
     if (e.keyCode === 13 && searched_string) {
         e.preventDefault();
+        // <-- Nuevo: Detección y flujo extra
+        if (esCodigoVariable(searched_string)) {
+            let datos = decodificarCodigoVariable(searched_string);
+            // console.log(datos); // Para depuración
+            // Busca el producto por PLU (que has guardado en item.code o similar)
+            fetchAndDisplayArticles(datos.plu, "", "", true, datos.cantidad);
+            // Limpiar campo input
+            $("#search").val('');
+            return;
+        }
+        // Si no es variable, sigue normal
         lastSearchedString = searched_string;
         fetchAndDisplayArticles(searched_string, "", "", true);
     } else {
@@ -11869,12 +11976,31 @@ $(document).on("keyup", "#search", function (e) {
     }
 });
 
+// $(document).on("keyup", "#search", function (e) {
+//     clearTimeout(searchTimeout);
+//     let searched_string = $(this).val().trim();
+
+//     if (e.keyCode === 13 && searched_string) {
+//         e.preventDefault();
+//         lastSearchedString = searched_string;
+//         fetchAndDisplayArticles(searched_string, "", "", true);
+//     } else {
+//         searchTimeout = setTimeout(() => {
+//             if (searched_string) {
+//                 fetchAndDisplayArticles(searched_string);
+//             } else {
+//                 fetchAndDisplayArticles(""); // destacados o todos
+//             }
+//         }, 200);
+//     }
+// });
+
 function safePriceAttr(val) {
     return (val === null || val === undefined || val === "" || val === "null") ? "" : val;
 }
 
 
-function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoClick = false) {
+function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoClick = false, cantidad = null) {
     $.ajax({
         url: base_url + "Sale/search_food_menus_ajax",
         method: "GET",
@@ -11890,7 +12016,6 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoCli
         success: function(items){
             let html = '<div id="searched_item_found" class="specific_category_items_holder">';
             $.each(items, function(i, item){
-                // console.log(item);
                 if(item.parent_id == '0'){
                     let veg_status = (item.veg_item == "Veg Yes") ? "yes" : "no";
                     let image_path = item.photo ? (base_url + "images/" + item.photo) : (base_url + "images/image_thumb.png");
@@ -11919,28 +12044,22 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoCli
             if(food_menu_tooltip=="show"){
                 tippy(".item_name", { placement: "bottom-start" });
             }
-
             // ----> AUTOCLICK, pero busca el item por código exacto
-            // console.log('autoClick', autoClick);
             if (autoClick && items.length) {
                 let codeToMatch = lastSearchedString.trim();
-                // console.log('codeToMatch', codeToMatch);
-            
-                // LOG de todos los códigos visibles
-                $(".single_item:visible").each(function(){
-                    // console.log('item code:', $(this).data("code"), '| typeof:', typeof $(this).data("code"));
-                });
-            
+                // Si vino cantidad (de balanza), codeToMatch es el PLU, si no el string normal
+                if (cantidad !== null) {
+                    codeToMatch = searchText.trim(); // ya es el PLU
+                }
                 let $matchItem = $(".single_item:visible").filter(function() {
-                    // Compara sin espacios y en minúscula para asegurar coincidencia
                     return (($(this).data("code") + "").trim().toLowerCase() === codeToMatch.toLowerCase());
                 }).first();
-            
                 if ($matchItem.length) {
-                    // console.log('Se encontró coincidencia:', $matchItem.data("code"));
+                    // Si hay cantidad, la pasamos como atributo temporal
+                    if (cantidad !== null) {
+                        $matchItem.attr("data-cantidad-barcode", cantidad); // <---
+                    }
                     $matchItem.click();
-                } else {
-                    // console.log('No se encontró coincidencia exacta');
                 }
                 $("#search").val('');
             }
@@ -11951,7 +12070,87 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoCli
     });
 }
 
+// function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoClick = false) {
+//     $.ajax({
+//         url: base_url + "Sale/search_food_menus_ajax",
+//         method: "GET",
+//         data: {
+//             q: searchText,
+//             category_id: categoryId,
+//             type: type
+//         },
+//         dataType: "json",
+//         beforeSend: function(){
+//             $("#main_item_holder .category_items").html('<div class="loading">Cargando...</div>');
+//         },
+//         success: function(items){
+//             let html = '<div id="searched_item_found" class="specific_category_items_holder">';
+//             $.each(items, function(i, item){
+//                 // console.log(item);
+//                 if(item.parent_id == '0'){
+//                     let veg_status = (item.veg_item == "Veg Yes") ? "yes" : "no";
+//                     let image_path = item.photo ? (base_url + "images/" + item.photo) : (base_url + "images/image_thumb.png");
+//                     html += `
+//                         <div class="single_item animate__animated animate__flipInX" 
+//                             data-price="${safePriceAttr(item.sale_price)}" 
+//                             data-price_take="${safePriceAttr(item.sale_price_take_away)}" 
+//                             data-is_variation="${item.is_variation}" 
+//                             data-parent_id="${item.parent_id}"
+//                             data-code="${item.code}"
+//                             data-price_delivery="${safePriceAttr(item.sale_price_delivery)}" 
+//                             data-veg_status="${veg_status}" 
+//                             id="item_${item.id}">
+//                             <img src="${image_path}" alt="" width="141">
+//                             <p class="item_name" data-tippy-content="${item.name}">${item.name}</p>
+//                             <p class="item_price">${inv_currency} ${formatNumberToCurrency(item.sale_price)}</p>
+//                         </div>
+//                     `;
+//                 }
+//             });
+//             html += "</div>";
+//             $(".loading").remove();
+//             $("#searched_item_found").remove();
+//             $(".specific_category_items_holder").fadeOut(0);
+//             $(".category_items").prepend(html);
+//             if(food_menu_tooltip=="show"){
+//                 tippy(".item_name", { placement: "bottom-start" });
+//             }
+
+//             // ----> AUTOCLICK, pero busca el item por código exacto
+//             // console.log('autoClick', autoClick);
+//             if (autoClick && items.length) {
+//                 let codeToMatch = lastSearchedString.trim();
+//                 // console.log('codeToMatch', codeToMatch);
+            
+//                 // LOG de todos los códigos visibles
+//                 $(".single_item:visible").each(function(){
+//                     // console.log('item code:', $(this).data("code"), '| typeof:', typeof $(this).data("code"));
+//                 });
+            
+//                 let $matchItem = $(".single_item:visible").filter(function() {
+//                     // Compara sin espacios y en minúscula para asegurar coincidencia
+//                     return (($(this).data("code") + "").trim().toLowerCase() === codeToMatch.toLowerCase());
+//                 }).first();
+            
+//                 if ($matchItem.length) {
+//                     // console.log('Se encontró coincidencia:', $matchItem.data("code"));
+//                     $matchItem.click();
+//                 } else {
+//                     // console.log('No se encontró coincidencia exacta');
+//                 }
+//                 $("#search").val('');
+//             }
+//         },
+//         error: function(){
+//             $("#main_item_holder .category_items").html('<div class="error">Error al buscar artículos.</div>');
+//         }
+//     });
+// }
+
 //get all images based on category when category button is clicked
+
+
+
 $(document).on("click", ".category_button", function (e) {
 let str = $(this).attr("id");
 let res = str.substr(16);
@@ -12298,6 +12497,32 @@ $("#combo_item").on("click", function(){
       ).toFixed(ir_precision);
       $("#due_amount_invoice_input").val(due_amount);
     }
+    /**
+ * Ajusta la cantidad y precio para un item agregado por balanza.
+ * @param {string|number} item_id - El ID del item (número, sin el "item_" delante)
+ * @param {number|string} cantidad_balanza - Cantidad decimal leída del código de barras
+ * @param {number|string} precio_unitario - El precio unitario del producto
+ */
+function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitario) {
+    cantidad_balanza = parseFloat(cantidad_balanza);
+    precio_unitario = parseFloat(precio_unitario);
+
+    // Actualiza cantidad visual
+    $("#item_quantity_table_" + item_id).html(cantidad_balanza);
+
+    // Calcula el nuevo total SIN descuento
+    let updated_total_price = (cantidad_balanza * precio_unitario).toFixed(ir_precision);
+
+    // Actualiza el campo "item_price_without_discount" (igual que el handler manual)
+    $("#item_price_without_discount_" + item_id).html(updated_total_price);
+
+    // Si tienes campos ocultos para cantidad, también actualízalos:
+    $("#tmp_qty_" + item_id).val(cantidad_balanza);
+
+    // Recalcula totales, descuentos, etc.
+    do_addition_of_item_and_modifiers_price();
+}
+
     // ===============================================
     // add all prices of item and modifiers
     function do_addition_of_item_and_modifiers_price() {
@@ -13413,9 +13638,10 @@ $("#combo_item").on("click", function(){
                                     $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
                                 }else{
                                     if(pre_or_post_payment==2 || is_direct_sale_check==1){
-                                        $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
-                                        $("#create_invoice_and_close").click();
-                                        $(".invoice_btn_class").eq(1).click();
+                                        openPaymentModalForNumber(sale_no_new);
+                                        // $("#order_"+get_plan_string(sale_no_new)).attr('data-selected',"selected");
+                                        // $("#create_invoice_and_close").click();
+                                        // $(".invoice_btn_class").eq(1).click();
                                     }
                                 }
         
@@ -13932,38 +14158,106 @@ $("#combo_item").on("click", function(){
         },
       });
     }
-  
-    function close_order(sale_no, payment_method_type, paid_amount, due_amount,sub_total_discount_finalize) {
-  
-        let payment_info = "[";
-  
-        if ($(".payment_list_counter").length > 0) {
-            let k = 1;
-            $(".payment_list_counter").each(function (i, obj) {
-                let payment_name = $(this).attr("data-payment_name");
-                let usage_point = $(this).attr("data-usage_point");
-                let payment_id = $(this).attr("data-payment_id");
-                let amount = $(this).attr("data-amount");
-                payment_info +=
-                    '{"payment_id":"' +
-                    payment_id +
-                    '","payment_name":"' + payment_name +
-                    '","usage_point":"' + usage_point +
-                    '","amount":"' +
-                    amount +
-                    '"';
-                payment_info +=
-                    k == $(".payment_list_counter").length ? "}" : "},";
-                k++;
+  /**
+ * Genera el array de métodos de pago desde el DOM, y agrega un pago negativo en efectivo si hay vuelto.
+ * Retorna un array de objetos { payment_id, payment_name, usage_point, amount }
+ * - Si hay vuelto (total pagado > total a pagar), agrega un pago negativo en efectivo al final.
+ * - Si hay deuda ("falta"), NO agrega nada extra (debes controlar esto con la lógica de tu modal/botón).
+ */
+  function getPaymentArrayWithChange() {
+    let totalPayable = parseCurrencyToNumber($("#finalize_total_payable").html());
+    let payments = [];
+    let totalPaid = 0;
+
+    // Construye array y suma total pagado
+    $(".payment_list_counter").each(function () {
+        let payment_id = $(this).attr("data-payment_id");
+        let payment_name = $(this).attr("data-payment_name");
+        let usage_point = $(this).attr("data-usage_point") || "";
+        let amount = parseFloat($(this).attr("data-amount")) || 0;
+        payments.push({
+            payment_id: payment_id,
+            payment_name: payment_name,
+            usage_point: usage_point,
+            amount: amount
+        });
+        totalPaid += amount;
+    });
+
+    let diff = totalPaid - totalPayable;
+
+    // Si hay vuelto (pagó de más)
+    if (diff > 0) {
+        // Busca si existe un pago en efectivo
+        let foundCash = false;
+        for (let i = 0; i < payments.length; i++) {
+            if (payments[i].payment_id == "1") {
+                payments[i].amount = parseFloat(payments[i].amount) - diff; // Resta el vuelto al efectivo
+                foundCash = true;
+                break;
+            }
+        }
+        // Si no existe efectivo, agrega como pago negativo
+        if (!foundCash) {
+            payments.push({
+                payment_id: "1",
+                payment_name: "Cash (Vuelto)",
+                usage_point: "",
+                amount: -diff
             });
         }
-        payment_info += "]";
+    }
+
+    return payments;
+}
+
+/**
+ * Convierte el array de métodos de pago a string JSON (para backend)
+ * Ejemplo de uso:
+ *   let paymentsArray = getPaymentArrayWithChange();
+ *   let paymentsJson = JSON.stringify(paymentsArray);
+ *   // ...guardar o enviar paymentsJson
+ */
+
+
+    function close_order(sale_no, payment_method_type, paid_amount, due_amount,sub_total_discount_finalize) {
   
-         sub_total_discount_finalize = Number(sub_total_discount_finalize);
+        // let payment_info = "[";
   
-        let payment_object = JSON.stringify(payment_info);
+        // if ($(".payment_list_counter").length > 0) {
+        //     let k = 1;
+        //     $(".payment_list_counter").each(function (i, obj) {
+        //         let payment_name = $(this).attr("data-payment_name");
+        //         let usage_point = $(this).attr("data-usage_point");
+        //         let payment_id = $(this).attr("data-payment_id");
+        //         let amount = $(this).attr("data-amount");
+        //         payment_info +=
+        //             '{"payment_id":"' +
+        //             payment_id +
+        //             '","payment_name":"' + payment_name +
+        //             '","usage_point":"' + usage_point +
+        //             '","amount":"' +
+        //             amount +
+        //             '"';
+        //         payment_info +=
+        //             k == $(".payment_list_counter").length ? "}" : "},";
+        //         k++;
+        //     });
+        // }
+        // payment_info += "]";
+  
+  
+        // let payment_object = JSON.stringify(payment_info);
+
+        sub_total_discount_finalize = Number(sub_total_discount_finalize);
+
+        let paymentsArray = getPaymentArrayWithChange();
+        let payment_object = JSON.stringify(paymentsArray);
+
         paid_amount = parseCurrencyToNumber($("#finalize_total_paid").html());
-        due_amount = parseCurrencyToNumber($("#finalize_total_due").html());
+        // due_amount = parseCurrencyToNumber($("#finalize_total_due").html());
+        due_amount = 0; // Asumiendo que al cerrar la orden no debería haber deuda
+        let change_amount = parseCurrencyToNumber($("#finalize_total_due").html());
   
         let is_multi_currency = $("#is_multi_currency").val();
         let multi_currency = $("#multi_currency").val();
@@ -13989,6 +14283,7 @@ $("#combo_item").on("click", function(){
             order_object.payment_method_type = payment_method_type;
             order_object.paid_amount = paid_amount;
             order_object.due_amount = due_amount;
+            order_object.hidden_change_amount = change_amount;
             order_object.is_multi_currency = is_multi_currency;
             order_object.multi_currency = multi_currency;
             order_object.multi_currency_rate = multi_currency_rate;
@@ -14006,7 +14301,7 @@ $("#combo_item").on("click", function(){
             let hidden_change_amount = $("#hidden_change_amount").val();
   
             order_object.hidden_given_amount = hidden_given_amount;
-            order_object.hidden_change_amount = hidden_change_amount;
+            // order_object.hidden_change_amount = hidden_change_amount;
   
             add_to_recent_sale_by_ajax(JSON.stringify(order_object), '',sale_no);
             delete_from_sale(sale_no);
@@ -19405,180 +19700,267 @@ $("#combo_item").on("click", function(){
               );
           }
       }
-      $(document).on("click", "#create_invoice_and_close", function (e) {
-          let pos_11 = Number($("#pos_11").val());
-          if(pos_11){
-              $("#print_type").val(1);
-              $("#is_split_bill").val('');
-              $("#sub_total_discount_finalize").val('');
-              if (
-                  $(".holder .order_details > .single_order[data-selected=selected]")
-                      .length > 0
-              ) {
-                  let sale_id = $(".holder .order_details .single_order[data-selected=selected]").attr("id").substr(6);
-                  let order_type = Number($(".holder .order_details .single_order[data-selected=selected]").attr("order_type"));
-                  let split_bill = Number($("#split_bill").val());
-  
-                  if(pre_or_post_payment==2){
+    $(document).on("click", "#create_invoice_and_close", function (e) {
+        let pos_11 = Number($("#pos_11").val());
+        if(pos_11){
+            $("#print_type").val(1);
+            $("#is_split_bill").val('');
+            $("#sub_total_discount_finalize").val('');
+            if (
+                $(".holder .order_details > .single_order[data-selected=selected]")
+                    .length > 0
+            ) {
+                let sale_id = $(".holder .order_details .single_order[data-selected=selected]").attr("id").substr(6);
+                let order_type = Number($(".holder .order_details .single_order[data-selected=selected]").attr("order_type"));
+                let split_bill = Number($("#split_bill").val());
+
+                if(pre_or_post_payment==2){
+                let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
+                let res_checker = getSelectedOrderDetails(sale_no).then(function(data){ 
+                        let is_invoice = data.is_invoice;
+                        if(is_invoice==2){
+                            let invoiced_error = $("#invoiced_error").val();
+                            toastr['error']((invoiced_error + "!"), '');
+                        }else{
+                        // OPCIONES PARA PAGOS DIVIDOS DESACTIVADOS
+                        //   if(order_type==1){
+                        //       body_el.find('.invoice_box').toggleClass('active');
+                        //   }else{
+                            let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
+                            let res = getSelectedOrderDetails(sale_no).then(function(data){
+                                    let response = jQuery.parseJSON(data);
+
+                                    if(response !== null) {
+                                        $(".empty_title").show();
+                                        $("#payment_list_div").html('');
+
+                                        $("#order_payment_modal_name").html(response.customer_name);
+                                        $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
+                                        $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
+                                        $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
+                                        $("#finalize_total_due").html(formatNumberToCurrency(response.total_payable));
+                                        $("#selected_invoice_sale_customer").val(response.customer_id);
+                                        $("#pay_amount_invoice_input").val(response.total_payable);
+
+                                        $("#order_payment_modal").removeClass("inActive");
+                                        $("#order_payment_modal").addClass("active");
+                                        $(".pos__modal__overlay").fadeIn(200);
+                                        checkSMSDisabled(response.customer_id);
+                                        $("#open_invoice_date_hidden").val(response.sale_date);
+                                        $("#last_future_sale_id").val(response.sale_no);
+
+                                        if(Number(response.previous_due_tmp)){
+                                            $(".previous_due_div").css('opacity','1');
+                                            $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
+
+                                        }else{
+                                            $(".previous_due_div").css('opacity','0');
+                                        }
+                                        $("#is_multi_currency").val('');
+                                        $(".set_no_access").removeClass('no_access');
+                                        $(".finalize_modal_is_mul_currency").hide(300);
+                                        $("#finalize_amount_input").html('');
+                                        $(".badge_custom").remove();
+                                        $(".previous_due_div").show();
+                                        $(".loyalty_point_div").hide();
+                                        //cart details button
+                                        $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart).toFixed(0));
+                                        $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
+                                        $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
+                                        $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
+                                        $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
+                                        $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
+                                        $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
+                                        $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
+                                        $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
+
+
+                                        set_default_payment();
+                                        cal_finalize_modal('');
+                                        $(".datepicker_custom")
+                                            .datepicker({
+                                                autoclose: true,
+                                                format: "yyyy-mm-dd",
+                                                startDate: "0",
+                                                todayHighlight: true,
+                                            })
+                                            .datepicker("update", response.sale_date);
+
+                                        $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
+                                    }
+                                });
+                        //   }
+                        }
+                    });
+                }else{
+                // OPCIONES PARA PAGOS DIVIDOS DESACTIVADOS
+                //   if(order_type==1){
+                //       body_el.find('.invoice_box').toggleClass('active');
+                //   }else{
                     let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
-                    let res_checker = getSelectedOrderDetails(sale_no).then(function(data){ 
-                          let is_invoice = data.is_invoice;
-                          if(is_invoice==2){
-                              let invoiced_error = $("#invoiced_error").val();
-                              toastr['error']((invoiced_error + "!"), '');
-                          }else{
-                            // OPCIONES PARA PAGOS DIVIDOS DESACTIVADOS
-                            //   if(order_type==1){
-                            //       body_el.find('.invoice_box').toggleClass('active');
-                            //   }else{
-                                let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
-                                let res = getSelectedOrderDetails(sale_no).then(function(data){
-                                      let response = jQuery.parseJSON(data);
-  
-                                      if(response !== null) {
-                                          $(".empty_title").show();
-                                          $("#payment_list_div").html('');
-  
-                                          $("#order_payment_modal_name").html(response.customer_name);
-                                          $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
-                                          $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
-                                          $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-                                          $("#finalize_total_due").html(formatNumberToCurrency(response.total_payable));
-                                          $("#selected_invoice_sale_customer").val(response.customer_id);
-                                          $("#pay_amount_invoice_input").val(response.total_payable);
-  
-                                          $("#order_payment_modal").removeClass("inActive");
-                                          $("#order_payment_modal").addClass("active");
-                                          $(".pos__modal__overlay").fadeIn(200);
-                                          checkSMSDisabled(response.customer_id);
-                                          $("#open_invoice_date_hidden").val(response.sale_date);
-                                          $("#last_future_sale_id").val(response.sale_no);
-  
-                                          if(Number(response.previous_due_tmp)){
-                                              $(".previous_due_div").css('opacity','1');
-                                              $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
-  
-                                          }else{
-                                              $(".previous_due_div").css('opacity','0');
-                                          }
-                                          $("#is_multi_currency").val('');
-                                          $(".set_no_access").removeClass('no_access');
-                                          $(".finalize_modal_is_mul_currency").hide(300);
-                                          $("#finalize_amount_input").html('');
-                                          $(".badge_custom").remove();
-                                          $(".previous_due_div").show();
-                                          $(".loyalty_point_div").hide();
-                                          //cart details button
-                                          $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart).toFixed(0));
-                                          $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
-                                          $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
-                                          $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
-                                          $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
-                                          $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
-                                          $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
-                                          $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
-                                          $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
-  
-  
-                                          set_default_payment();
-                                          cal_finalize_modal('');
-                                          $(".datepicker_custom")
-                                              .datepicker({
-                                                  autoclose: true,
-                                                  format: "yyyy-mm-dd",
-                                                  startDate: "0",
-                                                  todayHighlight: true,
-                                              })
-                                              .datepicker("update", response.sale_date);
-  
-                                          $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
-                                      }
-                                  });
-                            //   }
-                          }
-                      });
-                  }else{
-                    // OPCIONES PARA PAGOS DIVIDOS DESACTIVADOS
-                    //   if(order_type==1){
-                    //       body_el.find('.invoice_box').toggleClass('active');
-                    //   }else{
-                        let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
-                        let res = getSelectedOrderDetails(sale_no).then(function(data){ 
-                            let response = jQuery.parseJSON(data);
-                              if(response !== null) {
-                                  $(".empty_title").show();
-                                  $("#payment_list_div").html('');
-  
-                                  $("#order_payment_modal_name").html(response.customer_name);
-                                  $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
-                                  $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
-                                  $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-                                  $("#finalize_total_due").html(formatNumberToCurrency(response.total_payable));
-                                  $("#selected_invoice_sale_customer").val(response.customer_id);
-                                  $("#pay_amount_invoice_input").val(response.total_payable);
-  
-                                  $("#order_payment_modal").removeClass("inActive");
-                                  $("#order_payment_modal").addClass("active");
-                                  $(".pos__modal__overlay").fadeIn(200);
-                                  checkSMSDisabled(response.customer_id);
-                                  $("#open_invoice_date_hidden").val(response.sale_date);
-                                  $("#last_future_sale_id").val(response.sale_no);
-  
-  
-                                  if(Number(response.previous_due_tmp)){
-                                      $(".previous_due_div").css('opacity','1');
-                                      $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
-  
-                                  }else{
-                                      $(".previous_due_div").css('opacity','0');
-                                  }
-                                  $("#is_multi_currency").val('');
-                                  $(".set_no_access").removeClass('no_access');
-                                  $(".finalize_modal_is_mul_currency").hide(300);
-                                  $("#finalize_amount_input").html('');
-                                  $(".badge_custom").remove();
-                                  $(".previous_due_div").show();
-                                  $(".loyalty_point_div").hide();
-                                  //cart details button
-                                  $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart).toFixed(0));
-                                  $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
-                                  $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
-                                  $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
-                                  $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
-                                  $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
-                                  $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
-                                  $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
-                                  $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
-  
-  
-                                  set_default_payment();
-                                  cal_finalize_modal('');
-                                  $(".datepicker_custom")
-                                      .datepicker({
-                                          autoclose: true,
-                                          format: "yyyy-mm-dd",
-                                          startDate: "0",
-                                          todayHighlight: true,
-                                      })
-                                      .datepicker("update", response.sale_date);
-  
-                                  $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
-                              }
-                          });
-                    //   }
-                  }
-  
-              } else {
-                  toastr['error']((please_select_order_to_proceed + "!"), '');
-              }
-          }else{
-              toastr['error']((menu_not_permit_access + "!"), '');
-          }
-  
-  
-  
-      });
-  
+                    let res = getSelectedOrderDetails(sale_no).then(function(data){ 
+                        let response = jQuery.parseJSON(data);
+                            if(response !== null) {
+                                $(".empty_title").show();
+                                $("#payment_list_div").html('');
+
+                                $("#order_payment_modal_name").html(response.customer_name);
+                                $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
+                                $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
+                                $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
+                                $("#finalize_total_due").html(formatNumberToCurrency(response.total_payable));
+                                $("#selected_invoice_sale_customer").val(response.customer_id);
+                                $("#pay_amount_invoice_input").val(response.total_payable);
+
+                                $("#order_payment_modal").removeClass("inActive");
+                                $("#order_payment_modal").addClass("active");
+                                $(".pos__modal__overlay").fadeIn(200);
+                                checkSMSDisabled(response.customer_id);
+                                $("#open_invoice_date_hidden").val(response.sale_date);
+                                $("#last_future_sale_id").val(response.sale_no);
+
+
+                                if(Number(response.previous_due_tmp)){
+                                    $(".previous_due_div").css('opacity','1');
+                                    $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
+
+                                }else{
+                                    $(".previous_due_div").css('opacity','0');
+                                }
+                                $("#is_multi_currency").val('');
+                                $(".set_no_access").removeClass('no_access');
+                                $(".finalize_modal_is_mul_currency").hide(300);
+                                $("#finalize_amount_input").html('');
+                                $(".badge_custom").remove();
+                                $(".previous_due_div").show();
+                                $(".loyalty_point_div").hide();
+                                //cart details button
+                                $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart).toFixed(0));
+                                $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
+                                $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
+                                $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
+                                $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
+                                $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
+                                $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
+                                $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
+                                $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
+
+
+                                set_default_payment();
+                                cal_finalize_modal('');
+                                $(".datepicker_custom")
+                                    .datepicker({
+                                        autoclose: true,
+                                        format: "yyyy-mm-dd",
+                                        startDate: "0",
+                                        todayHighlight: true,
+                                    })
+                                    .datepicker("update", response.sale_date);
+
+                                $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
+                            }
+                        });
+                //   }
+                }
+
+            } else {
+                toastr['error']((please_select_order_to_proceed + "!"), '');
+            }
+        }else{
+            toastr['error']((menu_not_permit_access + "!"), '');
+        }
+
+
+
+    });
+
+    $(document).on("click", ".invoice_btn_class", function (e) {
+        let this_bill_type = Number($(this).attr('data-type'));
+        let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
+        if(this_bill_type==2){
+            $("#is_split_bill").val(1);
+            $("#spit_modal_input").val('');
+            split_bill();
+            $(".custom_ul_split").empty();
+        }else{
+            $("#is_split_bill").val('');
+            body_el.find('.invoice_box').toggleClass('active');
+
+            $("#print_type").val(1);
+            if (
+                $(".holder .order_details > .single_order[data-selected=selected]")
+                    .length > 0
+            ) {
+
+                let res = getSelectedOrderDetails(sale_no).then(function(data){
+                    let response = jQuery.parseJSON(data);
+                    if(response !== null) {
+                    // console.log(response);
+                        $(".empty_title").show();
+                        $("#payment_list_div").html('');
+
+                        $("#order_payment_modal_name").html(response.customer_name);
+                        $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
+                        $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
+                        $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
+                        $("#finalize_total_due").html(formatNumberToCurrency(Number(response.total_payable)));
+                        $("#selected_invoice_sale_customer").val(response.customer_id);
+                        $("#pay_amount_invoice_input").val(Number(response.total_payable).toFixed(ir_precision));
+                        $("#current_sale_no").val(response.sale_no);
+                        $("#last_future_sale_id").val(response.sale_no);
+
+                        $("#order_payment_modal").removeClass("inActive");
+                        $("#order_payment_modal").addClass("active");
+                        $(".pos__modal__overlay").fadeIn(200);
+                        checkSMSDisabled(response.customer_id);
+
+                        $("#open_invoice_date_hidden").val(response.sale_date);
+
+                        if(Number(response.previous_due_tmp)){
+                            $(".previous_due_div").css('opacity','1');
+                            $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
+
+                        }else{
+                            $(".previous_due_div").css('opacity','0');
+                        }
+                        $("#is_multi_currency").val('');
+                        $(".set_no_access").removeClass('no_access');
+                        $(".finalize_modal_is_mul_currency").hide(300);
+                        $("#finalize_amount_input").html('');
+                        $(".badge_custom").remove();
+                        $(".previous_due_div").show();
+                        $(".loyalty_point_div").hide();
+                        //cart details button
+                        $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart_qty).toFixed(0));
+                        $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
+                        $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
+                        $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
+                        $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
+                        $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
+                        $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
+                        $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
+                        $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
+
+                        set_default_payment();
+                        cal_finalize_modal('');
+                        $(".datepicker_custom")
+                            .datepicker({
+                                autoclose: true,
+                                format: "yyyy-mm-dd",
+                                startDate: "0",
+                                todayHighlight: true,
+                            })
+                            .datepicker("update", response.sale_date);
+
+                        $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
+                    }
+                });
+            } else {
+                toastr['error']((please_select_order_to_proceed + "!"), '');
+            }
+        }
+
+    });
       function populateRemainingTable(){
         let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
         let res = getSelectedOrderDetails(sale_no).then(function(data){
@@ -19705,93 +20087,6 @@ $("#combo_item").on("click", function(){
               }
           });
       }
-      $(document).on("click", ".invoice_btn_class", function (e) {
-          let this_bill_type = Number($(this).attr('data-type'));
-          let sale_no =$(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
-          if(this_bill_type==2){
-              $("#is_split_bill").val(1);
-              $("#spit_modal_input").val('');
-              split_bill();
-              $(".custom_ul_split").empty();
-          }else{
-              $("#is_split_bill").val('');
-              body_el.find('.invoice_box').toggleClass('active');
-  
-              $("#print_type").val(1);
-              if (
-                  $(".holder .order_details > .single_order[data-selected=selected]")
-                      .length > 0
-              ) {
-  
-                  let res = getSelectedOrderDetails(sale_no).then(function(data){
-                      let response = jQuery.parseJSON(data);
-                      if(response !== null) {
-                        // console.log(response);
-                          $(".empty_title").show();
-                          $("#payment_list_div").html('');
-  
-                          $("#order_payment_modal_name").html(response.customer_name);
-                          $("#order_payment_modal_comanda").html('#'+response.selected_number_name);
-                          $("#finalize_total_payable").html(formatNumberToCurrency(Number(response.total_payable)));
-                          $("#finalize_total_payable").attr('data-original_payable',Number(response.total_payable).toFixed(ir_precision));
-                          $("#finalize_total_due").html(formatNumberToCurrency(Number(response.total_payable)));
-                          $("#selected_invoice_sale_customer").val(response.customer_id);
-                          $("#pay_amount_invoice_input").val(Number(response.total_payable).toFixed(ir_precision));
-                          $("#current_sale_no").val(response.sale_no);
-                          $("#last_future_sale_id").val(response.sale_no);
-  
-                          $("#order_payment_modal").removeClass("inActive");
-                          $("#order_payment_modal").addClass("active");
-                          $(".pos__modal__overlay").fadeIn(200);
-                          checkSMSDisabled(response.customer_id);
-  
-                          $("#open_invoice_date_hidden").val(response.sale_date);
-  
-                          if(Number(response.previous_due_tmp)){
-                              $(".previous_due_div").css('opacity','1');
-                              $("#finalize_previous_due").html(Number(response.previous_due_tmp).toFixed(ir_precision));
-  
-                          }else{
-                              $(".previous_due_div").css('opacity','0');
-                          }
-                          $("#is_multi_currency").val('');
-                          $(".set_no_access").removeClass('no_access');
-                          $(".finalize_modal_is_mul_currency").hide(300);
-                          $("#finalize_amount_input").html('');
-                          $(".badge_custom").remove();
-                          $(".previous_due_div").show();
-                          $(".loyalty_point_div").hide();
-                          //cart details button
-                          $("#cart_modal_total_item_text").html(Number(response.total_items_in_cart_qty).toFixed(0));
-                          $("#cart_modal_total_subtotal_text").html(Number(response.sub_total).toFixed(ir_precision));
-                          $("#cart_modal_total_discount_text").html(Number(response.sub_total_discount_amount).toFixed(ir_precision));
-                          $("#cart_modal_total_discount_all_text").html(Number(response.total_discount_amount).toFixed(ir_precision));
-                          $("#cart_modal_total_discount_all_text").attr('data-original_discount',Number(response.total_discount_amount).toFixed(ir_precision));
-                          $("#cart_modal_total_tax_text").html(Number(response.total_vat).toFixed(ir_precision));
-                          $("#cart_modal_total_charge_text").html(Number(response.delivery_charge_actual_charge).toFixed(ir_precision));
-                          $("#cart_modal_total_tips_text").html(Number(response.tips_amount_actual_charge).toFixed(ir_precision));
-                          $("#cart_modal_total_rounding_texts").html(Number(response.rounding_amount_hidden).toFixed(ir_precision));
-  
-                          set_default_payment();
-                          cal_finalize_modal('');
-                          $(".datepicker_custom")
-                              .datepicker({
-                                  autoclose: true,
-                                  format: "yyyy-mm-dd",
-                                  startDate: "0",
-                                  todayHighlight: true,
-                              })
-                              .datepicker("update", response.sale_date);
-  
-                          $("#finalize_update_type").html("2"); //when 2 update payment method, close time and order_status to 3
-                      }
-                  });
-              } else {
-                  toastr['error']((please_select_order_to_proceed + "!"), '');
-              }
-          }
-  
-      });
   
   
       body_el.on("click", "#open_finalize_discount", function () {
@@ -20332,6 +20627,7 @@ $("#combo_item").on("click", function(){
                 }
             }
         }
+        updateFinalizeDueVisual();
   
       });
       set_active_payment();
@@ -21591,7 +21887,7 @@ $("#combo_item").on("click", function(){
 
       $(document).on("click", "#aviso_whatsapp", function (e) {
         // Verifica si hay un pedido seleccionado
-        console.log('click');
+        // console.log('click');
         if ($(".holder .order_details > .single_order[data-selected=selected]").length > 0) {
             // Obtén el ID del pedido seleccionado
             // let sale_id = $(".holder .order_details .single_order[data-selected=selected]").attr("id").substr(6);data-sale_no
@@ -22021,6 +22317,7 @@ function showOrderDetailsModal(saleNo) {
 
 // Función para abrir modal de pago (desde el botón en el modal de detalles)
 function openPaymentModalForNumber(saleNo) {
+    
     // 1. Deseleccionar todas las órdenes
     $('.single_order').attr('data-selected', 'unselected');
     
@@ -22038,6 +22335,7 @@ function openPaymentModalForNumber(saleNo) {
     let $order = $(`.single_order[data-sale_no="${saleNo}"]`);
     if ($order.length) {
         $order.attr('data-selected', 'selected');
+        updateFinalizeDueVisual();
         
         // Pequeña pausa para asegurar la selección
         setTimeout(() => {

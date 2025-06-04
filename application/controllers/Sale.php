@@ -2962,11 +2962,17 @@ class Sale extends Cl_Controller {
         }
         //put payment details
         if(isset($order_details->payment_object)){
-            if(isset($order_details->split_sale_id) && $order_details->split_sale_id){
-                $payment_details = json_decode(($order_details->payment_object));
-            }else{
-                $payment_details = json_decode(json_decode($order_details->payment_object));
+            $payment_details = json_decode($order_details->payment_object);
+        
+            // Si por alguna razón aún es string, decodifica de nuevo (caso datos viejos)
+            if (is_string($payment_details)) {
+                $payment_details = json_decode($payment_details);
             }
+            // if(isset($order_details->split_sale_id) && $order_details->split_sale_id){
+            //     $payment_details = json_decode(($order_details->payment_object));
+            // }else{
+            //     $payment_details = json_decode(json_decode($order_details->payment_object));
+            // }
 
             $currency_type = trim_checker($order_details->is_multi_currency);
             $multi_currency = trim_checker($order_details->multi_currency);

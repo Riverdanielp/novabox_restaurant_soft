@@ -1109,13 +1109,11 @@ class Sale_model extends CI_Model {
 
         $this->db->select('*');
         $this->db->from('tbl_payment_methods');
-        $this->db->group_start(); // Start a group for OR condition
-        $this->db->where("company_id", $company_id);
-            $this->db->group_end(); // End the group
-            $this->db->or_group_start(); // Start a new group for the OR condition
-            $this->db->where("name", "Cash"); // Assuming the column for payment method name is `name`
-            $this->db->group_end(); // End the group
-        $this->db->where("del_status", 'Live'); // Apply this condition to both groups
+        $this->db->group_start(); // (
+            $this->db->where('company_id', $company_id);
+            $this->db->or_where('name', 'Cash');
+        $this->db->group_end(); // )
+        $this->db->where('del_status', 'Live'); // Fuera del grupo, se aplica a todo lo anterior
         $this->db->order_by("order_by", 'ASC');
 
         $result = $this->db->get();
