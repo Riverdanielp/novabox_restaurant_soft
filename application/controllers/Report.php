@@ -26,6 +26,9 @@ class Report extends Cl_Controller {
             if($segment_2=="registerReport"){
                 $controller = "159";
                 $function = "view";
+            }elseif($segment_2=="registerReportTicketJson"){
+                $controller = "159";
+                $function = "view";
             }elseif($segment_2=="dailySummaryReport" || $segment_2=="printDailySummaryReport"){
                 $controller = "161";
                 $function = "view";
@@ -1305,6 +1308,279 @@ class Report extends Cl_Controller {
         $data['kitchens'] = $this->Common_model->getAllByOutletId($outlet_id, "tbl_kitchens");
         $data['main_content'] = $this->load->view('report/productionReport', $data, TRUE);
         $this->load->view('userHome', $data);
+    }
+
+    // Nueva función: SOLO acepta $register_id, NO usa datos de sesión
+    public function printer_app_register_report_data_by_id($register_id) {
+        if (!$register_id) {
+            return null;
+        }
+        // Trae los datos del registro con la ID específica
+        $register = $this->db->where('id', $register_id)->get('tbl_register')->row();
+        if (!$register) {
+            return null; // O maneja error
+        }
+        $outlet_id = $register->outlet_id;
+        $user_id = $register->user_id;
+        $opening_date_time = $register->opening_balance_date_time;
+        $closing_date_time = $register->closing_balance_date_time;
+        $opening_details = $register->opening_details;
+        $counter_id = $register->counter_id;
+
+        $opening_details_decode = json_decode($opening_details);
+
+        // Obtener opciones de outlet
+        $getOutletInfo = $this->Common_model->getDataById($outlet_id, "tbl_outlets");
+        $registro_ocultar = $getOutletInfo->registro_ocultar;
+        $registro_detallado = $getOutletInfo->registro_detallado;
+
+        // Información de la empresa (obtenida del outlet directamente)
+        $company = [
+            'name' => $getOutletInfo->outlet_name,
+            'address' => $getOutletInfo->address,
+            'phone' => $getOutletInfo->phone,
+            'invoice_logo' => $getOutletInfo->invoice_logo,
+            'footer' => $getOutletInfo->invoice_footer,
+        ];
+
+        $content = [
+            ['type' => 'text', 'align' => 'center', 'text' => 'REPORTE DE CIERRE DE CAJA'],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Sucursal: ' . $company['name']],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Caja: ' . getCounterName($counter_id)],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Apertura: ' . date('Y-m-d h:i A', strtotime($opening_date_time))],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Cierre: ' . ($closing_date_time ? $closing_date_time : date('Y-m-d h:i A') )],
+            ['type' => 'text', 'align' => 'left', 'text' => 'Usuario: ' . userName($user_id)],
+            ['type' => 'text', 'align' => 'center', 'text' => ''],
+        ];
+
+        $fromDate = $opening_date_time;
+        $toDate = $closing_date_time ? $closing_date_time : date('Y-m-d H:i:s');
+        // Tabla de ventas detalladas si "registro_detallado"
+        if($registro_detallado === "Yes"){
+            $detailed_sales = $this->Sale_model->getDetailedSales($outlet_id, $fromDate, $toDate);
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DETALLE DE VENTAS'];
+            $total_ventas_detalladas = 0;
+            foreach ($detailed_sales as $sale) {
+                $content[] = [
+                    'type' => 'extremos',
+                    'textLeft' => '#'.$sale->number_slot_name.' '.$sale->sale_no,
+                    'textRight' => getAmtPCustom($sale->amount)
+                ];
+                $total_ventas_detalladas += $sale->amount;
+            }
+            $content[] = [
+                'type' => 'extremos',
+                'textLeft' => '---------------',
+                'textRight' => '---------------'
+            ];
+            $content[] = [
+                'type' => 'extremos',
+                'textLeft' => 'TOTAL VENTAS',
+                'textRight' => getAmtPCustom($total_ventas_detalladas)
+            ];
+        }
+        $summary_names = [];
+        $summary_amounts = [];
+        
+        // if($registro_ocultar != "Yes"){
+            if ($opening_details_decode) {
+                foreach ($opening_details_decode as $key => $value) {
+                    $payments = explode('||', $value);
+
+                    $payment_id = $payments[0];
+                    $payment_name = $payments[1];
+                    $opening_balance = (float) $payments[2];
+
+                    $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id);
+                    $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id);
+                    $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id);
+                    $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id);
+                    $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id);
+                    $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id);
+
+                    $closing_balance = $opening_balance - $total_purchase + $total_sale + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
+
+                    // Checar si todos los valores están en 0
+                    $all_zeros = (
+                        $opening_balance == 0 &&
+                        $total_purchase == 0 &&
+                        $total_due_receive == 0 &&
+                        $total_due_payment == 0 &&
+                        $total_expense == 0 &&
+                        $refund_amount == 0 &&
+                        $total_sale == 0 &&
+                        $closing_balance == 0
+                    );
+
+                    if ($all_zeros) {
+                        continue;
+                    }
+
+                    $summary_names[] = $payment_name;
+                    $summary_amounts[] = $closing_balance;
+
+                    $detail_section = [];
+
+                    $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+                    $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => strtoupper($payment_name)];
+
+                    if ($opening_balance != 0) {
+                        $detail_section[] = ['type' => 'extremos', 'textLeft' => 'Saldo inicial', 'textRight' => getAmtPCustom($opening_balance)];
+                    }
+                    if ($total_purchase != 0) {
+                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_2'), 'textRight' => getAmtPCustom($total_purchase)];
+                    }
+                    if ($total_sale != 0) {
+                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_3'), 'textRight' => getAmtPCustom($total_sale)];
+                    }
+                    if ($payment_id == 1) {
+                        $total_sale_mul_c_rows = $this->Sale_model->getAllSaleByPaymentMultiCurrencyRows($opening_date_time, $payment_id);
+                        if ($total_sale_mul_c_rows) {
+                            foreach ($total_sale_mul_c_rows as $value1) {
+                                if ((float)$value1->total_amount != 0) {
+                                    $detail_section[] = [
+                                        'type' => 'extremos',
+                                        'textLeft' => '    ' . $value1->multi_currency,
+                                        'textRight' => number_format($value1->total_amount,2, ',', '.')
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                    if ($total_due_receive != 0) {
+                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_5'), 'textRight' => getAmtPCustom($total_due_receive)];
+                    }
+                    if ($total_due_payment != 0) {
+                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_6'), 'textRight' => getAmtPCustom($total_due_payment)];
+                    }
+                    if ($total_expense != 0) {
+                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_7'), 'textRight' => getAmtPCustom($total_expense)];
+                    }
+                    if ($refund_amount != 0) {
+                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('refund_amount') . '(-)', 'textRight' => getAmtPCustom($refund_amount)];
+                    }
+
+                    if ($closing_balance != 0) {
+                        $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+                        $detail_section[] = ['type' => 'extremos', 'textLeft' => 'TOTAL ' . strtoupper($payment_name), 'textRight' => getAmtPCustom($closing_balance)];
+                    }
+
+                    $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+                    $content = array_merge($content, $detail_section);
+                }
+            }
+        // }
+
+        // Obtener gastos detallados
+        $from_datetime = $opening_date_time;
+        $to_datetime = $closing_date_time ? $closing_date_time : date('Y-m-d H:i:s');
+        $gastos = $this->Sale_model->getDetailedExpenses($from_datetime, $to_datetime, $user_id, $outlet_id);
+
+        if (!empty($gastos)) {
+            $total_gastos = 0;
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DETALLE DE GASTOS'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            foreach ($gastos as $gasto) {
+                if (floatval($gasto->amount) != 0) {
+                    $total_gastos += floatval($gasto->amount);
+                    $nota = $gasto->note ? $gasto->note : '(Sin nota)';
+                    $content[] = [
+                        'type' => 'extremos',
+                        'textLeft' => $nota,
+                        'textRight' => getAmtPCustom($gasto->amount)
+                    ];
+                }
+            }
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            $content[] = [
+                'type' => 'extremos',
+                'textLeft' => 'TOTAL GASTOS',
+                'textRight' => getAmtPCustom($total_gastos)
+            ];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        }
+
+        // if($registro_ocultar != "Yes"){
+            if (!empty($summary_names)) {
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'RESUMEN FINAL'];
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+                foreach ($summary_names as $i => $name) {
+                    if ($summary_amounts[$i] != 0) {
+                        $content[] = [
+                            'type' => 'extremos',
+                            'textLeft' => $name,
+                            'textRight' => getAmtPCustom($summary_amounts[$i])
+                        ];
+                    }
+                }
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+            }
+        // }
+
+        // Declaraciones de cierre
+        $declaraciones = $this->db
+            ->where('register_id', $register_id)
+            ->order_by('id', 'asc')
+            ->get('tbl_register_statement')
+            ->result();
+        if (!empty($declaraciones)) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DECLARACION DE CIERRE'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            foreach ($declaraciones as $declaracion) {
+                $content[] = [
+                    'type' => 'extremos',
+                    'textLeft' => $declaracion->payment_txt ?: $declaracion->payment_id,
+                    'textRight' => getAmtPCustom($declaracion->mount)
+                ];
+            }
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        }
+
+        // Pie del ticket
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'FIN REPORTE DE CAJA'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'cut'];
+
+        // Configuración de la impresora
+        $company_id = $getOutletInfo->company_id;
+        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
+        $counter_details = $this->Common_model->getPrinterIdByCounterId($counter_id);
+        $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
+        $path = @$printer->path;
+
+        $print_format = $company_data->print_format_bill;
+        $width = ($print_format == "80mm") ? 80 : 58;
+
+        $printRequest = [
+            'printer' => $path,
+            'width' => $width,
+            'content' => filterArrayRecursivelyEscPos($content)
+        ];
+
+        return $printRequest; // AHORA RETORNA EL ARRAY, NO BASE64 NI COMPRIMIDO
+    }
+
+
+    // Endpoint JSON para JS (solo acepta $register_id)
+    public function registerReportTicketJson($register_id) {
+        $this->load->model('Sale_model');
+        $this->load->model('Common_model');
+        $ticket = $this->printer_app_register_report_data_by_id($register_id);
+        if (!$ticket) {
+            echo json_encode(['success' => false, 'error' => 'No data found']);
+            return;
+        }
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'content' => $ticket['content'],
+            'width'   => $ticket['width'],
+            'printer' => $ticket['printer'],
+        ]);
     }
 
 }

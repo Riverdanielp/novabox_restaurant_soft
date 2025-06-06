@@ -49,7 +49,7 @@
 
                             <div class="form-group">
                                 <select tabindex="2" class="form-control select2 ir_w_100" id="user_id" name="user_id">
-                                    <option value=""><?php echo lang('user'); ?></option>
+                                    <option value=""><?php echo lang('all'); ?></option>
                                     <option value="<?= escape_output($this->session->userdata['user_id']); ?>">
                                         <?= escape_output($this->session->userdata['full_name']); ?></option>
                                     <?php

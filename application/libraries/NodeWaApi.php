@@ -6,6 +6,7 @@ class NodeWaApi
     protected $CI;
     protected $token;
     protected $endpoint;
+    protected $numbers_to_reports;
 
     public function __construct()
     {
@@ -19,11 +20,13 @@ class NodeWaApi
             $config_nodewaapi = $this->CI->config->item('nodewaapi');
             $this->token = isset($config_nodewaapi['token']) ? $config_nodewaapi['token'] : null;
             $this->endpoint = isset($config_nodewaapi['endpoint']) ? $config_nodewaapi['endpoint'] : null;
+            $this->numbers_to_reports = isset($config_nodewaapi['numbers_to_reports']) ? $config_nodewaapi['numbers_to_reports'] : [];
             
         } else {
             // Si no existe, deja las propiedades en null
             $this->token = null;
             $this->endpoint = null;
+            $this->numbers_to_reports = [];
         }
     }
 
@@ -35,11 +38,6 @@ class NodeWaApi
      */
     public function send_message($data = [])
     {
-        // // $config_path = APPPATH . 'config/nodewaapi.php';
-        // echo '<pre>';
-        // var_dump($this->token, $this->endpoint, $data); 
-        // echo '<pre>';
-        
         // Validar config
         if (empty($this->token) || empty($this->endpoint)) {
             // Falta configuración
@@ -82,21 +80,17 @@ class NodeWaApi
 
     public function send_report_to_all($message)
     {
-        // Cargar la configuración especial de reportes
-        $this->CI->load->config('nodewaapi', TRUE);
-        $config_reports = $this->CI->config->item('nodewaapi');
-
-        // Si no hay números o no hay mensaje, no hace nada
+        // Usar la propiedad de la clase en vez de recargar config cada vez
         if (
-            empty($config_reports['numbers_to_reports']) ||
-            !is_array($config_reports['numbers_to_reports']) ||
+            empty($this->numbers_to_reports) ||
+            !is_array($this->numbers_to_reports) ||
             empty($message)
         ) {
             return false;
         }
 
         $results = [];
-        foreach ($config_reports['numbers_to_reports'] as $number) {
+        foreach ($this->numbers_to_reports as $number) {
             $data = [
                 'number' => $number,
                 'body'   => $message,

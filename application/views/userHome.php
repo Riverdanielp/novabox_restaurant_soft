@@ -59,7 +59,8 @@
     <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/newDesign/lib/currency-flags/dist/currency-flags.css?v=7.5">
     <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/custom_css.css?v=7.5">
     <!-- Sweet alert -->
-    <script src="<?php echo base_url(); ?>assets/POS/sweetalert2/dist/sweetalert.min.js?v=7.5"></script>
+    <!-- <script src="<?php echo base_url(); ?>assets/POS/sweetalert2/dist/sweetalert.min.js?v=7.5"></script> -->
+    <script src="<?php echo base_url(); ?>assets/POS/sweetalert2/dist/sweetalert2.all.min.js?v=7.5"></script>
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/POS/sweetalert2/dist/sweetalert.min.css?v=7.5">
     <!-- Numpad -->
     <script src="<?php echo base_url(); ?>assets/bower_components/numpad/jquery.numpad.js?v=7.5"></script>

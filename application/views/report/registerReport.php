@@ -1,4 +1,11 @@
  <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/custom/report.css">
+ <style>
+    .swal2-modal .swal2-content #ticket-html-modal {
+        background: #fff;
+        margin: 0 auto;
+        padding: 0;
+    }
+ </style>
 <?php
 
     $show_register_report = "";
@@ -39,6 +46,12 @@
 
             $show_register_report .= "<tr>";
             $show_register_report .= '<td>'.$i.'</td>';
+            // Botón para imprimir ticket, usando el id
+            $show_register_report .= '<td>
+                <button class="btn btn-warning btn-sm btn-print-thermal" data-register-id="'.$single_register_info->id.'">
+                    <i class="fa fa-print"></i> Ticket
+                </button>
+            </td>';
             $show_register_report .= '<td>'.$single_register_info->counter_name.'</td>';
             $show_register_report .= '<td>'.$single_register_info->opening_balance_date_time.'</td>';
             $show_register_report .= '<td>'.getAmtPCustom($single_register_info->opening_balance).'</td>';
@@ -110,7 +123,7 @@
 
                 <div class="form-group">
                     <select tabindex="2" class="form-control select2 ir_w_100" id="user_id" name="user_id">
-                        <option value=""><?php echo lang('user'); ?></option>
+                        <option value=""><?php echo lang('all'); ?></option>
                         <?php
                         foreach ($users as $value) {
                             ?>
@@ -151,6 +164,7 @@
                         <thead>
                             <tr>
                                 <th class="title" class="ir_w_5"><?php echo lang('sn'); ?></th>
+                                <th class="title" class="ir_w_10"></th>
                                 <th class="title" class="ir_w_10"><?php echo lang('counter'); ?></th>
                                 <th class="title" class="ir_w_10"><?php echo lang('opening_date_time'); ?></th>
                                 <th class="title" class="ir_w_15"><?php echo lang('opening_balance'); ?></th>
@@ -180,7 +194,7 @@
         </div>
     </div>
 
-   
+
 </section>
 <!-- DataTables -->
 <script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js"></script>
@@ -197,3 +211,82 @@
 <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
 
 <script src="<?php echo base_url(); ?>frequent_changing/js/custom_report_no_sorting.js"></script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-print-thermal').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var register_id = this.getAttribute('data-register-id');
+            fetch(base_url + 'Report/registerReportTicketJson/' + register_id)
+            .then(res => res.json())
+            .then(function(data) {
+                if (!data.success) {
+                    swal({
+                        type: 'error',
+                        title: 'Error',
+                        text: 'No se pudo obtener el ticket'
+                    });
+                    return;
+                }
+                var content = data.content;
+                var width = data.width || 80;
+                // Genera el HTML del ticket con un botón con un ID único
+                var ticketHtml = `
+                  <div id="ticket-to-print" style="width:${width}mm; font-family:monospace,'Courier New',Courier; font-size:12px; background:#fff;">
+                    <button id="btn-print-ticket-from-modal" style="display:block;margin:10px auto 10px auto;padding:6px 16px;font-size:14px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;">
+                      <i class='fa fa-print'></i> Imprimir Ticket
+                    </button>
+                `;
+                for (var i=0; i<content.length; i++) {
+                    var item = content[i];
+                    if (item.type === 'text') {
+                        ticketHtml += `<div style="text-align:${item.align};white-space:pre-line;">${item.text || ''}</div>`;
+                    }
+                    if (item.type === 'extremos') {
+                        ticketHtml += `<div style="display:flex;justify-content:space-between;"><span>${item.textLeft}</span><span>${item.textRight}</span></div>`;
+                    }
+                    if (item.type === 'cut') {
+                        ticketHtml += `<div style="border-top:2px dashed #000;margin:9px 0;">&nbsp;</div>`;
+                    }
+                }
+                ticketHtml += `</div>`;
+
+                // Guarda para imprimir
+                window.__lastTicketHtmlSwal = ticketHtml.replace(/<button[\s\S]*?<\/button>/, ''); // ticket sin botón
+                window.__lastTicketWidthSwal = width;
+
+                swal({
+                    title: 'Ticket térmico',
+                    html: ticketHtml,
+                    showCancelButton: true,
+                    confirmButtonText: 'Cerrar'
+                });
+
+                // Espera a que el DOM del modal esté listo, luego agrega el event listener
+                setTimeout(function(){
+                    var printBtn = document.getElementById('btn-print-ticket-from-modal');
+                    if (printBtn) {
+                        printBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            var html = window.__lastTicketHtmlSwal || '';
+                            var width = window.__lastTicketWidthSwal || 80;
+                            var printWindow = window.open('', '', 'width='+(width*4)+',height=700');
+                            printWindow.document.write(
+                                '<html><head><title>Imprimir ticket</title>' +
+                                '<style>@media print { body, html { width: '+width+'mm; } } body { width: '+width+'mm; font-family: monospace, "Courier New", Courier; font-size: 12px; }</style>' +
+                                '</head><body>' + html + '</body></html>'
+                            );
+                            printWindow.document.close();
+                            setTimeout(function() {
+                                printWindow.focus();
+                                printWindow.print();
+                            }, 400);
+                        });
+                    }
+                }, 300); // SweetAlert2 v7: espera un poco a que el DOM esté listo
+            });
+        });
+    });
+});
+</script>

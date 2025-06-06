@@ -57,7 +57,7 @@
             </div>
             <div class="col-md-2">
                 <select class="form-control select2 width_100_p" name="user_id">
-                    <option value=""><?php echo lang('user'); ?></option>
+                    <option value=""><?php echo lang('all'); ?></option>
                     <?php
                     foreach ($users as $value):
                         ?>

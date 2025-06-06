@@ -2732,12 +2732,24 @@
                                 </table>
                                 <table class="table">
                     <tbody>`;
-        let obj_payment = '';
-        if(Number(order.split_sale_id) && order.split_sale_id!=undefined){
+        // let obj_payment = '';
+        // if(Number(order.split_sale_id) && order.split_sale_id!=undefined){
+        //     obj_payment = JSON.parse(order.payment_object);
+        // }else{
+        //     obj_payment = JSON.parse(JSON.parse(order.payment_object));
+        // }
+        let obj_payment = null;
+
+        try {
             obj_payment = JSON.parse(order.payment_object);
-        }else{
-            obj_payment = JSON.parse(JSON.parse(order.payment_object));
+            // Si por compatibilidad vieja, sigue siendo string, parsea otra vez
+            if (typeof obj_payment === "string") {
+                obj_payment = JSON.parse(obj_payment);
+            }
+        } catch (e) {
+            obj_payment = [];
         }
+        
         if(obj_payment.length){
             $.each(obj_payment, function (key, value) {
                 let txt_point = '';
@@ -10168,7 +10180,7 @@ function getSafePrice(priceAttr) {
       );
 // SNIPPET: Arma el array de pagos incluyendo vuelto (cash negativo) y deuda (si la hay)
 function getPaymentArrayWithChangeAndDue() {
-    let totalPayable = parseFloat($("#finalize_total_payable").text().replace(",", "")) || 0;
+    let totalPayable = parseCurrencyToNumber($("#finalize_total_payable").html());
     let payments = [];
     let totalPaid = 0;
 
@@ -10271,6 +10283,7 @@ function getPaymentArrayWithChangeAndDue() {
           }
         }
         let paymentsStatus = getPaymentArrayWithChangeAndDue();
+        console.log(paymentsStatus);
         // console.log(paymentsStatus);
         if (paymentsStatus !== false) {
   
