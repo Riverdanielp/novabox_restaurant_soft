@@ -1315,10 +1315,11 @@ class Report extends Cl_Controller {
         if (!$register_id) {
             return null;
         }
+    
         // Trae los datos del registro con la ID específica
         $register = $this->db->where('id', $register_id)->get('tbl_register')->row();
         if (!$register) {
-            return null; // O maneja error
+            return null;
         }
         $outlet_id = $register->outlet_id;
         $user_id = $register->user_id;
@@ -1326,163 +1327,52 @@ class Report extends Cl_Controller {
         $closing_date_time = $register->closing_balance_date_time;
         $opening_details = $register->opening_details;
         $counter_id = $register->counter_id;
-
-        $opening_details_decode = json_decode($opening_details);
-
-        // Obtener opciones de outlet
+    
+        // Outlet info
         $getOutletInfo = $this->Common_model->getDataById($outlet_id, "tbl_outlets");
-        $registro_ocultar = $getOutletInfo->registro_ocultar;
+        $company_name = $getOutletInfo->outlet_name;
+        $company_address = $getOutletInfo->address;
         $registro_detallado = $getOutletInfo->registro_detallado;
-
-        // Información de la empresa (obtenida del outlet directamente)
+    
+        // Empresa
         $company = [
-            'name' => $getOutletInfo->outlet_name,
-            'address' => $getOutletInfo->address,
+            'name' => $company_name,
+            'address' => $company_address,
             'phone' => $getOutletInfo->phone,
             'invoice_logo' => $getOutletInfo->invoice_logo,
             'footer' => $getOutletInfo->invoice_footer,
         ];
-
-        $content = [
-            ['type' => 'text', 'align' => 'center', 'text' => 'REPORTE DE CIERRE DE CAJA'],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Sucursal: ' . $company['name']],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Caja: ' . getCounterName($counter_id)],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Apertura: ' . date('Y-m-d h:i A', strtotime($opening_date_time))],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Cierre: ' . ($closing_date_time ? $closing_date_time : date('Y-m-d h:i A') )],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Usuario: ' . userName($user_id)],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
-        ];
-
-        $fromDate = $opening_date_time;
-        $toDate = $closing_date_time ? $closing_date_time : date('Y-m-d H:i:s');
-        // Tabla de ventas detalladas si "registro_detallado"
-        if($registro_detallado === "Yes"){
-            $detailed_sales = $this->Sale_model->getDetailedSales($outlet_id, $fromDate, $toDate);
-            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DETALLE DE VENTAS'];
-            $total_ventas_detalladas = 0;
-            foreach ($detailed_sales as $sale) {
-                $content[] = [
-                    'type' => 'extremos',
-                    'textLeft' => '#'.$sale->number_slot_name.' '.$sale->sale_no,
-                    'textRight' => getAmtPCustom($sale->amount)
-                ];
-                $total_ventas_detalladas += $sale->amount;
-            }
-            $content[] = [
-                'type' => 'extremos',
-                'textLeft' => '---------------',
-                'textRight' => '---------------'
-            ];
-            $content[] = [
-                'type' => 'extremos',
-                'textLeft' => 'TOTAL VENTAS',
-                'textRight' => getAmtPCustom($total_ventas_detalladas)
-            ];
-        }
-        $summary_names = [];
-        $summary_amounts = [];
-        
-        // if($registro_ocultar != "Yes"){
-            if ($opening_details_decode) {
-                foreach ($opening_details_decode as $key => $value) {
-                    $payments = explode('||', $value);
-
-                    $payment_id = $payments[0];
-                    $payment_name = $payments[1];
-                    $opening_balance = (float) $payments[2];
-
-                    $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id);
-                    $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id);
-                    $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id);
-                    $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id);
-                    $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id);
-                    $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id);
-
-                    $closing_balance = $opening_balance - $total_purchase + $total_sale + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
-
-                    // Checar si todos los valores están en 0
-                    $all_zeros = (
-                        $opening_balance == 0 &&
-                        $total_purchase == 0 &&
-                        $total_due_receive == 0 &&
-                        $total_due_payment == 0 &&
-                        $total_expense == 0 &&
-                        $refund_amount == 0 &&
-                        $total_sale == 0 &&
-                        $closing_balance == 0
-                    );
-
-                    if ($all_zeros) {
-                        continue;
-                    }
-
-                    $summary_names[] = $payment_name;
-                    $summary_amounts[] = $closing_balance;
-
-                    $detail_section = [];
-
-                    $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
-                    $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => strtoupper($payment_name)];
-
-                    if ($opening_balance != 0) {
-                        $detail_section[] = ['type' => 'extremos', 'textLeft' => 'Saldo inicial', 'textRight' => getAmtPCustom($opening_balance)];
-                    }
-                    if ($total_purchase != 0) {
-                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_2'), 'textRight' => getAmtPCustom($total_purchase)];
-                    }
-                    if ($total_sale != 0) {
-                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_3'), 'textRight' => getAmtPCustom($total_sale)];
-                    }
-                    if ($payment_id == 1) {
-                        $total_sale_mul_c_rows = $this->Sale_model->getAllSaleByPaymentMultiCurrencyRows($opening_date_time, $payment_id);
-                        if ($total_sale_mul_c_rows) {
-                            foreach ($total_sale_mul_c_rows as $value1) {
-                                if ((float)$value1->total_amount != 0) {
-                                    $detail_section[] = [
-                                        'type' => 'extremos',
-                                        'textLeft' => '    ' . $value1->multi_currency,
-                                        'textRight' => number_format($value1->total_amount,2, ',', '.')
-                                    ];
-                                }
-                            }
-                        }
-                    }
-                    if ($total_due_receive != 0) {
-                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_5'), 'textRight' => getAmtPCustom($total_due_receive)];
-                    }
-                    if ($total_due_payment != 0) {
-                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_6'), 'textRight' => getAmtPCustom($total_due_payment)];
-                    }
-                    if ($total_expense != 0) {
-                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('register_detail_7'), 'textRight' => getAmtPCustom($total_expense)];
-                    }
-                    if ($refund_amount != 0) {
-                        $detail_section[] = ['type' => 'extremos', 'textLeft' => lang('refund_amount') . '(-)', 'textRight' => getAmtPCustom($refund_amount)];
-                    }
-
-                    if ($closing_balance != 0) {
-                        $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-                        $detail_section[] = ['type' => 'extremos', 'textLeft' => 'TOTAL ' . strtoupper($payment_name), 'textRight' => getAmtPCustom($closing_balance)];
-                    }
-
-                    $detail_section[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-                    $content = array_merge($content, $detail_section);
-                }
-            }
-        // }
-
-        // Obtener gastos detallados
+    
+        // Datos de usuario/caja
+        $usuario = userName($user_id);
+        $counter_name = getCounterName($counter_id);
+        $apertura = date('Y-m-d h:i A', strtotime($opening_date_time));
+        $cierre = ($closing_date_time ? date('Y-m-d h:i A', strtotime($closing_date_time)) : date('Y-m-d h:i A'));
+    
+        $line = "------------------------------";
+        $content = [];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'REPORTE DE CIERRE DE CAJA'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Sucursal: ' . $company_name];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Usuario: ' . $usuario];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Contador: ' . $counter_name];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Apertura: ' . $apertura];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Cierre: ' . $cierre];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
+    
+        // === GASTOS ===
         $from_datetime = $opening_date_time;
         $to_datetime = $closing_date_time ? $closing_date_time : date('Y-m-d H:i:s');
         $gastos = $this->Sale_model->getDetailedExpenses($from_datetime, $to_datetime, $user_id, $outlet_id);
-
+        $total_gastos = 0;
+        $hay_gastos = false;
         if (!empty($gastos)) {
-            $total_gastos = 0;
-            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DETALLE DE GASTOS'];
-            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
             foreach ($gastos as $gasto) {
                 if (floatval($gasto->amount) != 0) {
+                    if (!$hay_gastos) {
+                        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DETALLE DE GASTOS'];
+                        $hay_gastos = true;
+                    }
                     $total_gastos += floatval($gasto->amount);
                     $nota = $gasto->note ? $gasto->note : '(Sin nota)';
                     $content[] = [
@@ -1492,76 +1382,204 @@ class Report extends Cl_Controller {
                     ];
                 }
             }
-            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
-            $content[] = [
-                'type' => 'extremos',
-                'textLeft' => 'TOTAL GASTOS',
-                'textRight' => getAmtPCustom($total_gastos)
-            ];
-            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        }
-
-        // if($registro_ocultar != "Yes"){
-            if (!empty($summary_names)) {
-                $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'RESUMEN FINAL'];
-                $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
-                foreach ($summary_names as $i => $name) {
-                    if ($summary_amounts[$i] != 0) {
-                        $content[] = [
-                            'type' => 'extremos',
-                            'textLeft' => $name,
-                            'textRight' => getAmtPCustom($summary_amounts[$i])
-                        ];
-                    }
-                }
-                $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+            if ($hay_gastos) {
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
+                $content[] = [
+                    'type' => 'extremos',
+                    'textLeft' => 'TOTAL GASTOS',
+                    'textRight' => getAmtPCustom($total_gastos)
+                ];
                 $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
             }
-        // }
-
-        // Declaraciones de cierre
+        }
+    
+        // === DETALLE POR MÉTODO DE PAGO ===
+        $opening_details_decode = json_decode($opening_details);
+        $detalles_metodo_pago = [];
+        $resumen_final = [];
+        $metodos_pago_cierre = [];
+        $total_sale_all = 0;
+    
+        if ($opening_details_decode) {
+            foreach ($opening_details_decode as $key => $value) {
+                $payments = explode('||', $value);
+                $payment_id = $payments[0];
+                $payment_name = $payments[1];
+                $opening_balance = (float) $payments[2];
+    
+                $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id);
+                $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id);
+                $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id);
+                $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id);
+                $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id);
+                $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id);
+    
+                $total_sale_all += $total_sale;
+    
+                // Para el diferencial en declaración de cierre  $opening_balance
+                $esperado_sin_saldo_inicial = - $total_purchase + $total_sale + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
+                $closing_balance = - $total_purchase + $total_sale + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
+    
+                $detalles_metodo_pago[] = [
+                    'nombre'        => $payment_name,
+                    'saldo_inicial' => $opening_balance,
+                    'compra'        => $total_purchase,
+                    'venta'         => $total_sale,
+                    'ingresos'      => $total_due_receive,
+                    'egresos'       => $total_due_payment + $total_expense,
+                    'devolucion'    => $refund_amount,
+                    'otros'         => 0,
+                    'cierre'        => $closing_balance,
+                    'esperado_sin_saldo' => $esperado_sin_saldo_inicial
+                ];
+    
+                $resumen_final[] = [
+                    'nombre' => $payment_name,
+                    'valor'  => $closing_balance
+                ];
+    
+                $metodos_pago_cierre[$payment_id] = [
+                    'nombre' => $payment_name,
+                    'cierre' => $closing_balance,
+                    'esperado_sin_saldo' => $esperado_sin_saldo_inicial
+                ];
+            }
+        }
+    
+        foreach ($detalles_metodo_pago as $dmp) {
+            $mostrar = (
+                $dmp['saldo_inicial'] != 0 ||
+                $dmp['compra'] != 0 ||
+                $dmp['venta'] != 0 ||
+                $dmp['ingresos'] != 0 ||
+                $dmp['egresos'] != 0 ||
+                $dmp['devolucion'] != 0 ||
+                $dmp['otros'] != 0 ||
+                $dmp['cierre'] != 0
+            );
+            if (!$mostrar) continue;
+    
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => strtoupper($dmp['nombre'])];
+            if ($dmp['saldo_inicial'] != 0) $content[] = ['type' => 'extremos', 'textLeft' => 'Saldo inicial', 'textRight' => getAmtPCustom($dmp['saldo_inicial'])];
+            if ($dmp['compra']        != 0) $content[] = ['type' => 'extremos', 'textLeft' => 'Compras', 'textRight' => '-' . getAmtPCustom($dmp['compra'])];
+            if ($dmp['venta']         != 0) $content[] = ['type' => 'extremos', 'textLeft' => 'Ventas', 'textRight' => '+' . getAmtPCustom($dmp['venta'])];
+            if ($dmp['ingresos']      != 0) $content[] = ['type' => 'extremos', 'textLeft' => 'Ingresos', 'textRight' => '+' . getAmtPCustom($dmp['ingresos'])];
+            if ($dmp['egresos']       != 0) $content[] = ['type' => 'extremos', 'textLeft' => 'Egresos', 'textRight' => '-' . getAmtPCustom($dmp['egresos'])];
+            if ($dmp['devolucion']    != 0) $content[] = ['type' => 'extremos', 'textLeft' => 'Devoluciones', 'textRight' => '-' . getAmtPCustom($dmp['devolucion'])];
+            if ($dmp['otros']         != 0) $content[] = ['type' => 'extremos', 'textLeft' => 'Otros', 'textRight' => getAmtPCustom($dmp['otros'])];
+            if ($dmp['cierre']        != 0) $content[] = ['type' => 'extremos', 'textLeft' => 'TOTAL ' . strtoupper($dmp['nombre']), 'textRight' => getAmtPCustom($dmp['cierre'])];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        }
+    
+        // === RESUMEN FINAL ===
+        $hay_resumen = false;
+        foreach ($resumen_final as $i => $r) {
+            if ($r['valor'] != 0) {
+                if (!$hay_resumen) {
+                    $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
+                    $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'RESUMEN FINAL'];
+                    $hay_resumen = true;
+                }
+                $content[] = ['type' => 'extremos', 'textLeft' => $r['nombre'], 'textRight' => getAmtPCustom($r['valor'])];
+            }
+        }
+        if ($hay_resumen) $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
+    
+        // === VENTA TOTAL CAJA ===
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'VENTA TOTAL CAJA'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => getAmtPCustom($total_sale_all)];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+    
+        // === DECLARACION DE CIERRE ===
         $declaraciones = $this->db
             ->where('register_id', $register_id)
             ->order_by('id', 'asc')
             ->get('tbl_register_statement')
             ->result();
+    
+        // Preparar array equivalente a $array_declaracion
+        $array_declaracion = [];
         if (!empty($declaraciones)) {
-            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DECLARACION DE CIERRE'];
-            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
-            foreach ($declaraciones as $declaracion) {
-                $content[] = [
-                    'type' => 'extremos',
-                    'textLeft' => $declaracion->payment_txt ?: $declaracion->payment_id,
-                    'textRight' => getAmtPCustom($declaracion->mount)
+            $hay_declaracion = false;
+            foreach ($declaraciones as $d) {
+                $id = $d->payment_id;
+                $nombre = $d->payment_txt ?: $id;
+                $declarado = (float)$d->mount;
+                $esperado = isset($metodos_pago_cierre[$id]['esperado_sin_saldo']) ? $metodos_pago_cierre[$id]['esperado_sin_saldo'] : 0;
+                $array_declaracion[] = [
+                    'nombre' => $nombre,
+                    'declarado' => $declarado,
+                    'esperado' => $esperado,
                 ];
             }
-            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '------------------------------'];
+        }
+    
+        if (!empty($array_declaracion)) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DECLARACION DE CIERRE'];
+            foreach ($array_declaracion as $d) {
+                $content[] = [
+                    'type' => 'extremos',
+                    'textLeft' => $d['nombre'],
+                    'textRight' => getAmtPCustom($d['declarado']),
+                ];
+                $diferencia = $d['declarado'] - $d['esperado'];
+                if (abs($diferencia) > 0.01) {
+                    $tipo = $diferencia > 0 ? "SOBRANTE" : "FALTANTE";
+                    $content[] = [
+                        'type' => 'text',
+                        'align' => 'left',
+                        'text' => "    $tipo: " . getAmtPCustom(abs($diferencia))
+                    ];
+                }
+            }
+            // === DIFERENCIAL TOTAL FINAL ===
+            $diferencial_total = 0;
+            foreach ($array_declaracion as $d) {
+                $diferencial_total += ($d['declarado'] - $d['esperado']);
+            }
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
+            if (abs($diferencial_total) > 0.01) {
+                $tipo = $diferencial_total > 0 ? "SOBRANTE TOTAL" : "FALTANTE TOTAL";
+                $content[] = [
+                    'type' => 'text',
+                    'align' => 'center',
+                    'text' => strtoupper($tipo) . ': ' . getAmtPCustom(abs($diferencial_total))
+                ];
+            } else {
+                $content[] = [
+                    'type' => 'text',
+                    'align' => 'center',
+                    'text' => 'DIFERENCIAL TOTAL: 0'
+                ];
+            }
             $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         }
-
+    
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'FIN REPORTE DE CAJA'];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'cut'];
-
+    
         // Configuración de la impresora
         $company_id = $getOutletInfo->company_id;
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
         $counter_details = $this->Common_model->getPrinterIdByCounterId($counter_id);
         $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
         $path = @$printer->path;
-
+    
         $print_format = $company_data->print_format_bill;
         $width = ($print_format == "80mm") ? 80 : 58;
-
+    
         $printRequest = [
             'printer' => $path,
             'width' => $width,
             'content' => filterArrayRecursivelyEscPos($content)
         ];
-
-        return $printRequest; // AHORA RETORNA EL ARRAY, NO BASE64 NI COMPRIMIDO
+    
+        return $printRequest;
     }
 
 

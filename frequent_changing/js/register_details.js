@@ -100,8 +100,9 @@ $(function () {
     // Al ingresar valores, formatea y muestra en el span
     $(document).on("input", ".statement_input", function() {
         let value = $(this).val();
-        let parsedValue = formatNumberToCurrency(value);
         let id = $(this).data("id");
+        let op_value = Number($(`#statement_op_${id}`).text());
+        let parsedValue = formatNumberToCurrency(Number(value) + op_value);
         $("#statement_input_" + id).text(parsedValue);
     });
 
@@ -375,10 +376,19 @@ $(function () {
                 data: { csrf_name_: csrf_value_ },
                 success: function (response) {
                     response = JSON.parse(response);
-    
+                    console.log(response.opening_balances);
                     $(".modal_loader").hide();
                     $(".html_content").html(response.html_content_for_div);
-    
+                        // Rellenar los montos de apertura en la tabla usando los payment_id
+                    if (Array.isArray(response.opening_balances)) {
+                        response.opening_balances.forEach(function (item) {
+                            // Asegúrate que payment_id y payment_amount existen
+                            if (item.payment_id && typeof item.payment_amount !== 'undefined') {
+                                // Actualiza el contenido del span correspondiente
+                                $(`#statement_op_${item.payment_id}`).text(item.payment_amount);
+                            }
+                        });
+                    }
                     // DataTable para la tabla principal
                     $(`#datatable`).DataTable({
                         'autoWidth'   : false,

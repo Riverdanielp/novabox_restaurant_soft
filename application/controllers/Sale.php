@@ -4149,6 +4149,7 @@ class Sale extends Cl_Controller {
      * @param no
      */
     public function registerDetailCalculationToShow() {
+        $opening_balances = [];
         $opening_date_time = $this->getOpeningDateTime();
         $closing_date_time = $this->getClosingDateTime();
         $outlet_id = $this->session->userdata('outlet_id');
@@ -4162,6 +4163,13 @@ class Sale extends Cl_Controller {
     
         $opening_details = $this->getOpeningDetails();
         $opening_details_decode = json_decode($opening_details);
+
+        foreach ($opening_details_decode as $key=>$value){
+            $payments = explode("||",$value);
+            $opening_balances[$key]['payment_name'] = $payments[1];
+            $opening_balances[$key]['payment_amount'] = isset($payments[2]) ? $payments[2] : 0;
+            $opening_balances[$key]['payment_id'] = isset($payments[0]) ? $payments[0] : 0;
+        }
     
         $show_main_table = true;
         if($registro_ocultar === "Yes" && !$closing_date_time){
@@ -4369,6 +4377,7 @@ class Sale extends Cl_Controller {
     
     
         $register_detail = array(
+            'opening_balances' => $opening_balances,
             'opening_date_time' => date('Y-m-d h:i A', strtotime($opening_date_time)),
             'closing_date_time' => $closing_date_time,
             'html_content_for_div' => $html_content,
@@ -4635,7 +4644,8 @@ class Sale extends Cl_Controller {
             $total_due_payment_all += $total_due_payment;
             $total_expense_all += $total_expense;
 
-            $inline_closing = $opening_balance - $total_purchase + $total_sale + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
+            // $opening_balance - 
+            $inline_closing =  $total_sale - $total_purchase + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
             $total_closing += $inline_closing;
 
             $preview_amount = isset($payment_details[$payment_name]) && $payment_details[$payment_name] ? $payment_details[$payment_name] : 0;
@@ -4874,7 +4884,20 @@ class Sale extends Cl_Controller {
                 }
             }
         }
-
+        // DIFERENCIAL TOTAL FINAL
+        $diferencial_total = 0;
+        foreach ($declaracion as $d) {
+            $diferencial_total += ($d['declarado'] - $d['esperado']);
+        }
+        $msg[] = $line;
+        if (abs($diferencial_total) > 0.01) {
+            $tipo = $diferencial_total > 0 ? "SOBRANTE TOTAL" : "FALTANTE TOTAL";
+            $msg[] = "*$tipo*: " . getAmtPCustom(abs($diferencial_total));
+        } else {
+            $msg[] = "*DIFERENCIAL TOTAL*: 0";
+        }
+        $msg[] = "";
+        
         return implode("\n", $msg);
     }
 

@@ -3018,12 +3018,23 @@ foreach ($notifications as $single_notification){
                 <div class="row">
                     <h3 class="" style="margin-left: 50px;margin-right: 50px;">Declaración de cierre de caja</h3>
                     <table class="table_register_details top_margin_15" style="margin-left: 50px;margin-right: 50px;">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;"><?php echo lang('payment_method'); ?></th>
+                                <th style="width: 25%;"><?php echo lang('register_detail_1'); ?></th>
+                                <th style="width: 25%;"><?php echo lang('amount'); ?></th>
+                                <th style="width: 25%;"><?php echo lang('total'); ?></th>
+                            </tr>
+                        </thead>
                         <tbody>
-                                <?php foreach ($payment_methods as $key => $value) :
+                                <?php foreach ($payment_method_finalize as $key => $value) :
                                     ?>
                                     <tr>
                                             <td>
                                                 <label for="statement_amount"><?php echo escape_output($value->name); ?></label>
+                                            </td>
+                                            <td>
+                                                <span id="statement_op_<?php echo $value->id ?>">0</span>
                                             </td>
                                             <td>
                                                     <input type="number" class="form-control statement_input" 
