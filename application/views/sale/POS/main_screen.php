@@ -786,6 +786,16 @@ foreach ($notifications as $single_notification){
             color: white;
             background-color:rgb(0 107 125) !important
         }
+        
+        .print_action_button {
+            width: 11.25%;
+            height: 40px;
+            font-size: 15px;
+            margin: 0;
+            border-radius: 5px;
+            color: white;
+            background-color:rgb(0 150 50) !important
+        }
     </style>
 </head>
 
@@ -2382,11 +2392,11 @@ foreach ($notifications as $single_notification){
                             <p class="input_level">Tipo: <span class="ir_color_red">*</span></p>
                             <select class="add_customer_modal_input form-control" id="preimpresa_tipo" required>
                                 <?php 
-                                    $getOutletInfo = $this->Common_model->getDataById($this->session->userdata('outlet_id'), "tbl_outlets");
-                                    if ($getOutletInfo->preimpreso_mode == "direct_print") :
+                                    // $getOutletInfo = $this->Common_model->getDataById($this->session->userdata('outlet_id'), "tbl_outlets");
+                                    // if ($getOutletInfo->preimpreso_mode == "direct_print") :
                                 ?>
                                 <option value="todos">Todos Los Items</option>
-                                <?php endif; ?>
+                                <?php //endif; ?>
 
                                 <option value="Consumición">Consumición</option>
                                 <option value="Almuerzo">Almuerzo</option>
@@ -2402,9 +2412,9 @@ foreach ($notifications as $single_notification){
                         </div>
                         
                         <div class="customer_section" id="preimpresa_total_container"
-                        <?php if ($getOutletInfo->preimpreso_mode == "direct_print") : ?>
-                            style="display: none;"
-                        <?php endif; ?>
+                        <?php //if ($getOutletInfo->preimpreso_mode == "direct_print") : ?>
+                             style="display: none;"
+                        <?php //endif; ?>
                         >
                             <p class="input_level">Total: <span class="ir_color_red">*</span></p>
                             <input type="text" class="add_customer_modal_input" id="preimpresa_total" required>
@@ -2419,7 +2429,7 @@ foreach ($notifications as $single_notification){
                 <div class="left_box left_bottom">
                     <br>
                     <button class="floatright" id="dp_modal_cancel_button">Cancelar</button>
-                    <button class="floatright bg-blue-btn" id="preimpresa_imprimir_button">Imprimir</button>
+                    <button class="floatright bg-blue-btn" id="preimpresa_imprimir_button" data-sale_no="">Imprimir</button>
                 </div>
             </footer>
         </div>
@@ -3423,7 +3433,7 @@ foreach ($notifications as $single_notification){
                                 </span><span class="ir_display_none" id="order_details_customer_id"></span>
                                 <span id="order_details_customer_name"></span></div>
                             <div class="table fix">
-                                <span class="ir_font_bold"><?php echo lang('table'); ?>:
+                                <span class="ir_font_bold"><?php echo "Hora "; //lang('table'); ?>:
                                 </span>
                                 <span class="ir_display_none" id="order_details_table_id"></span>
                                 <span id="order_details_table_name"></span>
@@ -3496,7 +3506,9 @@ foreach ($notifications as $single_notification){
                 
                 <button  class="number_action_button" id="editar_orden_button"  data-sale_no=""><i class="fas fa-edit"></i>  Modificar </button>
 
-                <button class="number_action_button"  id="print_bill_orden_button"  data-sale_no=""><i class="fas fa-print"></i>  Imprimir </button>
+                <button class="print_action_button"  id="print_bill_orden_button"  data-sale_no=""><i class="fas fa-print"></i>  Ticket </button>
+
+                <button class="print_action_button"  id="pre_impresa_orden_button"  data-sale_no="">  Pre-Impreso </button>
 
                 <button class="txt_38" id="order_details_close_button"><?php echo lang('close'); ?></button>
             </div>
@@ -4922,6 +4934,12 @@ foreach ($notifications as $single_notification){
         Sincronizando, aguarde un momento...  &nbsp;
         <span id="fullScreenLoaderCounter"></span>
     </div>
+
+    <iframe id="printFrame" style="display: none;" name="printFrame"></iframe>
+
+
+
+
     <script src="<?php echo base_url(); ?>frequent_changing/notify/toastr.js?v=7.5"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/marquee.js?v=7.5"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/items.js?v=7.5"></script>

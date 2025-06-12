@@ -786,4 +786,17 @@ function getUniqueSaleNoSync(sale_no) {
     });
     return final_sale_no;
 }
+
+function showLoaderAll($text = ' Cargando...') {
+        document.getElementById("fullScreenLoader").style.display = "flex";
+        $("#fullScreenLoaderCounter").html($text);
+            
+    }
+
+
+function hideLoaderAll() {
+    document.getElementById("fullScreenLoader").style.display = "none";
+}
+
+
 </script>

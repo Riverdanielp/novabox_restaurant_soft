@@ -1,8 +1,4 @@
 
-function hideLoaderAll() {
-    document.getElementById("fullScreenLoader").style.display = "none";
-}
-
 $(function () {
     "use strict";
     let base_url = $("#base_url_customer").val();

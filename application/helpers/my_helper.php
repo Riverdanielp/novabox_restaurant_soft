@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420632';
+    return '?v=7.5420633';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -4462,6 +4462,10 @@ function numeroConDecimalesATexto($numero) {
     }
 
     return $texto;
+}
+
+function sanitize_font_html($input) {
+    return trim(strip_tags($input));
 }
 
 function tipoConsultaRuc(){

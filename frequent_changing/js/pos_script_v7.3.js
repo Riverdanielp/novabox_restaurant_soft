@@ -1656,7 +1656,8 @@
               }
           });
       }
-      function showLoader(attempt = 0) {
+    
+    function showLoader(attempt = 0) {
         document.getElementById("fullScreenLoader").style.display = "flex";
         if (attempt > 0) {
             let count_attempt = attempt+1;
@@ -1665,7 +1666,15 @@
             
     }
     
+    function showLoaderTxt(txt = ' Cargando...') {
+        // console.log('ejecutado loader con texto: ' + txt);
+        document.getElementById("fullScreenLoader").style.display = "flex";
+        $("#fullScreenLoaderCounter").html(txt);
+            
+    }
+
     function hideLoader() {
+        // console.log('Hiding loader');
         document.getElementById("fullScreenLoader").style.display = "none";
     }
 
@@ -2010,7 +2019,26 @@
           let invoice_counter_value = Number(localStorage['invoice_counter_value'])+1;
           localStorage['invoice_counter_value'] = invoice_counter_value;
           let sale_no = username_short+twoDigitYear+mm+dd+"-"+getPadTwo(invoice_counter_value);
-          return sale_no;
+        //   return sale_no;
+        
+            let final_sale_no = sale_no;
+
+            $.ajax({
+                url: base_url + "Sale/get_unique_sale_no",
+                method: "POST",
+                data: { sale_no: sale_no, csrf_irestoraplus: csrf_value_ },
+                dataType: "json",
+                async: false, // <-- Esto es lo importante
+                success: function(resp) {
+                    final_sale_no = resp.sale_no;
+                },
+                error: function() {
+                    // Si hay error, regresa el original
+                    final_sale_no = sale_no;
+                }
+            });
+            // hideLoader();
+            return final_sale_no;
       }
       function getRandomCode(length) {
           let result           = '';
@@ -4550,6 +4578,7 @@
       $(document).on("click", "#last_ten_print_preimpreso_button", function (e) {
         if ($(".single_last_ten_sale[data-selected=selected]").length > 0) {
             let sale_no = $(".single_last_ten_sale[data-selected=selected]").attr("data-sale_no");
+            $('#preimpresa_imprimir_button').data('sale_no', sale_no);
             getSelectedOrderDetailsRecentSale(sale_no).then(function(data){
                 // console.log(data);
                 let order_info = jQuery.parseJSON(data);
@@ -4576,6 +4605,8 @@
         }
     });
     $(document).on("click", "#preimpresa_imprimir_button", function() {
+        const sale_no = $(this).data('sale_no');
+        console.log('Sale No:', sale_no);
         // Obtener los datos del formulario
         const fecha = $("#preimpresa_fecha").val();
         const ruc = $("#preimpresa_ruc").val();
@@ -4593,7 +4624,7 @@
         }
         
         // Obtener el sale_no del pedido seleccionado
-        const sale_no = $(".single_last_ten_sale[data-selected=selected]").attr("data-sale_no");
+        // const sale_no = $(".single_last_ten_sale[data-selected=selected]").attr("data-sale_no");
         
         if (preimpreso_mode == 'direct_print') {
             let url_ipv4 = preimpreso_printer_ipv4; 
@@ -4616,8 +4647,8 @@
                 dataType: "json",
                 data: { data_order: JSON.stringify(dataToSend) },
                 success: function (response) {
-                    console.log(response);
-                    console.log(url_ipv4);
+                    // console.log(response);
+                    // console.log(url_ipv4);
                     // response.content_data contiene el array formateado
                     if (url_ipv4) {
                         $.ajax({
@@ -4656,19 +4687,57 @@
                 tipo: tipo,
                 especifico: tipo === "Especifico" ? especifico : "",
                 sale_no: sale_no,
+                items_data: items_data, // Datos del pedido
                 items: items // Incluimos el array items
             };
             
-            // Codificación segura en JavaScript
-            const dataJson = JSON.stringify(data);
-            const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
+            // // Codificación segura en JavaScript
+            // const dataJson = JSON.stringify(data);
+            // const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
             
-            // Construir URL con los parámetros
-            const url = base_url + 'sale/preimpreso/' + dataBase64;
-            
-            // Abrir ventana con la vista de CodeIgniter
-            window.open(url, '_blank', 'width=920,height=640,left=50,top=50,toolbar=yes');
-            
+            // // Construir URL con los parámetros
+            // // const url = base_url + 'sale/preimpreso/' + dataBase64;
+            // // const url = base_url + 'sale/preimpreso/' + encodeURIComponent(dataBase64);
+            // const url = base_url + 'sale/preimpreso?data_base64=' + encodeURIComponent(dataBase64);
+            // // Abrir ventana con la vista de CodeIgniter
+            // window.open(url, '_blank', 'width=920,height=640,left=50,top=50,toolbar=yes');
+
+
+            // Imprimir usando un iframe oculto
+            function imprimirEnIframe(data) {
+                const dataJson = JSON.stringify(data);
+                const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
+                $.ajax({
+                    url: base_url + 'sale/preimpreso',
+                    method: 'POST',
+                    data: { data_base64: dataBase64 },
+                    success: function(html) {
+                        let printFrame = document.getElementById('printFrame');
+                        if (!printFrame) {
+                            printFrame = document.createElement('iframe');
+                            printFrame.id = 'printFrame';
+                            printFrame.style.display = 'none';
+                            document.body.appendChild(printFrame);
+                        }
+                        let printDocument = printFrame.contentDocument || printFrame.contentWindow.document;
+                        printDocument.open();
+                        printDocument.write(html);
+                        printDocument.close();
+                        printFrame.onload = function() {
+                            printFrame.contentWindow.focus();
+                            printFrame.contentWindow.print();
+                            // Limpia el contenido después de imprimir
+                            printFrame.contentWindow.onafterprint = function() {
+                                printDocument.open();
+                                printDocument.write('');
+                                printDocument.close();
+                            };
+                        };
+                    }
+                });
+            }
+
+            imprimirEnIframe(data);
         }
         // Cerrar el modal
         $("#pre_impresa_modal").removeClass("active");
@@ -9089,7 +9158,6 @@ function getSafePrice(priceAttr) {
                 return false;
             }
         }
-    
         $("#is_direct_sale_check").val(action_type);
         let self_order_table_id = Number($("#self_order_table_id").val()) || 0;
         let is_online_order = $("#is_online_order").val() || "No";
@@ -9264,6 +9332,8 @@ function getSafePrice(priceAttr) {
             }
         }
     
+        showLoaderTxt();
+
         let sale_no_new = 0;
         let random_code = '';
         if (update_sale_id) {
@@ -9570,6 +9640,7 @@ function getSafePrice(priceAttr) {
                 push_online_for_kitchen(order_info, '', sale_no_new, 1);
             }
         }
+        hideLoader();
         clearButtonNumber();
         $(".dine_in_button").css("border", "unset");
         $(".take_away_button").css("border", "unset");
@@ -10833,70 +10904,114 @@ function getPaymentArrayWithChangeAndDue() {
                   $("#online_customer_id").val(response.online_customer_id);
                   $("#online_customer_name").val(response.online_customer_name);
               }
-              $.ajax({
-                url: base_url + "Sale/get_all_customers_for_this_user",
-                method: "GET",
-                success: function (response) {
-                  response = JSON.parse(response);
-                  let option_customers = "";
-                  let i = 1;
-                  let selected_id = "";
-                  let selected_name = "";
-                  for (let key in response) {
-                    if (i == response.length) {
-                      option_customers +=
-                        '<option  data-default_discount="'+response[key].default_discount+'" data-current_due="0"  data-customer_address="'+response[key].address+'"  data-same_or_diff_state="'+response[key].same_or_diff_state+'"   data-customer_gst_number="'+response[key].gst_number+'"  value="' +
-                        response[key].id +
-                        '" selected>' +
-                        response[key].name +
-                        " " +
-                        response[key].phone +
-                        "</option>";
-                      let new_customer = {
-                        customer_id: response[key].id, //your artist variable
-                        customer_name: response[key].name, //your title variable
-                        customer_address: response[key].address, //your title variable
-                        customer_gst_number: response[key].gst_number, //your title variable
-                        gst_number: response[key].gst_number,
-                        default_discount: response[key].default_discount,
-                      };
-                      window.customers.push(new_customer);
-                    } else {
-                      option_customers +=
-                        '<option data-default_discount="'+response[key].default_discount+'" data-current_due="0" data-same_or_diff_state="'+response[key].same_or_diff_state+'"  data-customer_address="'+response[key].address+'"   data-customer_gst_number="'+response[key].gst_number+'" value="' +
-                        response[key].id +
-                        '">' +
-                        response[key].name +
-                        " " +
-                        response[key].phone +
-                        "</option>";
-                    }
-                    i++;
-                  }
-                  $("#walk_in_customer").html(option_customers);
-                  $("#walk_in_customer1").html(option_customers);
+
+                let c = response.customer_data;
+                let option = `<option data-default_discount="${c.default_discount}" 
+                                    data-current_due="0"
+                                    data-customer_address="${c.address}" 
+                                    data-same_or_diff_state="${c.same_or_diff_state}" 
+                                    data-customer_gst_number="${c.gst_number}" 
+                                    value="${c.id}" selected>
+                                ${c.name} ${c.phone}
+                            </option>`;
+
+                // Añadir al select
+                $("#walk_in_customer").append(option).val(c.id).trigger("change");
+                $("#walk_in_customer1").append(option).val(c.id).trigger("change");
+
+                let $option = $("#walk_in_customer option[value='" + c.id + "']");
+                if ($option.length) {
+                $option.replaceWith(option); // Reemplaza el <option> existente
+                } else {
+                $("#walk_in_customer").append(option);
+                }
+
+                // Opcional: actualizar la variable global si la usas
+                window.customers.push({
+                customer_id: c.id,
+                customer_name: c.name,
+                customer_address: c.address,
+                customer_gst_number: c.gst_number,
+                default_discount: c.default_discount,
+                });
+
+              reset_on_modal_close_or_add_customer();
+                setDiscountForSelectedCustomer();
+              this_action
+                .parent()
+                .parent()
+                .parent()
+                .parent()
+                .removeClass("active")
+                .addClass("inActive");
+              setTimeout(function () {
+                $(".modal").removeClass("inActive");
+              }, 1000);
+              $(".pos__modal__overlay").fadeOut(300);
+            //   $.ajax({
+            //     url: base_url + "Sale/get_all_customers_for_this_user",
+            //     method: "GET",
+            //     success: function (response) {
+            //       response = JSON.parse(response);
+            //       let option_customers = "";
+            //       let i = 1;
+            //       let selected_id = "";
+            //       let selected_name = "";
+            //       for (let key in response) {
+            //         if (i == response.length) {
+            //           option_customers +=
+            //             '<option  data-default_discount="'+response[key].default_discount+'" data-current_due="0"  data-customer_address="'+response[key].address+'"  data-same_or_diff_state="'+response[key].same_or_diff_state+'"   data-customer_gst_number="'+response[key].gst_number+'"  value="' +
+            //             response[key].id +
+            //             '" selected>' +
+            //             response[key].name +
+            //             " " +
+            //             response[key].phone +
+            //             "</option>";
+            //           let new_customer = {
+            //             customer_id: response[key].id, //your artist variable
+            //             customer_name: response[key].name, //your title variable
+            //             customer_address: response[key].address, //your title variable
+            //             customer_gst_number: response[key].gst_number, //your title variable
+            //             gst_number: response[key].gst_number,
+            //             default_discount: response[key].default_discount,
+            //           };
+            //           window.customers.push(new_customer);
+            //         } else {
+            //           option_customers +=
+            //             '<option data-default_discount="'+response[key].default_discount+'" data-current_due="0" data-same_or_diff_state="'+response[key].same_or_diff_state+'"  data-customer_address="'+response[key].address+'"   data-customer_gst_number="'+response[key].gst_number+'" value="' +
+            //             response[key].id +
+            //             '">' +
+            //             response[key].name +
+            //             " " +
+            //             response[key].phone +
+            //             "</option>";
+            //         }
+            //         i++;
+            //       }
+            //       $("#walk_in_customer").html(option_customers);
+            //       $("#walk_in_customer1").html(option_customers);
   
-                  $("#walk_in_customer").val(new_customer_id).change();
-                  $("#walk_in_customer1").val(new_customer_id).change();
-                  // $('#walk_in_customer').select2('data', {id: selected_id, text: selected_name});
-                  reset_on_modal_close_or_add_customer();
-                    setDiscountForSelectedCustomer();
-                  this_action
-                    .parent()
-                    .parent()
-                    .parent()
-                    .parent()
-                    .removeClass("active")
-                    .addClass("inActive");
-                  setTimeout(function () {
-                    $(".modal").removeClass("inActive");
-                  }, 1000);
-                  $(".pos__modal__overlay").fadeOut(300);
-                },
-                error: function () {
-                  alert(a_error);
-                },
-              });
+            //       $("#walk_in_customer").val(new_customer_id).change();
+            //       $("#walk_in_customer1").val(new_customer_id).change();
+            //       // $('#walk_in_customer').select2('data', {id: selected_id, text: selected_name});
+            //       reset_on_modal_close_or_add_customer();
+            //         setDiscountForSelectedCustomer();
+            //       this_action
+            //         .parent()
+            //         .parent()
+            //         .parent()
+            //         .parent()
+            //         .removeClass("active")
+            //         .addClass("inActive");
+            //       setTimeout(function () {
+            //         $(".modal").removeClass("inActive");
+            //       }, 1000);
+            //       $(".pos__modal__overlay").fadeOut(300);
+            //     },
+            //     error: function () {
+            //       alert(a_error);
+            //     },
+            //   });
             }
           },
           error: function () {
@@ -11950,12 +12065,19 @@ function decodificarCodigoVariable(codigo) {
     let limpio = codigo.replace(/\D/g, '');
     // Estructura: 2 + 5 dígitos (PLU) + 5 dígitos (peso/precio) + 1 dígito (control)
     let plu = limpio.substr(1, 6); // Ej: 000005
-    // El peso/precio está en los siguientes 5 dígitos
-    let valor = limpio.substr(7, 5); // Ej: 02035 => 2.035 kg
-    let valor_num = parseInt(valor, 10) / 1000;
+    let valor = limpio.substr(7, 5); // Ej: 02035 o 00001
+    let cantidad;
+
+    // Caso especial: productos unitarios codificados como 00001
+    if (valor === "00001") {
+        cantidad = 1;
+    } else {
+        cantidad = parseInt(valor, 10) / 1000;
+    }
+
     return {
         plu: plu,
-        cantidad: valor_num
+        cantidad: cantidad
     };
 }
 $(document).on("keyup", "#search", function (e) {
@@ -14840,6 +14962,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
             const userDesignation = $("#user_designation").val();
             $('#editar_orden_button').data('sale_no', sale_no);
             $('#print_bill_orden_button').data('sale_no', sale_no);
+            $('#pre_impresa_orden_button').data('sale_no', sale_no);
             $('#pagar_orden_button').data('sale_no', sale_no);
         
           let res = getSelectedOrderDetails(sale_no).then(function(data){
@@ -14855,7 +14978,8 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
                   $("#order_details_customer_id").html(response.customer_id);
                   $("#order_details_customer_name").html(response.customer_name);
                   $("#order_details_table_id").html(response.table_id);
-                  $("#order_details_table_name").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'No'));
+                  $("#order_details_table_name").html(response.date_time);
+                //   $("#order_details_table_name").html((response.orders_table_text!=undefined && response.orders_table_text?response.orders_table_text:'No'));
                   $("#open_invoice_date_hidden").val(response.sale_date);
                   $("#comanda_numero_name").html((response.selected_number_name!=undefined && response.selected_number_name?response.selected_number_name:''));
                   $(".datepicker_custom")
@@ -22459,6 +22583,37 @@ $(document).on('click', '#print_bill_orden_button', function() {
 });
 
 
+$(document).on('click', '#pre_impresa_orden_button', function() {
+    const sale_no = $(this).data('sale_no');
+    // console.log('sale_no', sale_no);
+    if (sale_no) {            
+        $('#preimpresa_imprimir_button').data('sale_no', sale_no);
+        // get_details_of_a_particular_order_for_modal(saleNo);
+        getSelectedOrderDetails(sale_no).then(function(data){
+            // console.log(data);
+            let order_info = jQuery.parseJSON(data);
+            // console.log(order_info);
+            $("#pre_impresa_modal").addClass("active");
+            
+            // Rellenar los campos con los datos del pedido
+            $("#preimpresa_fecha").val(order_info.sale_date);
+            let ruc_txt = order_info.customer_gst_number || "";
+            if (ruc_txt == "null") {
+                ruc_txt = "";
+            }
+            $("#preimpresa_ruc").val(ruc_txt);
+            $("#preimpresa_nombre").val(order_info.customer_name || "Cliente Ocasional");
+            $("#preimpresa_direccion").val(order_info.customer_address || "");
+            $("#preimpresa_total").val(order_info.total_payable || "0");
+            $("#preimpresa_total").val(order_info.total_payable || "0");
+            
+            $("#preimpresa_items").val(JSON.stringify((order_info.items)));
+            // console.log((order_info.items));
+        });
+    } else {
+        toastr['error']('No se pudo identificar la orden a imprimir', 'Error');
+    }
+});
 
 
 

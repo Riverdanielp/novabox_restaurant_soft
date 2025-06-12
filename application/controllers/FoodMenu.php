@@ -8,6 +8,7 @@ class FoodMenu extends Cl_Controller {
         $this->load->library('excel'); //load PHPExcel library
         $this->load->model('Common_model');
         $this->load->model('Master_model');
+        $this->load->model('Food_menu_model');
         $this->load->library('form_validation');
         $this->Common_model->setDefaultTimezone();
 
@@ -21,7 +22,7 @@ class FoodMenu extends Cl_Controller {
         $controller = "234";
         $function = "";
 
-        if($segment_2=="foodMenus"){
+        if($segment_2=="foodMenus" || $segment_2=="ajax_list" || $segment_2=="ajax_food_menus" || $segment_2=="ajax_ingredients" ){
             $function = "view";
         }elseif($segment_2=="addEditFoodMenu" && $segment_3){
             $function = "update";
@@ -73,6 +74,13 @@ class FoodMenu extends Cl_Controller {
      */
     public function foodMenus() {
         $company_id = $this->session->userdata('company_id');
+        $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
+        $data['main_content'] = $this->load->view('master/foodMenu/foodMenus', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+
+    public function foodMenusOld() {
+        $company_id = $this->session->userdata('company_id');
 
         if (htmlspecialcharscustom($this->input->post('submit'))) {
             $this->form_validation->set_rules('category_id', lang('category'), 'required|max_length[50]');
@@ -113,6 +121,59 @@ class FoodMenu extends Cl_Controller {
             $this->load->view('userHome', $data);
         }
     }
+
+
+    // Endpoint para DataTables server-side
+    public function ajax_list() {
+        $company_id = $this->session->userdata('company_id');
+        $category_id = $this->input->get('category_id');
+        $draw = intval($this->input->get('draw'));
+        $start = intval($this->input->get('start'));
+        $length = intval($this->input->get('length'));
+        $search_value = $this->input->get('search')['value'];
+
+        $result = $this->Food_menu_model->get_datatables($company_id, $category_id, $start, $length, $search_value);
+        $total = $this->Food_menu_model->count_all($company_id, $category_id);
+        $filtered = $this->Food_menu_model->count_filtered($company_id, $category_id, $search_value);
+
+        $data = [];
+        $i = $start + 1;
+        foreach ($result as $row) {
+            $img_size = "images/".$row->photo;
+            $image_path = (file_exists($img_size) && $row->photo!="") ? base_url().'images/'.$row->photo : base_url().'images/image_thumb.png';
+
+            $data[] = [
+                $i++,
+                '<img src="'.$image_path.'" class="img-port" alt="'.escape_output($row->name).'">',
+                escape_output($row->code),
+                escape_output($row->name),
+                escape_output(getFoodMenuCateCodeById($row->category_id)),
+                escape_output(getAmtPCustom($row->sale_price)),
+                escape_output(getAlternativeNameById($row->id)),
+                escape_output(userName($row->user_id)),
+                '<div class="btn_group_wrap">
+                    <a class="btn btn-warning" href="'.base_url().'foodMenu/addEditFoodMenu/'.escape_output($this->custom->encrypt_decrypt($row->id, "encrypt")).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('edit').'">
+                        <i class="far fa-edit"></i>
+                    </a>
+                    <a class="delete btn btn-danger" href="'.base_url().'foodMenu/deleteFoodMenu/'.escape_output($this->custom->encrypt_decrypt($row->id, "encrypt")).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('delete').'">
+                        <i class="fa-regular fa-trash-can"></i>
+                    </a>
+                    <a class="btn btn-info" href="'.base_url().'foodMenu/assignFoodMenuModifier/'.escape_output($this->custom->encrypt_decrypt($row->id, "encrypt")).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('assign_modifier').'">
+                        <i class="far fa-plus"></i>
+                    </a>
+                </div>'
+            ];
+        }
+
+        echo json_encode([
+            "draw" => $draw,
+            "recordsTotal" => $total,
+            "recordsFiltered" => $filtered,
+            "data" => $data
+        ]);
+        exit;
+    }
+
      /**
      * delete food menu
      * @access public
@@ -453,8 +514,8 @@ class FoodMenu extends Cl_Controller {
                 $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
                 $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                 $data['autoCode'] = $this->Master_model->generateFoodMenuCode();
-                $data['ingredients'] = $this->Master_model->getIngredientListWithUnit($company_id);
-                 $data['food_menus'] = $this->Common_model->getFoodMenuWithVariations($company_id, 'tbl_food_menus');
+                $data['ingredients'] = []; //$this->Master_model->getIngredientListWithUnit($company_id);
+                 $data['food_menus'] = []; // $this->Common_model->getFoodMenuWithVariations($company_id, 'tbl_food_menus');
                     foreach ($data['food_menus'] as $key=>$value){
                         $variations = $this->Common_model->getAllByCustomId($value->id,"parent_id","tbl_food_menus",$order='');
                         $data['food_menus'][$key]->is_variation = isset($variations) && $variations?'Yes':'No';
@@ -467,8 +528,8 @@ class FoodMenu extends Cl_Controller {
                 $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
                 $data['encrypted_id'] = $encrypted_id;
                 $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
-                $data['ingredients'] = $this->Master_model->getIngredientListWithUnit($company_id);
-                 $data['food_menus'] = $this->Common_model->getFoodMenuWithVariations($company_id, 'tbl_food_menus');
+                $data['ingredients'] = []; // $this->Master_model->getIngredientListWithUnit($company_id);
+                 $data['food_menus'] = []; // $this->Common_model->getFoodMenuWithVariations($company_id, 'tbl_food_menus');
                     foreach ($data['food_menus'] as $key=>$value){
                         $variations = $this->Common_model->getAllByCustomId($value->id,"parent_id","tbl_food_menus",$order='');
                         $data['food_menus'][$key]->is_variation = isset($variations) && $variations?'Yes':'No';
@@ -1192,6 +1253,60 @@ class FoodMenu extends Cl_Controller {
     
         $this->session->set_flashdata('exception', 'Los ingredientes fueron generados y asociados correctamente.');
         redirect('foodMenu/assign');
+    }
+
+    public function ajax_ingredients() {
+        $company_id = $this->session->userdata('company_id');
+        $term = $this->input->get('term'); // texto que escribe el usuario
+        $this->db->select("tbl_ingredients.id, tbl_ingredients.name, tbl_ingredients.code, tbl_units.unit_name, tbl_ingredients.consumption_unit_cost");
+        $this->db->from("tbl_ingredients");
+        $this->db->join('tbl_units', 'tbl_ingredients.unit_id = tbl_units.id');
+        $this->db->where('tbl_ingredients.company_id', $company_id);
+        $this->db->where('tbl_ingredients.del_status', 'Live');
+        if ($term) {
+            $this->db->like('tbl_ingredients.name', $term);
+            $this->db->or_like('tbl_ingredients.code', $term);
+        }
+        $this->db->order_by('tbl_ingredients.name', 'ASC');
+        $this->db->limit(20); // puedes ajustar el límite
+        $result = $this->db->get()->result();
+    
+        $res = [];
+        foreach ($result as $row) {
+            $res[] = [
+                "id" => $row->id . "|" . $row->name . "|" . $row->unit_name . "|" . $row->consumption_unit_cost,
+                "text" => $row->name . " (" . $row->code . ") - " . $row->unit_name
+            ];
+        }
+        echo json_encode(["results" => $res]);
+    }
+
+    public function ajax_food_menus() {
+        $company_id = $this->session->userdata('company_id');
+        $term = $this->input->get('term');
+        $this->db->select("id, name, code, parent_id");
+        $this->db->from("tbl_food_menus");
+        $this->db->where('company_id', $company_id);
+        $this->db->where('del_status', 'Live');
+        $this->db->where('parent_id', 0); // Opcional: solo menús principales
+        if ($term) {
+            $this->db->like('name', $term);
+            $this->db->or_like('code', $term);
+        }
+        $this->db->order_by('name', 'ASC');
+        $this->db->limit(20);
+        $result = $this->db->get()->result();
+    
+        $res = [];
+        foreach ($result as $row) {
+            $text = getParentNameOnly($row->parent_id) . " " . $row->name . " (" . $row->code . ")";
+            $res[] = [
+                "id" => $row->id,
+                "text" => $text,
+                "food_menu_only" => getParentNameOnly($row->parent_id) . " " . $row->name, // Ajusta según lo que necesites
+            ];
+        }
+        echo json_encode(["results" => $res]);
     }
 
     // // Procesar formulario (pendiente de implementar inserciones)

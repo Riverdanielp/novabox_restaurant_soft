@@ -384,18 +384,21 @@ $(function() {
             cancelButtonText: cancel,
             confirmButtonText: ok,
             showCancelButton: true
-        }, function() {
-            this_action.parent().parent().remove();
-            let ingredient_id_container_new = [];
-
-            for (let i = 0; i < ingredient_id_container.length; i++) {
-                if (ingredient_id_container[i] != id) {
-                    ingredient_id_container_new.push(ingredient_id_container[i]);
+        }).then(function(result) {
+            // Para SweetAlert2, la confirmación puede ser result.value o result.isConfirmed
+            if (result.value || result.isConfirmed) {
+                this_action.closest('tr').remove();
+                let ingredient_id_container_new = [];
+    
+                for (let i = 0; i < ingredient_id_container.length; i++) {
+                    if (ingredient_id_container[i] != id) {
+                        ingredient_id_container_new.push(ingredient_id_container[i]);
+                    }
                 }
+                ingredient_id_container = ingredient_id_container_new;
+                updateRowNo();
+                calculation_row();
             }
-            ingredient_id_container = ingredient_id_container_new;
-            updateRowNo();
-            calculation_row();
         });
     });
     $(document).on('click', '.del_fm', function() {
@@ -407,14 +410,16 @@ $(function() {
             cancelButtonText: cancel,
             confirmButtonText: ok,
             showCancelButton: true
-        }, function() {
-            this_action.parent().parent().remove();
-            updateRowNo();
+        }).then(function(result) {
+            if (result.value || result.isConfirmed) {
+                this_action.parent().parent().remove();
+                updateRowNo();
+            }
         });
     });
     $(document).on('change', '#ingredient_id', function() {
         let ingredient_details = $('#ingredient_id').val();
-        if (ingredient_details != '') {
+        if (ingredient_details && typeof ingredient_details === 'string' && ingredient_details != '') {
             let ingredient_details_array = ingredient_details.split('|');
             let index = ingredient_id_container.indexOf(ingredient_details_array[0]);
 
@@ -465,19 +470,20 @@ $(function() {
         }
     });
     $(document).on('change', '#food_menu_id', function() {
-        let food_menu = $(this).find(':selected').text();
-        let food_menu_only = $(this).find(':selected').attr('data-name');
-        let food_menu_id = Number($('#food_menu_id').val());
-        if(food_menu_id){
+        let selectedData = $('#food_menu_id').select2('data');
+        if(selectedData && selectedData.length > 0) {
+            let food_menu = selectedData[0].text;
+            let food_menu_id = Number(selectedData[0].id);
+            let food_menu_only = selectedData[0].food_menu_only || '';
             let status = true;
-
+    
             $(".food_row").each(function() {
                 let this_value = Number($(this).attr('data-id'));
-                if(this_value===food_menu_id){
+                if(this_value === food_menu_id){
                     status = false;
                 }
             });
-
+    
             let cart_row = '<tr class="food_row" data-id="'+food_menu_id+'">' +
                 '<td style="width: 12%; padding-left: 10px;"><p class="txt_food_row"></p></td>' +
                 '<td class="ir_w_23">'+food_menu+' <input type="hidden" id="food_menu_id_hidden_' + suffix +'" name="food_menu_id_hidden[]" class="food_menu_id_hidden" value="' + food_menu_id+ '||'+food_menu_only+'"/></td>' +
@@ -486,8 +492,8 @@ $(function() {
                 '" name="qty_food_menu[]" onfocus="this.select();"  class="form-control aligning vr01_qty_food_menu check_required_fm class="ir_w_85" placeholder="Quantity"/></td>' +
                 '<td class="ir_w_17"><a class="btn btn-danger btn-xs del_fm" style="margin-left: 5px;"><i class="fa fa-trash"></i> </a></td>' +
                 '</tr>';
-
-            if(status===false){
+    
+            if(status === false){
                 swal({
                     title: warning,
                     text: ingredient_already_remain,
@@ -495,14 +501,13 @@ $(function() {
                     confirmButtonColor: '#3c8dbc'
                 });
                 return false;
-            }else{
+            } else {
                 $('#food_menu_combo').append(cart_row);
             }
-            $('#food_menu_id').val('').change();
+            $('#food_menu_id').val('').trigger('change'); // trigger('change') para limpiar Select2 correctamente
             updateRowNo();
         }
     });
-
     $(document).on('change', '#vr01_md_ingredient_id', function() {
         let ingredient_details = $('#vr01_md_ingredient_id').val();
         if (ingredient_details != '') {

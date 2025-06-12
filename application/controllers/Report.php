@@ -1407,13 +1407,13 @@ class Report extends Cl_Controller {
                 $payment_name = $payments[1];
                 $opening_balance = (float) $payments[2];
     
-                $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id);
-                $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id);
-                $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id);
-                $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id);
-                $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id);
-                $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id);
-    
+                $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id, $outlet_id);
+                $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id, $outlet_id);
+                $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id, $outlet_id);
+                $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id, $outlet_id);
+                $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id, $outlet_id);
+                $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id, $outlet_id);
+
                 $total_sale_all += $total_sale;
     
                 // Para el diferencial en declaración de cierre  $opening_balance

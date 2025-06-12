@@ -321,16 +321,16 @@ class Sale extends Cl_Controller {
         //end check access function
         //truncate all transactional data
         $outlet_id = $this->session->userdata('outlet_id');
-        $this->db->delete('tbl_sales', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_sales_details', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_sales_details_modifiers', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_sale_consumptions', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_sale_consumptions_of_menus', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_sale_consumptions_of_modifiers_of_menus', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_sale_payments', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_kitchen_sales', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_kitchen_sales_details', array('outlet_id ' => $outlet_id));
-        $this->db->delete('tbl_kitchen_sales_details_modifiers', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_sales', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_sales_details', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_sales_details_modifiers', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_sale_consumptions', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_sale_consumptions_of_menus', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_sale_consumptions_of_modifiers_of_menus', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_sale_payments', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_kitchen_sales', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_kitchen_sales_details', array('outlet_id ' => $outlet_id));
+        // $this->db->delete('tbl_kitchen_sales_details_modifiers', array('outlet_id ' => $outlet_id));
         
         $this->session->set_flashdata('exception', lang('truncate_sale_update_success'));
         redirect('Sale/sales');
@@ -1342,6 +1342,8 @@ class Sale extends Cl_Controller {
             $this->session->set_userdata('online_customer_name',$data['name']);
             $this->session->set_userdata('short_name', strtolower(substr($data['name'],0, 1)));
         }
+        $customer_data = $this->db->get_where('tbl_customers', ['id' => $id_return])->row_array();
+        $customer_return['customer_data'] = $customer_data;
         echo json_encode($customer_return) ;
     }
     public function online_customer_login_by_ajax(){
@@ -1374,6 +1376,16 @@ class Sale extends Cl_Controller {
               WHERE company_id=$company_id AND del_status='Live'")->result();
         echo json_encode($data1);
     }
+    // Agrega este método al controlador
+    public function get_customer_by_id($id) {
+        $company_id = $this->session->userdata('company_id');
+        $customer = $this->db->get_where('tbl_customers', [
+            'id' => $id,
+            'company_id' => $company_id,
+            'del_status' => 'Live'
+        ])->row();
+        echo json_encode($customer);
+    }
      /**
      * add sale by ajax
      * @access public
@@ -1397,25 +1409,20 @@ class Sale extends Cl_Controller {
         $order = $this->input->post('order');
         $order_details = (json_decode($order));
         if(!empty($order_details)){
-            /*This variable could not be escaped because this is json data*/
-            //this id will be 0 when there is new order, but will be greater then 0 when there is modification
-            //on previous order
             $sale_no = $order_details->sale_no;
             $sale_d = getKitchenSaleDetailsBySaleNo($sale_no);
-
-
+    
             $data = array();
             $data['customer_id'] = trim_checker($order_details->customer_id);
             $data['counter_id'] = trim_checker($order_details->counter_id);
-
+    
             $is_self_order = $this->session->userdata('is_self_order');
             $is_online_order = $this->session->userdata('is_online_order');
-
+    
             $self_order_table_person = htmlspecialcharscustom($order_details->self_order_table_person);
             $self_order_table_id = htmlspecialcharscustom($order_details->self_order_table_id);
-
+    
             $designation = $this->session->userdata('designation');
-
             if($designation!="Admin" && $designation!="Super Admin"){
                 $data['order_receiving_id'] = getOrderReceivingId($this->session->userdata('user_id'));
                 $data['order_receiving_id_admin'] = getOrderReceivingIdAdmin();
@@ -1445,7 +1452,6 @@ class Sale extends Cl_Controller {
             $data['outlet_id'] = $this->session->userdata('outlet_id');
             $data['company_id'] = $this->session->userdata('company_id');
             $data['sale_date'] = trim_checker(isset($order_details->open_invoice_date_hidden) && $order_details->open_invoice_date_hidden?$order_details->open_invoice_date_hidden:date('Y-m-d'));
-
             $data['table_id'] = trim_checker($order_details->table_id);
             $data['is_merge'] = trim_checker(@$order_details->is_merge);
             $data['zatca_value'] = trim_checker($order_details->zatca_invoice_value);
@@ -1453,7 +1459,6 @@ class Sale extends Cl_Controller {
             $data['number_slot_name'] = trim_checker($order_details->selected_number_name );
             $data['sale_no'] = $sale_no;
             $today_ = date('Y-m-d');
-
             $data['is_pickup_sale'] = 1;
             $total_tax = 0;
             if(isset($order_details->sale_vat_objects) && $order_details->sale_vat_objects){
@@ -1461,10 +1466,10 @@ class Sale extends Cl_Controller {
                     $total_tax+=$val->tax_field_amount;
                 }
             }
-
             $data['vat'] = $total_tax;
             $data['sale_vat_objects'] = json_encode($order_details->sale_vat_objects);
             $data['order_type'] = trim_checker($order_details->order_type);
+    
             $this->db->trans_begin();
             $sale_id = isset($sale_d->id) && $sale_d->id?$sale_d->id:'';
             $is_new = 1;
@@ -1477,20 +1482,13 @@ class Sale extends Cl_Controller {
                 $data['is_online_order'] = $sale_d->is_online_order;
                 $data['is_accept'] = $sale_d->is_accept;
                 $data['online_order_receiving_id'] = $sale_d->online_order_receiving_id;
-                
                 $data['modified'] = 'Yes';
                 $data['is_update_sender'] = 1;
                 $data['is_update_receiver'] = 1;
                 $data['is_update_receiver_admin'] = 1;
                 $data['last_update'] = gmdate('Y-m-d H:i:s');
-
-                
-                // Limpiar número anterior si existe
                 $previous_number = $this->db->select('number_slot')
-                    ->where('id', $sale_id)
-                    ->get('tbl_kitchen_sales')
-                    ->row()->number_slot;
-
+                    ->where('id', $sale_id)->get('tbl_kitchen_sales')->row()->number_slot;
                 if($previous_number > 0) {
                     $this->db->where("id", $previous_number)
                     ->update("tbl_numeros", [
@@ -1499,8 +1497,6 @@ class Sale extends Cl_Controller {
                         "user_id" => NULL
                     ]); 
                 }
-
-                // Actualizar con el nuevo número si existe
                 if (isset($order_details->selected_number) && $order_details->selected_number > 0) {
                     $this->db->where("id", $order_details->selected_number)
                             ->update("tbl_numeros", [
@@ -1509,36 +1505,29 @@ class Sale extends Cl_Controller {
                                 "user_id" => $this->session->userdata('user_id')
                             ]);
                 }
-    
                 $this->db->where('id', $sale_id);
                 $this->db->update('tbl_kitchen_sales', $data);
                 checkAndRemoveAllRemovedItem($order_details->items,$sale_id);
             }else{
                 $is_new = 1;
-                $data['date_time'] = date('Y-m-d H:i:s'); //,strtotime($order_details->date_time) $sale_d->date
-                $data['order_time'] = date("H:i:s");//,strtotime($order_details->order_time));
+                $data['date_time'] = date('Y-m-d H:i:s');
+                $data['order_time'] = date("H:i:s");
                 $data['order_status'] = trim_checker($order_details->order_status);
-                
                 if($is_self_order=="Yes" && $is_online_order!="Yes"){
                     $data['is_self_order'] = "Yes";
                     $data['is_accept'] = 2;
                     $data['self_order_ran_code'] = $this->session->userdata('self_order_ran_code');
                     $data['online_self_order_receiving_id'] = getOnlineSelfOrderReceivingId($this->session->userdata('outlet_id'));
                 }
-            
                 if($is_online_order=="Yes"){
                     $data['is_online_order'] = "Yes";
                     $data['is_accept'] = 2;
                     $data['online_order_receiving_id'] = getOnlineOrderReceivingId($this->session->userdata('outlet_id'));
                 }
-
-
                 $data['user_id'] = $this->session->userdata('user_id');
                 $data['random_code'] = trim_checker(isset($order_details->random_code) && $order_details->random_code?$order_details->random_code:'');
                 $this->db->insert('tbl_kitchen_sales', $data);
                 $sale_id = $this->db->insert_id();
-
-
                 if (isset($order_details->selected_number) && $order_details->selected_number > 0) {
                     $this->db->where("id", $order_details->selected_number)
                     ->update("tbl_numeros", [
@@ -1547,7 +1536,6 @@ class Sale extends Cl_Controller {
                         "user_id" => $this->session->userdata('user_id')
                     ]);
                 }
-
                 if($is_self_order=="Yes" && $is_online_order!="Yes"){
                     $notification = "se ha realizado un nuevo autopedido, el número de pedido es: ".$sale_no;
                     $notification_data = array();
@@ -1576,7 +1564,7 @@ class Sale extends Cl_Controller {
                 $order_table_info['outlet_id'] = $this->session->userdata('outlet_id');
                 $order_table_info['table_id'] = $self_order_table_id;
                 $this->db->insert('tbl_orders_table',$order_table_info);
-
+    
                 $data_update_text['orders_table_text'] = getTableName($self_order_table_id);
                 $this->db->where('id', $sale_id);
                 $this->db->update('tbl_kitchen_sales', $data_update_text);
@@ -1595,27 +1583,19 @@ class Sale extends Cl_Controller {
             if($sale_id>0 && count($order_details->items)>0){
                 $previous_food_id = 0;
                 $arr_item_id = array();
-                // Trae todos los ítems existentes de la orden, ordenados por id ascendente
                 $existing_items = getAllOrderItems($sale_id);
-
-                // Indexar por food_menu_id y ocurrencia
                 $existing_items_by_id = [];
                 foreach ($existing_items as $ex_item) {
                     $fid = $ex_item->food_menu_id;
                     if (!isset($existing_items_by_id[$fid])) $existing_items_by_id[$fid] = [];
                     $existing_items_by_id[$fid][] = $ex_item;
                 }
-                
-                // Contadores de ocurrencia
                 $counter_by_id = [];
                 foreach($order_details->items as $key_counter=>$item){
                     $fid = $item->food_menu_id;
                     if (!isset($counter_by_id[$fid])) $counter_by_id[$fid] = 0;
                     $occurrence = $counter_by_id[$fid]++;
-                
                     $existing_item = isset($existing_items_by_id[$fid][$occurrence]) ? $existing_items_by_id[$fid][$occurrence] : null;
-                
-                    // Lógica de cantidades
                     if ($is_new > 0) { // Es una orden nueva
                         $tmp_var = intval($item->qty);
                     } else {
@@ -1623,31 +1603,28 @@ class Sale extends Cl_Controller {
                             $tmp = intval($item->qty) - intval($existing_item->qty);
                             $tmp_var = ($tmp > 0) ? $tmp : 0;
                         } else {
-                            // Ítem nuevo (más ocurrencias de este food_menu_id que antes)
                             $tmp_var = intval($item->qty);
                         }
                     }
-                
                     $item_data = array();
-                    $item_data['food_menu_id'] = $item->food_menu_id;
-                    $item_data['menu_name'] = $item->menu_name;
+                    $item_data['food_menu_id'] = sanitize_font_html($item->food_menu_id);
+                    $item_data['menu_name'] = sanitize_font_html($item->menu_name);
                     if ($item->is_free==1) {
                         $item_data['is_free_item'] = $previous_food_id;
                     } else {
                         $item_data['is_free_item'] = 0;
                     }
-                
-                    $item_data['qty'] = $item->qty;
-                    $item_data['tmp_qty'] = $tmp_var;
-                    $item_data['menu_price_without_discount'] = $item->menu_price_without_discount;
-                    $item_data['menu_price_with_discount'] = $item->menu_price_with_discount;
-                    $item_data['menu_unit_price'] = $item->menu_unit_price;
+                    $item_data['qty'] = sanitize_font_html($item->qty);
+                    $item_data['tmp_qty'] = sanitize_font_html($tmp_var);
+                    $item_data['menu_price_without_discount'] = sanitize_font_html($item->menu_price_without_discount);
+                    $item_data['menu_price_with_discount'] = sanitize_font_html($item->menu_price_with_discount);
+                    $item_data['menu_unit_price'] = sanitize_font_html($item->menu_unit_price);
                     $item_data['menu_taxes'] = json_encode($item->item_vat);
-                    $item_data['menu_discount_value'] = $item->menu_discount_value;
-                    $item_data['discount_type'] = $item->discount_type;
-                    $item_data['menu_note'] = $item->item_note;
-                    $item_data['menu_combo_items'] = $item->menu_combo_items;
-                    $item_data['discount_amount'] = $item->item_discount_amount;
+                    $item_data['menu_discount_value'] = sanitize_font_html($item->menu_discount_value);
+                    $item_data['discount_type'] = sanitize_font_html($item->discount_type);
+                    $item_data['menu_note'] = sanitize_font_html($item->item_note);
+                    $item_data['menu_combo_items'] = sanitize_font_html($item->menu_combo_items);
+                    $item_data['discount_amount'] = sanitize_font_html($item->item_discount_amount);
                     $item_data['item_type'] = "Kitchen Item";
                     $item_data['cooking_start_time'] = ($item->item_cooking_start_time=="" || $item->item_cooking_start_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_start_time));
                     $item_data['cooking_done_time'] = ($item->item_cooking_done_time=="" || $item->item_cooking_done_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_done_time));
@@ -1660,12 +1637,10 @@ class Sale extends Cl_Controller {
                         $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
                     }
                     $item_data['del_status'] = 'Live';
-                
                     $sales_details_id = '';
                     if ($sale_id) {
                         if ($existing_item) {
                             $sales_details_id = $existing_item->id;
-                            // Solo marcar como 'New' si la cantidad aumentó
                             if ($item->qty > $existing_item->qty) {
                                 $item_data['cooking_status'] = 'New';
                             } else {
@@ -1694,12 +1669,10 @@ class Sale extends Cl_Controller {
                         $this->db->insert('tbl_kitchen_sales_details', $item_data);
                         $sales_details_id = $this->db->insert_id();
                     }
-                
                     $previous_food_id = $sales_details_id;
                     $update_previous_id = array();
                     $update_previous_id['previous_id'] = $previous_food_id;
                     $this->Common_model->updateInformation($update_previous_id, $sales_details_id, "tbl_kitchen_sales_details");
-                
                     $modifier_id_array = ($item->modifiers_id!="")?explode(",",$item->modifiers_id):null;
                     $modifier_price_array = ($item->modifiers_price!="")?explode(",",$item->modifiers_price):null;
                     $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat!="")?explode("|||",$item->modifier_vat):null;
@@ -1707,15 +1680,15 @@ class Sale extends Cl_Controller {
                         $i = 0;
                         foreach($modifier_id_array as $key1=>$single_modifier_id){
                             $modifier_data = array();
-                            $modifier_data['modifier_id'] =$single_modifier_id;
-                            $modifier_data['modifier_price'] = $modifier_price_array[$i];
-                            $modifier_data['food_menu_id'] = $item->food_menu_id;
+                            $modifier_data['modifier_id'] = sanitize_font_html($single_modifier_id);
+                            $modifier_data['modifier_price'] = sanitize_font_html($modifier_price_array[$i]);
+                            $modifier_data['food_menu_id'] = sanitize_font_html($item->food_menu_id);
                             $modifier_data['sales_id'] = $sale_id;
                             $modifier_data['sales_details_id'] = $sales_details_id;
-                            $modifier_data['menu_taxes'] = isset($modifier_vat_array[$key1]) && $modifier_vat_array[$key1]?$modifier_vat_array[$key1]:'';
+                            $modifier_data['menu_taxes'] = isset($modifier_vat_array[$key1]) && $modifier_vat_array[$key1]?sanitize_font_html($modifier_vat_array[$key1]):'';
                             $modifier_data['user_id'] = $this->session->userdata('user_id');
                             $modifier_data['outlet_id'] = $this->session->userdata('outlet_id');
-                            $modifier_data['customer_id'] =$order_details->customer_id;
+                            $modifier_data['customer_id'] = sanitize_font_html($order_details->customer_id);
                             if($sale_id){
                                 $check_exist_modifer = checkExistItemModifer($sale_id,$item->food_menu_id,$sales_details_id,$single_modifier_id);
                                 if(isset($check_exist_modifer) && $check_exist_modifer){
@@ -1964,8 +1937,6 @@ class Sale extends Cl_Controller {
             echo json_encode($return_data);
             return;
         }
-        
-
     }
 
     public function getPrintDataForOrder($sale_no = null) {
@@ -2680,18 +2651,19 @@ class Sale extends Cl_Controller {
 
     }
     public function push_online(){
+        // $this->load->helper('sanitize_font_html');
         $sale_id_offline = $this->input->post('sales_id');
         $order_details = json_decode(($this->input->post('orders')));
         $sale_no = $order_details->sale_no;
         $sale_id = '';
         $check_existing = getSaleDetailsBySaleNo($sale_no);
         $select_kitchen_row = getKitchenSaleDetailsBySaleNo($sale_no);
-
+    
         $kitchen_sale = $this->db->select('number_slot,number_slot_name')
         ->where('sale_no', $sale_no)
         ->get('tbl_kitchen_sales')
         ->row();
-
+    
         if(isset($check_existing) && $check_existing){
             $sale_id = $check_existing->id;
         }
@@ -2722,7 +2694,7 @@ class Sale extends Cl_Controller {
         $data['change_amount'] = trim_checker($order_details->hidden_change_amount);
         $data['token_number'] = trim_checker($order_details->token_number);
         $data['random_code'] = trim_checker(isset($order_details->random_code) && $order_details->random_code?$order_details->random_code:'');
-        $data['user_id'] = $this->session->userdata('user_id');;
+        $data['user_id'] = $this->session->userdata('user_id');
         $data['waiter_id'] = trim_checker($order_details->waiter_id);
         $data['outlet_id'] = $this->session->userdata('outlet_id');
         $data['company_id'] = $this->session->userdata('company_id');
@@ -2750,8 +2722,7 @@ class Sale extends Cl_Controller {
             $data['modified'] = 'Yes';
             $this->db->where('id', $sale_id);
             $this->db->update('tbl_sales', $data);
-
-            //end of send notification process
+    
             $this->db->delete('tbl_sales_details', array('sales_id' => $sale_id));
             $this->db->delete('tbl_sales_details_modifiers', array('sales_id' => $sale_id));
             $this->db->delete('tbl_sale_consumptions', array('sale_id' => $sale_id));
@@ -2759,13 +2730,12 @@ class Sale extends Cl_Controller {
             $this->db->delete('tbl_sale_consumptions_of_modifiers_of_menus', array('sales_id' => $sale_id));
             $this->db->delete('tbl_sale_payments', array('sale_id' => $sale_id));
             $sales_id = $sale_id;
-
-
+    
             $paymentarray = array();
             $paymentarray['payment_id'] = 1;
             $paymentarray['payment_name'] = "Cash";
             $paymentarray['amount'] = $order_details->total_payable;
-            $paymentarray['date_time'] = date('Y-m-d H:i:s');;
+            $paymentarray['date_time'] = date('Y-m-d H:i:s');
             $paymentarray['sale_id'] = $sales_id;
             $paymentarray['user_id'] = $this->session->userdata('user_id');
             $paymentarray['outlet_id'] = $data['outlet_id'] ;
@@ -2795,40 +2765,40 @@ class Sale extends Cl_Controller {
         $data_sale_consumptions['del_status'] = 'Live';
         $this->db->insert('tbl_sale_consumptions',$data_sale_consumptions);
         $sale_consumption_id = $this->db->insert_id();
-
+    
         if($sales_id>0 && count($order_details->items)>0){
             foreach($order_details->items as $item){
                 // $tmp_var_111 = isset($item->p_qty) && $item->p_qty && $item->p_qty!='undefined'?$item->p_qty:0;
                 // $tmp = $item->qty-$tmp_var_111;
+                $item->qty = isset($item->qty) ? sanitize_font_html($item->qty) : 0;
+                $item->p_qty = isset($item->p_qty) ? sanitize_font_html($item->p_qty) : 0;
                 $qty = isset($item->qty) && is_numeric($item->qty) ? (int)$item->qty : 0;
                 $p_qty = isset($item->p_qty) && is_numeric($item->p_qty) ? (int)$item->p_qty : 0;
                 $tmp = $qty - $p_qty;
-
                 $tmp_var = 0;
                 if($tmp>0){
                     $tmp_var = $tmp;
                 }
-
                 $food_details =  $this->Common_model->getDataById($item->food_menu_id, "tbl_food_menus");
                 $item_data = array();
-                $item_data['food_menu_id'] = $item->food_menu_id;
+                $item_data['food_menu_id'] = sanitize_font_html($item->food_menu_id);
                 $p_name = getParentNameOnly($food_details->parent_id);
-                $item_data['menu_name'] = isset($p_name[0]) ? $p_name[0] . (isset($food_details->name) && $food_details->name ? " " . $food_details->name : '') : (isset($food_details->name) && $food_details->name ? $food_details->name : '');
-                $item_data['qty'] = $item->qty;
-                $item_data['tmp_qty'] = $tmp_var;
-                $item_data['menu_price_without_discount'] = $item->menu_price_without_discount;
-                $item_data['menu_price_with_discount'] = $item->menu_price_with_discount;
-                $item_data['menu_combo_items'] = isset($item->menu_combo_items) && $item->menu_combo_items && $item->menu_combo_items!="undefined"?$item->menu_combo_items:'';
-                $item_data['is_free_item'] = $item->is_free;
-                $item_data['menu_unit_price'] = $item->menu_unit_price;
+                $item_data['menu_name'] = sanitize_font_html(isset($p_name[0]) ? $p_name[0] . (isset($food_details->name) && $food_details->name ? " " . $food_details->name : '') : (isset($food_details->name) && $food_details->name ? $food_details->name : ''));
+                $item_data['qty'] = ($item->qty);
+                $item_data['tmp_qty'] = ($tmp_var);
+                $item_data['menu_price_without_discount'] = sanitize_font_html($item->menu_price_without_discount);
+                $item_data['menu_price_with_discount'] = sanitize_font_html($item->menu_price_with_discount);
+                $item_data['menu_combo_items'] = sanitize_font_html(isset($item->menu_combo_items) && $item->menu_combo_items && $item->menu_combo_items!="undefined"?$item->menu_combo_items:'');
+                $item_data['is_free_item'] = sanitize_font_html($item->is_free);
+                $item_data['menu_unit_price'] = sanitize_font_html($item->menu_unit_price);
                 $item_data['menu_taxes'] = json_encode($item->item_vat);
-                $item_data['menu_discount_value'] = $item->menu_discount_value;
-                $item_data['discount_type'] = $item->discount_type;
-                $item_data['menu_note'] = isset($item->item_note) && $item->item_note?$item->item_note:'';
-                $item_data['discount_amount'] = $item->item_discount_amount;
-                $item_data['item_type'] = ($this->Sale_model->getItemType($item->food_menu_id)->item_type=="Bar No")?"Kitchen Item":"Bar Item";
+                $item_data['menu_discount_value'] = sanitize_font_html($item->menu_discount_value);
+                $item_data['discount_type'] = sanitize_font_html($item->discount_type);
+                $item_data['menu_note'] = sanitize_font_html(isset($item->item_note) && $item->item_note?$item->item_note:'');
+                $item_data['discount_amount'] = sanitize_font_html($item->item_discount_amount);
+                $item_data['item_type'] = sanitize_font_html(($this->Sale_model->getItemType($item->food_menu_id)->item_type=="Bar No")?"Kitchen Item":"Bar Item");
                 $item_data['cooking_status'] = ($item->item_cooking_status=="")?NULL:$item->item_cooking_status;
-                
+    
                 if(isset($select_kitchen_row->id) && $select_kitchen_row->id){
                     $kitchen_data = getKitchenItemDetails($select_kitchen_row->id,$item->food_menu_id);
                     $item_data['cooking_start_time'] = isset($kitchen_data->cooking_start_time) && $kitchen_data->cooking_start_time?$kitchen_data->cooking_start_time:'0000-00-00 00:00:00';
@@ -2837,7 +2807,6 @@ class Sale extends Cl_Controller {
                     $item_data['cooking_start_time'] = ($item->item_cooking_start_time=="" || $item->item_cooking_start_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_start_time));
                     $item_data['cooking_done_time'] = ($item->item_cooking_done_time=="" || $item->item_cooking_done_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_done_time));
                 }
-               
                 $item_data['previous_id'] = ($item->item_previous_id=="")?0:$item->item_previous_id;
                 $item_data['sales_id'] = $sales_id;
                 $item_data['user_id'] = $this->session->userdata('user_id');
@@ -2845,11 +2814,10 @@ class Sale extends Cl_Controller {
                 if($order_details->customer_id!=1){
                     $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
                 }
-
                 $item_data['del_status'] = 'Live';
                 $this->db->insert('tbl_sales_details', $item_data);
                 $sales_details_id = $this->db->insert_id();
-
+    
                 if($item->item_previous_id==""){
                     $previous_id_update_array = array('previous_id' => $sales_details_id);
                     $this->db->where('id', $sales_details_id);
@@ -2912,33 +2880,30 @@ class Sale extends Cl_Controller {
                     }
                 }
 
-
-
+                // Modifiers
                 $modifier_id_array = isset($item->modifiers_id) && ($item->modifiers_id!="")?explode(",",$item->modifiers_id):null;
-                /*new_added_zak*/
                 $modifiers_mul_id_array = isset($item->modifiers_mul_id) && ($item->modifiers_mul_id!="")?explode(",",$item->modifiers_mul_id):null;
-                /*end_new_added_zak*/
                 $modifier_price_array = isset($item->modifiers_price) && ($item->modifiers_price!="")?explode(",",$item->modifiers_price):null;
                 $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat!="")?explode("|||",$item->modifier_vat):null;
                 if(!empty($modifier_id_array)>0){
                     $i = 0;
                     foreach($modifier_id_array as $key1=>$single_modifier_id){
                         $modifiers_mul_id_array_value = isset($modifiers_mul_id_array[$key1]) && $modifiers_mul_id_array[$key1]?explode('_',$modifiers_mul_id_array[$key1]):'';
-
                         $modifier_data = array();
-                        $modifier_data['modifier_id'] =$single_modifier_id;
-                        $modifier_data['modifier_price'] = $modifier_price_array[$i];
-                        $modifier_data['food_menu_id'] = $item->food_menu_id;
+                        $modifier_data['modifier_id'] = sanitize_font_html($single_modifier_id);
+                        $modifier_data['modifier_price'] = sanitize_font_html($modifier_price_array[$i]);
+                        $modifier_data['food_menu_id'] = sanitize_font_html($item->food_menu_id);
                         $modifier_data['sales_id'] = $sales_id;
                         $modifier_data['sales_details_id'] = $sales_details_id;
-                        $modifier_data['menu_taxes'] = isset($modifier_vat_array[$key1]) && $modifier_vat_array[$key1]?$modifier_vat_array[$key1]:'';
+                        $modifier_data['menu_taxes'] = isset($modifier_vat_array[$key1]) && $modifier_vat_array[$key1]?sanitize_font_html($modifier_vat_array[$key1]):'';
                         $modifier_data['user_id'] = $this->session->userdata('user_id');
                         $modifier_data['outlet_id'] = $this->session->userdata('outlet_id');
-                        $modifier_data['customer_id'] =$order_details->customer_id;
+                        $modifier_data['customer_id'] =sanitize_font_html($order_details->customer_id);
+    
                         $this->db->insert('tbl_sales_details_modifiers', $modifier_data);
-
+    
+                        // ... resto de la lógica para ingredientes de modificadores ...
                         $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=$single_modifier_id")->result();
-
                         foreach($modifier_ingredients as $single_ingredient){
                             $data_sale_consumptions_detail = array();
                             $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
@@ -2956,7 +2921,7 @@ class Sale extends Cl_Controller {
                 }
             }
         }
-
+        
         if(!$sale_id){
             $this->db->delete('tbl_sale_payments', array('sale_id' => $sales_id));
         }
@@ -3023,7 +2988,6 @@ class Sale extends Cl_Controller {
             }
         }
 
-
         $this->db->trans_complete();
         if ($this->db->trans_status() === FALSE) {
             $this->db->trans_rollback();
@@ -3056,11 +3020,392 @@ class Sale extends Cl_Controller {
             //         $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
             //     // }
             // }
-            
             echo escape_output($sale_id_offline);
             $this->db->trans_commit();
         }
     }
+    // public function push_online(){
+    //     $sale_id_offline = $this->input->post('sales_id');
+    //     $order_details = json_decode(($this->input->post('orders')));
+    //     $sale_no = $order_details->sale_no;
+    //     $sale_id = '';
+    //     $check_existing = getSaleDetailsBySaleNo($sale_no);
+    //     $select_kitchen_row = getKitchenSaleDetailsBySaleNo($sale_no);
+
+    //     $kitchen_sale = $this->db->select('number_slot,number_slot_name')
+    //     ->where('sale_no', $sale_no)
+    //     ->get('tbl_kitchen_sales')
+    //     ->row();
+
+    //     if(isset($check_existing) && $check_existing){
+    //         $sale_id = $check_existing->id;
+    //     }
+    //     $data = array();
+    //     $data['self_order_content'] = $this->input->post('orders');
+    //     $data['number_slot'] = (isset($kitchen_sale) && $kitchen_sale->number_slot) ? $kitchen_sale->number_slot : '';
+    //     $data['number_slot_name'] = (isset($kitchen_sale) && $kitchen_sale->number_slot_name) ? $kitchen_sale->number_slot_name : '';
+    //     $data['customer_id'] = trim_checker($order_details->customer_id);
+    //     $data['counter_id'] = trim_checker($order_details->counter_id);
+    //     $data['delivery_partner_id'] = trim_checker($order_details->delivery_partner_id);
+    //     $data['total_items'] = trim_checker($order_details->total_items_in_cart);
+    //     $data['sub_total'] = trim_checker($order_details->sub_total);
+    //     $data['charge_type'] = trim_checker($order_details->charge_type);
+    //     $data['previous_due_tmp'] = trim_checker($order_details->previous_due_tmp);
+    //     $data['vat'] = trim_checker($order_details->total_vat);
+    //     $data['total_payable'] = trim_checker($order_details->total_payable);
+    //     $data['total_item_discount_amount'] = trim_checker($order_details->total_item_discount_amount);
+    //     $data['sub_total_with_discount'] = trim_checker($order_details->sub_total_with_discount);
+    //     $data['sub_total_discount_amount'] = trim_checker($order_details->sub_total_discount_amount);
+    //     $data['total_discount_amount'] = trim_checker($order_details->total_discount_amount);
+    //     $data['tips_amount'] = trim_checker($order_details->tips_amount);
+    //     $data['tips_amount_actual_charge'] = trim_checker($order_details->tips_amount_actual_charge);
+    //     $data['delivery_charge'] = trim_checker($order_details->delivery_charge);
+    //     $data['delivery_charge_actual_charge'] = trim_checker($order_details->delivery_charge_actual_charge);
+    //     $data['sub_total_discount_value'] = trim_checker($order_details->sub_total_discount_value);
+    //     $data['sub_total_discount_type'] = trim_checker($order_details->sub_total_discount_type);
+    //     $data['given_amount'] = trim_checker($order_details->hidden_given_amount);
+    //     $data['change_amount'] = trim_checker($order_details->hidden_change_amount);
+    //     $data['token_number'] = trim_checker($order_details->token_number);
+    //     $data['random_code'] = trim_checker(isset($order_details->random_code) && $order_details->random_code?$order_details->random_code:'');
+    //     $data['user_id'] = $this->session->userdata('user_id');;
+    //     $data['waiter_id'] = trim_checker($order_details->waiter_id);
+    //     $data['outlet_id'] = $this->session->userdata('outlet_id');
+    //     $data['company_id'] = $this->session->userdata('company_id');
+    //     $data['sale_date'] = trim_checker(isset($order_details->open_invoice_date_hidden) && $order_details->open_invoice_date_hidden?$order_details->open_invoice_date_hidden:date('Y-m-d'));
+    //     $data['date_time'] = date('Y-m-d H:i:s',strtotime($order_details->date_time));
+    //     $data['order_time'] = date('Y-m-d H:i:s',strtotime($order_details->date_time));
+    //     $data['paid_date_time'] = date('Y-m-d H:i:s');
+    //     $data['order_status'] = 3;
+    //     $data['orders_table_text'] = ($order_details->orders_table_text);
+    //     $data['payment_method_id'] = trim_checker($order_details->payment_method_type);
+    //     $data['paid_amount'] = trim_checker($order_details->paid_amount);
+    //     $data['due_amount'] = trim_checker($order_details->due_amount);
+    //     $data['zatca_value'] = trim_checker($order_details->zatca_invoice_value);
+    //     $total_tax = 0;
+    //     if(isset($order_details->sale_vat_objects) && $order_details->sale_vat_objects){
+    //         foreach ($order_details->sale_vat_objects as $keys=>$val){
+    //             $total_tax+=$val->tax_field_amount;
+    //         }
+    //     }
+    //     $data['vat'] = $total_tax;
+    //     $data['sale_vat_objects'] = json_encode($order_details->sale_vat_objects);
+    //     $data['order_type'] = trim_checker($order_details->order_type);
+    //     $this->db->trans_begin();
+    //     if($sale_id>0){
+    //         $data['modified'] = 'Yes';
+    //         $this->db->where('id', $sale_id);
+    //         $this->db->update('tbl_sales', $data);
+
+    //         //end of send notification process
+    //         $this->db->delete('tbl_sales_details', array('sales_id' => $sale_id));
+    //         $this->db->delete('tbl_sales_details_modifiers', array('sales_id' => $sale_id));
+    //         $this->db->delete('tbl_sale_consumptions', array('sale_id' => $sale_id));
+    //         $this->db->delete('tbl_sale_consumptions_of_menus', array('sales_id' => $sale_id));
+    //         $this->db->delete('tbl_sale_consumptions_of_modifiers_of_menus', array('sales_id' => $sale_id));
+    //         $this->db->delete('tbl_sale_payments', array('sale_id' => $sale_id));
+    //         $sales_id = $sale_id;
+
+
+    //         $paymentarray = array();
+    //         $paymentarray['payment_id'] = 1;
+    //         $paymentarray['payment_name'] = "Cash";
+    //         $paymentarray['amount'] = $order_details->total_payable;
+    //         $paymentarray['date_time'] = date('Y-m-d H:i:s');;
+    //         $paymentarray['sale_id'] = $sales_id;
+    //         $paymentarray['user_id'] = $this->session->userdata('user_id');
+    //         $paymentarray['outlet_id'] = $data['outlet_id'] ;
+    //         $paymentarray['counter_id'] = $this->session->userdata('counter_id');
+    //         $this->Common_model->insertInformation($paymentarray, "tbl_sale_payments");
+    //     }else{
+    //         $this->db->insert('tbl_sales', $data);
+    //         $sales_id = $this->db->insert_id();
+    //         $sale_no_update_array = array('sale_no' => $sale_no);
+    //         $this->db->where('id', $sales_id);
+    //         $this->db->update('tbl_sales', $sale_no_update_array);
+    //     }
+    //     foreach($order_details->orders_table as $single_order_table){
+    //         $order_table_info = array();
+    //         $order_table_info['persons'] = $single_order_table->persons;
+    //         $order_table_info['booking_time'] = date('Y-m-d H:i:s');
+    //         $order_table_info['sale_id'] = $sales_id;
+    //         $order_table_info['sale_no'] = $sale_no;
+    //         $order_table_info['outlet_id'] = $this->session->userdata('outlet_id');
+    //         $order_table_info['table_id'] = $single_order_table->table_id;
+    //         $this->db->insert('tbl_orders_table',$order_table_info);
+    //     }
+    //     $data_sale_consumptions = array();
+    //     $data_sale_consumptions['sale_id'] = $sales_id;
+    //     $data_sale_consumptions['user_id'] = $this->session->userdata('user_id');
+    //     $data_sale_consumptions['outlet_id'] = $this->session->userdata('outlet_id');
+    //     $data_sale_consumptions['del_status'] = 'Live';
+    //     $this->db->insert('tbl_sale_consumptions',$data_sale_consumptions);
+    //     $sale_consumption_id = $this->db->insert_id();
+
+    //     if($sales_id>0 && count($order_details->items)>0){
+    //         foreach($order_details->items as $item){
+    //             // $tmp_var_111 = isset($item->p_qty) && $item->p_qty && $item->p_qty!='undefined'?$item->p_qty:0;
+    //             // $tmp = $item->qty-$tmp_var_111;
+    //             $qty = isset($item->qty) && is_numeric($item->qty) ? (int)$item->qty : 0;
+    //             $p_qty = isset($item->p_qty) && is_numeric($item->p_qty) ? (int)$item->p_qty : 0;
+    //             $tmp = $qty - $p_qty;
+
+    //             $tmp_var = 0;
+    //             if($tmp>0){
+    //                 $tmp_var = $tmp;
+    //             }
+
+    //             $food_details =  $this->Common_model->getDataById($item->food_menu_id, "tbl_food_menus");
+    //             $item_data = array();
+    //             $item_data['food_menu_id'] = $item->food_menu_id;
+    //             $p_name = getParentNameOnly($food_details->parent_id);
+    //             $item_data['menu_name'] = isset($p_name[0]) ? $p_name[0] . (isset($food_details->name) && $food_details->name ? " " . $food_details->name : '') : (isset($food_details->name) && $food_details->name ? $food_details->name : '');
+    //             $item_data['qty'] = $item->qty;
+    //             $item_data['tmp_qty'] = $tmp_var;
+    //             $item_data['menu_price_without_discount'] = $item->menu_price_without_discount;
+    //             $item_data['menu_price_with_discount'] = $item->menu_price_with_discount;
+    //             $item_data['menu_combo_items'] = isset($item->menu_combo_items) && $item->menu_combo_items && $item->menu_combo_items!="undefined"?$item->menu_combo_items:'';
+    //             $item_data['is_free_item'] = $item->is_free;
+    //             $item_data['menu_unit_price'] = $item->menu_unit_price;
+    //             $item_data['menu_taxes'] = json_encode($item->item_vat);
+    //             $item_data['menu_discount_value'] = $item->menu_discount_value;
+    //             $item_data['discount_type'] = $item->discount_type;
+    //             $item_data['menu_note'] = isset($item->item_note) && $item->item_note?$item->item_note:'';
+    //             $item_data['discount_amount'] = $item->item_discount_amount;
+    //             $item_data['item_type'] = ($this->Sale_model->getItemType($item->food_menu_id)->item_type=="Bar No")?"Kitchen Item":"Bar Item";
+    //             $item_data['cooking_status'] = ($item->item_cooking_status=="")?NULL:$item->item_cooking_status;
+                
+    //             if(isset($select_kitchen_row->id) && $select_kitchen_row->id){
+    //                 $kitchen_data = getKitchenItemDetails($select_kitchen_row->id,$item->food_menu_id);
+    //                 $item_data['cooking_start_time'] = isset($kitchen_data->cooking_start_time) && $kitchen_data->cooking_start_time?$kitchen_data->cooking_start_time:'0000-00-00 00:00:00';
+    //                 $item_data['cooking_done_time'] = isset($kitchen_data->cooking_done_time) && $kitchen_data->cooking_done_time?$kitchen_data->cooking_done_time:'0000-00-00 00:00:00';
+    //             }else{
+    //                 $item_data['cooking_start_time'] = ($item->item_cooking_start_time=="" || $item->item_cooking_start_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_start_time));
+    //                 $item_data['cooking_done_time'] = ($item->item_cooking_done_time=="" || $item->item_cooking_done_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_done_time));
+    //             }
+               
+    //             $item_data['previous_id'] = ($item->item_previous_id=="")?0:$item->item_previous_id;
+    //             $item_data['sales_id'] = $sales_id;
+    //             $item_data['user_id'] = $this->session->userdata('user_id');
+    //             $item_data['outlet_id'] = $this->session->userdata('outlet_id');
+    //             if($order_details->customer_id!=1){
+    //                 $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
+    //             }
+
+    //             $item_data['del_status'] = 'Live';
+    //             $this->db->insert('tbl_sales_details', $item_data);
+    //             $sales_details_id = $this->db->insert_id();
+
+    //             if($item->item_previous_id==""){
+    //                 $previous_id_update_array = array('previous_id' => $sales_details_id);
+    //                 $this->db->where('id', $sales_details_id);
+    //                 $this->db->update('tbl_sales_details', $previous_id_update_array);
+    //             }
+
+    //             if(isset($food_details->product_type) && $food_details->product_type==1){
+    //                 $food_menu_ingredients = $this->db->query("SELECT * FROM tbl_food_menus_ingredients WHERE food_menu_id=$item->food_menu_id")->result();
+    //                 foreach($food_menu_ingredients as $single_ingredient){
+    //                     $inline_total = $single_ingredient->cost;
+    //                     $data_sale_consumptions_detail = array();
+    //                     $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
+    //                     $data_sale_consumptions_detail['consumption'] = $item->qty*$single_ingredient->consumption;
+    //                     $data_sale_consumptions_detail['sale_consumption_id'] = $sale_consumption_id;
+    //                     $data_sale_consumptions_detail['sales_id'] = $sales_id;
+    //                     $data_sale_consumptions_detail['cost'] = $inline_total;
+    //                     $data_sale_consumptions_detail['food_menu_id'] = $item->food_menu_id;
+    //                     $data_sale_consumptions_detail['user_id'] = $this->session->userdata('outlet_id');
+    //                     $data_sale_consumptions_detail['outlet_id'] = $this->session->userdata('outlet_id');
+    //                     $data_sale_consumptions_detail['del_status'] = 'Live';
+    //                     $query = $this->db->insert('tbl_sale_consumptions_of_menus',$data_sale_consumptions_detail);
+    //                 }
+    //             }else if(isset($food_details->product_type) && $food_details->product_type==3){
+    //                 $food_menu_ingredients = $this->db->query("SELECT * FROM tbl_ingredients WHERE food_id=$item->food_menu_id")->result();
+    //                 foreach($food_menu_ingredients as $single_ingredient){
+    //                     $inline_total = $single_ingredient->consumption_unit_cost;
+    //                     $data_sale_consumptions_detail = array();
+    //                     $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->id;
+    //                     $data_sale_consumptions_detail['consumption'] = $item->qty;
+    //                     $data_sale_consumptions_detail['sale_consumption_id'] = $sale_consumption_id;
+    //                     $data_sale_consumptions_detail['sales_id'] = $sales_id;
+    //                     $data_sale_consumptions_detail['cost'] = $inline_total;
+    //                     $data_sale_consumptions_detail['food_menu_id'] = $item->food_menu_id;
+    //                     $data_sale_consumptions_detail['user_id'] = $this->session->userdata('outlet_id');
+    //                     $data_sale_consumptions_detail['outlet_id'] = $this->session->userdata('outlet_id');
+    //                     $data_sale_consumptions_detail['del_status'] = 'Live';
+    //                      $this->db->insert('tbl_sale_consumptions_of_menus',$data_sale_consumptions_detail);
+    //                 }
+    //             }else{
+    //                 $combo_food_menus = $this->db->query("SELECT * FROM tbl_combo_food_menus WHERE food_menu_id=$item->food_menu_id AND del_status='Live'")->result();
+    //                 if(isset($combo_food_menus) && $combo_food_menus){
+    //                     foreach ($combo_food_menus as $single_combo_fm){
+    //                         $food_menu_ingredients = $this->db->query("SELECT * FROM tbl_food_menus_ingredients WHERE food_menu_id=$single_combo_fm->added_food_menu_id")->result();
+    //                         foreach($food_menu_ingredients as $single_ingredient){
+    //                             $inline_total = $single_ingredient->cost*($item->qty*$single_combo_fm->quantity);
+    //                             $data_sale_consumptions_detail = array();
+    //                             $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
+    //                             $data_sale_consumptions_detail['consumption'] = ($item->qty*$single_combo_fm->quantity)*$single_ingredient->consumption;
+    //                             $data_sale_consumptions_detail['sale_consumption_id'] = $sale_consumption_id;
+    //                             $data_sale_consumptions_detail['sales_id'] = $sales_id;
+    //                             $data_sale_consumptions_detail['cost'] = $inline_total;
+    //                             $data_sale_consumptions_detail['food_menu_id'] = $item->food_menu_id;
+    //                             $data_sale_consumptions_detail['user_id'] = $this->session->userdata('outlet_id');
+    //                             $data_sale_consumptions_detail['outlet_id'] = $this->session->userdata('outlet_id');
+    //                             $data_sale_consumptions_detail['del_status'] = 'Live';
+    //                             $this->db->insert('tbl_sale_consumptions_of_menus',$data_sale_consumptions_detail);
+    //                         }
+    //                     }
+
+    //                 }
+    //             }
+
+
+
+    //             $modifier_id_array = isset($item->modifiers_id) && ($item->modifiers_id!="")?explode(",",$item->modifiers_id):null;
+    //             /*new_added_zak*/
+    //             $modifiers_mul_id_array = isset($item->modifiers_mul_id) && ($item->modifiers_mul_id!="")?explode(",",$item->modifiers_mul_id):null;
+    //             /*end_new_added_zak*/
+    //             $modifier_price_array = isset($item->modifiers_price) && ($item->modifiers_price!="")?explode(",",$item->modifiers_price):null;
+    //             $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat!="")?explode("|||",$item->modifier_vat):null;
+    //             if(!empty($modifier_id_array)>0){
+    //                 $i = 0;
+    //                 foreach($modifier_id_array as $key1=>$single_modifier_id){
+    //                     $modifiers_mul_id_array_value = isset($modifiers_mul_id_array[$key1]) && $modifiers_mul_id_array[$key1]?explode('_',$modifiers_mul_id_array[$key1]):'';
+
+    //                     $modifier_data = array();
+    //                     $modifier_data['modifier_id'] =$single_modifier_id;
+    //                     $modifier_data['modifier_price'] = $modifier_price_array[$i];
+    //                     $modifier_data['food_menu_id'] = $item->food_menu_id;
+    //                     $modifier_data['sales_id'] = $sales_id;
+    //                     $modifier_data['sales_details_id'] = $sales_details_id;
+    //                     $modifier_data['menu_taxes'] = isset($modifier_vat_array[$key1]) && $modifier_vat_array[$key1]?$modifier_vat_array[$key1]:'';
+    //                     $modifier_data['user_id'] = $this->session->userdata('user_id');
+    //                     $modifier_data['outlet_id'] = $this->session->userdata('outlet_id');
+    //                     $modifier_data['customer_id'] =$order_details->customer_id;
+    //                     $this->db->insert('tbl_sales_details_modifiers', $modifier_data);
+
+    //                     $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=$single_modifier_id")->result();
+
+    //                     foreach($modifier_ingredients as $single_ingredient){
+    //                         $data_sale_consumptions_detail = array();
+    //                         $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
+    //                         $data_sale_consumptions_detail['consumption'] = $item->qty*$single_ingredient->consumption;
+    //                         $data_sale_consumptions_detail['sale_consumption_id'] = $sale_consumption_id;
+    //                         $data_sale_consumptions_detail['sales_id'] = $sales_id;
+    //                         $data_sale_consumptions_detail['food_menu_id'] = $item->food_menu_id;
+    //                         $data_sale_consumptions_detail['user_id'] = $this->session->userdata('user_id');
+    //                         $data_sale_consumptions_detail['outlet_id'] = $this->session->userdata('outlet_id');
+    //                         $data_sale_consumptions_detail['del_status'] = 'Live';
+    //                         $this->db->insert('tbl_sale_consumptions_of_modifiers_of_menus',$data_sale_consumptions_detail);
+    //                     }
+    //                     $i++;
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     if(!$sale_id){
+    //         $this->db->delete('tbl_sale_payments', array('sale_id' => $sales_id));
+    //     }
+    //     //put payment details
+    //     if(isset($order_details->payment_object)){
+    //         $payment_details = json_decode($order_details->payment_object);
+        
+    //         // Si por alguna razón aún es string, decodifica de nuevo (caso datos viejos)
+    //         if (is_string($payment_details)) {
+    //             $payment_details = json_decode($payment_details);
+    //         }
+    //         // if(isset($order_details->split_sale_id) && $order_details->split_sale_id){
+    //         //     $payment_details = json_decode(($order_details->payment_object));
+    //         // }else{
+    //         //     $payment_details = json_decode(json_decode($order_details->payment_object));
+    //         // }
+
+    //         $currency_type = trim_checker($order_details->is_multi_currency);
+    //         $multi_currency = trim_checker($order_details->multi_currency);
+    //         $multi_currency_rate = trim_checker($order_details->multi_currency_rate);
+    //         $multi_currency_amount = trim_checker($order_details->multi_currency_amount);
+           
+
+    //         if($currency_type==1){
+    //             $check_existing_payment = getPaymentInfo($sales_id,1);
+    //             if(!$check_existing_payment){
+    //                 $data = array();
+    //                 $data['payment_id'] = 1;
+    //                 $data['payment_name'] = "Cash";
+    //                 $data['amount'] = $multi_currency_amount;
+    //                 $data['multi_currency'] = $multi_currency;
+    //                 $data['multi_currency_rate'] = $multi_currency_rate;
+    //                 $data['currency_type'] = $currency_type;
+    //                 $data['date_time'] = date('Y-m-d H:i:s'); //date('Y-m-d H:i:s',strtotime($order_details->date_time));
+    //                 $data['sale_id'] = $sales_id;
+    //                 $data['counter_id'] = $this->session->userdata('counter_id');
+    //                 $data['user_id'] = $this->session->userdata('user_id');
+    //                 $data['outlet_id'] = $this->session->userdata('outlet_id');
+    //                 $this->Common_model->insertInformation($data, "tbl_sale_payments");
+    //             }
+    //         }else{
+    //             foreach ($payment_details as $value){
+    //                 $check_existing_payment = getPaymentInfo($sales_id,$value->payment_id);
+    //                 if(!$check_existing_payment){
+    //                     $data = array();
+    //                     $data['payment_id'] = $value->payment_id;
+    //                     $data['payment_name'] = $value->payment_name;
+    //                     if($value->payment_id==5){
+    //                         $data['usage_point'] = $value->usage_point;
+    //                         $previous_id_update_array = array('loyalty_point_earn' => 0);
+    //                         $this->db->where('sales_id', $sales_id);
+    //                         $this->db->update('tbl_sales_details', $previous_id_update_array);
+    //                     }
+    //                     $data['amount'] = $value->amount;
+    //                     $data['date_time'] = date('Y-m-d H:i:s'); //date('Y-m-d H:i:s',strtotime($order_details->date_time));
+    //                     $data['sale_id'] = $sales_id;
+    //                     $data['counter_id'] = $this->session->userdata('counter_id');
+    //                     $data['user_id'] = $this->session->userdata('user_id');
+    //                     $data['outlet_id'] = $this->session->userdata('outlet_id');
+    //                     $this->Common_model->insertInformation($data, "tbl_sale_payments");
+    //                 }
+                  
+    //             }
+    //         }
+    //     }
+
+
+    //     $this->db->trans_complete();
+    //     if ($this->db->trans_status() === FALSE) {
+    //         $this->db->trans_rollback();
+    //     } else {
+    //         $this->db->where('sale_no', $sale_no)
+    //             ->update('tbl_numeros', [
+    //                 'sale_id' => NULL,
+    //                 'sale_no' => NULL,
+    //                 "user_id" => NULL
+    //             ]);
+    //         // if($kitchen_sale && $kitchen_sale->number_slot > 0) {
+    //         //     // Liberar el número en tbl_numeros
+
+    //         // }
+    //         // $send_sms_status = isset($order_details->send_sms_status) && $order_details->send_sms_status?$order_details->send_sms_status:'';
+    //         // if($send_sms_status==1){
+    //         //     $customer = getCustomerData(trim_checker($order_details->customer_id));
+    //         //     $outlet_name = $this->session->userdata('outlet_name');
+    //         //     $sms_content = "Hi ".$customer->name.", thank you for visiting '.$outlet_name.'. Total bill of your order on '.$order_details->date_time.' is ".getAmtCustom($order_details->total_payable).". Paid amount is: ".getAmtCustom($order_details->paid_amount).", Due Amount is: ".getAmtCustom($order_details->due_amount)."
+    //         // We hope to see you again!";
+    //         //     if($customer->phone){
+    //         //         smsSendOnly($sms_content,$customer->phone);
+    //         //     }
+    //         // }
+    //         // if($select_kitchen_row){
+    //         //     // $pre_or_post_payment = $this->session->userdata('pre_or_post_payment');
+    //         //     // if($pre_or_post_payment==1){
+    //         //         $this->db->delete("tbl_kitchen_sales_details", array("sales_id" => $select_kitchen_row->id));
+    //         //         $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
+    //         //         $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
+    //         //     // }
+    //         // }
+            
+    //         echo escape_output($sale_id_offline);
+    //         $this->db->trans_commit();
+    //     }
+    // }
      /**
      * add sale by ajax
      * @access public
@@ -6792,19 +7137,114 @@ class Sale extends Cl_Controller {
         return $numbers;
     }
 
-    public function preimpreso($data_base64) {
+    public function preimpreso() {
+        $outlet_id = $this->session->userdata('outlet_id');
+        $user_id = $this->session->userdata('user_id');
+        $user_txt = $this->session->userdata('full_name');
         // Decodificar los datos
+        $data_base64 = $this->input->post('data_base64');
+        $data_base64 = urldecode($data_base64);
         $data_json = urldecode(base64_decode($data_base64));
-
         $data = json_decode($data_json);
-        // echo '<pre>';
-        // var_dump($data); 
-        // echo '<pre>';
-        
-        
-        // Cargar vista con los datos
+    
+        // --- Aquí solo procesamos una copia para guardar en BD ---
+        $tipo = isset($data->tipo) ? $data->tipo : null;
+        $items_data = isset($data->items_data) ? $data->items_data : [];
+        $items = isset($data->items) ? $data->items : [];
+        $total = isset($data->total) ? $data->total : 0;
+        $fecha = isset($data->fecha) ? $data->fecha : date('Y-m-d');
+        $nombre = isset($data->nombre) ? $data->nombre : '';
+        $direccion = isset($data->direccion) ? $data->direccion : '';
+        $ruc = isset($data->ruc) ? $data->ruc : '';
+        $sale_no = isset($data->sale_no) ? $data->sale_no : null;
+    
+        // Lógica idéntica a la de la vista para paginar
+        $pages = [];
+        if ($tipo === 'todos' && is_array($items_data)) {
+            $items_per_page = 10;
+            $chunks = array_chunk($items_data, $items_per_page);
+            foreach ($chunks as $chunk) {
+                $page_total = 0;
+                foreach ($chunk as $item) {
+                    $price = isset($item->menu_price_with_discount) ? floatval($item->menu_price_with_discount) : 0;
+                    $qty = isset($item->qty) ? floatval($item->qty) : 1;
+                    $page_total += $price; // * $qty, si corresponde
+                }
+                $page_iva_10 = $page_total / 11;
+                $page_iva_5 = 0;
+                $pages[] = [
+                    'items' => $chunk,
+                    'total' => $page_total,
+                    'iva_10' => $page_iva_10,
+                    'iva_5' => $page_iva_5
+                ];
+            }
+        } else {
+            $pages[] = [
+                'items' => is_array($items) ? $items : [],
+                'total' => floatval($total),
+                'iva_10' => floatval($total) / 11,
+                'iva_5' => 0
+            ];
+        }
+    
+        // --- Guardar en BD cada página ---
+        // $this->load->database();
+        $total_paginas = count($pages);
+        foreach ($pages as $idx => $pageData) {
+            $page_items = [];
+            foreach ($pageData['items'] as $item) {
+                // Serializa como array plano para guardar en JSON (opcional)
+                $page_items[] = [
+                    'cantidad' => isset($item->qty) ? $item->qty : (isset($item->quantity_purchased) ? $item->quantity_purchased : 0),
+                    'detalle' => isset($item->menu_name) ? $item->menu_name : (isset($item->Producto) ? $item->Producto : ''),
+                    'precio_unitario' => isset($item->menu_price_with_discount) ? $item->menu_price_with_discount : (isset($item->item_unit_price) ? $item->item_unit_price : 0),
+                    'total' => (isset($item->menu_price_with_discount) && isset($item->qty)) ? $item->menu_price_with_discount : (isset($item->total) ? $item->total : 0)
+                ];
+            }
+            $this->db->insert('tbl_facturas_preimpresas', [
+                'fecha' => $fecha,
+                'tipo' => 'CONTADO',
+                'documento' => $ruc,
+                'nombre' => $nombre,
+                'direccion' => $direccion,
+                'iva_cinco' => 0,
+                'iva_diez' => $pageData['iva_10'],
+                'iva_total' => $pageData['iva_10'],
+                'subtotal' => $pageData['total'],
+                'subtotal_cinco' => 0,
+                'subtotal_diez' => $pageData['total'],
+                'total_texto' => numeroConDecimalesATexto(round($pageData['total'],0)),
+                'pagina' => $idx + 1,
+                'total_paginas' => $total_paginas,
+                'items' => json_encode($page_items),
+                'sale_no' => $sale_no,
+                'outlet_id' => $outlet_id,
+                'user_id' => $user_id,
+                'user_name' => $user_txt,
+            ]);
+        }
+    
+        // --- Pasa los datos "crudos" a la vista para que la vista siga igual ---
         $this->load->view("preimpreso_1", $data);
     }
+
+    // public function preimpreso() {
+    //     // Decodificar los datos
+    //     $data_base64 = $this->input->post('data_base64');
+    //     $data_base64 = urldecode($data_base64);
+    //     $data_json = urldecode(base64_decode($data_base64));
+
+    //     $data = json_decode($data_json);
+    //     // echo '<pre>';
+    //     // var_dump($data); 
+    //     // echo '<pre>';
+        
+        
+    //     // // Cargar vista con los datos
+    //     $this->load->view("preimpreso_1", $data);
+    // }
+
 
     public function preimpreso_format_dataGOT() {
         // Recibir los datos por POST
@@ -6892,6 +7332,12 @@ class Sale extends Cl_Controller {
         $data_order = $this->input->post('data_order');
         $data = json_decode($data_order, true);
     
+        // Agregar datos de usuario y outlet
+        $outlet_id = $this->session->userdata('outlet_id');
+        $user_id = $this->session->userdata('user_id');
+        $user_txt = $this->session->userdata('full_name');
+        $sale_no = isset($data['sale_no']) ? $data['sale_no'] : null;
+    
         // Extraer los datos principales
         $fecha = ($data['fecha']) ? date('d/m/Y',strtotime($data['fecha'])) : '';
         $tipo_factura = 'CONTADO'; // El tipo de factura (contado/credito), siempre CONTADO aquí
@@ -6917,6 +7363,7 @@ class Sale extends Cl_Controller {
         $items_por_hoja = 13;
         $facturas = [];
         $total_items = count($items);
+        $total_paginas = ceil($total_items / $items_por_hoja);
     
         for ($i = 0; $i < $total_items; $i += $items_por_hoja) {
             $hoja_items = array_slice($items, $i, $items_por_hoja);
@@ -6960,11 +7407,13 @@ class Sale extends Cl_Controller {
             // Formatear totales
             $total_iva_cinco = round(($subtotal_cinco / 11),0);
             $total_iva_diez = round(($subtotal_diez / 11),0);
-            $facturas[] = [
+    
+            $factura = [
                 'fecha' => $fecha,
                 'tipo' => $tipo_factura,
                 'documento' => $documento,
                 'nombre' => $nombre,
+                'direccion' => $direccion,
                 'iva_cinco' => $total_iva_cinco ? number_format($total_iva_cinco, 0, '', '.') : '',
                 'iva_diez' => $total_iva_diez ? number_format($total_iva_diez, 0, '', '.') : '',
                 'iva_total' => number_format($total_iva_cinco + $total_iva_diez, 0, '', '.'),
@@ -6973,7 +7422,38 @@ class Sale extends Cl_Controller {
                 'subtotal_cinco' => $subtotal_cinco ? number_format($subtotal_cinco, 0, '', '.') : '',
                 'subtotal_diez' => $subtotal_diez ? number_format($subtotal_diez, 0, '', '.') : '',
                 'items' => $detalle_items,
+                'pagina' => intval($i / $items_por_hoja) + 1,
+                'total_paginas' => $total_paginas,
+                'sale_no' => $sale_no,
+                'outlet_id' => $outlet_id,
+                'user_id' => $user_id,
+                'user_name' => $user_txt,
             ];
+    
+            // Insertar en la BD
+            $this->db->insert('tbl_facturas_preimpresas', [
+                'fecha' => date('Y-m-d', strtotime($fecha)),
+                'tipo' => $factura['tipo'],
+                'documento' => $factura['documento'],
+                'nombre' => $factura['nombre'],
+                'direccion' => $factura['direccion'],
+                'iva_cinco' => $factura['iva_cinco'],
+                'iva_diez' => $factura['iva_diez'],
+                'iva_total' => $factura['iva_total'],
+                'subtotal' => $factura['subtotal'],
+                'subtotal_cinco' => $factura['subtotal_cinco'],
+                'subtotal_diez' => $factura['subtotal_diez'],
+                'total_texto' => $factura['total_texto'],
+                'pagina' => $factura['pagina'],
+                'total_paginas' => $factura['total_paginas'],
+                'items' => json_encode($factura['items']),
+                'sale_no' => $sale_no,
+                'outlet_id' => $outlet_id,
+                'user_id' => $user_id,
+                'user_name' => $user_txt,
+            ]);
+    
+            $facturas[] = $factura;
         }
     
         // Responder en formato JSON
@@ -7007,7 +7487,7 @@ class Sale extends Cl_Controller {
     }
 
     public function set_short_code(){
-        $code = 'YWB';
+        $code = 'FKX';
         
         $this->session->set_userdata([
             'code_short' => $code,

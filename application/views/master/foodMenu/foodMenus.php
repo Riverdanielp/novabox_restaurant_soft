@@ -26,22 +26,54 @@
                 <input type="hidden" class="datatable_name" data-title="<?php echo lang('food_menus'); ?>" data-id_name="datatable">
             </div>
             <div class=" col-md-auto">
-                <div class="btn_list m-right d-flex">
+                <div class="btn_list2 m-right d-flex">
                     <a data-access="add-234" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>foodMenu/addEditFoodMenu">
                         <i data-feather="plus"></i> <?php echo lang('Add'); ?> <?php echo lang('food_menu'); ?>
                     </a>
+                </div>
+            </div>
+            <div class=" col-md-auto">
+                <div class="btn_list2 m-right d-flex">
                     <a data-access="upload_food_menu-234" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>foodMenu/uploadFoodMenu">
                         <i data-feather="upload"></i> <?php echo lang('upload'); ?>
                     </a>
+                </div>
+            </div>
+            <div class=" col-md-auto">
+                <div class="btn_list2 m-right d-flex">
                     <a data-access="upload_food_menu_ingredients-234" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>foodMenu/uploadFoodMenuIngredients">
                         <i data-feather="upload-cloud"></i> <?php echo lang('upload_food_menu_ingredients'); ?>
                     </a>
+                </div>
+            </div>
+            <div class=" col-md-auto">
+                <div class="btn_list2 m-right d-flex">
                     <a data-access="add-234" class="btn bg-blue-btn menu_assign_class me-2" href="<?php echo base_url() ?>foodMenu/assign">
                         <i data-feather="plus"></i> Menús sin Ingredientes
                     </a>
+                </div>
+            </div>
+            <div class=" col-md-auto">
+                <div class="btn_list2 m-right d-flex">
                     <a data-access="item_barcode-234" class="btn bg-blue-btn menu_assign_class" href="<?php echo base_url() ?>foodMenu/foodMenuBarcode">
                         <i class="m-right fa fa-qrcode"></i> <?php echo lang('barcode'); ?>
                     </a>
+                </div>
+            </div>
+            <div class=" col-md-auto">
+                <div class="btn_list m-right d-flex">
+                    <!-- Filtro de Categoría select2 -->
+                    <div class="form-group">
+                        <label><?php echo lang('category'); ?> <span class="required_star">*</span></label>
+                        <select class="form-control  ir_w_100" id="category_id" name="category_id">
+                            <option value=""><?php echo lang('select'); ?></option>
+                            <?php foreach ($categories as $ctry) { ?>
+                            <option value="<?php echo escape_output($ctry->id) ?>"
+                                <?php echo set_select('category_id', $ctry->id); ?>>
+                                <?php echo escape_output($ctry->category_name) ?></option>
+                            <?php } ?>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -51,7 +83,7 @@
         
         <div class="table-box">
             <div class="table-responsive">
-                <table id="datatable" class="table">
+                <table id="datatable_sv" class="table">
                     <thead>
                         <tr>
                             <th class="ir_w_1"><?php echo lang('sn'); ?></th>
@@ -147,56 +179,108 @@
 
     });
 
-// $(document).ready(function() {
-//     // Inicializar DataTable
-//     var table = $('#food-menu-table').DataTable({
-//         "columnDefs": [
-//             { "orderable": false, "targets": [0, 1, 8] }, // Columnas no ordenables
-//             { "searchable": false, "targets": [0, 1, 8] } // Columnas no buscables
-//         ],
-//         "order": [[2, 'asc']], // Orden inicial por código
-//         "language": {
-//             "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Spanish.json"
-//         }
-//     });
-
-//     // Filtrado por categoría
-//     $('#filter-category').change(function() {
-//         var category = $(this).val();
-//         if (category === '') {
-//             table.columns(4).search('').draw();
-//         } else {
-//             table.columns(4).search(category).draw();
-//         }
-//     });
-
-//     // Función para mostrar detalles (reemplaza el call_details original)
-//     $(document).on('click', '.view-details', function() {
-//         var id = $(this).data('id');
-//         $.ajax({
-//             url: '<?php echo base_url(); ?>foodMenu/foodMenuDetails/' + id,
-//             type: 'GET',
-//             dataType: 'html',
-//             success: function(response) {
-//                 $('#product_details .modal-title').text('<?php echo lang("food_menu_details"); ?>');
-//                 $('#product_details .show_html_content').html(response);
-//                 $('#product_details').modal('show');
-//             },
-//             error: function(xhr, status, error) {
-//                 alert('Error al cargar los detalles: ' + error);
-//             }
-//         });
-//     });
-
-//     // Reordenar la numeración cuando se filtra o se cambia de página
-//     table.on('draw.dt', function() {
-//         var info = table.page.info();
-//         table.column(0, {search: 'applied', order: 'applied', page: 'applied'}).nodes().each(function(cell, i) {
-//             cell.innerHTML = info.start + i + 1;
-//         });
-//     });
-// });
 </script>
 
 <?php $this->view('common/footer_js')?>
 <!-- JavaScript para DataTables y funcionalidades -->
+
+<script>
+    var base_url = '<?= base_url(); ?>';
+    // let jqry = $.noConflict();
+    
+    // if (typeof window.jqry === "undefined") {
+    //     window.jqry = $.noConflict(true);
+    // }
+    // if (typeof window.jqry === "undefined") {
+    //     window.jqry = $.noConflict();
+    // }
+    jqry(document).ready(function() {
+        //use for every report view
+        let today = new Date();
+        let dd = today.getDate();
+        let mm = today.getMonth() + 1; //January is 0!
+        let yyyy = today.getFullYear();
+
+        if (dd < 10) {
+            dd = "0" + dd;
+        }
+
+        if (mm < 10) {
+            mm = "0" + mm;
+        }
+        today = yyyy + "-" + mm + "-" + dd;
+
+        //get title and datatable id name from hidden input filed that is before in the table in view page for every datatable
+        let datatable_name = $(".datatable_name").attr("data-id_name");
+        let title = $(".datatable_name").attr("data-title");
+        let TITLE = title + "" +
+            "" + today;
+        var table_sv = jqry('#datatable_sv').DataTable({
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                "url": base_url + "foodMenu/ajax_list",
+                "type": "GET",
+                "data": function(d) {
+                    d.category_id = jqry('#category_id').val();
+                }
+            },
+            "lengthMenu": [
+                [20, 50, 100, 500, -1],
+                [20, 50, 100, 500, "Todos"]
+            ],
+            "order": [[0, "desc"]],
+            dom: '<"top-left-item col-sm-12 col-md-6"lf> <"top-right-item col-sm-12 col-md-6"B> t <"bottom-left-item col-sm-12 col-md-6 "i><"bottom-right-item col-sm-12 col-md-6 "p>',
+            buttons: [
+            {
+                extend: "print",
+                title: TITLE,
+                text: '<i class="fa-solid fa-print"></i> Print',
+                titleAttr: "print",
+            },
+            {
+                extend: "copyHtml5",
+                title: TITLE,
+                text: '<i class="fa-solid fa-copy"></i> Copy',
+                titleAttr: "Copy",
+            },
+            {
+                extend: "excelHtml5",
+                title: TITLE,
+                text: '<i class="fa-solid fa-file-excel"></i> Excel',
+                titleAttr: "Excel",
+            },
+            {
+                extend: "csvHtml5",
+                title: TITLE,
+                text: '<i class="fa-solid fa-file-csv"></i> CSV',
+                titleAttr: "CSV",
+            },
+            {
+                extend: "pdfHtml5",
+                title: TITLE,
+                text: '<i class="fa-solid fa-file-pdf"></i> PDF',
+                titleAttr: "PDF",
+            },
+            ],
+            "language": {
+                "paginate": {
+                    "previous": "Anterior",
+                    "next": "Siguiente"
+                }
+            }
+        });
+
+        // Delegación por si acaso
+        jqry(document).on('change', '#category_id', function() {
+            console.log("Category ID changed to: " + jqry(this).val());
+            table_sv.ajax.reload(null, true);
+        });
+
+        // Si usas select2, puedes agregar esto:
+        jqry('#category_id').on('select2:select', function() {
+            console.log("Category ID (select2) changed to: " + jqry(this).val());
+            table_sv.ajax.reload(null, true);
+        });
+    });
+</script>

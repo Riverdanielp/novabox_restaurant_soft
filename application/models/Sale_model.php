@@ -1297,10 +1297,12 @@ class Sale_model extends CI_Model {
         $this->db->where('del_status', 'Live');
         return $this->db->get()->result();
     }
-    public function getAllSalePayment($date,$payment_id)
+    public function getAllSalePayment($date,$payment_id,$outlet_id=null)
     {
         $user_id = $this->session->userdata('user_id');
-        $outlet_id = $this->session->userdata('outlet_id');
+        if (!$outlet_id) {
+          $outlet_id = $this->session->userdata('outlet_id');
+        }
         $this->db->select("tbl_sale_payments.amount as paid_amount,tbl_sale_payments.payment_id,tbl_sales.user_id,tbl_sales.outlet_id,tbl_payment_methods.name as payment_name");
         $this->db->from('tbl_sale_payments');
         $this->db->join('tbl_sales', 'tbl_sales.id = tbl_sale_payments.sale_id', 'left');
@@ -1313,11 +1315,13 @@ class Sale_model extends CI_Model {
         $this->db->where('del_status', 'Live');
         return $this->db->get()->result();
     }
-    public function getAllPurchaseByPayment($date,$payment_id)
+    public function getAllPurchaseByPayment($date,$payment_id,$outlet_id=null)
     {
       $this->session->userdata('user_id');
       $user_id = $this->session->userdata('user_id');
-      $outlet_id = $this->session->userdata('outlet_id');
+      if (!$outlet_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+      }
       $this->db->select("sum(paid) as total_amount");
       $this->db->from('tbl_purchase');
       $this->db->where("user_id", $user_id);
@@ -1329,10 +1333,12 @@ class Sale_model extends CI_Model {
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllDueReceiveByPayment($date,$payment_id)
+    public function getAllDueReceiveByPayment($date,$payment_id,$outlet_id=null)
     {
       $user_id = $this->session->userdata('user_id');
-      $outlet_id = $this->session->userdata('outlet_id');
+      if (!$outlet_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+      }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_customer_due_receives');
       $this->db->where("user_id", $user_id);
@@ -1344,10 +1350,12 @@ class Sale_model extends CI_Model {
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllDuePaymentByPayment($date,$payment_id)
+    public function getAllDuePaymentByPayment($date,$payment_id,$outlet_id=null)
     {
       $user_id = $this->session->userdata('user_id');
-      $outlet_id = $this->session->userdata('outlet_id');
+      if (!$outlet_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+      }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_supplier_payments');
       $this->db->where("user_id", $user_id);
@@ -1359,10 +1367,12 @@ class Sale_model extends CI_Model {
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllExpenseByPayment($date,$payment_id)
+    public function getAllExpenseByPayment($date,$payment_id,$outlet_id=null)
     {
       $user_id = $this->session->userdata('user_id');
-      $outlet_id = $this->session->userdata('outlet_id');
+      if (!$outlet_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+      }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_expenses');
       $this->db->where("user_id", $user_id);
@@ -1374,10 +1384,12 @@ class Sale_model extends CI_Model {
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllSaleByPayment($date,$payment_id)
+    public function getAllSaleByPayment($date,$payment_id, $outlet_id=null)
     {
       $user_id = $this->session->userdata('user_id');
-      $outlet_id = $this->session->userdata('outlet_id');
+      if (!$outlet_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+      }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_sale_payments');
       $this->db->where("user_id", $user_id);
@@ -1390,10 +1402,12 @@ class Sale_model extends CI_Model {
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllRefundByPayment($date,$payment_id)
+    public function getAllRefundByPayment($date,$payment_id,$outlet_id=null)
     {
       $user_id = $this->session->userdata('user_id');
-      $outlet_id = $this->session->userdata('outlet_id');
+      if (!$outlet_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+      }
       $this->db->select("sum(total_refund) as total_amount");
       $this->db->from('tbl_sales');
       $this->db->where("user_id", $user_id);

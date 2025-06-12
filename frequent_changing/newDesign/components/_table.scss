@@ -135,6 +135,34 @@
   }
 }
 
+#datatable_sv {
+  tbody tr {
+    border-bottom: thin solid rgba(47, 43, 61, 0.16);
+  }
+  td {
+    vertical-align: middle;
+    color: #2f2b3dad;
+    font-weight: 500;
+    font-size: 14px;
+    &.dataTables_empty {
+      font-size: 14px !important;
+    }
+    &:nth-child(2) {
+      font-size: 14px;
+    }
+    &:first-child {
+      font-size: 14px;
+      span {
+        // border: thin solid rgba(47, 43, 61, 0.2);
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: block;
+        line-height: 45px;
+      }
+    }
+  }
+}
 /*
   ===========================
   Table Container Wrapper

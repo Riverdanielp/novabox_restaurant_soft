@@ -27,6 +27,10 @@ jqry(document).ready(function () {
     autoWidth: false,
     ordering: true,
     order: [[0, "desc"]],
+    "lengthMenu": [
+        [20, 50, 100, 500, -1],
+        [20, 50, 100, 500, "Todos"]
+    ],
     // dom: "Bfrtip",
     dom: '<"top-left-item col-sm-12 col-md-6"lf> <"top-right-item col-sm-12 col-md-6"B> t <"bottom-left-item col-sm-12 col-md-6 "i><"bottom-right-item col-sm-12 col-md-6 "p>',
     buttons: [

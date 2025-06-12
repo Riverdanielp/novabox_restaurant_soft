@@ -212,16 +212,7 @@
                         <div class="col-sm-12 mb-2 col-md-4 div_show_hide">
                             <div class="form-group">
                                 <label><?php echo lang('ingredient_consumptions'); ?></label>
-                                <select tabindex="5" class="txt_21 form-control select2 select2-hidden-accessible"
-                                        name="ingredient_id" id="ingredient_id">
-                                    <option value=""><?php echo lang('select'); ?></option>
-                                    <?php foreach ($ingredients as $ingnts) { ?>
-                                        <option
-                                                value="<?php echo escape_output($ingnts->id . "|" . $ingnts->name . "|" . $ingnts->unit_name. "|" . $ingnts->consumption_unit_cost) ?>"
-                                            <?php echo set_select('unit_id', $ingnts->id); ?>>
-                                            <?php echo escape_output($ingnts->name . "(" . $ingnts->code . ")"); ?></option>
-                                    <?php } ?>
-                                </select>
+                                <select class="form-control select2" name="ingredient_id" id="ingredient_id"></select>
                             </div>
                             <?php if (form_error('ingredient_id')) { ?>
                                 <div class="callout callout-danger my-2">
@@ -235,20 +226,7 @@
                         <div class="col-sm-12 mb-2 col-md-4 div_show_hide_combo">
                             <div class="form-group">
                                 <label><?php echo lang('food_menu'); ?></label>
-                                <select tabindex="5" class="txt_21 form-control select2 select2-hidden-accessible"
-                                        name="food_menu_id" id="food_menu_id">
-                                    <option value=""><?php echo lang('select'); ?></option>
-                                    <?php foreach ($food_menus as $ingnts) {
-                                        if($ingnts->is_variation!="Yes"):
-                                        ?>
-                                        <option data-name="<?php echo escape_output(getParentNameOnly($ingnts->parent_id)); ?> <?php echo escape_output($ingnts->name); ?>"
-                                                value="<?php echo escape_output($ingnts->id)?>"
-                                            <?php echo set_select('unit_id', $ingnts->id); ?>>
-                                            <?php echo escape_output(getParentNameOnly($ingnts->parent_id)); ?> <?php echo escape_output($ingnts->name . "(" . $ingnts->code . ")"); ?></option>
-                                    <?php
-                                        endif;
-                                    } ?>
-                                </select>
+                                <select class="form-control select2" name="food_menu_id" id="food_menu_id"></select>
                             </div>
                             <?php if (form_error('food_menu_id')) { ?>
                                 <div class="callout callout-danger my-2">
@@ -813,3 +791,52 @@
     </div>
 
 </section>
+
+
+<script>
+    $(document).ready(function() {
+    $('#ingredient_id').select2({
+        placeholder: 'Buscar ingrediente',
+        allowClear: true,
+        ajax: {
+            url: '<?php echo base_url('foodMenu/ajax_ingredients'); ?>',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    term: params.term // término de búsqueda
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data.results
+                };
+            },
+            cache: true
+        },
+        minimumInputLength: 1
+    });
+
+    $('#food_menu_id').select2({
+        placeholder: 'Buscar menú',
+        allowClear: true,
+        ajax: {
+            url: '<?php echo base_url('foodMenu/ajax_food_menus'); ?>',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    term: params.term
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data.results
+                };
+            },
+            cache: true
+        },
+        minimumInputLength: 1
+    });
+});
+</script>
