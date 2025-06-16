@@ -98,51 +98,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php
-                        if ($foodMenus && !empty($foodMenus)) {
-                            $i = count($foodMenus);
-                            foreach ($foodMenus as $value) {
-                                $img_size = "images/".$value->photo;
-                                if(file_exists($img_size) && $value->photo!=""){
-                                    $image_path = base_url().'images/'.$value->photo;
-                                }else{
-                                    $image_path = base_url().'images/image_thumb.png';
-                                }
-                                ?>
-                                <tr>
-                                    <td class="ir_txt_center"><?php echo $i--; ?></td>
-                                    <td>
-                                        <img src="<?= $image_path ?>" class="img-port" alt="<?= escape_output($value->name) ?>" >
-                                    </td>
-                                    <td><?php echo escape_output($value->code) ?></td>
-                                    <td><?php echo escape_output($value->name) ?></td>
-                                    <td><?php echo escape_output(getFoodMenuCateCodeById($value->category_id)) ?></td>
-                                    <td><?php echo escape_output(getAmtPCustom($value->sale_price)) ?></td>
-                                    <td><?php echo escape_output(getAlternativeNameById($value->id)) ?></td>
-                                    <td><?php echo escape_output(userName($value->user_id)); ?></td>
-                                    <td>
-                                        <div class="btn_group_wrap">
-                                            <a class="btn btn-warning" href="<?php echo base_url() ?>foodMenu/addEditFoodMenu/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
-                                            data-bs-original-title="<?php echo lang('edit'); ?>">
-                                                <i class="far fa-edit"></i>
-                                            </a>
-                                            <a class="delete btn btn-danger" href="<?php echo base_url() ?>foodMenu/deleteFoodMenu/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="<?php echo lang('delete'); ?>">
-                                                <i class="fa-regular fa-trash-can"></i>
-                                            </a>
-                                            <a class="btn btn-info" href="<?php echo base_url() ?>foodMenu/assignFoodMenuModifier/<?php echo escape_output($this->custom->encrypt_decrypt($value->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
-                                            data-bs-original-title="<?php echo lang('assign_modifier'); ?>">
-                                                <i class="far fa-plus"></i>
-                                            </a>
-                                            <!-- <a class="btn btn-primary view-details" data-id="<?php echo $value->id; ?>" href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="<?php echo lang('view_details'); ?>">
-                                                <i class="far fa-eye"></i>
-                                            </a> -->
-                                        </div>
-                                    </td>
-                                </tr>
-                                <?php
-                            }
-                        }
-                        ?>
                     </tbody>
                 </table>
             </div>

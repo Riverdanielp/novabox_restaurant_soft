@@ -10822,7 +10822,32 @@ function getPaymentArrayWithChangeAndDue() {
           toastr['error'](("No ha terminado de cargar los medios de pago!"), '');
         }
       });
-
+        // Sincroniza los selects sin disparar infinitos eventos change
+        function syncCustomerSelects(customer_id) {
+            // Quita handlers para evitar recursividad
+            $("#walk_in_customer").off("change._sync");
+            $("#walk_in_customer1").off("change._sync");
+        
+            // Sincroniza valores
+            $("#walk_in_customer").val(customer_id);
+            $("#walk_in_customer1").val(customer_id);
+        
+            // Vuelve a poner el handler, pero SOLO en un sentido
+            $("#walk_in_customer").on("change._sync", function () {
+            let val = $(this).val();
+            $("#walk_in_customer1").val(val);
+            // Aquí llama a tu función pesada SOLO una vez
+            setDiscountForSelectedCustomer();
+            });
+        
+            // Si quieres que el usuario pueda cambiar #walk_in_customer1 manualmente, puedes hacerlo, pero no dispares otro .change()
+            // $("#walk_in_customer1").on("change._sync", function () {
+            //   $("#walk_in_customer").val($(this).val());
+            // });
+        
+            // Dispara solo una vez el evento principal
+            $("#walk_in_customer").trigger("change._sync");
+        }
 
       $("body").on("click", "#add_customer", function(e) {
         let is_online_order = $("#is_online_order").val();
@@ -10894,8 +10919,8 @@ function getPaymentArrayWithChangeAndDue() {
           },
           success: function (response) {
             if (response.customer_id > 0) {
-              $("#walk_in_customer").val(response.customer_id).change();
-              $("#walk_in_customer1").val(response.customer_id).change();
+            //   $("#walk_in_customer").val(response.customer_id).change();
+            //   $("#walk_in_customer1").val(response.customer_id).change();
               let new_customer_id = response.customer_id;
               if(response.online_customer_id){
                   $(".online_order_after_login").show();
@@ -10916,8 +10941,8 @@ function getPaymentArrayWithChangeAndDue() {
                             </option>`;
 
                 // Añadir al select
-                $("#walk_in_customer").append(option).val(c.id).trigger("change");
-                $("#walk_in_customer1").append(option).val(c.id).trigger("change");
+                // $("#walk_in_customer").append(option).val(c.id).trigger("change");
+                // $("#walk_in_customer1").append(option).val(c.id).trigger("change");
 
                 let $option = $("#walk_in_customer option[value='" + c.id + "']");
                 if ($option.length) {
@@ -10935,8 +10960,10 @@ function getPaymentArrayWithChangeAndDue() {
                 default_discount: c.default_discount,
                 });
 
+                syncCustomerSelects(response.customer_id);
+
               reset_on_modal_close_or_add_customer();
-                setDiscountForSelectedCustomer();
+                // setDiscountForSelectedCustomer();
               this_action
                 .parent()
                 .parent()

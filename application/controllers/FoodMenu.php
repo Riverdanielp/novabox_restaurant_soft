@@ -75,6 +75,7 @@ class FoodMenu extends Cl_Controller {
     public function foodMenus() {
         $company_id = $this->session->userdata('company_id');
         $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
+        $data['foodMenus'] = [];
         $data['main_content'] = $this->load->view('master/foodMenu/foodMenus', $data, TRUE);
         $this->load->view('userHome', $data);
     }

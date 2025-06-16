@@ -1334,14 +1334,14 @@ class Report extends Cl_Controller {
         $company_address = $getOutletInfo->address;
         $registro_detallado = $getOutletInfo->registro_detallado;
     
-        // Empresa
-        $company = [
-            'name' => $company_name,
-            'address' => $company_address,
-            'phone' => $getOutletInfo->phone,
-            'invoice_logo' => $getOutletInfo->invoice_logo,
-            'footer' => $getOutletInfo->invoice_footer,
-        ];
+        // // Empresa
+        // $company = [
+        //     'name' => $company_name,
+        //     'address' => $company_address,
+        //     'phone' => $getOutletInfo->phone,
+        //     'invoice_logo' => $getOutletInfo->invoice_logo,
+        //     'footer' => $getOutletInfo->invoice_footer,
+        // ];
     
         // Datos de usuario/caja
         $usuario = userName($user_id);
@@ -1349,8 +1349,11 @@ class Report extends Cl_Controller {
         $apertura = date('Y-m-d h:i A', strtotime($opening_date_time));
         $cierre = ($closing_date_time ? date('Y-m-d h:i A', strtotime($closing_date_time)) : date('Y-m-d h:i A'));
     
-        $line = "------------------------------";
         $content = [];
+        // $line = "------------------------------";
+        // $line = "------------------------------";
+        // $content[] = ['type' => 'text', 'align' => 'left', 'text' => json_encode($register)];
+        $line = "------------------------------";
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'REPORTE DE CIERRE DE CAJA'];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Sucursal: ' . $company_name];
@@ -1407,12 +1410,12 @@ class Report extends Cl_Controller {
                 $payment_name = $payments[1];
                 $opening_balance = (float) $payments[2];
     
-                $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id, $outlet_id);
-                $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id, $outlet_id);
-                $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id, $outlet_id);
-                $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id, $outlet_id);
-                $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id, $outlet_id);
-                $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id, $outlet_id);
+                $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
+                $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
+                $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
+                $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
+                $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
+                $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
 
                 $total_sale_all += $total_sale;
     
@@ -1563,19 +1566,19 @@ class Report extends Cl_Controller {
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'cut'];
     
-        // Configuración de la impresora
-        $company_id = $getOutletInfo->company_id;
-        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-        $counter_details = $this->Common_model->getPrinterIdByCounterId($counter_id);
-        $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
-        $path = @$printer->path;
+        // // Configuración de la impresora
+        // $company_id = $getOutletInfo->company_id;
+        // $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
+        // $counter_details = $this->Common_model->getPrinterIdByCounterId($counter_id);
+        // $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
+        // $path = @$printer->path;
     
-        $print_format = $company_data->print_format_bill;
-        $width = ($print_format == "80mm") ? 80 : 58;
+        // $print_format = $company_data->print_format_bill;
+        // $width = ($print_format == "80mm") ? 80 : 58;
     
         $printRequest = [
-            'printer' => $path,
-            'width' => $width,
+            // 'printer' => $path,
+            // 'width' => $width,
             'content' => filterArrayRecursivelyEscPos($content)
         ];
     

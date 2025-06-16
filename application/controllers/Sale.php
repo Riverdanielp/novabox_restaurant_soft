@@ -2606,8 +2606,9 @@ class Sale extends Cl_Controller {
                              $modifier_data['customer_id'] =$order_details->customer_id;
                              $query = $this->db->insert('tbl_sales_details_modifiers', $modifier_data);
 
-                             $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=$single_modifier_value->modifier_id")->result();
-
+                            //  $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=$single_modifier_value->modifier_id")->result();
+                             $clean_modifier_id = sanitize_font_html($single_modifier_value->modifier_id);
+                             $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=" . intval($clean_modifier_id))->result();
                              foreach($modifier_ingredients as $single_ingredient){
                                  $data_sale_consumptions_detail = array();
                                  $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
@@ -2903,7 +2904,10 @@ class Sale extends Cl_Controller {
                         $this->db->insert('tbl_sales_details_modifiers', $modifier_data);
     
                         // ... resto de la lógica para ingredientes de modificadores ...
-                        $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=$single_modifier_id")->result();
+                        // $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=$single_modifier_id")->result();
+                        
+                        $clean_modifier_id = sanitize_font_html($single_modifier_id);
+                        $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=" . intval($clean_modifier_id))->result();
                         foreach($modifier_ingredients as $single_ingredient){
                             $data_sale_consumptions_detail = array();
                             $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
@@ -4509,11 +4513,13 @@ class Sale extends Cl_Controller {
         $opening_details = $this->getOpeningDetails();
         $opening_details_decode = json_decode($opening_details);
 
-        foreach ($opening_details_decode as $key=>$value){
-            $payments = explode("||",$value);
-            $opening_balances[$key]['payment_name'] = $payments[1];
-            $opening_balances[$key]['payment_amount'] = isset($payments[2]) ? $payments[2] : 0;
-            $opening_balances[$key]['payment_id'] = isset($payments[0]) ? $payments[0] : 0;
+        if (is_array($opening_details_decode) || is_object($opening_details_decode)) {
+            foreach ($opening_details_decode as $key=>$value){
+                $payments = explode("||",$value);
+                $opening_balances[$key]['payment_name'] = $payments[1];
+                $opening_balances[$key]['payment_amount'] = isset($payments[2]) ? $payments[2] : 0;
+                $opening_balances[$key]['payment_id'] = isset($payments[0]) ? $payments[0] : 0;
+            }
         }
     
         $show_main_table = true;
