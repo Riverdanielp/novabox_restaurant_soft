@@ -92,8 +92,8 @@
                             <th class="ir_w_15"><?php echo lang('name'); ?></th>
                             <th class="ir_w_10"><?php echo lang('category'); ?></th>
                             <th class="ir_w_10"><?php echo lang('sale_price'); ?></th>
-                            <th class="ir_w_10"><?php echo lang('alternative_name'); ?></th>
-                            <th class="ir_w_10"><?php echo lang('added_by'); ?></th>
+                            <!-- <th class="ir_w_10"><?php echo lang('alternative_name'); ?></th> -->
+                            <th class="ir_w_10"><?php echo lang('description'); ?></th>
                             <th class="ir_w_1 ir_txt_center not-export-col"><?php echo lang('actions'); ?></th>
                         </tr>
                     </thead>
@@ -168,7 +168,7 @@
         //get title and datatable id name from hidden input filed that is before in the table in view page for every datatable
         let datatable_name = $(".datatable_name").attr("data-id_name");
         let title = $(".datatable_name").attr("data-title");
-        let TITLE = title + "" +
+        let TITLE = title + " " +
             "" + today;
         var table_sv = jqry('#datatable_sv').DataTable({
             "processing": true,

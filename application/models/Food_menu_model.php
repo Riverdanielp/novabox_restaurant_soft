@@ -37,8 +37,8 @@ class Food_menu_model extends CI_Model {
             3 => 'name',
             4 => 'category_id',
             5 => 'sale_price',
-            6 => 'id', // alternative_name, cambia si tienes el campo
-            7 => 'user_id',
+            // 6 => 'id', // alternative_name, cambia si tienes el campo
+            6 => 'description',
             // 8 => acciones (no ordenar)
         ];
         

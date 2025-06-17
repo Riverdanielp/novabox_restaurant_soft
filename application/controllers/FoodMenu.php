@@ -150,8 +150,9 @@ class FoodMenu extends Cl_Controller {
                 escape_output($row->name),
                 escape_output(getFoodMenuCateCodeById($row->category_id)),
                 escape_output(getAmtPCustom($row->sale_price)),
-                escape_output(getAlternativeNameById($row->id)),
-                escape_output(userName($row->user_id)),
+                // escape_output(getAlternativeNameById($row->id)),
+                // escape_output(userName($row->user_id)),
+                escape_output($row->description),
                 '<div class="btn_group_wrap">
                     <a class="btn btn-warning" href="'.base_url().'foodMenu/addEditFoodMenu/'.escape_output($this->custom->encrypt_decrypt($row->id, "encrypt")).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('edit').'">
                         <i class="far fa-edit"></i>

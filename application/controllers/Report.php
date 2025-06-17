@@ -1598,9 +1598,9 @@ class Report extends Cl_Controller {
         header('Content-Type: application/json');
         echo json_encode([
             'success' => true,
-            'content' => $ticket['content'],
-            'width'   => $ticket['width'],
-            'printer' => $ticket['printer'],
+            // 'content' => $ticket['content'],
+            // 'width'   => $ticket['width'],
+            // 'printer' => $ticket['printer'],
         ]);
     }
 
