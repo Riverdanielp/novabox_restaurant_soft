@@ -1410,12 +1410,12 @@ class Report extends Cl_Controller {
                 $payment_name = $payments[1];
                 $opening_balance = (float) $payments[2];
     
-                $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
-                $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
-                $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
-                $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
-                $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
-                $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id, $user_id, $outlet_id);
+                $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id,$closing_date_time, $user_id, $outlet_id);
+                $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id,$closing_date_time, $user_id, $outlet_id);
+                $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id,$closing_date_time, $user_id, $outlet_id);
+                $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id,$closing_date_time, $user_id, $outlet_id);
+                $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id,$closing_date_time, $user_id, $outlet_id);
+                $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id,$closing_date_time, $user_id, $outlet_id);
 
                 $total_sale_all += $total_sale;
     
@@ -1598,8 +1598,8 @@ class Report extends Cl_Controller {
         header('Content-Type: application/json');
         echo json_encode([
             'success' => true,
-            // 'content' => $ticket['content'],
-            // 'width'   => $ticket['width'],
+            'content' => $ticket['content'],
+            'width'   => '80',
             // 'printer' => $ticket['printer'],
         ]);
     }

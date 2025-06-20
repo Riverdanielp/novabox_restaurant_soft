@@ -109,8 +109,9 @@ foreach($food_menus as $single_menus){
         }
     }
 
-    //vr01
+    //vr01 iva_tipo
     $is_variation = $single_menus->is_variation;
+    $iva_tipo = $single_menus->iva_tipo;
 
     //checks that whether its new category or not
     $is_new_category = false;
@@ -160,7 +161,8 @@ foreach($food_menus as $single_menus){
         $item_name_c = "item_name_tippy";
     }
     //construct new single item content
-    $menu_to_show .= '<div class="single_item animate__animated animate__flipInX" data-price="'.$sale_price.'"  data-price_take="'.$sale_price_take.'"  data-price_delivery="'.$sale_price_delivery.'" data-is_variation="'.$is_variation.'" data-veg_status="'.$veg_status1.'"  id="item_'.$single_menus->id.'">';
+    $menu_to_show .= '<div class="single_item animate__animated animate__flipInX" data-price="'.$sale_price.'"  data-price_take="'.$sale_price_take.'"  data-price_delivery="'.$sale_price_delivery.'" data-is_variation="'.$is_variation.'" data-iva_tipo="'.$iva_tipo.'" data-veg_status="'.$veg_status1.'"  id="item_'.$single_menus->id.'">';
+    //iva_tipo
     $menu_to_show .= '<img src="'.$image_path.'" alt="" width="142">';
         $menu_to_show .= '<p class="item_name '.$item_name_c.'" data-tippy-content="'.$single_menus->name.'">'.$single_menus->name.'</p>';
     $menu_to_show .= '<p class="item_price">'.$this->session->userdata('currency').' <span id="price_'.$single_menus->id.'">'.getAmtPCustom($sale_price).'</span></p>';
@@ -234,11 +236,11 @@ foreach($food_menus as $single_menus){
         $modal_item_name_row = getParentNameTemp($single_menus->parent_id).getFoodMenuNameCodeById($get_food_menu_id);
         $is_promo = "Yes";
     }
-
+    //iva_tipo
     if($total_menus==$i){
-        $javascript_obects .= "{item_id:'".$single_menus->id."',kitchen_id:'".$single_menus->kitchen_id."',kitchen_name:'".$single_menus->kitchen_name."',is_promo:'".$is_promo."',qty:'".$qty."',modal_item_name_row:'".$modal_item_name_row."',promo_type:'".$promo_type."',get_food_menu_id:'".$get_food_menu_id."',string_text:'".$string_text."',get_qty:'".$get_qty."',discount:'".$discount."',parent_id:'".$single_menus->parent_id."',product_type:'".$single_menus->product_type."',product_comb:'".$product_comb."',is_variation:'".$is_variation."',item_code:'".getPlanText($single_menus->code)."',category_name:'".getPlanText($single_menus->category_name)."',item_name:'".getPlanText($single_menus->name)."',alternative_name:'" . getPlanText($single_menus->alternative_name) . "',item_name_tmp:'".getPlanText($item_name_tmp)."',price:'".getAmtP($sale_price)."',price_take:'".getAmtP($sale_price_take)."',price_delivery:'".getAmtP($sale_price_delivery)."',price_delivery_details:'".($sale_price_delivery_details)."',image:'".$image_path."',tax_information:'".$single_menus->tax_information."',vat_percentage:'0',veg_item:'".$veg_status."',beverage_item:'".$soft_status."',sold_for:'".$single_menus->item_sold."',veg_item_status:'".$veg_status1."',beverage_item_status:'".$beverage_status."',modifiers:[".$modifiers."]}";
+        $javascript_obects .= "{item_id:'".$single_menus->id."',kitchen_id:'".$single_menus->kitchen_id."',kitchen_name:'".$single_menus->kitchen_name."',is_promo:'".$is_promo."',qty:'".$qty."',modal_item_name_row:'".$modal_item_name_row."',promo_type:'".$promo_type."',get_food_menu_id:'".$get_food_menu_id."',string_text:'".$string_text."',get_qty:'".$get_qty."',discount:'".$discount."',parent_id:'".$single_menus->parent_id."',product_type:'".$single_menus->product_type."',product_comb:'".$product_comb."',is_variation:'".$is_variation."',iva_tipo:'".$iva_tipo."',item_code:'".getPlanText($single_menus->code)."',category_name:'".getPlanText($single_menus->category_name)."',item_name:'".getPlanText($single_menus->name)."',alternative_name:'" . getPlanText($single_menus->alternative_name) . "',item_name_tmp:'".getPlanText($item_name_tmp)."',price:'".getAmtP($sale_price)."',price_take:'".getAmtP($sale_price_take)."',price_delivery:'".getAmtP($sale_price_delivery)."',price_delivery_details:'".($sale_price_delivery_details)."',image:'".$image_path."',tax_information:'".$single_menus->tax_information."',vat_percentage:'0',veg_item:'".$veg_status."',beverage_item:'".$soft_status."',sold_for:'".$single_menus->item_sold."',veg_item_status:'".$veg_status1."',beverage_item_status:'".$beverage_status."',modifiers:[".$modifiers."]}";
     }else{
-        $javascript_obects .= "{item_id:'".$single_menus->id."',kitchen_id:'".$single_menus->kitchen_id."',kitchen_name:'".$single_menus->kitchen_name."',is_promo:'".$is_promo."',qty:'".$qty."',modal_item_name_row:'".$modal_item_name_row."',promo_type:'".$promo_type."',get_food_menu_id:'".$get_food_menu_id."',string_text:'".$string_text."',get_qty:'".$get_qty."',discount:'".$discount."',parent_id:'".$single_menus->parent_id."',product_type:'".$single_menus->product_type."',product_comb:'".$product_comb."',is_variation:'".$is_variation."',item_code:'".getPlanText($single_menus->code)."',category_name:'".getPlanText($single_menus->category_name)."',item_name:'".getPlanText($single_menus->name)."',alternative_name:'" . getPlanText($single_menus->alternative_name) . "',item_name_tmp:'".getPlanText($item_name_tmp)."',price:'".getAmtP($sale_price)."',price_take:'".getAmtP($sale_price_take)."',price_delivery:'".getAmtP($sale_price_delivery)."',price_delivery_details:'".($sale_price_delivery_details)."',image:'".$image_path."',tax_information:'".$single_menus->tax_information."',vat_percentage:'0',veg_item:'".$veg_status."',beverage_item:'".$soft_status."',sold_for:'".$single_menus->item_sold."',veg_item_status:'".$veg_status1."',beverage_item_status:'".$beverage_status."',modifiers:[".$modifiers."]},";
+        $javascript_obects .= "{item_id:'".$single_menus->id."',kitchen_id:'".$single_menus->kitchen_id."',kitchen_name:'".$single_menus->kitchen_name."',is_promo:'".$is_promo."',qty:'".$qty."',modal_item_name_row:'".$modal_item_name_row."',promo_type:'".$promo_type."',get_food_menu_id:'".$get_food_menu_id."',string_text:'".$string_text."',get_qty:'".$get_qty."',discount:'".$discount."',parent_id:'".$single_menus->parent_id."',product_type:'".$single_menus->product_type."',product_comb:'".$product_comb."',is_variation:'".$is_variation."',iva_tipo:'".$iva_tipo."',item_code:'".getPlanText($single_menus->code)."',category_name:'".getPlanText($single_menus->category_name)."',item_name:'".getPlanText($single_menus->name)."',alternative_name:'" . getPlanText($single_menus->alternative_name) . "',item_name_tmp:'".getPlanText($item_name_tmp)."',price:'".getAmtP($sale_price)."',price_take:'".getAmtP($sale_price_take)."',price_delivery:'".getAmtP($sale_price_delivery)."',price_delivery_details:'".($sale_price_delivery_details)."',image:'".$image_path."',tax_information:'".$single_menus->tax_information."',vat_percentage:'0',veg_item:'".$veg_status."',beverage_item:'".$soft_status."',sold_for:'".$single_menus->item_sold."',veg_item_status:'".$veg_status1."',beverage_item_status:'".$beverage_status."',modifiers:[".$modifiers."]},";
     }
     //end_new_added_zak
 

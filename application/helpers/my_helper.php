@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420634';
+    return '?v=7.5420635';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -4396,6 +4396,22 @@ if (!function_exists('getOutletInfoById')) {
         $CI->db->where("del_status", 'Live');
         $result =  $CI->db->get()->row();
         return $result;
+    }
+}
+
+function mb_str_pad83($input, $pad_length, $pad_string=' ', $pad_type=STR_PAD_RIGHT, $encoding='UTF-8') {
+    $diff = $pad_length - mb_strlen($input, $encoding);
+    if ($diff <= 0) return mb_substr($input, 0, $pad_length, $encoding);
+    switch ($pad_type) {
+        case STR_PAD_LEFT:
+            return str_repeat($pad_string, $diff).$input;
+        case STR_PAD_BOTH:
+            $left = floor($diff / 2);
+            $right = $diff - $left;
+            return str_repeat($pad_string, $left).$input.str_repeat($pad_string, $right);
+        case STR_PAD_RIGHT:
+        default:
+            return $input.str_repeat($pad_string, $diff);
     }
 }
 

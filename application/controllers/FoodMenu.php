@@ -22,7 +22,16 @@ class FoodMenu extends Cl_Controller {
         $controller = "234";
         $function = "";
 
-        if($segment_2=="foodMenus" || $segment_2=="ajax_list" || $segment_2=="ajax_food_menus" || $segment_2=="ajax_ingredients" ){
+        if($segment_2=="foodMenus" ||
+            $segment_2=="ajax_list" ||
+            $segment_2=="ajax_food_menus" ||
+            $segment_2=="ajax_ingredients" ||
+            $segment_2=="conf_rapida" ||
+            $segment_2=="get_categories_ajax" ||
+            $segment_2=="update_field_ajax" ||
+            $segment_2=="batch_update_field_ajax" ||
+            $segment_2=="export_balanza_txt" 
+         ){
             $function = "view";
         }elseif($segment_2=="addEditFoodMenu" && $segment_3){
             $function = "update";
@@ -80,6 +89,28 @@ class FoodMenu extends Cl_Controller {
         $this->load->view('userHome', $data);
     }
 
+    public function conf_rapida() {
+        $company_id = $this->session->userdata('company_id');
+    
+        $category_id = $this->input->get('category_id');
+        $solo_balanza = $this->input->get('balanza');
+    
+        // Filtros combinados
+        if (!empty($category_id) && $solo_balanza == 1) {
+            $data['foodMenus'] = $this->Common_model->getAllFoodMenusByCategoryBalanza($category_id, $company_id,'code');
+        } elseif (!empty($category_id)) {
+            $data['foodMenus'] = $this->Common_model->getAllFoodMenusByCategory($category_id, 'tbl_food_menus','code','asc');
+        } elseif ($solo_balanza == 1) {
+            $data['foodMenus'] = $this->Common_model->getAllFoodMenusBalanza($company_id,'code');
+        } else {
+            $data['foodMenus'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_food_menus",'code');
+        }
+    
+        $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
+        $data['main_content'] = $this->load->view('master/foodMenu/conf_rapida', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+    
     public function foodMenusOld() {
         $company_id = $this->session->userdata('company_id');
 
@@ -123,7 +154,6 @@ class FoodMenu extends Cl_Controller {
         }
     }
 
-
     // Endpoint para DataTables server-side
     public function ajax_list() {
         $company_id = $this->session->userdata('company_id');
@@ -145,6 +175,7 @@ class FoodMenu extends Cl_Controller {
 
             $data[] = [
                 $i++,
+                '',
                 '<img src="'.$image_path.'" class="img-port" alt="'.escape_output($row->name).'">',
                 escape_output($row->code),
                 escape_output($row->name),
@@ -456,11 +487,21 @@ class FoodMenu extends Cl_Controller {
                 $this->Common_model->updateInformation($data_combo_ids, $id, "tbl_food_menus");
 
                 if($product_type==3){
+                    // Busca el ingrediente asociado
+                    $this->db->select('*');
+                    $this->db->from('tbl_ingredients');
+                    $this->db->where('food_id', $id);
+                    $this->db->where('del_status', 'Live');
+                    $ingredient = $this->db->get()->row();
+                
+                    // Usa el mismo código del ingrediente si ya existe, si no genera uno nuevo
+                    $ingredient_code = ($ingredient && $ingredient->code) ? $ingredient->code : $this->Master_model->generateIngredientCode();
+                
                     $fmc_info = array();
                     $fmc_info['name'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('name')));
-                    $fmc_info['code'] = $this->Master_model->generateIngredientCode();
+                    $fmc_info['code'] = $ingredient_code;
                     $fmc_info['purchase_price'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('purchase_price')));
-                    $fmc_info['alert_quantity'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('alert_quantity')));
+                    $fmc_info['alert_quantity'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('alert_quantity')));
                     $fmc_info['unit_id'] = $this->get_unit_id("Pcs");
                     $fmc_info['purchase_unit_id'] = $this->get_unit_id("Pcs");
                     $fmc_info['consumption_unit_cost'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('purchase_price')));
@@ -502,6 +543,31 @@ class FoodMenu extends Cl_Controller {
                         $data['food_menus'][$key]->is_variation = isset($variations) && $variations?'Yes':'No';
                     }
                     $data['food_menu_details'] = $this->Common_model->getDataById($id, "tbl_food_menus");
+                    // Busca el ingrediente asociado si product_type == 3
+                    if ($data['food_menu_details']->product_type == 3) {
+                        $this->db->select('*');
+                        $this->db->from('tbl_ingredients');
+                        $this->db->where('food_id', $data['food_menu_details']->id);
+                        $this->db->where('del_status', 'Live');
+                        $ingredient = $this->db->get()->row();
+                    
+                        if ($ingredient) {
+                            $data['ingredient_purchase_price'] = $ingredient->purchase_price;
+                            $data['ingredient_alert_quantity'] = $ingredient->alert_quantity;
+                            $data['ingredient_ing_category_id'] = $ingredient->category_id;
+                        } else {
+                            // En caso de que aún no tenga ingrediente asociado
+                            $data['ingredient_purchase_price'] = '';
+                            $data['ingredient_alert_quantity'] = '';
+                            $data['ingredient_ing_category_id'] = '';
+                        }
+                    } else {
+                        $ingredient = [];
+                        $data['ingredient_purchase_price'] = '';
+                        $data['ingredient_alert_quantity'] = '';
+                        $data['ingredient_ing_category_id'] = '';
+                    }
+                    $data['ingredient'] = $ingredient;
                     $data['variation_food_menus'] = $this->Common_model->getAllByCustomId($id,"parent_id","tbl_food_menus",$order='');
                     $data['added_combo_menus'] = $this->Common_model->getAllByCustomId($id,"food_menu_id","tbl_combo_food_menus",$order='');
                     $data['deliveryPartners'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
@@ -538,6 +604,31 @@ class FoodMenu extends Cl_Controller {
                     }
                 $data['autoCode'] = $this->Master_model->generateFoodMenuCode();
                 $data['food_menu_details'] = $this->Common_model->getDataById($id, "tbl_food_menus");
+                // Busca el ingrediente asociado si product_type == 3
+                if ($data['food_menu_details']->product_type == 3) {
+                    $this->db->select('*');
+                    $this->db->from('tbl_ingredients');
+                    $this->db->where('food_id', $data['food_menu_details']->id);
+                    $this->db->where('del_status', 'Live');
+                    $ingredient = $this->db->get()->row();
+                
+                    if ($ingredient) {
+                        $data['ingredient_purchase_price'] = $ingredient->purchase_price;
+                        $data['ingredient_alert_quantity'] = $ingredient->alert_quantity;
+                        $data['ingredient_ing_category_id'] = $ingredient->category_id;
+                    } else {
+                        // En caso de que aún no tenga ingrediente asociado
+                        $data['ingredient_purchase_price'] = '';
+                        $data['ingredient_alert_quantity'] = '';
+                        $data['ingredient_ing_category_id'] = '';
+                    }
+                } else {
+                    $ingredient = [];
+                    $data['ingredient_purchase_price'] = '';
+                    $data['ingredient_alert_quantity'] = '';
+                    $data['ingredient_ing_category_id'] = '';
+                }
+                $data['ingredient'] = $ingredient;
                 $data['variation_food_menus'] = $this->Common_model->getAllByCustomId($id,"parent_id","tbl_food_menus",$order='');
                 $data['added_combo_menus'] = $this->Common_model->getAllByCustomId($id,"food_menu_id","tbl_combo_food_menus",$order='');
                 $data['food_menu_ingredients'] = $this->Master_model->getFoodMenuIngredients($data['food_menu_details']->id);
@@ -1166,6 +1257,7 @@ class FoodMenu extends Cl_Controller {
         $data['main_content'] = $this->load->view('master/foodMenu/assign_ingredients', $data, TRUE);
         $this->load->view('userHome', $data);
     }
+
     public function assign_submit() {
         $menu_options = $this->input->post('menu_option'); // [food_menu_id => opcion]
         $company_id = $this->session->userdata('company_id');
@@ -1190,7 +1282,6 @@ class FoodMenu extends Cl_Controller {
                 // Obtener el nombre de categoría del menú
                 $category_name = '';
                 if ($food_menu->category_id) {
-                    // Busca el nombre de la categoría del menú
                     $cat = $this->db->get_where('tbl_food_menu_categories', [
                         'id' => $food_menu->category_id,
                         'del_status' => 'Live'
@@ -1219,37 +1310,35 @@ class FoodMenu extends Cl_Controller {
                     $ingredient_category_id = $this->Common_model->insertInformation($cat_data, 'tbl_ingredient_categories');
                 }
     
-                // Crear el ingrediente
+                // --- CAMBIO CLAVE: armar el array igual que el flujo de type 3 ---
                 $ingredient_data = [
                     'name' => $food_menu->name,
                     'code' => $food_menu->code,
                     'category_id' => $ingredient_category_id,
-                    'purchase_price' => 0,
+                    'purchase_price' => $food_menu->purchase_price ?: 0,
                     'alert_quantity' => $food_menu->alert_quantity ?: 0,
                     'unit_id' => $unit_id,
                     'purchase_unit_id' => $unit_id,
                     'consumption_unit_cost' => $food_menu->purchase_price ?: $food_menu->sale_price,
-                    'average_consumption_per_unit' => $food_menu->purchase_price ?: $food_menu->sale_price,
                     'conversion_rate' => 1,
+                    'is_direct_food' => 2, // como en type 3
+                    'food_id' => $menu_id, // <- CONEXIÓN CLAVE
                     'user_id' => $user_id,
                     'company_id' => $company_id,
                     'del_status' => 'Live',
+                    // Opcionales:
                     'ing_type' => $ing_type,
                     'unit_type' => 1,
-                    'is_direct_food' => 1
                 ];
     
-                $ingredient_id = $this->Common_model->insertInformation($ingredient_data, 'tbl_ingredients');
+                // Usar la función setIngredients() para evitar duplicados y actualizar si ya existe
+                setIngredients($menu_id, $ingredient_data);
     
-                $association_data = [
-                    'ingredient_id' => $ingredient_id,
-                    'consumption' => 1,
-                    'food_menu_id' => $menu_id,
-                    'user_id' => $user_id,
-                    'company_id' => $company_id,
-                    'del_status' => 'Live'
-                ];
-                $this->Common_model->insertInformation($association_data, 'tbl_food_menus_ingredients');
+                // Actualizar el product_type a 3 para este food_menu
+                $this->db->where('id', $menu_id);
+                $this->db->update('tbl_food_menus', ['product_type' => 3]);
+                // --- NO crear asociación en tbl_food_menus_ingredients ---
+                // Ya que el ingrediente está "fusionado" con el food_menu, la relación es por food_id
             }
         }
     
@@ -1320,4 +1409,93 @@ class FoodMenu extends Cl_Controller {
     //     // Redirigir o mostrar mensaje según tu lógica
     // }
 
+    public function get_categories_ajax() {
+        $company_id = $this->session->userdata('company_id');
+        $categories = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
+        $data = [];
+        foreach ($categories as $cat) {
+            $data[] = ["id" => $cat->id, "name" => $cat->category_name];
+        }
+        echo json_encode($data);
+    }
+
+    // AJAX para actualizar campo individual
+    public function update_field_ajax() {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if(!$input || !isset($input['id'], $input['field'], $input['value']))
+            show_404();
+
+        $id = $input['id'];
+        $field = $input['field'];
+        $value = $input['value'];
+        $this->db->where('id', $id)->update('tbl_food_menus', [$field => $value]);
+        echo json_encode(['status' => 'ok']);
+    }
+
+    // AJAX para batch update
+    public function batch_update_field_ajax() {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if(!$input || !isset($input['ids'], $input['field'], $input['value']))
+            show_404();
+    
+        $ids = $input['ids'];
+        $field = $input['field'];
+        $value = $input['value'];
+    
+        // Seguridad: solo campos permitidos
+        $allowed_fields = ['is_balanza', 'balanza_tipo', 'iva_tipo', 'balanza_validez'];
+        if (!in_array($field, $allowed_fields)) show_404();
+    
+        // Seguridad: solo IDs numéricos
+        $ids = array_filter($ids, 'is_numeric');
+        if (empty($ids)) show_404();
+    
+        $this->db->where_in('id', $ids)->update('tbl_food_menus', [$field => $value]);
+        echo json_encode(['status' => 'ok']);
+    }
+
+    public function export_balanza_txt()
+    {
+        // 1. Consulta los productos balanza ordenados por código
+        $this->load->database();
+        $productos = $this->db->select('code, name, sale_price, balanza_tipo, balanza_validez')
+            ->from('tbl_food_menus')
+            ->where('is_balanza', 1)
+            ->order_by('code', 'asc')
+            ->get()->result_array();
+
+        // 2. Armar el TXT
+        $txtResult = '';
+        foreach ($productos as $prod) {
+            // CODIGO: solo 6 dígitos numéricos
+            $codigo_numerico = preg_replace('/\D/', '', $prod['code']);
+            $codigo_numerico = substr($codigo_numerico, 0, 6); // Limitar a 6 dígitos
+            $codigo = str_pad($codigo_numerico, 6, "0", STR_PAD_LEFT);
+    
+            // TIPO: solo 1 caracter
+            $tipo = (isset($prod['balanza_tipo']) && strtoupper(substr($prod['balanza_tipo'], 0, 1)) == 'U') ? 'U' : 'P';
+    
+            // DESCRIPCION: máximo 22 caracteres
+            $descripcion = mb_substr($prod['name'], 0, 22, 'UTF-8');
+            $descripcion = mb_str_pad83($descripcion, 22, ' ', STR_PAD_RIGHT, 'UTF-8');
+    
+            // PRECIO: solo 7 dígitos numéricos
+            $precio_numerico = preg_replace('/\D/', '', $prod['sale_price']);
+            $precio_numerico = substr($precio_numerico, 0, 7); // Limitar a 7 dígitos
+            $precio = str_pad($precio_numerico, 7, "0", STR_PAD_LEFT);
+    
+            // PLAZO: solo 3 dígitos numéricos
+            $plazo_val = isset($prod['balanza_validez']) ? (int)$prod['balanza_validez'] : 0;
+            $plazo_num = substr(str_pad($plazo_val, 3, "0", STR_PAD_LEFT), 0, 3);
+    
+            $linea = $codigo . $tipo . $descripcion . $precio . $plazo_num . "\r\n";
+            $txtResult .= $linea;
+        }
+
+        // 3. Descargar como archivo
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Content-Disposition: attachment; filename="CADTXT.TXT"');
+        echo $txtResult;
+        exit;
+    }
 }

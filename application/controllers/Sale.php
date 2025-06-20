@@ -5994,7 +5994,9 @@ class Sale extends Cl_Controller {
         // Totales
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         // $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Total Items: ' . $totalItems];
-        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
+        if ($sale->sub_total != $sale->total_payable) {
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
+        }
     
         if ($sale->total_discount_amount && $sale->total_discount_amount != "0.00") {
             $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Descuento: ' . getAmtPCustom($sale->total_discount_amount)];
@@ -7147,13 +7149,11 @@ class Sale extends Cl_Controller {
         $outlet_id = $this->session->userdata('outlet_id');
         $user_id = $this->session->userdata('user_id');
         $user_txt = $this->session->userdata('full_name');
-        // Decodificar los datos
         $data_base64 = $this->input->post('data_base64');
         $data_base64 = urldecode($data_base64);
         $data_json = urldecode(base64_decode($data_base64));
         $data = json_decode($data_json);
     
-        // --- Aquí solo procesamos una copia para guardar en BD ---
         $tipo = isset($data->tipo) ? $data->tipo : null;
         $items_data = isset($data->items_data) ? $data->items_data : [];
         $items = isset($data->items) ? $data->items : [];
@@ -7164,25 +7164,41 @@ class Sale extends Cl_Controller {
         $ruc = isset($data->ruc) ? $data->ruc : '';
         $sale_no = isset($data->sale_no) ? $data->sale_no : null;
     
-        // Lógica idéntica a la de la vista para paginar
         $pages = [];
         if ($tipo === 'todos' && is_array($items_data)) {
-            $items_per_page = 10;
+            $items_per_page = 12;
             $chunks = array_chunk($items_data, $items_per_page);
             foreach ($chunks as $chunk) {
-                $page_total = 0;
+                $subtotal_diez = 0;
+                $subtotal_cinco = 0;
+                $subtotal_exenta = 0;
                 foreach ($chunk as $item) {
-                    $price = isset($item->menu_price_with_discount) ? floatval($item->menu_price_with_discount) : 0;
+                    $precio = isset($item->menu_price_with_discount) ? floatval($item->menu_price_with_discount) : 0;
                     $qty = isset($item->qty) ? floatval($item->qty) : 1;
-                    $page_total += $price; // * $qty, si corresponde
+                    $iva_tipo = isset($item->iva_tipo) ? $item->iva_tipo : "10"; // Por defecto 10
+    
+                    $total_item = $precio; // Si el precio ya es total, si no usa $precio * $qty
+                    if ($iva_tipo == "0") {
+                        $subtotal_exenta += $total_item;
+                    } elseif ($iva_tipo == "5") {
+                        $subtotal_cinco += $total_item;
+                    } else {
+                        $subtotal_diez += $total_item;
+                    }
                 }
-                $page_iva_10 = $page_total / 11;
-                $page_iva_5 = 0;
+                $subtotal = $subtotal_diez + $subtotal_cinco + $subtotal_exenta;
+                $iva_diez = $subtotal_diez / 11;
+                $iva_cinco = $subtotal_cinco / 21;
+    
                 $pages[] = [
                     'items' => $chunk,
-                    'total' => $page_total,
-                    'iva_10' => $page_iva_10,
-                    'iva_5' => $page_iva_5
+                    'total' => $subtotal,
+                    // 'iva_0' => 0,
+                    'iva_10' => $iva_diez,
+                    'iva_5' => $iva_cinco,
+                    'subtotal_10' => $subtotal_diez,
+                    'subtotal_5' => $subtotal_cinco,
+                    'subtotal_exenta' => $subtotal_exenta,
                 ];
             }
         } else {
@@ -7190,22 +7206,30 @@ class Sale extends Cl_Controller {
                 'items' => is_array($items) ? $items : [],
                 'total' => floatval($total),
                 'iva_10' => floatval($total) / 11,
-                'iva_5' => 0
+                'iva_5' => 0,
+                // 'iva_0' => 0,
+                'subtotal_10' => floatval($total),
+                'subtotal_5' => 0,
+                'subtotal_exenta' => 0,
             ];
         }
     
         // --- Guardar en BD cada página ---
-        // $this->load->database();
         $total_paginas = count($pages);
         foreach ($pages as $idx => $pageData) {
             $page_items = [];
             foreach ($pageData['items'] as $item) {
-                // Serializa como array plano para guardar en JSON (opcional)
                 $page_items[] = [
                     'cantidad' => isset($item->qty) ? $item->qty : (isset($item->quantity_purchased) ? $item->quantity_purchased : 0),
                     'detalle' => isset($item->menu_name) ? $item->menu_name : (isset($item->Producto) ? $item->Producto : ''),
-                    'precio_unitario' => isset($item->menu_price_with_discount) ? $item->menu_price_with_discount : (isset($item->item_unit_price) ? $item->item_unit_price : 0),
-                    'total' => (isset($item->menu_price_with_discount) && isset($item->qty)) ? $item->menu_price_with_discount : (isset($item->total) ? $item->total : 0)
+                    'precio_unitario' => (
+                        isset($item->menu_price_with_discount, $item->qty) && floatval($item->qty) > 0
+                    )
+                        ? (floatval($item->menu_price_with_discount) / floatval($item->qty))
+                        : (isset($item->item_unit_price) ? floatval($item->item_unit_price) : 0),
+                    // 'precio_unitario' => isset($item->menu_price_with_discount) ? $item->menu_price_with_discount : (isset($item->item_unit_price) ? $item->item_unit_price : 0),
+                    'total' => (isset($item->menu_price_with_discount) && isset($item->qty)) ? $item->menu_price_with_discount : (isset($item->total) ? $item->total : 0),
+                    'iva_tipo' => isset($item->iva_tipo) ? $item->iva_tipo : "10",
                 ];
             }
             $this->db->insert('tbl_facturas_preimpresas', [
@@ -7214,12 +7238,14 @@ class Sale extends Cl_Controller {
                 'documento' => $ruc,
                 'nombre' => $nombre,
                 'direccion' => $direccion,
-                'iva_cinco' => 0,
+                // 'iva_excenta' => $pageData['iva_0'],
+                'iva_cinco' => $pageData['iva_5'],
                 'iva_diez' => $pageData['iva_10'],
-                'iva_total' => $pageData['iva_10'],
+                'iva_total' => $pageData['iva_5'] + $pageData['iva_10'],
                 'subtotal' => $pageData['total'],
-                'subtotal_cinco' => 0,
-                'subtotal_diez' => $pageData['total'],
+                // 'subtotal_exenta' => $pageData['subtotal_exenta'],
+                'subtotal_cinco' => $pageData['subtotal_5'],
+                'subtotal_diez' => $pageData['subtotal_10'],
                 'total_texto' => numeroConDecimalesATexto(round($pageData['total'],0)),
                 'pagina' => $idx + 1,
                 'total_paginas' => $total_paginas,
@@ -7231,7 +7257,6 @@ class Sale extends Cl_Controller {
             ]);
         }
     
-        // --- Pasa los datos "crudos" a la vista para que la vista siga igual ---
         $this->load->view("preimpreso_1", $data);
     }
 

@@ -50,6 +50,7 @@ $ingredient_id_container .= "]";
             
                 <?php echo form_open(base_url() . 'foodMenu/addEditFoodMenu/' . $encrypted_id, $arrayName = array('id' => 'food_menu_form', 'enctype' => 'multipart/form-data')) ?>
                 <div class="box-body">
+
                     <div class="row">
                         <div class="col-sm-12 mb-2 col-md-4">
                             <div class="form-group">
@@ -153,7 +154,7 @@ $ingredient_id_container .= "]";
                                         
                                         <input tabindex="1" type="text" id="purchase_price" name="purchase_price" class="form-control"
                                        placeholder="<?php echo lang('purchase_price'); ?>"
-                                       value="<?php echo escape_output($food_menu_details->purchase_price) ?>">
+                                       value="<?php echo ($ingredient_purchase_price) ?>">
                                         </td>
                                         <td> 
                                         <div class="tooltip_custom">
@@ -180,7 +181,7 @@ $ingredient_id_container .= "]";
                                         <td class="ir_w_100">
                                         <input tabindex="1" type="text" id="alert_quantity" name="alert_quantity" class="form-control"
                                        placeholder="<?php echo lang('alert_quantity'); ?>"
-                                       value="<?php echo escape_output($food_menu_details->alert_quantity) ?>">
+                                       value="<?php echo ($ingredient_alert_quantity) ?>">
 
                                         </td>
                                         <td> 
@@ -213,7 +214,7 @@ $ingredient_id_container .= "]";
                                             <?php foreach ($ing_categories as $ctry) { ?>
                                                 <option value="<?php echo escape_output($ctry->id) ?>"
                                                     <?php echo set_select('ing_category_id', $ctry->id); ?> <?php
-                                                if ($food_menu_details->ing_category_id == $ctry->id) {
+                                                if ($ingredient_ing_category_id == $ctry->id) {
                                                     echo "selected";
                                                 }
                                                 ?>>

@@ -1297,13 +1297,16 @@ class Sale_model extends CI_Model {
         $this->db->where('del_status', 'Live');
         return $this->db->get()->result();
     }
-    public function getAllSalePayment($date,$payment_id,$user_id=null,$outlet_id=null)
+    public function getAllSalePayment($date,$payment_id,$end = null,$user_id=null,$outlet_id=null)
     {
         if (!$user_id) {
           $user_id = $this->session->userdata('user_id');
         }
         if (!$outlet_id) {
           $outlet_id = $this->session->userdata('outlet_id');
+        }
+        if (!$end) {
+          $end = date('Y-m-d H:i:s');
         }
         $this->db->select("tbl_sale_payments.amount as paid_amount,tbl_sale_payments.payment_id,tbl_sales.user_id,tbl_sales.outlet_id,tbl_payment_methods.name as payment_name");
         $this->db->from('tbl_sale_payments');
@@ -1313,11 +1316,11 @@ class Sale_model extends CI_Model {
         $this->db->where("tbl_sales.outlet_id", $outlet_id);
         $this->db->where("tbl_sale_payments.payment_id", $payment_id);
         $this->db->where("tbl_sales.date_time>=", $date);
-        $this->db->where("tbl_sales.date_time<=", date('Y-m-d H:i:s'));
+        $this->db->where("tbl_sales.date_time<=", $end);
         $this->db->where('del_status', 'Live');
         return $this->db->get()->result();
     }
-    public function getAllPurchaseByPayment($date,$payment_id,$user_id=null,$outlet_id=null)
+    public function getAllPurchaseByPayment($date,$payment_id,$end = null,$user_id=null,$outlet_id=null)
     {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
@@ -1326,24 +1329,30 @@ class Sale_model extends CI_Model {
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
       }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
+      }
       $this->db->select("sum(paid) as total_amount");
       $this->db->from('tbl_purchase');
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time>=", $date);
-      $this->db->where("added_date_time<=", date('Y-m-d H:i:s'));
+      $this->db->where("added_date_time<=", $end);
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllDueReceiveByPayment($date,$payment_id,$user_id=null,$outlet_id=null)
+    public function getAllDueReceiveByPayment($date,$payment_id,$end = null,$user_id=null,$outlet_id=null)
     {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
       }
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
       }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_customer_due_receives');
@@ -1351,18 +1360,21 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date>=", $date);
-      $this->db->where("date<=", date('Y-m-d H:i:s'));
+      $this->db->where("date<=", $end);
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllDuePaymentByPayment($date,$payment_id,$user_id=null,$outlet_id=null)
+    public function getAllDuePaymentByPayment($date,$payment_id,$end = null,$user_id=null,$outlet_id=null)
     {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
       }
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
       }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_supplier_payments');
@@ -1370,18 +1382,21 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time	>=", $date);
-      $this->db->where("added_date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("added_date_time	<=", $end);
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllExpenseByPayment($date,$payment_id,$user_id=null,$outlet_id=null)
+    public function getAllExpenseByPayment($date,$payment_id,$end = null,$user_id=null,$outlet_id=null)
     {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
       }
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
       }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_expenses');
@@ -1389,18 +1404,21 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time	>=", $date);
-      $this->db->where("added_date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("added_date_time	<=", $end);
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllSaleByPayment($date,$payment_id, $user_id=null,$outlet_id=null)
+    public function getAllSaleByPayment($date,$payment_id,$end = null, $user_id=null,$outlet_id=null)
     {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
       }
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
       }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_sale_payments');
@@ -1408,38 +1426,44 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
-      $this->db->where("date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time	<=", $end);
       $this->db->where("currency_type", null);
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllRefundByPayment($date,$payment_id,$user_id=null,$outlet_id=null)
+    public function getAllRefundByPayment($date,$payment_id,$end = null,$user_id=null,$outlet_id=null)
     {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
       }
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
       }
       $this->db->select("sum(total_refund) as total_amount");
       $this->db->from('tbl_sales');
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("refund_date_time	>=", $date);
-      $this->db->where("refund_date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("refund_date_time	<=", $end);
       $this->db->where("refund_payment_id", $payment_id);
       $this->db->where("del_status", "Live");
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllSaleByPaymentMultiCurrency($date,$payment_id,$user_id=null,$outlet_id=null)
+    public function getAllSaleByPaymentMultiCurrency($date,$payment_id,$end = null,$user_id=null,$outlet_id=null)
     {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
       }
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
       }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_sale_payments');
@@ -1447,19 +1471,22 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
-      $this->db->where("date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time	<=", $end);
       $this->db->where("currency_type", 1);
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
-    public function getAllSaleByPaymentMultiCurrencyRows($date,$payment_id,$user_id=null,$outlet_id=null)
+    public function getAllSaleByPaymentMultiCurrencyRows($date,$payment_id,$end = null,$user_id=null,$outlet_id=null)
     {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
       }
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
       }
       $this->db->select("sum(amount) as total_amount,multi_currency");
       $this->db->from('tbl_sale_payments');
@@ -1467,14 +1494,14 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
-      $this->db->where("date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time	<=", $end);
       $this->db->where("currency_type", 1);
       $this->db->where('del_status', 'Live');
       $this->db->group_by('multi_currency');
       $data =  $this->db->get()->result();
       return $data;
     }
-    public function allSaleByDateTime($date,$user_id=null,$outlet_id=null)
+    public function allSaleByDateTime($date,$end = null,$user_id=null,$outlet_id=null)
     {
         if (!$user_id) {
           $user_id = $this->session->userdata('user_id');
@@ -1482,12 +1509,15 @@ class Sale_model extends CI_Model {
         if (!$outlet_id) {
           $outlet_id = $this->session->userdata('outlet_id');
         }
+        if (!$end) {
+          $end = date('Y-m-d H:i:s');
+        }
         $this->db->select("tbl_sales.paid_amount,tbl_sales.payment_method_id,tbl_sales.user_id,tbl_sales.outlet_id");
         $this->db->from('tbl_sales');
         $this->db->where("tbl_sales.user_id", $user_id);
         $this->db->where("tbl_sales.outlet_id", $outlet_id);
         $this->db->where("tbl_sales.date_time>=", $date);
-        $this->db->where("tbl_sales.date_time<=", date('Y-m-d H:i:s'));
+        $this->db->where("tbl_sales.date_time<=", $end);
         $this->db->where('del_status', 'Live');
         return $this->db->get()->result();
     }
@@ -2067,10 +2097,14 @@ class Sale_model extends CI_Model {
       return $query->result();
   }
 
-  public function getDetailedSales($outlet_id, $from_datetime, $to_datetime = null) {
+  public function getDetailedSales($outlet_id, $from_datetime, $to_datetime = null,$user_id = null) {
+      if (!$user_id) {
+          $user_id = $this->session->userdata('user_id');
+      }
       $this->db->select("date_time, paid_date_time, number_slot_name, sale_no, paid_amount as amount");
       $this->db->from('tbl_sales');
       $this->db->where("outlet_id", $outlet_id);
+      $this->db->where("user_id", $user_id);
       $this->db->where("paid_date_time >=", $from_datetime);
       if ($to_datetime) {
           $this->db->where("paid_date_time <=", $to_datetime);

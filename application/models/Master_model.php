@@ -166,6 +166,11 @@ class Master_model extends CI_Model {
             SELECT COUNT(*) FROM tbl_food_menus_ingredients fmi
             WHERE fmi.food_menu_id = fm.id AND fmi.del_status = "Live"
         ) =', 0, FALSE);
+        // No tiene ingrediente hermano en tbl_ingredients
+        $this->db->where('(
+            SELECT COUNT(*) FROM tbl_ingredients ti
+            WHERE ti.food_id = fm.id AND ti.del_status = "Live"
+        ) =', 0, FALSE);
         $this->db->order_by('fmc.order_by', 'ASC');
         $this->db->order_by('fmc.category_name', 'ASC');
         $this->db->order_by('fm.name', 'ASC');

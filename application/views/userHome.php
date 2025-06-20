@@ -212,6 +212,175 @@
             border: 1px solid <?php echo $base_color?>;
         }
     </style>
+    <style>
+        .table-sm {
+            font-size: 13px;
+            padding: 0;
+        }
+        .table-sm th,
+        .table-sm td {
+            padding: 0.25rem 0.5rem;
+        }
+        .table-bordered,
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #dee2e6;
+        }
+        .table-horizontal-lines tbody tr {
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .table-horizontal-lines tbody tr:last-child {
+            border-bottom: none;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: #f9fafb;
+        }
+        .table-striped tbody tr:nth-of-type(even) {
+            background-color: #fff;
+        }
+        /* PON EL DE HOVER AL FINAL 
+        .table-striped.table-hover tbody tr:hover,
+        .table-striped.table-hover tbody tr:nth-of-type(odd):hover,
+        .table-striped.table-hover tbody tr:nth-of-type(even):hover {
+            background-color: #f5f7fa;
+            transition: background 0.2s;
+        }*/
+
+        /* .btn {
+            display: inline-block;
+            font-weight: 400;
+            color: #212529;
+            text-align: center;
+            vertical-align: middle;
+            user-select: none;
+            background-color: transparent;
+            border: 1px solid transparent;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: 0.25rem;
+            transition: color 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+            cursor: pointer;
+            } */
+
+            /* Primary */
+            .btn-primary {
+            color: #fff;
+            background-color: #007bff;
+            border-color: #007bff;
+            }
+            .btn-primary:hover {
+            color: #fff;
+            background-color: #0056b3;
+            border-color: #004085;
+            }
+
+            /* Secondary */
+            .btn-secondary {
+            color: #fff;
+            background-color: #6c757d;
+            border-color: #6c757d;
+            }
+            .btn-secondary:hover {
+            color: #fff;
+            background-color: #545b62;
+            border-color: #4e555b;
+            }
+
+            /* Success */
+            .btn-success {
+            color: #fff;
+            background-color: #28a745;
+            border-color: #28a745;
+            }
+            .btn-success:hover {
+            color: #fff;
+            background-color: #218838;
+            border-color: #1e7e34;
+            }
+
+            /* Danger */
+            .btn-danger {
+            color: #fff;
+            background-color: #dc3545;
+            border-color: #dc3545;
+            }
+            .btn-danger:hover {
+            color: #fff;
+            background-color: #c82333;
+            border-color: #bd2130;
+            }
+
+            /* Warning */
+            .btn-warning {
+            color: #212529;
+            background-color: #ffc107;
+            border-color: #ffc107;
+            }
+            .btn-warning:hover {
+            color: #212529;
+            background-color: #e0a800;
+            border-color: #d39e00;
+            }
+
+            /* Info */
+            .btn-info {
+            color: #fff;
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+            }
+            .btn-info:hover {
+            color: #fff;
+            background-color: #117a8b;
+            border-color: #10707f;
+            }
+
+            /* Light */
+            .btn-light {
+            color: #212529;
+            background-color: #f8f9fa;
+            border-color: #f8f9fa;
+            }
+            .btn-light:hover {
+            color: #212529;
+            background-color: #e2e6ea;
+            border-color: #dae0e5;
+            }
+
+            /* Dark */
+            .btn-dark {
+            color: #fff;
+            background-color: #343a40;
+            border-color: #343a40;
+            }
+            .btn-dark:hover {
+            color: #fff;
+            background-color: #23272b;
+            border-color: #1d2124;
+            }
+
+            /* Link */
+            .btn-link {
+            font-weight: 400;
+            color: #007bff;
+            background-color: transparent;
+            border: none;
+            text-decoration: underline;
+            }
+            .btn-link:hover {
+            color: #0056b3;
+            background-color: transparent;
+            border: none;
+            }
+
+            /* Disabled state for all */
+            .btn:disabled, .btn.disabled {
+            opacity: 0.65;
+            pointer-events: none;
+            }
+
+
+    </style>
     
 <div class="loader"></div>
 <!-- ADD THE CLASS sidebar-collapse TO HIDE THE SIDEBAR PRIOR TO LOADING THE SITE -->

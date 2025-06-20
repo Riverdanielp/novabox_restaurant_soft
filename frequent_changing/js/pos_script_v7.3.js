@@ -5679,6 +5679,7 @@ function getSafePrice(priceAttr) {
             if (selected_order_type_object.length > 0) {
                 //vr01
                 let is_variation = ($(this).attr('data-is_variation'));
+                let iva_tipo = ($(this).attr('data-iva_tipo'));
                 let parent_id = ($(this).attr('data-parent_id'));
                 let item_name = getPlanText($(this).find(".item_name").html());
                 let when_clicking_on_item_in_pos = Number($("#when_clicking_on_item_in_pos").val());
@@ -5965,6 +5966,15 @@ function getSafePrice(priceAttr) {
                           '">' +
                           item_total_price_without_discount +
                           "</span>";
+
+                          //iva_tipo
+                        draw_table_for_order +=
+                        '<span class="iva_tipo ir_display_none" id="iva_tipo_' +
+                        item_id +
+                        '">' +
+                        iva_tipo +
+                        "</span>";
+
                       $("#is_variation_product").html(search_by_menu_id_getting_parent_id(item_id, window.items));
                       draw_table_for_order +=
                           '<div class="single_order_column first_column cart_item_counter  arabic_text_left fix" data-id="'+item_id+'"><i  data-parent_id="'+search_by_menu_id_getting_parent_id(item_id, window.items)+'"   class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
@@ -9398,6 +9408,7 @@ function getSafePrice(priceAttr) {
             // console.log('item:',item_id,'item_quantity:', item_quantity,'tmp_qty:', tmp_qty,'p_qty:', p_qty);
             let item_price_with_discount = $(this).find("#item_total_price_table_" + item_id).html() || item_price_without_discount || "0";
             let item_discount_amount = (parseFloat(item_price_without_discount) - parseFloat(item_price_with_discount)).toFixed(ir_precision);
+            let iva_tipo = $(this).find(".iva_tipo").html() ?? "10";
     
             // --- AJAX síncrono para obtener kitchen_id y kitchen_name ---
             let kitchen_id = "";
@@ -9470,6 +9481,7 @@ function getSafePrice(priceAttr) {
                 menu_discount_value: item_discount,
                 discount_type: discount_type,
                 menu_price_without_discount: item_price_without_discount,
+                iva_tipo: iva_tipo,
                 menu_unit_price: item_unit_price,
                 qty: item_quantity,
                 tmp_qty: tmp_qty,
@@ -11306,7 +11318,7 @@ function getPaymentArrayWithChangeAndDue() {
   
                 if (foundItems[key].parent_id == '0') {
                     searched_category_items_to_show +=
-                        '<div class="single_item animate__animated all_item_custom" data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"    data-is_variation="' + foundItems[key].is_variation + '"  data-parent_id="' + foundItems[key].parent_id + '"    data-price_delivery="' + foundItems[key].price_delivery + '" data-veg_status="' +
+                        '<div class="single_item animate__animated all_item_custom" data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"   data-is_variation="' + foundItems[key].is_variation + '"   data-iva_tipo="' + foundItems[key].iva_tipo + '"  data-parent_id="' + foundItems[key].parent_id + '"    data-price_delivery="' + foundItems[key].price_delivery + '" data-veg_status="' +
                         veg_status +
                         '" data-beverage_status="' +
                         beverage_status +
@@ -12184,8 +12196,9 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoCli
                     html += `
                         <div class="single_item animate__animated animate__flipInX" 
                             data-price="${safePriceAttr(item.sale_price)}" 
-                            data-price_take="${safePriceAttr(item.sale_price_take_away)}" 
+                            data-price_take="${safePriceAttr(item.sale_price_take_away)}"
                             data-is_variation="${item.is_variation}" 
+                            data-iva_tipo="${item.iva_tipo}" 
                             data-parent_id="${item.parent_id}"
                             data-code="${item.code}"
                             data-price_delivery="${safePriceAttr(item.sale_price_delivery)}" 
@@ -13139,7 +13152,6 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
           $(this).parent().parent().find(".item_vat").html()
         );
   
-        console.log(tax_information)
         if (tax_information.length > 0) {
             for(let k in tax_information){
                 console.log(tax_information[k].tax_field_name)
@@ -16113,6 +16125,15 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
                 '">' +
                 this_item.menu_price_without_discount +
                 "</span>";
+                
+                //iva_tipo
+                draw_table_for_order +=
+                '<span class="iva_tipo ir_display_none" id="iva_tipo_' +
+                this_item.food_menu_id +
+                '">' +
+                (this_item.hasOwnProperty('iva_tipo') ? this_item.iva_tipo : 10) +
+                "</span>";
+
             draw_table_for_order +=
                 '<div class="single_order_column first_column cart_item_counter" data-id="' + item_id + '"><i   class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
                 this_item.food_menu_id +

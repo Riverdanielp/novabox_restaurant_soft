@@ -632,7 +632,21 @@ class Common_model extends CI_Model {
      * @param int
      * @param string
      */
-    public function getAllFoodMenusByCategory($category_id, $table_name) {
+    public function getAllFoodMenusByCategory($category_id, $table_name = 'tbl_food_menus', $order_by = 'id', $order = 'desc') {
+        // Por seguridad, solo permitimos el nombre de tabla válido
+        if ($table_name !== 'tbl_food_menus') {
+            // show_error('Tabla no permitida');
+        }
+    
+        $this->db->where('category_id', $category_id);
+        $this->db->where('del_status', 'Live');
+        $this->db->where('parent_id', '0');
+        $this->db->order_by($order_by, $order);
+    
+        return $this->db->get($table_name)->result();
+    }
+
+    public function getAllFoodMenusByCategoryOld($category_id, $table_name) {
         $where = "";
         if($table_name=="tbl_food_menus"){
             $where.=" AND parent_id =  '0'";
@@ -1886,9 +1900,12 @@ class Common_model extends CI_Model {
         return $result;
     }
     
-    public function getAllByCompanyIdAndOutlet($company_id, $outlet_id, $table) {
+    public function getAllByCompanyIdAndOutlet($company_id, $outlet_id, $table, $order_by = null, $order = 'asc') {
         $this->db->where("company_id", $company_id);
         $this->db->where("outlet_id", $outlet_id);
+        if ($order_by) {
+            $this->db->order_by($order_by, $order ?: 'asc');
+        }
         return $this->db->get($table)->result();
     }
     
@@ -1901,6 +1918,31 @@ class Common_model extends CI_Model {
         $this->db->insert_batch($table, $data);
     }
     
+    // public function getAllFoodMenusByCategory($category_id, $company_id) {
+    //     $this->db->where('company_id', $company_id);
+    //     $this->db->where('category_id', $category_id);
+    //     return $this->db->get('tbl_food_menus')->result();
+    // }
+    
+    public function getAllFoodMenusBalanza($company_id, $order_by = null, $order = 'asc') {
+        $this->db->where('company_id', $company_id);
+        $this->db->where('is_balanza', 1);
+        if ($order_by) {
+            $this->db->order_by($order_by, $order ?: 'asc');
+        }
+        return $this->db->get('tbl_food_menus')->result();
+    }
+    
+    public function getAllFoodMenusByCategoryBalanza($category_id, $company_id, $order_by = null, $order = 'asc') {
+        $this->db->where('company_id', $company_id);
+        $this->db->where('category_id', $category_id);
+        $this->db->where('is_balanza', 1);
+        if ($order_by) {
+            $this->db->order_by($order_by, $order ?: 'asc');
+        }
+        return $this->db->get('tbl_food_menus')->result();
+    }
+
 
 }
 

@@ -5,7 +5,9 @@
         margin: 0 auto;
         padding: 0;
     }
+    
  </style>
+
 <?php
 
     $show_register_report = "";
