@@ -34,6 +34,7 @@ if ($this->session->flashdata('exception')) {
                             <tr>
                                 <th class="ir_w_1"> <?php echo lang('sn'); ?></th>
                                 <th class="ir_w_14"><?php echo lang('name'); ?></th>
+                                <th class="ir_w_14"><?php echo tipoConsultaRuc() ?></th>
                                 <th class="ir_w_14"><?php echo lang('contact_person'); ?></th>
                                 <th class="ir_w_9"><?php echo lang('phone'); ?></th>
                                 <th class="ir_w_10"><?php echo lang('email'); ?></th>
@@ -53,6 +54,7 @@ if ($this->session->flashdata('exception')) {
                             <tr>
                                 <td class="ir_txt_center"><?php echo escape_output($i--); ?></td>
                                 <td><?php echo escape_output($si->name) ?></td>
+                                <td><?php echo escape_output($si->doc_num) ?></td>
                                 <td><?php echo escape_output($si->contact_person) ?></td>
                                 <td><?php echo escape_output($si->phone) ?></td>
                                 <td><?php echo escape_output($si->email) ?></td>

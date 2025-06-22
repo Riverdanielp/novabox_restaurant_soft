@@ -1,20 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Supplier Controller
-  ###########################################################
- */
-
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Supplier extends Cl_Controller {
@@ -94,12 +78,13 @@ class Supplier extends Cl_Controller {
         $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
         if (htmlspecialcharscustom($this->input->post('submit'))) {
             $this->form_validation->set_rules('name', lang('name'), 'required|max_length[50]');
-            $this->form_validation->set_rules('contact_person', lang('contact_person'), 'required|max_length[50]');
-            $this->form_validation->set_rules('phone', lang('phone'), 'required|max_length[15]');
+            // $this->form_validation->set_rules('contact_person', lang('contact_person'), 'required|max_length[50]');
+            // $this->form_validation->set_rules('phone', lang('phone'), 'required|max_length[15]');
             $this->form_validation->set_rules('description',lang('description'), 'max_length[100]');
             if ($this->form_validation->run() == TRUE) {
                 $fmc_info = array();
                 $fmc_info['name'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('name')));
+                $fmc_info['doc_num'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('doc_num')));
                 $fmc_info['contact_person'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('contact_person')));
                 $fmc_info['phone'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('phone')));
                 $fmc_info['email'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('email')));

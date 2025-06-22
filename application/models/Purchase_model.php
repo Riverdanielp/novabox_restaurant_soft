@@ -34,7 +34,7 @@ class Purchase_model extends CI_Model {
      * @param int
      */
     public function getIngredientListWithUnitAndPrice($company_id) {
-        $result = $this->db->query("SELECT tbl_ingredients.id, tbl_ingredients.name, tbl_ingredients.code, tbl_ingredients.purchase_price, tbl_ingredients.consumption_unit_cost, tbl_units.unit_name
+        $result = $this->db->query("SELECT tbl_ingredients.id, tbl_ingredients.name, tbl_ingredients.code, tbl_ingredients.purchase_price, tbl_ingredients.consumption_unit_cost, tbl_ingredients.iva_tipo,  tbl_ingredients.sale_price,  tbl_units.unit_name
           FROM tbl_ingredients 
           left JOIN tbl_units ON tbl_ingredients.purchase_unit_id = tbl_units.id
           WHERE tbl_ingredients.company_id=$company_id AND tbl_ingredients.del_status = 'Live' AND tbl_ingredients.ing_type = 'Plain Ingredient'  

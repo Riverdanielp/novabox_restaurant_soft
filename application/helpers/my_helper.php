@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420635';
+    return '?v=7.5420636';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -3763,11 +3763,13 @@ function setIngredients($id,$data) {
     $query_result = $CI->db->get();
     $selected_row = $query_result->row();
 
-    if($selected_row){
+    if ($selected_row) {
         $CI->db->where('id', $selected_row->id);
         $CI->db->update("tbl_ingredients", $data);
-    }else{
+        return $selected_row->id;
+    } else {
         $CI->db->insert("tbl_ingredients", $data);
+        return $CI->db->insert_id(); // Devuelve el id recién insertado
     }
 }
 

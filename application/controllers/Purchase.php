@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Purchase Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -52,7 +37,8 @@ class Purchase extends Cl_Controller {
             $function = "update";
         }elseif($segment_2=="purchaseDetails" && $segment_3){
             $function = "view_details";
-        }elseif($segment_2=="addEditPurchase" || $segment_2=="getSupplierList" || $segment_2=="addNewSupplierByAjax"){
+        }elseif($segment_2=="addEditPurchase" || $segment_2=="getSupplierList" || $segment_2=="addNewSupplierByAjax" || 
+                $segment_2=="ajax_save_ingredient_and_product"){
             $function = "add";
         }elseif($segment_2=="deletePurchase"){
             $function = "delete";
@@ -215,6 +201,8 @@ class Purchase extends Cl_Controller {
                     $data['pur_ref_no'] = $this->Purchase_model->generatePurRefNo($outlet_id);
                     $data['suppliers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_suppliers');
                     $data['ingredients'] = $this->Purchase_model->getIngredientListWithUnitAndPrice($company_id);
+                    $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
+                    $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
                     $data['main_content'] = $this->load->view('purchase/addPurchase', $data, TRUE);
                     $this->load->view('userHome', $data);
                 } else {
@@ -225,6 +213,8 @@ class Purchase extends Cl_Controller {
                     $data['suppliers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_suppliers');
                     $data['ingredients'] = $this->Purchase_model->getIngredientListWithUnitAndPrice($company_id);
                     $data['purchase_ingredients'] = $this->Purchase_model->getPurchaseIngredients($id);
+                    $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
+                    $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
                     $data['main_content'] = $this->load->view('purchase/editPurchase', $data, TRUE);
                     $this->load->view('userHome', $data);
                 }
@@ -236,6 +226,8 @@ class Purchase extends Cl_Controller {
                 $data['pur_ref_no'] = $this->Purchase_model->generatePurRefNo($outlet_id);
                 $data['suppliers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_suppliers');
                 $data['ingredients'] = $this->Purchase_model->getIngredientListWithUnitAndPrice($company_id);
+                $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
+                $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
                 $data['main_content'] = $this->load->view('purchase/addPurchase', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
@@ -246,6 +238,8 @@ class Purchase extends Cl_Controller {
                 $data['suppliers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_suppliers');
                 $data['ingredients'] = $this->Purchase_model->getIngredientListWithUnitAndPrice($company_id);
                 $data['purchase_ingredients'] = $this->Purchase_model->getPurchaseIngredients($id);
+                $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
+                $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
                 $data['main_content'] = $this->load->view('purchase/editPurchase', $data, TRUE);
                 $this->load->view('userHome', $data);
             }
@@ -260,6 +254,10 @@ class Purchase extends Cl_Controller {
      * @param string
      */
     public function savePurchaseIngredients($purchase_ingredients, $purchase_id, $table_name) {
+        $unit_prices = $this->input->post('unit_price');
+        $quantities = $this->input->post('quantity_amount');
+        $sale_prices = $this->input->post('sale_price');
+        $iva_tipos = $this->input->post('iva_tipo');
         //This variable could not be escaped because this is array content
         foreach ($purchase_ingredients as $row => $ingredient_id):
             $ingredient = getIngredient($_POST['ingredient_id'][$row]);
@@ -274,6 +272,23 @@ class Purchase extends Cl_Controller {
             $fmi['purchase_id'] = $purchase_id;
             $fmi['outlet_id'] = $this->session->userdata('outlet_id');
             $this->Common_model->insertInformation($fmi, "tbl_purchase_ingredients");
+                    // --- ACTUALIZAR INGREDIENTE ---
+            $ingredient_update = array(
+                'purchase_price' => $unit_prices[$row],
+                'iva_tipo' => $iva_tipos[$row]
+            );
+            $this->Common_model->updateInformation($ingredient_update, $ingredient_id, 'tbl_ingredients');
+
+            // --- SI TIENE food_id, actualizar food_menu ---
+            $ingredient = $this->Common_model->getDataById($ingredient_id, 'tbl_ingredients');
+            if ($ingredient && $ingredient->food_id) {
+                $food_menu_update = array(
+                    'sale_price' => $sale_prices[$row],
+                    'iva_tipo' => $iva_tipos[$row],
+                    'purchase_price' => $unit_prices[$row]
+                );
+                $this->Common_model->updateInformation($food_menu_update, $ingredient->food_id, 'tbl_food_menus');
+            }
             //set average cost for profit loss report
             setAverageCost($_POST['ingredient_id'][$row]);
             //update ingredenits purchase amount
@@ -311,6 +326,7 @@ class Purchase extends Cl_Controller {
      */
     public function addNewSupplierByAjax() {
         $data['name'] = $_GET['name'];
+        $data['doc_num'] = $_GET['doc_num'];
         $data['contact_person'] = $_GET['contact_person'];
         $data['phone'] = $_GET['phone'];
         $data['email'] = $_GET['emailAddress'];
@@ -340,4 +356,78 @@ class Purchase extends Cl_Controller {
         }
         exit;
     }
+
+    public function ajax_save_ingredient_and_product() {
+        $company_id = $this->session->userdata('company_id');
+        $user_id = $this->session->userdata('user_id');
+        $data = $this->input->post();
+    
+        // Guarda o actualiza ingrediente (usa setIngredients)
+        $ingredient_data = [
+            'name' => $data['name'],
+            'code' => $data['code'],
+            'category_id' => $data['category_id'],
+            'purchase_price' => $data['purchase_price'],
+            'alert_quantity' => $data['alert_quantity'],
+            'unit_id' => 5, // o lo que corresponda
+            'purchase_unit_id' => 5,
+            'consumption_unit_cost' => $data['purchase_price'],
+            'conversion_rate' => 1,
+            'is_direct_food' => isset($data['product_for_sale']) ? 2 : 1,
+            'user_id' => $user_id,
+            'company_id' => $company_id,
+            'del_status' => 'Live',
+            'sale_price' => $data['sale_price'],
+        ];
+    
+        $food_id = null;
+    
+        if (isset($data['product_for_sale'])) {
+            // Crear o actualizar food_menu y conectar
+            $food_menu_info = [
+                'name' => $data['name'],
+                'code' => $data['code'],
+                'category_id' => $data['food_menu_category_id'],
+                'sale_price' => $data['sale_price'],
+                'sale_price_take_away' => $data['sale_price_take_away'],
+                'sale_price_delivery' => $data['sale_price_delivery'],
+                'product_type' => 3,
+                'purchase_price' => $data['purchase_price'],
+                'alert_quantity' => $data['alert_quantity'],
+                'description' => '', // Opcional
+                'user_id' => $user_id,
+                'company_id' => $company_id,
+                'del_status' => 'Live'
+            ];
+            // Verifica si existe food_menu usando code o name
+            $this->db->where('code', $data['code']);
+            $this->db->where('company_id', $company_id);
+            $food_menu = $this->db->get('tbl_food_menus')->row();
+            if ($food_menu) {
+                $food_id = $food_menu->id;
+                $this->Common_model->updateInformation($food_menu_info, $food_id, 'tbl_food_menus');
+            } else {
+                $food_id = $this->Common_model->insertInformation($food_menu_info, 'tbl_food_menus');
+            }
+            $ingredient_data['food_id'] = $food_id;
+            $ingredient_data['is_direct_food'] = 2;
+        }
+        // Guardar ingrediente (crea o actualiza)
+        $ingredient_id = setIngredients($food_id, $ingredient_data);
+    
+        // Responde con el id del ingrediente y mensaje de éxito// Al final de ajax_save_ingredient_and_product
+        echo json_encode([
+            'success' => true,
+            'ingredient' => [
+                'id' => $ingredient_id,
+                'name' => $ingredient_data['name'],
+                'code' => $ingredient_data['code'],
+                'unit_name' => 'Pcs', // O lo que corresponda
+                'purchase_price' => $ingredient_data['purchase_price'],
+                'sale_price' => $data['sale_price'],
+                'iva_tipo' => $ingredient_data['iva_tipo'] ?? '10'
+            ]
+        ]);
+    }
+
 }

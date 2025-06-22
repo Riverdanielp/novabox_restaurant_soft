@@ -511,6 +511,7 @@ class FoodMenu extends Cl_Controller {
                     $fmc_info['food_id'] = $id;
                     $fmc_info['user_id'] = $this->session->userdata('user_id');
                     $fmc_info['company_id'] = $this->session->userdata('company_id');
+                    $fmc_info['sale_price'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('sale_price')));
                     setIngredients($id,$fmc_info);
                 }
 
@@ -1316,7 +1317,7 @@ class FoodMenu extends Cl_Controller {
                     'code' => $food_menu->code,
                     'category_id' => $ingredient_category_id,
                     'purchase_price' => $food_menu->purchase_price ?: 0,
-                    'alert_quantity' => $food_menu->alert_quantity ?: 0,
+                    'alert_quantity' => $food_menu->alert_quantity ?: 0, 
                     'unit_id' => $unit_id,
                     'purchase_unit_id' => $unit_id,
                     'consumption_unit_cost' => $food_menu->purchase_price ?: $food_menu->sale_price,
@@ -1329,6 +1330,8 @@ class FoodMenu extends Cl_Controller {
                     // Opcionales:
                     'ing_type' => $ing_type,
                     'unit_type' => 1,
+                    'iva_tipo' => $food_menu->iva_tipo ?: '10',
+                    'sale_price' => $food_menu->sale_price ?: 0,
                 ];
     
                 // Usar la función setIngredients() para evitar duplicados y actualizar si ya existe
@@ -1429,6 +1432,9 @@ class FoodMenu extends Cl_Controller {
         $field = $input['field'];
         $value = $input['value'];
         $this->db->where('id', $id)->update('tbl_food_menus', [$field => $value]);
+        if ($field == 'iva_tipo' || $field == 'sale_price') {
+            $this->db->where('food_id', $id)->update('tbl_ingredients', [$field => $value]);
+        }
         echo json_encode(['status' => 'ok']);
     }
 
@@ -1451,6 +1457,9 @@ class FoodMenu extends Cl_Controller {
         if (empty($ids)) show_404();
     
         $this->db->where_in('id', $ids)->update('tbl_food_menus', [$field => $value]);
+        if ($field == 'iva_tipo') {
+            $this->db->where_in('food_id', $ids)->update('tbl_ingredients', [$field => $value]);
+        }
         echo json_encode(['status' => 'ok']);
     }
 

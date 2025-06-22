@@ -243,6 +243,7 @@ class Production extends Cl_Controller {
      */
     public function addNewSupplierByAjax() {
         $data['name'] = $_GET['name'];
+        $data['doc_num'] = $_GET['doc_num'];
         $data['contact_person'] = $_GET['contact_person'];
         $data['phone'] = $_GET['phone'];
         $data['email'] = $_GET['emailAddress'];

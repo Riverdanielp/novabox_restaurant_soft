@@ -69,38 +69,47 @@ if ($tipo === 'todos' && is_array($items_data)) {
 }
 
 function item_recibo($cantidad,$concepto,$costo_unitario,$monto,$iva_tipo = 10){ 
-    if ($iva_tipo == 10) {
-        $monto_10 = $monto;
-        $monto_5 = 0;
+    if ($iva_tipo == 0) {
+        $monto_10 = '';
+        $monto_5 = '';
+        $monto_0 = getAmtPCustom($monto);
+    } else if ($iva_tipo == 5) {
+        $monto_10 = '';
+        $monto_5 = getAmtPCustom($monto);
+        $monto_0 = '';
     } else {
-        $monto_10 = 0;
-        $monto_5 = $monto; 
+        $monto_10 = getAmtPCustom($monto);
+        $monto_5 = '';
+        $monto_0 = '';
     }
     return '
     <tr>
         <td  style="width: 6%;text-align:center;"> 
             '.
-            // substr($cantidad, 0, 50).
+            // substr($codigo, 0, 50).
             ' 
         </td>
         <td  style="width: 8%;text-align:center;"> 
             '.substr($cantidad, 0, 7).' 
         </td>
-        <td  style="width: 47%;" class="border-bottom"> 
+        <td  style="width: 4%;text-align:center;"> 
+        </td>
+        <td  style="width: 38%;" class="border-bottom"> 
             ' . substr($concepto, 0, 50). '
         </td>
-        <td  style="width: 13%;" class="border-bottom"> 
+        <td  style="width: 10%;text-align:right; font-size:9px" class="border-bottom"> 
         ' . getAmtPCustom($costo_unitario) . '
         </td>
-        <td  style="width: 4%;" class="border-bottom"> 
+        <td  style="width: 8%;text-align:right; font-size:9px" class="border-bottom"> 
+            '. ($monto_0) . '
         </td>
-        <td  style="width: 6%;" class="border-bottom"> 
-            '. getAmtPCustom($monto_5) . '
+        <td  style="width: 6%;text-align:right; font-size:9px" class="border-bottom"> 
+            '. ($monto_5) . '
         </td>
-        <td  style="width: 13%;" class="border-bottom"> 
-        ' . getAmtPCustom($monto_10) . '
+        <td  style="width: 10%;text-align:right; font-size:9px" class="border-bottom"> 
+        ' . ($monto_10) . '
         </td>
-        <td  style="width: 3%;" class="border-bottom"> 
+        <td  style="width: 10%;" class="border-bottom"> 
         </td>
     </tr>
     ';
@@ -233,17 +242,18 @@ function item_recibo($cantidad,$concepto,$costo_unitario,$monto,$iva_tipo = 10){
                 <table cellspacing="0" style="width: 100%;height: 15px;padding:0px;">
                     <tr>
                         <td style="width: 18%;<?php echo $bordes ?> " class="border-bottom"></td>
-                        <td style="width: 56%;<?php echo $bordes ?> " class="border-bottom">
+                        <td style="width: 48%;<?php echo $bordes ?> " class="border-bottom">
                             <?php echo isset($page_total) ? ucfirst(numeroConDecimalesATexto($page_total)) . '.' : 'Cero' ?>
                         </td>
-                        <td style="width: 4%;<?php echo $bordes ?> " class="border-bottom">0</td>
-                        <td style="width: 6%;<?php echo $bordes ?> " class="border-bottom">
+                        <td style="width: 8%;text-align:right; font-size:9px;<?php echo $bordes ?> " class="border-bottom">
+                            <?php echo getAmtPCustom($pageData['subtotal_exenta']) ?></td>
+                        <td style="width: 6%;text-align:right; font-size:9px;<?php echo $bordes ?> " class="border-bottom">
                             <?php echo getAmtPCustom($pageData['subtotal_5']) ?>
                         </td>
-                        <td style="width: 13%;<?php echo $bordes ?> " class="border-bottom">
+                        <td style="width: 10%;text-align:right; font-size:9px;<?php echo $bordes ?> " class="border-bottom">
                             <?php echo getAmtPCustom($pageData['subtotal_10']) ?>
                         </td>
-                        <td style="width: 3%;<?php echo $bordes ?> " class="border-bottom"></td>
+                        <td style="width: 10%;<?php echo $bordes ?> " class="border-bottom"></td>
                     </tr>
                 </table>
 
@@ -252,11 +262,11 @@ function item_recibo($cantidad,$concepto,$costo_unitario,$monto,$iva_tipo = 10){
                         <td style="width: 20%;<?php echo $bordes ?> " class="border-bottom"></td>
                         <td style="width: 15%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($page_iva_5) ?></td>
                         <td style="width: 20%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($page_iva_10) ?></td>
-                        <td style="width: 29%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($page_iva_5 + $page_iva_10) ?></td>
-                        <td style="width: 13%;<?php echo $bordes ?> " class="border-bottom">
+                        <td style="width: 25%;<?php echo $bordes ?> " class="border-bottom"><?php echo getAmtPCustom($page_iva_5 + $page_iva_10) ?></td>
+                        <td style="width: 10%;text-align:right;<?php echo $bordes ?> " class="border-bottom">
                             <?php echo isset($page_total) ? getAmtPCustom($page_total) : '0.00' ?>
                         </td>
-                        <td style="width: 3%;<?php echo $bordes ?> " class="border-bottom"></td>
+                        <td style="width: 10%;<?php echo $bordes ?> " class="border-bottom"></td>
                     </tr>
                 </table>
             </div>

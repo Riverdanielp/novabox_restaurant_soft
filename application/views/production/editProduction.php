@@ -208,10 +208,25 @@
                                 </div>
                             </div>
                         </div>
+                        
                         <div class="col-sm-12 col-md-6 mb-2">
                             <div class="form-group">
-                                <label class="control-label"><?php echo lang('contact_person'); ?><span
+                                <label class="control-label"><?php echo tipoConsultaRuc() ?><span
                                         class="ir_color_red"> *</span></label>
+                                <div>
+                                    <input type="text" class="form-control" name="doc_num" id="doc_num"
+                                        placeholder="<?php echo tipoConsultaRuc() ?>" value="">
+                                    <div class="callout callout-danger my-2 error-msg customer_err_msg_contnr">
+                                        <p class="customer_err_msg"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="col-sm-12 col-md-6 mb-2">
+                            <div class="form-group">
+                                <label class="control-label"><?php echo lang('contact_person'); ?>
                                 <div>
                                     <input type="text" class="form-control" name="contact_person" id="contact_person"
                                         placeholder="<?php echo lang('contact_person'); ?>" value="">
@@ -224,8 +239,7 @@
 
                         <div class="col-sm-12 col-md-6 mb-2">
                             <div class="form-group">
-                                <label class="control-label"><?php echo lang('phone'); ?> <span class="ir_color_red">
-                                        *</span></label>
+                                <label class="control-label"><?php echo lang('phone'); ?>
                                 <div>
                                     <input type="text" class="form-control integerchk" id="phone" name="phone"
                                         placeholder="<?php echo lang('phone'); ?>" value="">

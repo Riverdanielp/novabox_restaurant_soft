@@ -192,6 +192,22 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div class="col-sm-12 col-md-6 mb-2">
+                                <div class="form-group">
+                                    <label class="control-label"><?php echo tipoConsultaRuc() ?><span
+                                            class="ir_color_red"> *</span></label>
+                                    <div>
+                                        <input type="text" class="form-control" name="doc_num" id="doc_num"
+                                            placeholder="<?php echo tipoConsultaRuc() ?>" value="">
+                                        <div class="callout callout-danger my-2 error-msg customer_err_msg_contnr">
+                                            <p class="customer_err_msg"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
                             <div class="col-sm-12 col-md-6 mb-2">
                                 <div class="form-group">
                                     <label class="control-label"><?php echo lang('contact_person'); ?><span

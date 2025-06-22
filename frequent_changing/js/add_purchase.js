@@ -41,6 +41,7 @@ $(function() {
             suffix++;
             tab_index++;
 
+            console.log(ingredient_details_array);
             let cart_row = '<tr class="rowCount" data-item_id="' + ingredient_details_array[0] + '" data-id="' + suffix + '" id="row_' + suffix + '">' +
                 '<td style="padding-left: 10px;"><p id="sl_' + suffix + '">' + suffix + '</p></td>' +
                 '<td><span style="padding-bottom: 5px;">' + ingredient_details_array[1] +
@@ -48,14 +49,29 @@ $(function() {
                 '<input type="hidden" id="ingredient_id_' + suffix +
                 '" name="ingredient_id[]" value="' + ingredient_details_array[0] + '"/>' +
                 '<td><input type="text" tabindex="' + tab_index + '" id="unit_price_' + suffix +
-                '" name="unit_price[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="Unit Price"/ value="' +
+                '" name="unit_price[]" onfocus="this.select();" class="form-control aligning" placeholder="$"/ value="' +
                 ingredient_details_array[3] +
                 '" onkeyup="return calculateAll();"/><span class="label_aligning">' + currency +
                 '</span></td>' +
                 '<td><input type="text" data-countID="' + suffix + '" tabindex="' + tab_index + 1 +
                 '" id="quantity_amount_' + suffix +
-                '" name="quantity_amount[]" onfocus="this.select();" class="form-control integerchk aligning countID"  placeholder="Cant/Monto" onkeyup="return calculateAll();" ><span class="label_aligning">' +
+                '" value="1" name="quantity_amount[]" onfocus="this.select();" class="form-control aligning countID"  placeholder="Cantidad" onkeyup="return calculateAll();" ><span class="label_aligning">' +
                 ingredient_details_array[2] + '</span></td>' +
+
+                '<td><input type="text" tabindex="' + tab_index + '" id="sale_price_' + suffix +
+                '" name="sale_price[]" onfocus="this.select();" class="form-control aligning" placeholder="$"/ value="' +
+                ingredient_details_array[5] +
+                '"/><span class="label_aligning">' + currency +
+                '</span></td>' +
+
+                `<td>
+                    <select class="form-control" name="iva_tipo[]">
+                        <option value="10"${(ingredient_details_array[6] == '10') ? 'selected' : '' }>IVA 10</option>
+                        <option value="5"${(ingredient_details_array[6] == '5') ? 'selected' : '' }>IVA 5</option>
+                        <option value="0"${(ingredient_details_array[6] == '0') ? 'selected' : '' }>IVA Exonerado</option>
+                    </select>
+                </td>` +
+                
                 '<td><input type="text" id="total_' + suffix +
                 '" name="total[]" class="form-control aligning" placeholder="Total" readonly /><span class="label_aligning">' +
                 currency + '</span></td>' +

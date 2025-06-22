@@ -209,7 +209,7 @@ input:checked + .slider:before {
                                     </td>
                                     <td>
                                         <!-- DARLE DOBLE CLICK QUE SE CONVIERTA EN UN INPUT NUMERO -->
-                                        <?php echo escape_output(getAmtPCustom($value->sale_price)) ?>
+                                        <?php echo escape_output(($value->sale_price)) ?>
                                     </td>
                                     <td><?php echo ($value->is_balanza); // solo el valor numérico ?></td>
                                     <td><?php echo ($value->balanza_tipo); // solo P o U ?></td>

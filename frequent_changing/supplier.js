@@ -6,6 +6,7 @@ $(document).ready(function(){
     });
     $(document).on('click', '#addSupplier', function() {
 		let name = $('input[name=name]').val();
+		let doc_num = $('input[name=doc_num]').val();
 		let contact_person = $('input[name=contact_person]').val();
 		let phone = $('input[name=phone]').val();
 		let emailAddress = $('input[name=emailAddress]').val();
@@ -22,32 +23,33 @@ $(document).ready(function(){
 		} else {
 			$('input[name=name]').css('border', '1px solid #ccc');
 		}
-		if(contact_person == '') {
-			error = 1;
-            let cl1 = ".customer_err_msg";
-            let cl2 = ".customer_err_msg_contnr";
-            $(cl1).text("The Contact Person field is required!");
-            $(cl2).show(200).delay(6000).hide(200,function(){
-            });
-		} else {
-			$('input[name=contact_person]').css('border', '1px solid #ccc');
-		}
-		if(phone == '') {
-            error = 1;
-            let cl1 = ".customer_phone_err_msg";
-            let cl2 = ".customer_phone_err_msg_contnr";
-            $(cl1).text("The phone No field is required!");
-            $(cl2).show(200).delay(6000).hide(200,function(){
-            });
-		} else {
-			$('input[name=phone]').css('border', '1px solid #ccc');
-		}
+		// if(contact_person == '') {
+		// 	error = 1;
+        //     let cl1 = ".customer_err_msg";
+        //     let cl2 = ".customer_err_msg_contnr";
+        //     $(cl1).text("The Contact Person field is required!");
+        //     $(cl2).show(200).delay(6000).hide(200,function(){
+        //     });
+		// } else {
+		// 	$('input[name=contact_person]').css('border', '1px solid #ccc');
+		// }
+		// if(phone == '') {
+        //     error = 1;
+        //     let cl1 = ".customer_phone_err_msg";
+        //     let cl2 = ".customer_phone_err_msg_contnr";
+        //     $(cl1).text("The phone No field is required!");
+        //     $(cl2).show(200).delay(6000).hide(200,function(){
+        //     });
+		// } else {
+		// 	$('input[name=phone]').css('border', '1px solid #ccc');
+		// }
 		if(error == 0) {
 			$.ajax({
 				url:baseURL+'Purchase/addNewSupplierByAjax',
 				method:"GET",
 				data: {
                     name:name,
+                    doc_num:doc_num,
                     contact_person:contact_person,
 					phone:phone,
                     emailAddress:emailAddress,

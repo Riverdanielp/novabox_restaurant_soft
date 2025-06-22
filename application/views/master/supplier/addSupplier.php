@@ -26,6 +26,20 @@
                         <?php } ?>
 
                         <div class="form-group mb-2">
+                            <label><?php echo tipoConsultaRuc() ?> <span
+                                    class="required_star">*</span></label>
+                            <input tabindex="2" type="text" name="doc_num" class="form-control"
+                                placeholder="<?php echo tipoConsultaRuc() ?>"
+                                value="<?php echo set_value('doc_num'); ?>">
+                        </div>
+                        <?php if (form_error('doc_num')) { ?>
+                        <div class="callout callout-danger my-2">
+                            <?php echo form_error('doc_num'); ?>
+                        </div>
+                        <?php } ?>
+
+                        
+                        <div class="form-group mb-2">
                             <label><?php echo lang('contact_person'); ?> <span
                                     class="required_star">*</span></label>
                             <input tabindex="2" type="text" name="contact_person" class="form-control"

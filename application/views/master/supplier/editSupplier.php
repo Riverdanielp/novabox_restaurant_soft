@@ -28,9 +28,22 @@
                         </div>
                         <?php } ?>
 
+                        
                         <div class="form-group mb-2">
-                            <label><?php echo lang('contact_person'); ?> <span
+                            <label><?php echo tipoConsultaRuc() ?> <span
                                     class="required_star">*</span></label>
+                            <input tabindex="2" type="text" name="doc_num" class="form-control"
+                                placeholder="<?php echo tipoConsultaRuc() ?>"
+                                value="<?php echo escape_output($supplier_information->contact_person); ?>">
+                        </div>
+                        <?php if (form_error('doc_num')) { ?>
+                        <div class="callout callout-danger my-2">
+                            <?php echo form_error('doc_num'); ?>
+                        </div>
+                        <?php } ?>
+
+                        <div class="form-group mb-2">
+                            <label><?php echo lang('contact_person'); ?> </label>
                             <input tabindex="2" type="text" name="contact_person" class="form-control"
                                 placeholder="<?php echo lang('contact_person'); ?>"
                                 value="<?php echo escape_output($supplier_information->contact_person) ?>">
