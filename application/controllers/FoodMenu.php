@@ -336,7 +336,9 @@ class FoodMenu extends Cl_Controller {
                 }
                 if ($id == "") {
                     $id = $this->Common_model->insertInformation($food_menu_info, "tbl_food_menus");
-                    $this->saveFoodMenusIngredients($_POST['ingredient_id'], $id, 'tbl_food_menus_ingredients');
+                    if (isset($_POST['ingredient_id'])){
+                        $this->saveFoodMenusIngredients($_POST['ingredient_id'], $id, 'tbl_food_menus_ingredients');
+                    }
                     $data['autoCode'] = $this->Master_model->generateFoodMenuCode();
                     $this->session->set_flashdata('exception',lang('insertion_success'));
                     if(isLMni()):
@@ -351,7 +353,9 @@ class FoodMenu extends Cl_Controller {
                     $this->Common_model->deleteStatusChangeWithCustom($id, "parent_id", "tbl_food_menus");
 
                     $data['autoCode'] = $this->Master_model->generateFoodMenuCode();
-                    $this->saveFoodMenusIngredients($_POST['ingredient_id'], $id, 'tbl_food_menus_ingredients');
+                    if (isset($_POST['ingredient_id'])){
+                        $this->saveFoodMenusIngredients($_POST['ingredient_id'], $id, 'tbl_food_menus_ingredients');
+                    }
                     $this->session->set_flashdata('exception', lang('update_success'));
                 }
 

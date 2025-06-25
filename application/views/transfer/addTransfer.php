@@ -98,9 +98,9 @@
                                 <label><?php echo lang('status'); ?> <span class="required_star">*</span></label>
                                 <select tabindex="4" class="form-control select2 select2-hidden-accessible ir_w_100"
                                         name="status" id="status">
-                                    <option value="2">Draft</option>
-                                    <option value="3">Sent</option>
-                                    <option value="1" disabled>Received</option>
+                                    <option value="2"><?php echo lang('Draft'); ?></option>
+                                    <option value="3"><?php echo lang('Sent'); ?></option>
+                                    <option value="1" disabled><?php echo lang('Received'); ?></option>
                                 </select>
                                 <?php if (form_error('status')) { ?>
                                     <div class="callout callout-danger my-2">

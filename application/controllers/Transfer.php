@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Transfer Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -46,7 +31,7 @@ class Transfer extends Cl_Controller {
         $controller = "112";
         $function = "";
 
-        if($segment_2=="transfers"){
+        if($segment_2=="transfers" || $segment_2=="transferTicketJson"){
             $function = "view";
         }elseif($segment_2=="addEditTransfer" && $segment_3){
             $function = "update";
@@ -347,5 +332,118 @@ class Transfer extends Cl_Controller {
         $data['food_details'] = $this->Transfer_model->getFoodDetails($id);
         $data['main_content'] = $this->load->view('transfer/transferDetails', $data, TRUE);
         $this->load->view('userHome', $data);
+    }
+
+    public function transferTicketJson($encrypted_id)
+    {
+        $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
+        $this->load->model('Transfer_model');
+        $this->load->model('Common_model');
+
+        $transfer = $this->Common_model->getDataById($id, "tbl_transfer");
+        $food_details = $this->Transfer_model->getFoodDetails($id);
+        if (!$transfer) {
+            echo json_encode(['success' => false, 'error' => 'No data found']);
+            return;
+        }
+
+        // Construye el array de líneas para el ticket (personaliza a tu gusto)
+        $content = [];
+        $content[] = [
+            'type' => 'text',
+            'align' => 'center',
+            'text' => 'Transferencia' . "\n" . lang('ref_no') . ': ' . $transfer->reference_no
+        ];
+        // $content[] = ['type' => 'cut'];
+        $content[] = [
+            'type' => 'text',
+            'align' => 'left',
+            'text' => lang('date') . ': ' . date($this->session->userdata('date_format'), strtotime($transfer->date))
+        ];
+        $content[] = [
+            'type' => 'text',
+            'align' => 'left',
+            'text' => lang('added_by') . ': ' . userName($transfer->user_id)
+        ];
+        $content[] = [
+            'type' => 'text',
+            'align' => 'left',
+            'text' => lang('from_outlet') . ': ' . getOutletNameById($transfer->from_outlet_id)
+        ];
+        $content[] = [
+            'type' => 'text',
+            'align' => 'left',
+            'text' => lang('to_outlet') . ': ' . getOutletNameById($transfer->to_outlet_id)
+        ];
+        $content[] = [
+            'type' => 'text',
+            'align' => 'left',
+            'text' => lang('status') . ': ' . (($transfer->status==1)?lang("Received"): (($transfer->status==2)?lang("Draft"):lang("Sent")))
+        ];
+        // $content[] = ['type' => 'cut'];
+        if ($transfer->received_date) {
+            $content[] = [
+                'type' => 'text',
+                'align' => 'left',
+                'text' => lang('received_date') . ': ' . date($this->session->userdata('date_format'), strtotime($transfer->received_date))
+            ];
+        }
+        // $content[] = ['type' => 'cut'];
+        $content[] = [
+            'type' => 'text',
+            'align' => 'center',
+            'text' => lang('details')
+        ];
+        // $content[] = ['type' => 'cut'];
+
+        $sn = '-';
+        foreach ($food_details as $fd) {
+            if ($fd->transfer_type == 1) {
+                $name = getIngredientNameById($fd->ingredient_id) . " (" . getIngredientCodeById($fd->ingredient_id) . ")";
+                $unit = unitName(getUnitIdByIgId($fd->ingredient_id));
+            } else {
+                $name = getFoodMenuNameById($fd->ingredient_id) . " (" . getFoodMenuCodeById($fd->ingredient_id) . ")";
+                $unit = "Pcs";
+            }
+            $content[] = [
+                'type' => 'extremos',
+                'textLeft' => "{$sn} {$name}",
+                'textRight' => getAmtP($fd->quantity_amount) . " {$unit}"
+            ];
+            $sn++;
+        }
+        
+        // $content[] = ['type' => 'cut'];
+        if (strlen($transfer->note_for_sender) > 0) {
+            $content[] = [
+                'type' => 'text',
+                'align' => 'left',
+                'text' => lang('note_for_sender') . ': ' . $transfer->note_for_sender
+            ];
+        }
+            $content[] = ['type' => 'text','align' => 'left','text' => ''];
+        if (strlen($transfer->note_for_receiver) > 0) {
+            $content[] = ['type' => 'text','align' => 'left','text' => lang('note_for_receiver') . $transfer->note_for_receiver];
+        }
+        $content[] = ['type' => 'text','align' => 'left','text' => '' . "\n" . "\n" . "\n" . "\n" . "\n"];
+        $content[] = ['type' => 'cut'];
+        $content[] = ['type' => 'text','align' => 'center','text' => 'FIRMA DE ENVÍO'];
+
+        
+        $content[] = ['type' => 'text','align' => 'left','text' => '' . "\n" . "\n" . "\n" . "\n" . "\n"];
+        $content[] = ['type' => 'cut'];
+        $content[] = ['type' => 'text','align' => 'center','text' => 'FIRMA DE TRANSPORTE'];
+
+        $content[] = ['type' => 'text','align' => 'left','text' => '' . "\n" . "\n" . "\n" . "\n" . "\n"];
+        $content[] = ['type' => 'cut'];
+        $content[] = ['type' => 'text','align' => 'center','text' => 'FIRMA DE RECEPCIÓN'];
+
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'content' => $content,
+            'width' => '72',
+        ]);
     }
 }

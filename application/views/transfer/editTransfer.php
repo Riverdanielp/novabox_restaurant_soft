@@ -156,18 +156,18 @@
                                         $outlet_id = $this->session->userdata('outlet_id');
                                         if($outlet_id==$transfer_details->from_outlet_id && ($transfer_details->status=="2" || $transfer_details->status=="3")):
                                     ?>
-                                    <option <?=$transfer_details->status && $transfer_details->status=="2"?'selected':''?>  value="2">Draft</option>
-                                    <option <?=$transfer_details->status && $transfer_details->status=="3"?'selected':''?>  value="3">Sent</option>
-                                    <option disabled value="1">Received</option>
+                                    <option <?=$transfer_details->status && $transfer_details->status=="2"?'selected':''?>  value="2"><?php echo lang('Draft'); ?></option>
+                                    <option <?=$transfer_details->status && $transfer_details->status=="3"?'selected':''?>  value="3"><?php echo lang('Sent'); ?></option>
+                                    <option disabled value="1"><?php echo lang('Received'); ?></option>
                                     <?php
                                         endif;
                                     ?>
                                     <?php
                                     if($outlet_id!=$transfer_details->from_outlet_id):
                                     ?>
-                                    <option disabled value="2">Draft</option>
-                                    <option disabled value="3">Sent</option>
-                                    <option <?=$transfer_details->status && $transfer_details->status=="1"?'selected':''?>  value="1">Received</option>
+                                    <option disabled value="2"><?php echo lang('Draft'); ?></option>
+                                    <option disabled value="3"><?php echo lang('Sent'); ?></option>
+                                    <option <?=$transfer_details->status && $transfer_details->status=="1"?'selected':''?>  value="1"><?php echo lang('Received'); ?></option>
                                         <?php
                                     endif;
                                     ?>
