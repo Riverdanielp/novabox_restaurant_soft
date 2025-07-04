@@ -203,7 +203,7 @@ class Purchase extends Cl_Controller {
                     $data['ingredients'] = $this->Purchase_model->getIngredientListWithUnitAndPrice($company_id);
                     $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                     $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
-                    $data['main_content'] = $this->load->view('purchase/addPurchase', $data, TRUE);
+                    $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                     $this->load->view('userHome', $data);
                 } else {
                     $data = array();
@@ -215,7 +215,7 @@ class Purchase extends Cl_Controller {
                     $data['purchase_ingredients'] = $this->Purchase_model->getPurchaseIngredients($id);
                     $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                     $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
-                    $data['main_content'] = $this->load->view('purchase/editPurchase', $data, TRUE);
+                    $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                     $this->load->view('userHome', $data);
                 }
             }
@@ -228,7 +228,7 @@ class Purchase extends Cl_Controller {
                 $data['ingredients'] = $this->Purchase_model->getIngredientListWithUnitAndPrice($company_id);
                 $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                 $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
-                $data['main_content'] = $this->load->view('purchase/addPurchase', $data, TRUE);
+                $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
                 $data = array();
@@ -240,7 +240,7 @@ class Purchase extends Cl_Controller {
                 $data['purchase_ingredients'] = $this->Purchase_model->getPurchaseIngredients($id);
                 $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                 $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
-                $data['main_content'] = $this->load->view('purchase/editPurchase', $data, TRUE);
+                $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                 $this->load->view('userHome', $data);
             }
         }
@@ -284,6 +284,8 @@ class Purchase extends Cl_Controller {
             if ($ingredient && $ingredient->food_id) {
                 $food_menu_update = array(
                     'sale_price' => $sale_prices[$row],
+                    'sale_price_take_away' => $sale_prices[$row],
+                    'sale_price_delivery' => $sale_prices[$row],
                     'iva_tipo' => $iva_tipos[$row],
                     'purchase_price' => $unit_prices[$row]
                 );

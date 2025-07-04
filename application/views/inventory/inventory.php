@@ -254,21 +254,7 @@ document.getElementById('printTicketBtn').addEventListener('click', function() {
                   </thead>
                   <tbody>`;
         items.forEach(function(item) {
-            // Calcula cantidad como lo haces en la vista original:
-            var conversion = parseFloat(item.conversion_rate) || 1;
-            var totalStock = (item.total_purchase * conversion)
-                - item.total_consumption - item.total_modifiers_consumption - item.total_waste
-                + item.total_consumption_plus - item.total_consumption_minus
-                + (item.total_transfer_plus * conversion) - (item.total_transfer_minus * conversion)
-                + (item.total_transfer_plus_2 * conversion) - (item.total_transfer_minus_2 * conversion)
-                + (item.total_production * conversion);
-
-            var total_sale_unit = conversion == 0 ? 0 : (totalStock / conversion);
-            total_sale_unit = Math.floor(total_sale_unit);
-
-            var cantidad = (item.ing_type == "Plain Ingredient" && item.is_direct_food != 2 && conversion != 1)
-                ? total_sale_unit + " " + (totalStock % conversion)
-                : (parseFloat(total_sale_unit) + ((totalStock) ? (totalStock % conversion) : 0));
+            var cantidad = calcularStock(item);
 
             html += `
               <tr>
@@ -294,4 +280,39 @@ document.getElementById('printTicketBtn').addEventListener('click', function() {
       win.close(); // Descomenta si quieres cerrar automáticamente después de imprimir
     }, 500);
 });
+function toNumber(valor) {
+    var n = parseFloat(valor);
+    return isNaN(n) ? 0 : n;
+}
+function calcularStock(item) {
+    var conversion = toNumber(item.conversion_rate) ? toNumber(item.conversion_rate) : 1;
+    var totalStock = (toNumber(item.total_purchase) * conversion)
+        - toNumber(item.total_consumption)
+        - toNumber(item.total_modifiers_consumption)
+        - toNumber(item.total_waste)
+        + toNumber(item.total_consumption_plus)
+        - toNumber(item.total_consumption_minus)
+        + (toNumber(item.total_transfer_plus) * conversion)
+        - (toNumber(item.total_transfer_minus) * conversion)
+        + (toNumber(item.total_transfer_plus_2) * conversion)
+        - (toNumber(item.total_transfer_minus_2) * conversion)
+        + (toNumber(item.total_production) * conversion);
+
+    var total_sale_unit;
+    if (!toNumber(item.conversion_rate)) {
+        total_sale_unit = totalStock / 1;
+    } else {
+        total_sale_unit = totalStock / conversion;
+    }
+
+    var cantidad;
+    if(item.ing_type == "Plain Ingredient" && item.is_direct_food != 2 && conversion != 1){
+        cantidad = parseFloat(total_sale_unit) + " " + (totalStock % conversion);
+    } else {
+        var stock_float = parseFloat(total_sale_unit) + ((totalStock) ? (totalStock % conversion) : 0);
+        cantidad = parseFloat(stock_float).toFixed(2);
+    }
+    return cantidad;
+}
+
 </script>

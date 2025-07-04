@@ -1071,7 +1071,7 @@
                                 <span> <?php echo lang('transfer'); ?></span>
                             </a>
                             <ul class="treeview-menu">
-                                <li data-access="add-112" class="menu_assign_class" data-menu__cid="irp_7"><a class="child-menu" href="<?php echo base_url()?>Transfer/addEditTransfer">
+                                <li data-access="add-112" class="menu_assign_class" data-menu__cid="irp_7"><a class="child-menu" href="<?php echo base_url()?>Transfer/transferDinamico">
                                         <?php echo lang('Add'); ?> <?php echo lang('transfer'); ?></a></li>
                                 <li data-access="view-112" class="menu_assign_class" data-menu__cid="irp_7"><a class="child-menu" href="<?php echo base_url()?>Transfer/transfers">
                                         <?php echo lang('List'); ?> <?php echo lang('transfer'); ?></a></li>

@@ -110,6 +110,11 @@ $(function() {
                             <td>${formatNumberToCurrency(item.costo) || ''}</td>
                             <td class="${costoClass}">${costoSign}${formatNumberToCurrency(costoDif)}</td>
                             <td>${item.user_txt || ''}</td>
+                            <td>
+                            <button class="btn btn-danger btn-sm btn-borrar-ajuste" data-id="${item.id}" title="Borrar">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                            </td>
                         </tr>`
                     );
                 });
@@ -123,6 +128,19 @@ $(function() {
             $("#total_costo_dif").attr('class', totalCostoClass).html(formatNumberToCurrency(totalCostoSign + totalCostoDif));
         }, 'json');
     }
+    
+    // Borrar ajuste detalle
+    $("#tabla_ajustes").on('click', '.btn-borrar-ajuste', function() {
+        if (!confirm("¿Estás seguro de borrar este registro?")) return;
+        let id = $(this).data('id');
+        $.post(base_url + "Inventory_adjustment/ajaxBorrarAjusteDetalle", {detalle_id: id}, function(res) {
+            if (res.success) {
+                refrescarTablaAjustes();
+            } else {
+                alert("No se pudo borrar");
+            }
+        }, 'json');
+    });
 
     function limpiarCampos() {
         $("#codigo_busqueda").val('');
@@ -143,4 +161,105 @@ $(function() {
     });
 
     if (ajuste_id) refrescarTablaAjustes();
+
+
+    let seleccion_sugerencia = -1;
+    let sugerencias = [];
+
+    // AUTOCOMPLETADO POR NOMBRE
+    $("#codigo_busqueda").on('input', function(e) {
+        let valor = $(this).val().trim();
+        if (valor.length < 2) {
+            $("#sugerencias").hide();
+            return;
+        }
+        $.post(base_url + "Inventory_adjustment/ajaxBuscarIngredientesPorNombre", { term: valor }, function(res) {
+            if (res.success && res.items.length > 0) {
+                sugerencias = res.items;
+                let html = '';
+                res.items.forEach((item, i) => {
+                    html += `<div class="sugerencia-item" data-index="${i}" data-id="${item.id}" style="padding:6px;cursor:pointer;">
+                        <b>${item.code}</b> - ${item.name} <small>(${item.unit_name})</small>
+                    </div>`;
+                });
+                $("#sugerencias").html(html).show();
+                seleccion_sugerencia = -1;
+            } else {
+                $("#sugerencias").hide();
+            }
+        }, 'json');
+    });
+
+    // NAVEGACIÓN CON FLECHAS Y ENTER
+    $("#codigo_busqueda").on('keydown', function(e) {
+        let items = $("#sugerencias .sugerencia-item");
+        if ($("#sugerencias").is(":visible")) {
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (seleccion_sugerencia < items.length - 1) {
+                    seleccion_sugerencia++;
+                }
+                items.removeClass("bg-primary text-white");
+                $(items[seleccion_sugerencia]).addClass("bg-primary text-white");
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (seleccion_sugerencia > 0) {
+                    seleccion_sugerencia--;
+                }
+                items.removeClass("bg-primary text-white");
+                $(items[seleccion_sugerencia]).addClass("bg-primary text-white");
+            } else if (e.key === "Enter") {
+                if (seleccion_sugerencia >= 0 && items.length > 0) {
+                    e.preventDefault();
+                    $(items[seleccion_sugerencia]).trigger('mousedown');
+                } else {
+                    // Si no hay sugerencia seleccionada, busca por código (comportamiento actual)
+                    // Tu código original:
+                    let codigo = $(this).val();
+                    $.post(base_url + "Inventory_adjustment/ajaxBuscarIngredientePorCodigo", {codigo: codigo}, function(res) {
+                        if (res.success) {
+                            $("#producto_nombre").val(res.name);
+                            $("#ingrediente_id").val(res.id);
+                            $("#qty_old").val(res.stock);
+                            $("#costo").val(res.costo);
+                            $("#qty_new").focus();
+                        } else {
+                            alert("Producto no encontrado");
+                        }
+                    }, 'json');
+                }
+            } else if (e.key === "Escape") {
+                $("#sugerencias").hide();
+            }
+        }
+    });
+
+    // SELECCIÓN CON CLICK
+    $("#sugerencias").on('mousedown', '.sugerencia-item', function(e) {
+        let idx = $(this).data('index');
+        let item = sugerencias[idx];
+        // Aquí puedes cargar los datos como si hubieras buscado por código
+        $.post(base_url + "Inventory_adjustment/ajaxBuscarIngredientePorCodigo", {codigo: item.code}, function(res) {
+            if (res.success) {
+                $("#codigo_busqueda").val(res.code); // Poner el código en el input
+                $("#producto_nombre").val(res.name);
+                $("#ingrediente_id").val(res.id);
+                $("#qty_old").val(res.stock);
+                $("#costo").val(res.costo);
+                $("#qty_new").focus();
+            } else {
+                alert("Producto no encontrado");
+            }
+        }, 'json');
+        $("#sugerencias").hide();
+    });
+
+    // OCULTAR SUGERENCIAS AL PERDER FOCO
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest("#codigo_busqueda, #sugerencias").length) {
+            $("#sugerencias").hide();
+        }
+    });
+
+
 });

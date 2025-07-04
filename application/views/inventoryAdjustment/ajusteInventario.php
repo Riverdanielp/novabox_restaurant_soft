@@ -1,6 +1,10 @@
 
 
 <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/custom/addInventoryAdjustment.css">
+<style>
+    .sugerencia-item.bg-primary { background: #007bff !important; color: #fff !important; }
+    .sugerencia-item:hover { background: #007bff; color: #fff; }
+</style>
 <script src="<?php echo base_url(); ?>frequent_changing/js/ajuste_inventario.js<?php echo VERS() ?>"></script>
 
 <section class="main-content-wrapper">
@@ -40,13 +44,16 @@
             <div class="box-wrapper">
                 <div class="table-box">
                     <div class="row mb-3">
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label>Código</label>
-                            <div class="input-group">
-                                <input type="text" id="codigo_busqueda" class="form-control" placeholder="Scan o teclear código" autofocus>
-                                <button type="button" id="btn_buscar_codigo" class="btn btn-outline-primary">
-                                    <i class="fa fa-search" style="color:#007bff;"></i>
-                                </button>
+                            <div style="position:relative;">
+                                <div class="input-group">
+                                    <input type="text" id="codigo_busqueda" class="form-control" placeholder="Scan o teclear código" autocomplete="off" autofocus>
+                                    <button type="button" id="btn_buscar_codigo" class="btn btn-outline-primary">
+                                        <i class="fa fa-search" style="color:#007bff;"></i>
+                                    </button>
+                                </div>
+                            <div id="sugerencias" style="position:absolute;z-index:99;width:100%;display:none;background:white;border:1px solid #ccc;max-height:200px;overflow-y:auto;"></div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -66,7 +73,7 @@
                             <label>Costo</label>
                             <input type="text" id="costo" class="form-control" readonly>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <button type="button" id="btn_agregar_ajuste" class="btn btn-success mt-4">Agregar</button>
                         </div>
                     </div>
@@ -85,6 +92,7 @@
                                     <th>Costo Unit.</th>
                                     <th>Costo Dif.</th>
                                     <th>Usuario</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>

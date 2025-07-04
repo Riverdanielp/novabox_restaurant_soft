@@ -106,7 +106,7 @@
                                         data-bs-original-title="<?php echo lang('view_details'); ?>">
                                             <i class="far fa-eye"></i>
                                         </a> -->
-                                        <a class="btn btn-warning" href="<?php echo base_url() ?>Transfer/addEditTransfer/<?php echo escape_output($this->custom->encrypt_decrypt($prchs->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        <a class="btn btn-warning" href="<?php echo base_url() ?>Transfer/transferDinamico/<?php echo escape_output($this->custom->encrypt_decrypt($prchs->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
                                         data-bs-original-title="<?php echo lang('edit'); ?>">
                                             <i class="far fa-edit"></i>
                                         </a>

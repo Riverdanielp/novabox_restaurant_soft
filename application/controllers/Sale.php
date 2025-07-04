@@ -503,6 +503,7 @@ class Sale extends Cl_Controller {
         $data['kitchens'] = $this->Common_model->getAllByOutletId($outlet_id, "tbl_kitchens");
         $data['notifications'] = $this->get_new_notification();
         $data['sale_details'] = $this->Common_model->getDataById($sale_id, "tbl_sales");
+        $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
         $this->db->where("outlet_id", $outlet_id);
         $this->db->where("del_status", "Live");
         // $this->db->order_by("name", "ASC");

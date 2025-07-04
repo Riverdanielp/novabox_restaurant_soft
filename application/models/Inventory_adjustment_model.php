@@ -29,7 +29,7 @@ class Inventory_adjustment_model extends CI_Model {
         $this->db->select("tbl_inventory_adjustment_ingredients.*, tbl_ingredients.name, tbl_ingredients.code");
         $this->db->from("tbl_inventory_adjustment_ingredients");
         $this->db->join('tbl_ingredients', 'tbl_ingredients.id = tbl_inventory_adjustment_ingredients.ingredient_id', 'left');
-        $this->db->order_by('tbl_inventory_adjustment_ingredients.id', 'ASC');
+        $this->db->order_by('tbl_inventory_adjustment_ingredients.id', 'DESC');
         $this->db->where("tbl_inventory_adjustment_ingredients.inventory_adjustment_id", $id);
         $this->db->where("tbl_inventory_adjustment_ingredients.del_status", 'Live');
         return $this->db->get()->result();
@@ -53,6 +53,21 @@ class Inventory_adjustment_model extends CI_Model {
     public function getLastPurchasePrice($ingredient_id) {
         $row = $this->db->select('purchase_price')->where('ingredient_id', $ingredient_id)->where('del_status', 'Live')->order_by('id', 'DESC')->get('tbl_purchase_ingredients')->row();
         return $row ? $row->purchase_price : 0;
+    }
+
+    public function buscarIngredientesPorNombre($term) {
+        $company_id = $this->session->userdata('company_id');
+        $this->db->select("tbl_ingredients.id, tbl_ingredients.name, tbl_ingredients.code, tbl_units.unit_name");
+        $this->db->from("tbl_ingredients");
+        $this->db->join("tbl_units", 'tbl_units.id = tbl_ingredients.unit_id', 'left');
+        $this->db->where("tbl_ingredients.company_id", $company_id);
+        $this->db->where("tbl_ingredients.del_status", 'Live');
+        $this->db->group_start();
+        $this->db->like("tbl_ingredients.name", $term);
+        $this->db->or_like("tbl_ingredients.code", $term);
+        $this->db->group_end();
+        $this->db->order_by("tbl_ingredients.name", "ASC");
+        return $this->db->get()->result();
     }
 }
 

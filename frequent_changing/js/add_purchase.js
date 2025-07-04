@@ -17,6 +17,22 @@ $(function() {
     let suffix =0;
 
     let tab_index = 4;
+    $(".rowCount").each(function() {
+        let thisSuffix = parseInt($(this).attr("data-id"));
+        if(thisSuffix > suffix) suffix = thisSuffix;
+    });
+
+    $(document).on('click', '.btn-delete-row', function(e) {
+        e.preventDefault();
+        let $row = $(this).closest('tr');
+        let suffix = $row.data('id');
+        let ingredient_id = $row.data('item_id');
+        // Aquí puedes preguntar con swal si quieres...
+        $row.remove();
+        $("#paid").val('');
+        calculateAll();
+        updateRowNo();
+    });
 
     $(document).on('change', '#ingredient_id', function() {
         let ingredient_details = $('#ingredient_id').val();

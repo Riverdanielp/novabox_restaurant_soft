@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420636';
+    return '?v=7.5420637';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -2425,7 +2425,7 @@ function getOutletIdByArea($id) {
 /**
  * get Ingredient
  * @access public
- * @return string
+ * @return onject
  * @param int
  */
 function getIngredient($id) {

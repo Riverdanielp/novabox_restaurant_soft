@@ -11,6 +11,8 @@ class Transfer extends Cl_Controller {
         $this->load->model('Sale_model');
         $this->load->model('Master_model');
         $this->load->model('Common_model');
+        $this->load->model('Inventory_adjustment_model');
+        $this->load->model('Inventory_model');
         $this->Common_model->setDefaultTimezone();
         $this->load->library('form_validation');
 
@@ -30,8 +32,19 @@ class Transfer extends Cl_Controller {
         $segment_3 = $this->uri->segment(3);
         $controller = "112";
         $function = "";
-
-        if($segment_2=="transfers" || $segment_2=="transferTicketJson"){
+    
+        if($segment_2=="transfers" || 
+            $segment_2=="transferTicketJson" ||
+            $segment_2=="addTransferDinamico" ||
+            $segment_2=="ajaxBorrarTransferDetalle" ||
+            $segment_2=="getTransferIngredients" ||
+            $segment_2=="ajaxListarTransferDetalles" ||
+            $segment_2=="ajaxAgregarTransferDetalle" ||
+            $segment_2=="ajaxBuscarIngredientesPorNombre" ||
+            $segment_2=="ajaxBuscarIngredientePorCodigo"||
+            $segment_2=="ajaxGuardarTransferInfo"  ||
+            $segment_2=="transferDinamico"
+            ){
             $function = "view";
         }elseif($segment_2=="addEditTransfer" && $segment_3){
             $function = "update";
@@ -337,8 +350,6 @@ class Transfer extends Cl_Controller {
     public function transferTicketJson($encrypted_id)
     {
         $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
-        $this->load->model('Transfer_model');
-        $this->load->model('Common_model');
 
         $transfer = $this->Common_model->getDataById($id, "tbl_transfer");
         $food_details = $this->Transfer_model->getFoodDetails($id);
@@ -400,15 +411,15 @@ class Transfer extends Cl_Controller {
         foreach ($food_details as $fd) {
             if ($fd->transfer_type == 1) {
                 $name = getIngredientNameById($fd->ingredient_id) . " (" . getIngredientCodeById($fd->ingredient_id) . ")";
-                $unit = unitName(getUnitIdByIgId($fd->ingredient_id));
+                // $unit = unitName(getUnitIdByIgId($fd->ingredient_id));
             } else {
                 $name = getFoodMenuNameById($fd->ingredient_id) . " (" . getFoodMenuCodeById($fd->ingredient_id) . ")";
-                $unit = "Pcs";
+                // $unit = "Pcs";
             }
             $content[] = [
                 'type' => 'extremos',
                 'textLeft' => "{$sn} {$name}",
-                'textRight' => getAmtP($fd->quantity_amount) . " {$unit}"
+                'textRight' => number_format($fd->quantity_amount,2,",", "."),
             ];
             $sn++;
         }
@@ -418,12 +429,12 @@ class Transfer extends Cl_Controller {
             $content[] = [
                 'type' => 'text',
                 'align' => 'left',
-                'text' => lang('note_for_sender') . ': ' . $transfer->note_for_sender
+                'text' => "\n" . "\n" . lang('note_for_sender') . ': ' . $transfer->note_for_sender
             ];
         }
             $content[] = ['type' => 'text','align' => 'left','text' => ''];
         if (strlen($transfer->note_for_receiver) > 0) {
-            $content[] = ['type' => 'text','align' => 'left','text' => lang('note_for_receiver') . $transfer->note_for_receiver];
+            $content[] = ['type' => 'text','align' => 'left','text' => "\n" . "\n" . lang('note_for_receiver') . $transfer->note_for_receiver];
         }
         $content[] = ['type' => 'text','align' => 'left','text' => '' . "\n" . "\n" . "\n" . "\n" . "\n"];
         $content[] = ['type' => 'cut'];
@@ -446,4 +457,317 @@ class Transfer extends Cl_Controller {
             'width' => '72',
         ]);
     }
+
+    public function transferDinamico($id = null) {
+        $outlet_id  = $this->session->userdata('outlet_id');
+        $company_id = $this->session->userdata('company_id');
+        $user_id    = $this->session->userdata('user_id');
+
+        $transfer_details = null;
+        $status = 2; // Draft por defecto
+        $disable_to_outlet = false;
+        $status_editable = true;
+        $status_editable_emisor = true;
+        $status_editable_receptor = false;
+        $detalle_editable = true;
+        $nota_editable = true;
+        $transfer_editable = true;
+        $transfer_id = '';
+        $pur_ref_no = '';
+        $note_for_sender = '';
+        $note_for_receiver = '';
+        $es_emisor = false;
+        $es_receptor = false;
+        if ($id) {
+            $id = $this->custom->encrypt_decrypt($id, 'decrypt');
+            $transfer_details = $this->Common_model->getDataById($id, "tbl_transfer");
+            if ($transfer_details) {
+                $transfer_id = $transfer_details->id;
+                $pur_ref_no = $transfer_details->reference_no;
+                $status = intval($transfer_details->status);
+                $note_for_sender = $transfer_details->note_for_sender;
+                $note_for_receiver = $transfer_details->note_for_receiver;
+                $to_outlet_id = $transfer_details->to_outlet_id;
+
+                // --- AQUÍ CALCULA EMISOR/RECEPTOR ---
+                if ($outlet_id == $transfer_details->from_outlet_id) {
+                    $es_emisor = true;
+                } else if ($outlet_id == $transfer_details->to_outlet_id) {
+                    $es_receptor = true;
+                }
+
+                if ($es_receptor && $transfer_id) {
+                    // Redirecciona al flujo clásico de recepción
+                    redirect('Transfer/addEditTransfer/' . $this->custom->encrypt_decrypt($transfer_id, 'encrypt'));
+                    return;
+                }
+                // Lógica de permisos y editable igual que ya tienes...
+                if ($es_emisor) {
+                    $status_editable_emisor = ($status != 1); // Puede editar si no está recibido
+                    $status_editable_receptor = false;
+                    $status_editable = ($status != 1);
+                    $disable_to_outlet = ($status != 2); // Solo en Draft puede cambiar outlet
+                    $detalle_editable = ($status != 1);
+                    $nota_editable = ($status != 1);
+                    $transfer_editable = ($status != 1);
+                } else if ($es_receptor) {
+                    $status_editable_emisor = false;
+                    $status_editable_receptor = ($status == 3); // Solo si está en Sent puede marcar como Received
+                    $status_editable = ($status == 3);
+                    $disable_to_outlet = true;
+                    $detalle_editable = false;
+                    $nota_editable = ($status == 3);
+                    $transfer_editable = ($status == 3);
+                } else {
+                    // Otro usuario: bloqueado
+                    $status_editable = false;
+                    $status_editable_emisor = false;
+                    $status_editable_receptor = false;
+                    $disable_to_outlet = true;
+                    $detalle_editable = false;
+                    $nota_editable = false;
+                    $transfer_editable = false;
+                }
+            }
+        } else {
+            // Nueva transferencia: el usuario es emisor
+            $pur_ref_no = $this->Transfer_model->generatePurRefNo($outlet_id);
+            $transfer_id = '';
+            $status = 2; // Draft
+            $note_for_sender = '';
+            $note_for_receiver = '';
+            $disable_to_outlet = false;
+            $status_editable = true;
+            $status_editable_emisor = true;
+            $status_editable_receptor = false;
+            $detalle_editable = true;
+            $nota_editable = true;
+            $transfer_editable = true;
+            $es_emisor = true; // <<--- AQUÍ
+        }
+
+        $ingredients = $this->Transfer_model->getIngredientListWithUnitAndPrice($company_id);
+        $outlets = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+
+        $data = [
+            'pur_ref_no' => $pur_ref_no,
+            'ingredients' => $ingredients,
+            'outlets' => $outlets,
+            'transfer_id' => $transfer_id,
+            'status' => $status,
+            'note_for_sender' => $note_for_sender,
+            'note_for_receiver' => $note_for_receiver,
+            'disable_to_outlet' => $disable_to_outlet,
+            'status_editable' => $status_editable,
+            'status_editable_emisor' => $status_editable_emisor,
+            'status_editable_receptor' => $status_editable_receptor,
+            'detalle_editable' => $detalle_editable,
+            'nota_editable' => $nota_editable,
+            'transfer_editable' => $transfer_editable,
+            'transfer_details' => $transfer_details,
+            'es_emisor' => $es_emisor,               // <--- AGREGA ESTO
+            'es_receptor' => $es_receptor,           // <--- Y ESTO
+        ];
+        $data['main_content'] = $this->load->view('transfer/addTransferDinamico', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+
+    public function addTransferDinamico() {
+        $outlet_id = $this->session->userdata('outlet_id');
+        $company_id = $this->session->userdata('company_id');
+
+        // Genera número de referencia
+        $pur_ref_no = $this->Transfer_model->generatePurRefNo($outlet_id);
+        $ingredients = $this->Transfer_model->getIngredientListWithUnitAndPrice($company_id);
+        $outlets = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+
+        $data = [
+            'pur_ref_no' => $pur_ref_no,
+            'ingredients' => $ingredients,
+            'outlets' => $outlets,
+        ];
+        $data['main_content'] = $this->load->view('transfer/addTransferDinamico', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+
+    public function ajaxAgregarTransferDetalle() {
+        $transfer_id = $this->input->post('transfer_id', true);
+
+        // Si no existe, crea el transfer en Draft
+        if (!$transfer_id) {
+            $data = [
+                'reference_no' => $this->input->post('reference_no'),
+                'date' => $this->input->post('date'),
+                'status' => 2, // Draft
+                'transfer_type' => $this->input->post('transfer_type'),
+                'user_id' => $this->session->userdata('user_id'),
+                'from_outlet_id' => $this->session->userdata('outlet_id'),
+                'to_outlet_id' => $this->input->post('to_outlet_id'),
+                'outlet_id' => $this->session->userdata('outlet_id'),
+                'del_status' => 'Live',
+            ];
+            // Solo guarda la nota que venga
+            if ($this->input->post('note_for_sender')) {
+                $data['note_for_sender'] = $this->input->post('note_for_sender');
+            }
+            if ($this->input->post('note_for_receiver')) {
+                $data['note_for_receiver'] = $this->input->post('note_for_receiver');
+            }
+            $transfer_id = $this->Common_model->insertInformation($data, "tbl_transfer");
+        } 
+
+        // Guardar detalle
+        $detalle = [
+            'ingredient_id' => $this->input->post('ingredient_id'),
+            'quantity_amount' => $this->input->post('quantity_amount'),
+            'total_cost' => $this->input->post('total_cost'),
+            'single_cost_total' => $this->input->post('single_cost_total'),
+            'transfer_id' => $transfer_id,
+            'from_outlet_id' => $this->session->userdata('outlet_id'),
+            'to_outlet_id' => $this->input->post('to_outlet_id'),
+            'transfer_type' => $this->input->post('transfer_type'),
+            'del_status' => 'Live'
+        ];
+        $detalle_id = $this->Common_model->insertInformation($detalle, "tbl_transfer_ingredients");
+
+        echo json_encode(['success' => true, 'transfer_id' => $transfer_id, 'detalle_id' => $detalle_id]);
+    }
+
+    public function ajaxListarTransferDetalles() {
+        $transfer_id = $this->input->post('transfer_id', true);
+        $items = $this->getTransferIngredients($transfer_id);
+        echo json_encode(['success' => true, 'items' => $items]);
+    }
+
+    public function getTransferIngredients($transfer_id) {
+        $this->db->select("tbl_transfer_ingredients.*, tbl_ingredients.name, tbl_ingredients.code");
+        $this->db->from("tbl_transfer_ingredients");
+        $this->db->join('tbl_ingredients', 'tbl_ingredients.id = tbl_transfer_ingredients.ingredient_id', 'left');
+        $this->db->where("tbl_transfer_ingredients.transfer_id", $transfer_id);
+        $this->db->where("tbl_transfer_ingredients.del_status", 'Live');
+        $this->db->order_by('tbl_transfer_ingredients.id', 'DESC');
+        return $this->db->get()->result();
+    }
+
+    public function ajaxBorrarTransferDetalle() { 
+        $detalle_id = $this->input->post('detalle_id', true);
+        if ($detalle_id) {
+            $this->db->where('id', $detalle_id)
+                    ->update('tbl_transfer_ingredients', ['del_status' => 'Deleted']);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+    }
+
+
+    public function ajaxBuscarIngredientesPorNombre() {
+        $term = $this->input->post('term', true);
+        $result = $this->Inventory_adjustment_model->buscarIngredientesPorNombre($term);
+        $sugerencias = [];
+        foreach ($result as $row) {
+            $sugerencias[] = [
+                'id' => $row->id,
+                'code' => $row->code,
+                'name' => $row->name,
+                'label' => $row->code . ' - ' . $row->name,
+                'unit_name' => $row->unit_name,
+            ];
+        }
+        echo json_encode(['success' => true, 'items' => $sugerencias]);
+    }
+
+    /**
+     * Ajax: Buscar ingrediente por código
+     */
+    public function ajaxBuscarIngredientePorCodigo() {
+        $code = $this->input->post('codigo', true);
+        $row = $this->Inventory_adjustment_model->getIngredientByCode($code);
+        if ($row) {
+            $stock = $this->Inventory_model->getCurrentInventory($row->id);
+            // $last_purchase_cost = $this->Inventory_adjustment_model->getLastPurchasePrice($row->id);
+            echo json_encode([
+                'success' => true,
+                'id' => $row->id,
+                'code' => $row->code,
+                'name' => $row->name,
+                'unit' => $row->unit_id,
+                'stock' => $stock['total_stock'],
+                'costo' => $row->consumption_unit_cost,
+            ]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+    }
+
+    /**
+     * Ajax: Guardar información general del transfer (cabecera)
+     */
+    public function ajaxGuardarTransferInfo() {
+        $transfer_id   = $this->input->post('transfer_id', true);
+        $to_outlet_id  = $this->input->post('to_outlet_id', true);
+        $reference_no  = $this->input->post('reference_no', true);
+        $date          = $this->input->post('date', true);
+        $status        = $this->input->post('status', true);
+        // $note_for_sender = $this->input->post('note_for_sender', true);
+
+        // Si no viene el outlet_id en el post y ya existe la transferencia, cargarlo de la base de datos:
+        if (!$to_outlet_id && $transfer_id) {
+            $transfer = $this->db->get_where('tbl_transfer', ['id' => $transfer_id])->row();
+            if ($transfer) {
+                $to_outlet_id = $transfer->to_outlet_id;
+            }
+        }
+
+        if (!$reference_no) {
+            echo json_encode(['success' => false, 'msg' => 'Referencia inválida.']);
+            return;
+        }
+        if (!$date) {
+            echo json_encode(['success' => false, 'msg' => 'Fecha inválida.']);
+            return;
+        }
+        if (!$status || !in_array($status, ['1','2','3'])) {
+            echo json_encode(['success' => false, 'msg' => 'Status inválido.']);
+            return;
+        }
+
+        $data = [
+            'reference_no'    => $reference_no,
+            'date'            => $date,
+            'to_outlet_id'    => $to_outlet_id,
+            'status'          => $status,
+            // 'note_for_sender' => $note_for_sender,
+        ];
+
+        // Solo actualiza la nota correspondiente
+        if ($this->input->post('note_for_sender')) {
+            $data['note_for_sender'] = $this->input->post('note_for_sender');
+        }
+        if ($this->input->post('note_for_receiver')) {
+            $data['note_for_receiver'] = $this->input->post('note_for_receiver');
+        }
+
+        if ($transfer_id) {
+            // UPDATE
+            $this->db->where('id', $transfer_id)->update('tbl_transfer', $data);
+        } else {
+            
+            // INSERT (crear cabecera nueva)
+            $user_id    = $this->session->userdata('user_id');
+            $company_id = $this->session->userdata('company_id');
+            $from_outlet_id = $this->session->userdata('outlet_id');
+            $data['reference_no'] = $reference_no; // asegúrate que venga generado
+            $data['from_outlet_id'] = $from_outlet_id;
+            $data['outlet_id'] = $from_outlet_id;
+            $data['user_id'] = $user_id;
+            // $data['company_id'] = $company_id;
+            // $data['created'] = date('Y-m-d H:i:s');
+            $this->db->insert('tbl_transfer', $data);
+            $transfer_id = $this->db->insert_id();
+        }
+
+        echo json_encode(['success' => true, 'transfer_id' => $transfer_id]);
+    }
+
 }

@@ -3086,11 +3086,14 @@ foreach ($notifications as $single_notification){
             <a href="javascript:void(0)" class="pos__modal__close close_inventario_modal"><i class="fal fa-times"></i></a>
         </header>
         <div class="pos__modal__body scrollbar-macosx">
+            <?php foreach ($ing_categories as $ing_cat) : ?>
+                <button class="btn btn-success btn_print_cat" style="margin-bottom: 10px;" data-id="<?php echo $ing_cat->id ?>"><?php echo $ing_cat->category_name ?></button>
+            <?php endforeach ?>
             <div class="inventario_form_content"></div>
         </div>
         <footer class="pos__modal__footer">
             <div class="right_box">
-                <button id="btn_print_ticket_inventario" class="btn btn-success">Inventario Ticket</button>
+                <button id="btn_print_ticket_inventario" class="btn btn-success">Imprimir Todos</button>
                 <button type="button" class="close_inventario_modal"><?php echo lang('cancel'); ?></button>
             </div>
         </footer>

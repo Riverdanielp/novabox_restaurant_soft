@@ -499,15 +499,15 @@ class FoodMenu extends Cl_Controller {
                     $ingredient = $this->db->get()->row();
                 
                     // Usa el mismo código del ingrediente si ya existe, si no genera uno nuevo
-                    $ingredient_code = ($ingredient && $ingredient->code) ? $ingredient->code : $this->Master_model->generateIngredientCode();
+                    $ingredient_code =  htmlspecialcharscustom($this->input->post($this->security->xss_clean('code')));
                 
                     $fmc_info = array();
                     $fmc_info['name'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('name')));
                     $fmc_info['code'] = $ingredient_code;
                     $fmc_info['purchase_price'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('purchase_price')));
                     $fmc_info['alert_quantity'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('alert_quantity')));
-                    $fmc_info['unit_id'] = $this->get_unit_id("Pcs");
-                    $fmc_info['purchase_unit_id'] = $this->get_unit_id("Pcs");
+                    $fmc_info['unit_id'] = $this->get_unit_id("u.");
+                    $fmc_info['purchase_unit_id'] = $this->get_unit_id("u.");
                     $fmc_info['consumption_unit_cost'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('purchase_price')));
                     $fmc_info['category_id'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('ing_category_id')));
                     $fmc_info['conversion_rate'] = 1;

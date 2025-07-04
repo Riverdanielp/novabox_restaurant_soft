@@ -43,7 +43,7 @@ class Inventory_adjustment extends Cl_Controller {
             $function = "delete";
         }elseif($segment_2=="ajuste"){
             $function = "ajuste";
-        }elseif($segment_2=="ajaxBuscarIngredientePorCodigo"){
+        }elseif($segment_2=="ajaxBuscarIngredientePorCodigo" || "ajaxBuscarIngredientesPorNombre" == $segment_2 || $segment_2=="ajaxBorrarAjusteDetalle"){
             $function = "ajaxBuscarIngredientePorCodigo";
         }elseif($segment_2=="ajaxGuardarAjusteDinamico"){
             $function = "ajaxGuardarAjusteDinamico";
@@ -212,7 +212,6 @@ class Inventory_adjustment extends Cl_Controller {
     }
 
     public function ajuste($id = null) {
-        $this->load->model('Inventory_adjustment_model');
         $outlet_id = $this->session->userdata('outlet_id');
         $company_id = $this->session->userdata('company_id');
         $user_id = $this->session->userdata('user_id');
@@ -240,6 +239,23 @@ class Inventory_adjustment extends Cl_Controller {
         $this->load->view('userHome', $data);
     }
     
+    public function ajaxBuscarIngredientesPorNombre() {
+        $term = $this->input->post('term', true);
+        $this->load->model('Inventory_adjustment_model');
+        $result = $this->Inventory_adjustment_model->buscarIngredientesPorNombre($term);
+        $sugerencias = [];
+        foreach ($result as $row) {
+            $sugerencias[] = [
+                'id' => $row->id,
+                'code' => $row->code,
+                'name' => $row->name,
+                'label' => $row->code . ' - ' . $row->name,
+                'unit_name' => $row->unit_name,
+            ];
+        }
+        echo json_encode(['success' => true, 'items' => $sugerencias]);
+    }
+
     /**
      * Ajax: Buscar ingrediente por código
      */
@@ -317,5 +333,20 @@ class Inventory_adjustment extends Cl_Controller {
         $items = $this->Inventory_adjustment_model->getInventoryAdjustmentIngredients($ajuste_id);
         echo json_encode(['success' => true, 'items' => $items]);
     }
+
+    public function ajaxBorrarAjusteDetalle() {
+    $detalle_id = $this->input->post('detalle_id', true);
+    if ($detalle_id) {
+        // Puedes hacer soft-delete (recomendado)
+        $this->db->where('id', $detalle_id)
+                 ->update('tbl_inventory_adjustment_ingredients', ['del_status' => 'Deleted']);
+        // O un delete real:
+        // $this->db->where('id', $detalle_id)->delete('tbl_inventory_adjustment_ingredients');
+
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'msg' => 'ID inválido']);
+    }
+}
 
 }
