@@ -40,71 +40,22 @@
                     <table id="datatable" class="table">
                         <thead>
                             <tr>
-                                <th class="ir_w_1"> <?php echo lang('sn'); ?></th>
-                                <th class="ir_w_12"><?php echo lang('customer_name'); ?></th>
-                                <th class="ir_w_7"><?php echo lang('phone'); ?></th>
-                                <th class="ir_w_7"><?php echo lang('email'); ?></th>
-                                <th class="ir_w_7"><?php echo lang('dob'); ?></th>
-                                <th class="ir_w_7"><?php echo lang('default_discount_t'); ?></th>
-                                <th class="ir_w_10"><?php echo lang('address'); ?></th>
-                                <th class="ir_w_10"><?php echo lang('current_due'); ?></th>
+                                <th><?php echo lang('sn'); ?></th>
+                                <th><?php echo lang('customer_name'); ?></th>
+                                <th><?php echo lang('phone'); ?></th>
+                                <th><?php echo lang('email'); ?></th>
+                                <th><?php echo lang('dob'); ?></th>
+                                <th><?php echo lang('default_discount_t'); ?></th>
+                                <th><?php echo lang('address'); ?></th>
+                                <th><?php echo lang('current_due'); ?></th>
                                 <?php if(isset($is_loyalty_enable) && $is_loyalty_enable=="enable"):?>
-                                    <th class="ir_w_10"><?php echo lang('is_loyalty_enable'); ?></th>
+                                    <th><?php echo lang('is_loyalty_enable'); ?></th>
                                 <?php endif;?>
-                                <th class="ir_w_10"><?php echo lang('added_by'); ?></th>
-                                <th class="ir_w_1_txt_center"><?php echo lang('actions'); ?></th>
+                                <th><?php echo lang('added_by'); ?></th>
+                                <th><?php echo lang('actions'); ?></th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php
-                            if ($customers && !empty($customers)) {
-                                $i = count($customers);
-                            }
-                            foreach ($customers as $cust) {
-                                $current_due = 0;
-                                $redeemed_point = 0;
-                                $available_point = 0;
-                                if($cust->id!=1){
-                                    $current_due = getCustomerDue($cust->id);
-                                    if(isset($is_loyalty_enable) && $is_loyalty_enable=="enable"):
-                                        $return_data = getTotalLoyaltyPoint($cust->id,$this->session->userdata('outlet_id'));
-                                        $redeemed_point = $return_data[0];
-                                        $available_point = $return_data[1];
-                                    endif;
-                                }
-                                ?>
-                            <tr>
-                                <td class="ir_txt_center"><?php echo escape_output($i--); ?></td>
-                                <td><?php echo escape_output($cust->name) ?></td>
-                                <td><?php echo escape_output($cust->phone) ?></td>
-                                <td><?php echo escape_output($cust->email) ?></td>
-                                <td><?php if($cust->date_of_birth != '1970-01-01'){ echo escape_output($cust->date_of_birth); }?></td>
-                                <td><?php echo escape_output($cust->default_discount) ?></td>
-                                <td><?php echo escape_output($cust->address) ?></td>
-                                <td><?php echo escape_output(getAmtPCustom($current_due)) ?></td>
-                                <?php if(isset($is_loyalty_enable) && $is_loyalty_enable=="enable"):?>
-                                    <td><?php echo escape_output(($available_point)) ?></td>
-                                <?php endif;?>
-                                <td><?php echo userName($cust->user_id); ?></td>
-
-                                <td>
-                                <?php if ($cust->name != "Walk-in Customer") { ?>
-                                    <div class="btn_group_wrap">
-                                        <a class="btn btn-warning" href="<?php echo base_url() ?>customer/addEditCustomer/<?php echo escape_output($this->custom->encrypt_decrypt($cust->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top"
-                                        data-bs-original-title="<?php echo lang('edit'); ?>">
-                                            <i class="far fa-edit"></i>
-                                        </a>
-                                        <a class="delete btn btn-danger" href="<?php echo base_url() ?>customer/deleteCustomer/<?php echo escape_output($this->custom->encrypt_decrypt($cust->id, 'encrypt')); ?>" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="<?php echo lang('delete'); ?>">
-                                            <i class="fa-regular fa-trash-can"></i>
-                                        </a>
-                                    </div>
-                                    <?php } ?>
-                                </td>
-                            </tr>
-                            <?php
-                            }
-                            ?>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
                 <!-- /.box-body -->
@@ -113,4 +64,61 @@
     
 </section>
 
-<?php $this->view('common/footer_js')?>
+<?php //$this->view('common/footer_js')?>
+
+
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jquery.dataTables.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js">
+</script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/dataTables.bootstrap4.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/dataTables.buttons.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/buttons.html5.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/buttons.print.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jszip.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/pdfmake.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
+
+<script>
+    "use strict";
+    let base_url = $("#base_url_").val();
+    $(document).ready(function(){
+        $("#datatable").DataTable({
+            autoWidth: false,
+            ordering: true,
+            processing: true,
+            serverSide: true,
+            order: [[0, "desc"]],
+            lengthMenu: [
+                [10, 20, 50, 100, 200, 300, 500, -1],
+                [10, 20, 50, 100, 200, 300, 500, "Todos"]
+            ],
+            pageLength: 10, // opción inicial
+            ajax: {
+                url: base_url + "customer/getAjaxData",
+                type: "POST",
+                dataType: "json",
+                data: {},
+            },
+            columnDefs: [
+                { orderable: true, targets: [5, 7, 8] }
+            ],
+            dom: '<"top-left-item col-sm-12 col-md-6"lf> <"top-right-item col-sm-12 col-md-6"B> t <"bottom-left-item col-sm-12 col-md-6 "i><"bottom-right-item col-sm-12 col-md-6 "p>',
+            buttons: [
+                { extend: 'print', text: '<i class="fa-solid fa-print"></i> Print', titleAttr: 'print' },
+                { extend: 'copyHtml5', text: '<i class="fa-solid fa-copy"></i> Copy', titleAttr: 'Copy' },
+                { extend: 'excelHtml5', text: '<i class="fa-solid fa-file-excel"></i> Excel', titleAttr: 'Excel' },
+                { extend: 'csvHtml5', text: '<i class="fa-solid fa-file-csv"></i> CSV', titleAttr: 'CSV' },
+                { extend: 'pdfHtml5', text: '<i class="fa-solid fa-file-pdf"></i> PDF', titleAttr: 'PDF' }
+            ],
+            language: {
+                paginate: {
+                    previous: "Previous",
+                    next: "Next",
+                },
+                lengthMenu: "Mostrar _MENU_ registros por página"
+            },
+        });
+    });
+
+</script>

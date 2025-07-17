@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420637';
+    return '?v=7.5420638';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -354,7 +354,7 @@ function getExistFoodMenuModifier($sale_id,$food_menu_id) {
     return $main_row;
 
 }
-function getCustomerDue($customer_id) {
+function getCustomerDueOLD($customer_id) {
     $CI = & get_instance();
     $outlet_id = $CI->session->userdata('outlet_id');
     if($outlet_id){
@@ -369,6 +369,40 @@ function getCustomerDue($customer_id) {
     return $remaining_due;
 
 }
+
+function getCustomerDue($customer_id) {
+    $CI = & get_instance();
+    $outlet_id = $CI->session->userdata('outlet_id');
+
+    if($outlet_id){
+        $customer_due = $CI->db->query(
+            "SELECT SUM(due_amount) as due FROM tbl_sales WHERE customer_id=? AND outlet_id=? AND del_status='Live' AND order_status='3'",
+            [$customer_id, $outlet_id]
+        )->row();
+
+        $customer_payment = $CI->db->query(
+            "SELECT SUM(amount) as amount FROM tbl_customer_due_receives WHERE customer_id=? AND outlet_id=? AND del_status='Live'",
+            [$customer_id, $outlet_id]
+        )->row();
+    } else {
+        $customer_due = $CI->db->query(
+            "SELECT SUM(due_amount) as due FROM tbl_sales WHERE customer_id=? AND del_status='Live' AND order_status='3'",
+            [$customer_id]
+        )->row();
+
+        $customer_payment = $CI->db->query(
+            "SELECT SUM(amount) as amount FROM tbl_customer_due_receives WHERE customer_id=? AND del_status='Live'",
+            [$customer_id]
+        )->row();
+    }
+
+    $due = isset($customer_due->due) ? $customer_due->due : 0;
+    $amount = isset($customer_payment->amount) ? $customer_payment->amount : 0;
+    $remaining_due = $due - $amount;
+
+    return $remaining_due;
+}
+
 /**
  * get Main Menu
  * @access
@@ -955,7 +989,15 @@ function getCompanyInfo($company_id = '') {
         }
     }
     // Usa get_where, nunca select('*') aquí
-    return $CI->db->get_where("tbl_companies", ["id" => $company_id])->row();
+    // return $CI->db->get_where("tbl_companies", ["id" => $company_id])->row();
+    
+    // SELECT con LEFT JOIN para obtener también el nombre del cliente por defecto
+    $CI->db->select('tbl_companies.*, tbl_customers.name AS default_customer_name');
+    $CI->db->from('tbl_companies');
+    $CI->db->join('tbl_customers', 'tbl_customers.id = tbl_companies.default_customer', 'left');
+    $CI->db->where('tbl_companies.id', $company_id);
+    
+    return $CI->db->get()->row();
 }
 /**
  * get Company Info
@@ -2383,11 +2425,13 @@ function getTaxAmount($sale_price,$tax){
     $CI = & get_instance();
     $decode_tax = json_decode($tax);
     $total_return_amount = 0;
-    foreach ($decode_tax as $key=>$value){
-        if(isset($decode_tax[$key]->tax_field_percentage) && $decode_tax[$key]->tax_field_percentage && $decode_tax[$key]->tax_field_percentage!="0.00"){
-            $total_return_amount+=($sale_price*$decode_tax[$key]->tax_field_percentage)/100;
-        }
+    if (is_iterable($decode_tax)){
+        foreach ($decode_tax as $key=>$value){
+            if(isset($decode_tax[$key]->tax_field_percentage) && $decode_tax[$key]->tax_field_percentage && $decode_tax[$key]->tax_field_percentage!="0.00"){
+                $total_return_amount+=($sale_price*$decode_tax[$key]->tax_field_percentage)/100;
+            }
 
+        }
     }
 return $total_return_amount;
 

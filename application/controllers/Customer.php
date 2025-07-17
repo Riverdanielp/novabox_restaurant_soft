@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Customer Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -35,7 +20,7 @@ class Customer extends Cl_Controller {
         $controller = "249";
         $function = "";
 
-        if($segment_2=="customers"){
+        if($segment_2=="customers" || $segment_2=="getAjaxData" || $segment_2=="deleteCustomer" || $segment_2=="uploadCustomer" || $segment_2=="ExcelDataAddCustomers" || $segment_2=="addEditCustomer" || $segment_2=="viewCustomer" || $segment_2=="downloadPDF"){
             $function = "view";
         }elseif($segment_2=="addEditCustomer" && $segment_3){
             $function = "update";
@@ -78,6 +63,92 @@ class Customer extends Cl_Controller {
         $data['main_content'] = $this->load->view('master/customer/customers', $data, TRUE);
         $this->load->view('userHome', $data);
     }
+
+    public function getAjaxData()
+    {
+        $company_id = $this->session->userdata('company_id');
+        $is_loyalty_enable = $this->session->userdata('is_loyalty_enable');
+        $outlet_id = $this->session->userdata('outlet_id');
+
+        // Obtén los datos paginados SIN ordenar por current_due
+        $customers = $this->Common_model->make_datatables_customers($company_id, $is_loyalty_enable, $outlet_id);
+
+        $data = array();
+        $rows = array();
+        $i = $_POST['start'] + 1;
+        foreach ($customers as $cust) {
+            if ($cust->del_status == "Live") {
+                $current_due = 0;
+                $redeemed_point = 0;
+                $available_point = 0;
+                if ($cust->id != 1) {
+                    $current_due = getCustomerDue($cust->id);
+                    if ($is_loyalty_enable == "enable") {
+                        $return_data = getTotalLoyaltyPoint($cust->id, $outlet_id);
+                        $redeemed_point = $return_data[0];
+                        $available_point = $return_data[1];
+                    }
+                }
+                $actions = '';
+                if ($cust->name != "Walk-in Customer") {
+                    $actions .= '<div class="btn_group_wrap">';
+                    $actions .= '<a class="btn btn-warning" href="'.base_url().'customer/addEditCustomer/'.escape_output($this->custom->encrypt_decrypt($cust->id, "encrypt")).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('edit').'"><i class="far fa-edit"></i></a>';
+                    $actions .= '<a class="delete btn btn-danger" href="'.base_url().'customer/deleteCustomer/'.escape_output($this->custom->encrypt_decrypt($cust->id, "encrypt")).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('delete').'"><i class="fa-regular fa-trash-can"></i></a>';
+                    $actions .= '</div>';
+                }
+
+                $row = array();
+                $row[] = escape_output($i++); // 0
+                $row[] = escape_output($cust->name); // 1
+                $row[] = escape_output($cust->phone); // 2
+                $row[] = escape_output($cust->email); // 3
+                $row[] = ($cust->date_of_birth != '1970-01-01' ? escape_output($cust->date_of_birth) : ''); // 4
+                $row[] = escape_output($cust->default_discount); // 5
+                $row[] = escape_output($cust->address); // 6
+                $row[] = escape_output(($current_due)); // 7 current_due
+                $row['_current_due_raw'] = $current_due; // Campo auxiliar para ordenar
+                if ($is_loyalty_enable == "enable") {
+                    $row[] = escape_output($available_point);
+                }
+                $row[] = userName($cust->user_id);
+                $row[] = $actions;
+                $rows[] = $row;
+            }
+        }
+
+        // Detecta si ordenan por current_due
+        $order_column = isset($_POST['order'][0]['column']) ? intval($_POST['order'][0]['column']) : null;
+        $order_dir = isset($_POST['order'][0]['dir']) ? $_POST['order'][0]['dir'] : 'asc';
+        // Supongamos que 'current_due' es la columna 7 (ajusta si cambia el orden)
+        $current_due_column_index = 7;
+
+        if ($order_column === $current_due_column_index) {
+            usort($rows, function($a, $b) use ($order_dir) {
+                // Ordena por campo auxiliar
+                if ($a['_current_due_raw'] == $b['_current_due_raw']) return 0;
+                if ($order_dir == 'asc')
+                    return ($a['_current_due_raw'] < $b['_current_due_raw']) ? -1 : 1;
+                else
+                    return ($a['_current_due_raw'] > $b['_current_due_raw']) ? -1 : 1;
+            });
+        }
+
+        // Elimina el campo auxiliar antes de enviar a DataTables
+        foreach ($rows as &$row) {
+            unset($row['_current_due_raw']);
+            $data[] = $row;
+        }
+
+        $output = array(
+            "draw" => intval($this->Common_model->getDrawDataCustomers()),
+            "recordsTotal" => $this->Common_model->get_all_data_customers($company_id),
+            "recordsFiltered" => $this->Common_model->get_filtered_data_customers($company_id),
+            "data" => $data
+        );
+        echo json_encode($output);
+    }
+
+
      /**
      * delete customer
      * @access public

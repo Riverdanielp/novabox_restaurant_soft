@@ -235,6 +235,7 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="close_order_msg" value="<?php echo lang('close_order_msg'); ?>">
 <input type="hidden" id="cancel_order_msg" value="<?php echo lang('cancel_order_msg'); ?>">
 <input type="hidden" id="default_customer_hidden" value="<?php echo escape_output($getCompanyInfo->default_customer); ?>">
+<input type="hidden" id="default_customer_name_hidden" value="<?php echo escape_output($getCompanyInfo->default_customer_name); ?>">
 <input type="hidden" id="default_waiter_hidden" value="<?php echo escape_output($default_waiter_id); ?>">
 <input type="hidden" id="default_payment_hidden"
        value="<?php echo escape_output($getCompanyInfo->default_payment); ?>">

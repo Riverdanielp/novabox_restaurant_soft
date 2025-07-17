@@ -422,6 +422,18 @@ class Common_model extends CI_Model {
           ORDER BY id DESC")->row();
         return $result;
     }
+
+    function getAllCustomersByCompany($company_id,$limit = null) {
+        $this->db->select('*');
+        $this->db->from('tbl_customers');
+        $this->db->where('company_id', $company_id);
+        $this->db->where('del_status', 'Live');
+        if ($limit) {
+            $this->db->limit($limit);
+        }
+        $this->db->order_by('id', 'ASC');
+        return $this->db->get()->result();
+    }
     /**
      * get All By Company Id ForDropdown
      * @access public
@@ -1941,6 +1953,73 @@ class Common_model extends CI_Model {
             $this->db->order_by($order_by, $order ?: 'asc');
         }
         return $this->db->get('tbl_food_menus')->result();
+    }
+
+    public function make_datatables_customers($company_id, $is_loyalty_enable, $outlet_id)
+    {
+        $this->db->from('tbl_customers');
+        $this->db->where('company_id', $company_id);
+
+        // Filtros de búsqueda
+        if (isset($_POST['search']['value']) && $_POST['search']['value'] != '') {
+            $search = $_POST['search']['value'];
+            $this->db->group_start();
+            $this->db->like('name', $search);
+            $this->db->or_like('phone', $search);
+            $this->db->or_like('email', $search);
+            $this->db->or_like('address', $search);
+            $this->db->group_end();
+        }
+
+        // Ordenamiento
+        if (isset($_POST['order'])) {
+            $column = $_POST['order'][0]['column'];
+            $dir = $_POST['order'][0]['dir'];
+            // Ajusta el índice según tu tabla
+            $columns = array('id', 'name', 'phone', 'email', 'date_of_birth', 'default_discount', 'address', /*current_due*/ 'user_id');
+            // Supón que el índice de current_due es 7 (ajusta según tu tabla)
+            $current_due_index = 7; // Cambia si tu orden es distinto
+            if ($column != $current_due_index) {
+                $this->db->order_by($columns[$column], $dir);
+            }
+            // Si es current_due, no ordenes en SQL
+        } else {
+            $this->db->order_by('id', 'DESC');
+        }
+
+        // Paginación
+        if ($_POST['length'] != -1) {
+            $this->db->limit($_POST['length'], $_POST['start']);
+        }
+        return $this->db->get()->result();
+    }
+
+    public function get_all_data_customers($company_id)
+    {
+        $this->db->from('tbl_customers');
+        $this->db->where('company_id', $company_id);
+        return $this->db->count_all_results();
+    }
+
+    public function get_filtered_data_customers($company_id)
+    {
+        $this->db->from('tbl_customers');
+        $this->db->where('company_id', $company_id);
+        if (isset($_POST['search']['value']) && $_POST['search']['value'] != '') {
+            $search = $_POST['search']['value'];
+            $this->db->group_start();
+            $this->db->like('name', $search);
+            $this->db->or_like('phone', $search);
+            $this->db->or_like('email', $search);
+            $this->db->or_like('address', $search);
+            $this->db->group_end();
+        }
+        return $this->db->count_all_results();
+    }
+
+    public function getDrawDataCustomers()
+    {
+        return isset($_POST['draw']) ? $_POST['draw'] : 1;
     }
 
 

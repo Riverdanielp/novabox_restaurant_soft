@@ -3,6 +3,7 @@
 // $base = "irestoraplus";
 // $base = "restaurant-soft_victorias";
 $base = "restaurant-soft_miabuela";
+// $base = "restaurant-soft_lomitosycia";
 // $base = "restaurant-soft_miabuela2";
 
 $active_group = 'default';

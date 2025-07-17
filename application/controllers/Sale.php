@@ -475,7 +475,7 @@ class Sale extends Cl_Controller {
         $outlet_id = $this->session->userdata('outlet_id');
 
         $data = array();
-        $data['customers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_customers');
+        $data['customers'] = $this->Common_model->getAllCustomersByCompany($company_id, 1);
         $data['food_menus'] = $this->Sale_model->getTopFoodMenus(24); //getAllFoodMenus(); //[];
         $this->Sale_model->attachModifiersToMenus($data['food_menus']);
         if(isset($data['food_menus']) && $data['food_menus']){
@@ -1347,6 +1347,38 @@ class Sale extends Cl_Controller {
         $customer_return['customer_data'] = $customer_data;
         echo json_encode($customer_return) ;
     }
+
+    public function search_customers() {
+        $term = $this->input->get('q');
+        $this->db->like('name', $term);
+        $this->db->or_like('phone', $term);
+        $this->db->limit(10); // Solo 10 por búsqueda
+        $customers = $this->db->get('tbl_customers')->result();
+
+        $results = [];
+        foreach ($customers as $c) {
+            $results[] = [
+                'id' => $c->id,
+                'text' => $c->name . ' ' . $c->phone,
+                'default_discount' => $c->default_discount,
+                'address' => $c->address,
+                'gst_number' => $c->gst_number,
+                'same_or_diff_state' => $c->same_or_diff_state,
+                'email' => $c->email,
+                'date_of_birth' => $c->date_of_birth ? date('Y-m-d', strtotime($c->date_of_birth)) : '',
+                'date_of_anniversary' => $c->date_of_anniversary ? date('Y-m-d', strtotime($c->date_of_anniversary)) : '',
+                'customer_id' => $c->id,
+                'phone' => $c->phone,
+                'name' => $c->name,
+                'current_due' => getCustomerDue($c->id),
+
+                // ...otros campos útiles...
+            ];
+        }
+
+        echo json_encode($results);
+    }
+
     public function online_customer_login_by_ajax(){
         $online_login_phone = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('online_login_phone'))));
         $online_login_password = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('online_login_password'))));
@@ -7103,7 +7135,7 @@ class Sale extends Cl_Controller {
     //     return ($numbers);
     //     // return json_encode($numbers);
     // }
-    public function liberar_numeros() {
+    public function liberar_numeros_old() {
         $outlet_id = $this->session->userdata('outlet_id');
         
         // Primero: Liberar números que ya tienen ventas concretadas
@@ -7131,6 +7163,66 @@ class Sale extends Cl_Controller {
         var_dump($numbersToFree); 
         echo '<pre>';
         
+    }
+
+    public function liberar_numeros() {
+        $outlet_id = $this->session->userdata('outlet_id');
+
+        // 1. Traer todos los números ocupados y activos
+        $this->db->select('id, name, sale_id, sale_no, user_id, outlet_id');
+        $this->db->from('tbl_numeros');
+        $this->db->where('sale_no IS NOT NULL');
+        $this->db->where('del_status', 'Live');
+        // Si quieres filtrar por outlet: $this->db->where('outlet_id', $outlet_id);
+        $numeros = $this->db->get()->result();
+
+        $numbersToFree = [];
+        $idsToLiberate = [];
+
+        foreach ($numeros as $num) {
+            // 2. Verificar si sale_no existe en tbl_kitchen_sales con del_status = 'Live'
+            $this->db->select('id');
+            $this->db->from('tbl_kitchen_sales');
+            $this->db->where('sale_no', $num->sale_no);
+            $this->db->where('outlet_id', $num->outlet_id);
+            $this->db->where('del_status', 'Live');
+            $kitchen = $this->db->get()->row();
+
+            if (!$kitchen) {
+                // No existe en kitchen_sales, marcar para liberar
+                $numbersToFree[] = $num;
+                $idsToLiberate[] = $num->id;
+            } else {
+                // Sí existe en kitchen_sales, verificar si existe en tbl_sales con del_status = 'Live'
+                $this->db->select('id');
+                $this->db->from('tbl_sales');
+                $this->db->where('sale_no', $num->sale_no);
+                $this->db->where('outlet_id', $num->outlet_id);
+                $this->db->where('del_status', 'Live');
+                $sale = $this->db->get()->row();
+
+                if ($sale) {
+                    // Existe en sales, marcar para liberar
+                    $numbersToFree[] = $num;
+                    $idsToLiberate[] = $num->id;
+                }
+            }
+        }
+
+        // Liberar los números que cumplen la condición
+        if (!empty($idsToLiberate)) {
+            $this->db->where_in('id', $idsToLiberate);
+            $this->db->update('tbl_numeros', array(
+                'sale_id' => NULL,
+                'sale_no' => NULL,
+                'user_id' => NULL
+            ));
+        }
+
+        echo '<pre>';
+        var_dump($numbersToFree); 
+        // var_dump($idsToLiberate); 
+        echo '</pre>';
     }
 
     public function getUpdatedNumbers() {

@@ -159,8 +159,9 @@ class Transfer extends Cl_Controller {
                     $this->Common_model->updateInformation($transfer_info, $id, "tbl_transfer");
                     $this->Common_model->deletingMultipleFormData('transfer_id', $id, 'tbl_transfer_ingredients');
                     $this->Common_model->deletingMultipleFormData('transfer_id', $id, 'tbl_transfer_received_ingredients');
+                    $to_outlet_id = isset($transfer_info['to_outlet_id']) ? $transfer_info['to_outlet_id'] : $transfer_details->to_outlet_id;
                     /*This variable could not be escaped because this is an array field*/
-                    $this->saveTransferIngredients($_POST['ingredient_id'], $id, $transfer_details->outlet_id,$transfer_info['to_outlet_id'],$transfer_info['status'],$transfer_details->to_outlet_id);
+                    $this->saveTransferIngredients($_POST['ingredient_id'], $id, $transfer_details->outlet_id,$to_outlet_id,$transfer_info['status'],$transfer_details->to_outlet_id);
                     $this->session->set_flashdata('exception',lang('update_success'));
                 }
 
