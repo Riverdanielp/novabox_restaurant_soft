@@ -160,13 +160,46 @@ foreach($food_menus as $single_menus){
     if($food_menu_tooltip=="show"){
         $item_name_c = "item_name_tippy";
     }
-    //construct new single item content
-    $menu_to_show .= '<div class="single_item animate__animated animate__flipInX" data-price="'.$sale_price.'"  data-price_take="'.$sale_price_take.'"  data-price_delivery="'.$sale_price_delivery.'" data-is_variation="'.$is_variation.'" data-iva_tipo="'.$iva_tipo.'" data-veg_status="'.$veg_status1.'"  id="item_'.$single_menus->id.'">';
-    //iva_tipo
-    $menu_to_show .= '<img src="'.$image_path.'" alt="" width="142">';
-        $menu_to_show .= '<p class="item_name '.$item_name_c.'" data-tippy-content="'.$single_menus->name.'">'.$single_menus->name.'</p>';
-    $menu_to_show .= '<p class="item_price">'.$this->session->userdata('currency').' <span id="price_'.$single_menus->id.'">'.getAmtPCustom($sale_price).'</span></p>';
+    // //construct new single item content
+    // $menu_to_show .= '<div class="single_item animate__animated animate__flipInX" data-price="'.$sale_price.'"  data-price_take="'.$sale_price_take.'"  data-price_delivery="'.$sale_price_delivery.'" data-is_variation="'.$is_variation.'" data-iva_tipo="'.$iva_tipo.'" data-veg_status="'.$veg_status1.'"  id="item_'.$single_menus->id.'">';
+    // //iva_tipo
+    // $menu_to_show .= '<img src="'.$image_path.'" alt="" width="142">';
+    //     $menu_to_show .= '<p class="item_name '.$item_name_c.'" data-tippy-content="'.$single_menus->name.'">'.$single_menus->name.'</p>';
+    // $menu_to_show .= '<p class="item_price">'.$this->session->userdata('currency').' <span id="price_'.$single_menus->id.'">'.getAmtPCustom($sale_price).'</span></p>';
+    // $menu_to_show .= '</div>';
+
+    $code_txt = (strlen($single_menus->code) > 0) ? '<br><small>'.$single_menus->code.'</small>' : '';
+    $menu_to_show .= '<div class="single_item animate__animated animate__flipInX"'
+    . ' data-price="' . htmlspecialchars($sale_price) . '"'
+    . ' data-price_take="' . htmlspecialchars($sale_price_take) . '"'
+    . ' data-price_delivery="' . htmlspecialchars($sale_price_delivery) . '"'
+    . ' data-is_variation="' . htmlspecialchars($is_variation) . '"'
+    . ' data-iva_tipo="' . htmlspecialchars($iva_tipo) . '"'
+    . ' data-parent_id="' . htmlspecialchars($single_menus->parent_id ?? '0') . '"'
+    . ' data-code="' . htmlspecialchars($single_menus->code ?? '') . '"'
+    . ' data-veg_status="' . htmlspecialchars($veg_status1) . '"'
+    . ' data-beverage_status="' . (strtolower($single_menus->beverage_item ?? '') == 'bev yes' ? 'yes' : 'no') . '"'
+    . ' data-bar_status="' . (strtolower($single_menus->bar_item ?? '') == 'bar yes' ? 'yes' : 'no') . '"'
+    . ' data-tax_information=\'' . htmlspecialchars($single_menus->tax_information ?? '[]', ENT_QUOTES) . '\''
+    . ' data-product_type="' . htmlspecialchars($single_menus->product_type ?? '') . '"'
+    . ' data-product_comb="' . htmlspecialchars($single_menus->combo_ids ?? '') . '"'
+    . ' data-is_promo="' . htmlspecialchars($single_menus->is_promo ?? 'No') . '"'
+    . ' data-promo_type="' . htmlspecialchars($single_menus->promo_type ?? '') . '"'
+    . ' data-string_text="' . htmlspecialchars($single_menus->string_text ?? '') . '"'
+    . ' data-discount="' . htmlspecialchars($single_menus->discount ?? 0) . '"'
+    . ' data-get_food_menu_id="' . htmlspecialchars($single_menus->get_food_menu_id ?? 0) . '"'
+    . ' data-qty="' . htmlspecialchars($single_menus->qty ?? 1) . '"'
+    . ' data-get_qty="' . htmlspecialchars($single_menus->get_qty ?? 1) . '"'
+    . ' data-modal_item_name_row="' . htmlspecialchars($single_menus->modal_item_name_row ?? '') . '"'
+    . ' id="item_' . htmlspecialchars($single_menus->id) . '">';
+
+    $menu_to_show .= '<img src="' . htmlspecialchars($image_path) . '" alt="" width="142">';
+    $menu_to_show .= '<p class="item_name ' . htmlspecialchars($item_name_c) . '" data-tippy-content="' . htmlspecialchars($single_menus->name) . '">' . htmlspecialchars($single_menus->name) .$code_txt . '</p>';
+    $menu_to_show .= '<p class="item_price">' . htmlspecialchars($this->session->userdata('currency')) . ' <span id="price_' . htmlspecialchars($single_menus->id) . '">' . getAmtPCustom($sale_price) . '</span></p>';
     $menu_to_show .= '</div>';
+
+
+
     //if its the last content and there is no more category then set exit to last category
     if($is_new_category==false && $total_menus==$i){
         $menu_to_show .= '</div>';
@@ -585,8 +618,10 @@ foreach ($notifications as $single_notification){
     <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/custom_card_design_zak.css?v=7.5">
     <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.css?v=7.5">
     <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.structure.css?v=7.5">
-
-
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,100..900;1,100..900&family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Bebas+Neue&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Libre+Franklin:ital,wght@0,100..900;1,100..900&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Oswald:wght@200..700&family=Quicksand:wght@300..700&family=Raleway:ital,wght@0,100..900;1,100..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <style>
     <?php
     if($waiter_app_status=="Yes"): ?>
@@ -1405,7 +1440,7 @@ foreach ($notifications as $single_notification){
                                 </div>
                                 <div class="single_header_column" id="single_order_qty"><?php echo lang('qty'); ?></div>
                                 <div class="single_header_column" id="single_order_discount">
-                                    <?php echo lang('discount'); ?></div>
+                                    <?php //echo lang('discount'); ?></div>
                                 <div class="single_header_column" id="single_order_total"><?php echo lang('total'); ?>
                                 </div>
                             </div>

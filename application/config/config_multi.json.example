@@ -1,0 +1,15 @@
+{
+    "base": "default",
+    "bases": {
+        "default": {
+            "nombre": "Administración",
+            "db_name": "default",
+            "db_url": "default"
+        },
+        "db1": {
+            "nombre": "Restaurants",
+            "db_name": "db1",
+            "db_url": "https://miabuela.novabox.app/"
+        }
+    }
+}

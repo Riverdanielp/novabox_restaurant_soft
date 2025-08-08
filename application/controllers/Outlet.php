@@ -291,11 +291,13 @@ class Outlet extends Cl_Controller {
         if (!$this->session->has_userdata('clicked_controller')) {
             
             if ($this->session->userdata('designation') == 'Super Admin') {
-                redirect('Dashboard/dashboard');
+                redirect('Authentication/userProfile');
             } else if ($this->session->userdata('designation') == 'Admin') {
-                redirect('Dashboard/dashboard');
-            } else if($this->session->userdata('designation') == 'Chef') {
+                redirect('Authentication/userProfile');
+            } else if ($this->session->userdata('designation') == 'Chef') {
                 redirect('Kitchen/kitchens');
+            } else if ($this->session->userdata('designation') == 'Normal User') {
+                redirect("order-status-screen");
             } else {
                redirect('POSChecker/posAndWaiterMiddleman');
             }

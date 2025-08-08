@@ -60,7 +60,7 @@ textarea:focus {
 
 .specific_category_items_holder {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 10px;
 }
 
@@ -460,27 +460,41 @@ select2 select2-container select2-container--default select2-container--focus {
 }
 
 .main_right .category_items .single_item img {
-  height: 70px; /* Altura fija */
-  width: auto; /* Ancho automático para mantener la proporción */
-  max-width: 100%; /* Limita el ancho al 100% del contenedor */
-  object-fit: contain; /* Ajusta la imagen dentro del contenedor sin recortar */
-  display: block; /* Evita espacio adicional debajo de la imagen */
-  margin: 0 auto; /* Centra la imagen horizontalmente */
+  /* height: 70px; Altura fija */
+  /* width: auto; Ancho automático para mantener la proporción */
+  /* max-width: 100%; Limita el ancho al 100% del contenedor */
+  /* object-fit: contain; Ajusta la imagen dentro del contenedor sin recortar */
+  /* display: block; Evita espacio adicional debajo de la imagen */
+  /* margin: 0 auto; Centra la imagen horizontalmente */
+
+  width: 100%;
+  object-fit: cover;
+  display: block;
+  height: 70px;
 }
 
 .main_right .category_items .single_item p {
   /* line-height: 24px; */
-  margin: 0px 0px 6px 0px;
+  /* margin: 0px 0px 6px 0px; */
+  margin: 0px 0px 0px 0px;
 }
 
 .main_right .category_items .single_item .item_name {
-  font-weight: lighter;
+  /* font-weight: lighter; */
+  font-weight: bold;
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
   margin-left: 2px !important;
   /* white-space: nowrap; */
   text-overflow: ellipsis;
   overflow: hidden;
+  font-family: "Montserrat", Helvetica, Arial sans-serif;
+}
+
+.main_right .category_items .single_item .item_name small {
+  font-size: 10px;
+  color: #77797a;
+  font-weight: normal;
 }
 
 /* .main_right .category_items .single_item:hover .item_name {
@@ -2853,7 +2867,7 @@ textarea:focus {
 }
 
 .order_table_holder .order_table_header_row #single_order_item {
-  width: 38%;
+  width: 51%;
   padding-left: 2%;
 }
 
@@ -2889,7 +2903,7 @@ textarea:focus {
 }
 
 .order_table_holder .order_holder .single_order .first_column {
-  width: 35%;
+  width: 45%;
   padding-left: 1%;
   display: flex;
   align-items: flex-start;
@@ -2918,6 +2932,7 @@ textarea:focus {
   width: 13%;
   margin-top: 2px;
   unicode-bidi: bidi-override;
+  text-align: right;
 }
 
 .order_table_holder .order_holder .single_order .third_column {
@@ -2927,9 +2942,10 @@ textarea:focus {
 }
 
 .order_table_holder .order_holder .single_order .forth_column {
-  width: 10%;
+  width: 0%;
   text-align: center;
   unicode-bidi: bidi-override;
+  display: none;
 }
 
 .order_table_holder .order_holder .single_order .fifth_column {
@@ -3023,13 +3039,14 @@ textarea:focus {
 .single_order
 .single_order_column
 span:not(.qty_item_custom) {
-  margin: 0 2px;
+  /* margin: 0 2px; */
   user-select: none;
   vertical-align: sub;
+  font-size: 11px;
   /* unicode-bidi: bidi-override; */
 }
 .qty_item_custom {
-  width: 20px;
+  /* width: 20px; */
   display: inline-block;
 }
 .order_table_holder .order_holder .single_order .second_portion {
@@ -3995,7 +4012,8 @@ label {
 
 
 #item_quantity_modal{
-  width: 120px;
+  /* width: 120px; */
+  width: 40% ;
   text-align: center;
 }
 
@@ -4121,7 +4139,7 @@ POS MODAL DESIGN CORRECTED BY AZHAR
   justify-content: center;
 }
 .kot_qty_column .fal, .bot_qty_column .fal, #item_modal .section1 #sec1_2 .fal {
-  width: 65px;
+  width: 30%;
   height: 40px;
   font-size: 18px !important;
   border-radius: 4px

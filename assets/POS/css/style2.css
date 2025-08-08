@@ -2419,12 +2419,12 @@ aside#pos__sidebar .sub__sub__menu__list li a i {
   .order_table_holder .order_table_header_row #single_order_total {
     width: 14%; }
   .order_table_holder .order_table_header_row #single_order_item {
-    width: 34%; }
+    width: 50%; }
   .order_table_holder .order_table_header_row #single_order_discount {
     width: 20%; }
 
   .order_table_holder .order_holder .single_order .first_column {
-    width: 31%; }
+    width: 41%; }
   .order_table_holder .order_holder .single_order .third_column {
     width: 24%; } }
 @media (max-width: 1200px) {

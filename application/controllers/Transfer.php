@@ -7,8 +7,8 @@ class Transfer extends Cl_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->model('Authentication_model');
-        $this->load->model('Transfer_model');
         $this->load->model('Sale_model');
+        $this->load->model('Transfer_model');
         $this->load->model('Master_model');
         $this->load->model('Common_model');
         $this->load->model('Inventory_adjustment_model');

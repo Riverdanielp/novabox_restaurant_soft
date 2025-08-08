@@ -1338,7 +1338,7 @@
                                             modifier_prices_custom = this_item.modifiers_price.split(',');
                                         }
     
-                                        let alternative_name = getAlternativeNameById(this_item.food_menu_id, window.items);
+                                        let alternative_name = '';//getAlternativeNameById(this_item.food_menu_id, window.items);
                                         let i = 1;
                                         total_item_counter+=Number(this_item.qty);
                                         item_html+=`<tr>`;
@@ -2447,7 +2447,7 @@
                       modifier_names_custom = this_item.modifiers_name.split(',');
                       modifier_prices_custom = this_item.modifiers_price.split(',');
                   }
-                  let alternative_name = getAlternativeNameById(this_item.food_menu_id, window.items);
+                  let alternative_name = '';//getAlternativeNameById(this_item.food_menu_id, window.items);
                   let i = 1;
                   total_item_counter+=Number(this_item.qty);
                   row_of_item+=`<tr>`;
@@ -3014,8 +3014,8 @@
             let i = 1;
             total_item_counter+=Number(this_item.qty);
             let discount_value = Number(this_item.item_discount_amount) ? "(-"+getAmount(this_item.item_discount_amount)+")": '';
-            let alternative_name = getAlternativeNameById(this_item.food_menu_id, window.items);
-           
+            let alternative_name = '';//getAlternativeNameById(this_item.food_menu_id, window.items);
+
             invoice_print+=`<tr>`;
             invoice_print+=`<td class="no-border border-bottom ir_wid_90"># `+sl+`:`+this_item.menu_name+alternative_name;
             invoice_print+=`<small></small> &nbsp;&nbsp;`+ this_item.qty + `&nbsp;X&nbsp;`+getAmount(this_item.menu_unit_price)+discount_value ;
@@ -5380,7 +5380,7 @@ function openProductEditModal(parent_id, item_name, id) {
     $("#modal_item_price_variable_without_discount").html(item_price_without_discount);
     $("#modal_item_vat_percentage").html(item_vat_percentage);
     $("#modal_discount_amount").html(item_discount_amount);
-    $("#item_quantity_modal").val(item_quantity);
+    $("#item_quantity_modal").val(Number(item_quantity));
     $("#modal_modifiers_unit_price_variable").html(modifiers_price);
     $("#modal_modifier_price_variable").html(modifiers_price_as_per_item_quantity);
     $("#modal_discount").val(item_discount_input_value);
@@ -5388,7 +5388,7 @@ function openProductEditModal(parent_id, item_name, id) {
     $("#modal_total_price").html(total_price);
 
     // --- Variaciones ---
-    let foundItems_variations = get_variations_search_by_menu_id(menu_id, window.items);
+    let foundItems_variations = [];//get_variations_search_by_menu_id(menu_id, window.items);
     let variations = "";
     for (let key1 in foundItems_variations) {
         let vr01_selected_order_type_object = $(".main_top").find("button[data-selected=selected]");
@@ -5563,7 +5563,7 @@ function openProductEditModalForPromo(string_text, item_name, id, promo_type, di
     $("#modal_item_price_variable_without_discount").html(item_price_without_discount);
     $("#modal_item_vat_percentage").html(item_vat_percentage);
 
-    $("#item_quantity_modal").val(item_quantity);
+    $("#item_quantity_modal").val(Number(item_quantity));
     $("#modal_modifiers_unit_price_variable").html(modifiers_price);
     $("#modal_modifier_price_variable").html(modifiers_price_as_per_item_quantity);
 
@@ -5681,16 +5681,43 @@ function getSafePrice(priceAttr) {
             let item_price = 0;
             let item_id = $(this).attr("id").substr(5);
             if (selected_order_type_object.length > 0) {
-                //vr01
-                let is_variation = ($(this).attr('data-is_variation'));
-                let iva_tipo = ($(this).attr('data-iva_tipo'));
-                let parent_id = ($(this).attr('data-parent_id'));
+                // //vr01
+                // let is_variation = ($(this).attr('data-is_variation'));
+                // let iva_tipo = ($(this).attr('data-iva_tipo'));
+                // let parent_id = ($(this).attr('data-parent_id'));
+                // let veg_status = $(this).attr("data-veg_status"); // Obtener el estado veg_status
+
+                let $item = $(this);
+
+                let item_id = $item.attr("id").substr(5);
+                let is_variation = $item.data("is_variation");
+                let iva_tipo = $item.data("iva_tipo");
+                let parent_id = $item.data("parent_id");
+                let veg_status = $item.data("veg_status");
+                let beverage_status = $item.data("beverage_status");
+                let bar_status = $item.data("bar_status");
+                let price = $item.data("price");
+                let price_take = $item.data("price_take");
+                let price_delivery = $item.data("price_delivery");
+                let tax_information = $item.data("tax_information");
+                let product_type = $item.data("product_type");
+                let product_comb = $item.data("product_comb");
+                let is_promo = $item.data("is_promo");
+                let promo_type = $item.data("promo_type");
+                let string_text = $item.data("string_text");
+                let discount = $item.data("discount");
+                let get_food_menu_id = $item.data("get_food_menu_id");
+                let qty = $item.data("qty");
+                let get_qty = $item.data("get_qty");
+                let modal_item_name_row = $item.data("modal_item_name_row");
+                let item_type = '';
+
+                
                 let item_name = getPlanText($(this).find(".item_name").html());
                 let when_clicking_on_item_in_pos = Number($("#when_clicking_on_item_in_pos").val());
                 let status_continue = true;
                 let if_exist = Number($("#item_quantity_table_"+item_id).html());
   
-                let veg_status = $(this).attr("data-veg_status"); // Obtener el estado veg_status
 
                 // if (when_clicking_on_item_in_pos == 2) {
                 //     if (if_exist && if_exist != undefined && veg_status !== "yes") {
@@ -5706,41 +5733,43 @@ function getSafePrice(priceAttr) {
                 //     }
                 // }
 
-                //get tax information
-                let tax_information = "";
-                /*added_new_zakir*/
-                let item_type = '';
-                /*end_added_new_zakir*/
-                // iterate over each item in the array
-                let product_type = 1;
-                let product_comb = '';
-                let is_promo = '';
-                let promo_type = '';
-                let string_text = '';
-                let discount = 0;
-                let get_food_menu_id = 0;
-                let qty = 0;
-                let get_qty = 0;
-                let modal_item_name_row = '';
+                // //get tax information
+                // let tax_information = "";
+                // /*added_new_zakir*/
+                // let item_type = '';
+                // /*end_added_new_zakir*/
+                // // iterate over each item in the array
+                // let product_type = 1;
+                // let product_comb = '';
+                // let is_promo = '';
+                // let promo_type = '';
+                // let string_text = '';
+                // let discount = 0;
+                // let get_food_menu_id = 0;
+                // let qty = 0;
+                // let get_qty = 0;
+                // let modal_item_name_row = '';
   
-                for (let i = 0; i < window.items.length; i++) {
-                    // look for the entry with a matching `code` value
-                    if (items[i].item_id == item_id) {
-                        tax_information = items[i].tax_information;
-                        /*added_new_zakir*/
-                        product_type = Number(items[i].product_type);
-                        product_comb = (items[i].product_comb);
-                        is_promo = (items[i].is_promo);
-                        promo_type = (items[i].promo_type);
-                        string_text = (items[i].string_text);
-                        discount = (items[i].discount);
-                        get_food_menu_id = (items[i].get_food_menu_id);
-                        qty = (items[i].qty);
-                        get_qty = (items[i].get_qty);
-                        modal_item_name_row = (items[i].modal_item_name_row);
-                        /*end_added_new_zakir*/
-                    }
-                }
+                // for (let i = 0; i < window.items.length; i++) {
+                //     console.log("Checking item_id: " + items[i].item_id + " against " + item_id);
+                //     // look for the entry with a matching `code` value
+                //     if (items[i].item_id == item_id) {
+                //         console.log("Found matching item_id: " + items[i].item_id);
+                //         tax_information = items[i].tax_information;
+                //         /*added_new_zakir*/
+                //         product_type = Number(items[i].product_type);
+                //         product_comb = (items[i].product_comb);
+                //         is_promo = (items[i].is_promo);
+                //         promo_type = (items[i].promo_type);
+                //         string_text = (items[i].string_text);
+                //         discount = (items[i].discount);
+                //         get_food_menu_id = (items[i].get_food_menu_id);
+                //         qty = (items[i].qty);
+                //         get_qty = (items[i].get_qty);
+                //         modal_item_name_row = (items[i].modal_item_name_row);
+                //         /*end_added_new_zakir*/
+                //     }
+                // }
   
               if(status_continue==true){
                   if(is_variation=="Yes") {
@@ -5921,7 +5950,11 @@ function getSafePrice(priceAttr) {
   
                       //get note
                       let note = "";
-  
+
+                    let safe_item_id = String(item_id || "");
+                    let safe_item_quantity = String(item_quantity || "1");
+                    let safe_item_price = isNaN(Number(item_price)) ? "0.00" : Number(item_price).toFixed(ir_precision);
+
                       //construct div
                       let draw_table_for_order = "";
   
@@ -5979,36 +6012,57 @@ function getSafePrice(priceAttr) {
                         iva_tipo +
                         "</span>";
 
-                      $("#is_variation_product").html(search_by_menu_id_getting_parent_id(item_id, window.items));
+                        // search_by_menu_id_getting_parent_id(item_id, window.items)
+                      $("#is_variation_product").html('');
                       draw_table_for_order +=
-                          '<div class="single_order_column first_column cart_item_counter  arabic_text_left fix" data-id="'+item_id+'"><i  data-parent_id="'+search_by_menu_id_getting_parent_id(item_id, window.items)+'"   class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
+                          '<div class="single_order_column first_column cart_item_counter  arabic_text_left fix" data-id="'+item_id+'"><i  data-parent_id=""   class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
                           item_id +
                           '"></i> <span class="arabic_text_left 1_cp_name_'+item_id+'"  id="item_name_table_' +
                           item_id +
                           '">' +
                           item_name +
                           "</span></div>";
-                      draw_table_for_order +=
-                          '<div class="single_order_column second_column fix">' +
-                          currency +
-                          ' <span class="1_cp_price_'+item_id+'" id="item_price_table_' +
-                          item_id +
-                          '">' +
-                          item_price +
-                          "</span></div>";
-                      draw_table_for_order +=
-                          '<div class="single_order_column third_column fix">' +
-                          '<input type="hidden" class="tmp_qty" name="tmp_qty" value="' + item_quantity + '" id="tmp_qty_' + item_id + '">'  + 
-                          '<input type="hidden" class="p_qty" name="p_qty" value="0" id="p_qty_' + item_id + '">' +
-                          '<i class="fal fa-minus decrease_item_table txt_5" id="decrease_item_table_' +
-                          item_id +
-                          '"></i> <span data-is_kot_print="1" class="qty_item_custom 1_cp_qty_'+item_id+'" id="item_quantity_table_' +
-                          item_id +
-                          '">' +
-                          item_quantity +
-                          '</span> <i class="fal fa-plus increase_item_table txt_5" id="increase_item_table_' +
-                          item_id +
-                          '"></i></div>';
+                          draw_table_for_order += `
+                            <div class="single_order_column second_column fix">
+                                ${currency}
+                                <span class="1_cp_price_${safe_item_id}" id="item_price_table_${safe_item_id}">
+                                ${safe_item_price}
+                                </span>
+                            </div>
+                            `;
+
+                    //   draw_table_for_order +=
+                    //       '<div class="single_order_column second_column fix">' +
+                    //       currency +
+                    //       ' <span class="1_cp_price_'+item_id+'" id="item_price_table_' +
+                    //       item_id +
+                    //       '">' +
+                    //       safe_item_price +
+                    //       "</span></div>";
+
+                          draw_table_for_order += `
+                    <div class="single_order_column third_column fix">
+                        <input type="hidden" class="tmp_qty" name="tmp_qty" value="${safe_item_quantity}" id="tmp_qty_${safe_item_id}">
+                        <input type="hidden" class="p_qty" name="p_qty" value="0" id="p_qty_${safe_item_id}">
+                        <i class="fal fa-minus decrease_item_table txt_5" id="decrease_item_table_${safe_item_id}"></i>
+                        <span data-is_kot_print="1" class="qty_item_custom 1_cp_qty_${safe_item_id}" id="item_quantity_table_${safe_item_id}">
+                        ${safe_item_quantity}
+                        </span>
+                        <i class="fal fa-plus increase_item_table txt_5" id="increase_item_table_${safe_item_id}"></i>
+                    </div>`;
+                    //   draw_table_for_order +=
+                    //       '<div class="single_order_column third_column fix">' +
+                    //       '<input type="hidden" class="tmp_qty" name="tmp_qty" value="' + item_quantity + '" id="tmp_qty_' + item_id + '">'  + 
+                    //       '<input type="hidden" class="p_qty" name="p_qty" value="0" id="p_qty_' + item_id + '">' +
+                    //       '<i class="fal fa-minus decrease_item_table txt_5" id="decrease_item_table_' +
+                    //       item_id +
+                    //       '"></i> <span data-is_kot_print="1" class="qty_item_custom 1_cp_qty_'+item_id+'" id="item_quantity_table_' +
+                    //       item_id +
+                    //       '">' +
+                    //       item_quantity +
+                    //       '</span> <i class="fal fa-plus increase_item_table txt_5" id="increase_item_table_' +
+                    //       item_id +
+                    //       '"></i></div>';
                       draw_table_for_order +=
                           '<div class="single_order_column forth_column fix"><input type="" name="" placeholder="% o importe" class="1_cp_discount_'+item_id+' discount_cart_input" id="percentage_table_' +
                           item_id +
@@ -6122,7 +6176,7 @@ function getSafePrice(priceAttr) {
                             set_quantity_for_balanza_item(
                                 item_id,                 // el ID del producto
                                 cantidad_balanza,        // la cantidad decimal
-                                item_price               // el precio unitario (ya lo tienes calculado arriba)
+                                safe_item_price               // el precio unitario (ya lo tienes calculado arriba)
                             );
                         }, 100);
                     
@@ -6216,7 +6270,7 @@ function getSafePrice(priceAttr) {
             $("#vr01_modal_price_variable").html(item_price);
             $(".variation_div_modal").show();
             $("#is_variation_product").html(parent_id);
-            let foundItems_variations = get_variations_search_by_menu_id(parent_id, window.items);
+            let foundItems_variations = []; //get_variations_search_by_menu_id(parent_id, window.items);
             let variations = "";
             for (let key1 in foundItems_variations) {
                 let vitem_price = 0;
@@ -6306,7 +6360,7 @@ function getSafePrice(priceAttr) {
         $("#modal_item_price_variable_without_discount").html(item_price_without_discount);
         $("#modal_item_vat_percentage").html(item_vat_percentage);
         $("#modal_discount_amount").html(item_discount_amount);
-        $("#item_quantity_modal").val(item_quantity);
+        $("#item_quantity_modal").val(Number(item_quantity));
         $("#modal_modifiers_unit_price_variable").html(modifiers_price);
         $("#modal_modifier_price_variable").html(modifiers_price_as_per_item_quantity);
         $("#modal_discount").val(item_discount_input_value);
@@ -8597,18 +8651,18 @@ function getSafePrice(priceAttr) {
         let sub_total_discount_type = "";
         let customer_id = $("#walk_in_customer").val() || "1";
         let waiter_id = $("#select_waiter").val() || "";
-        let customer_data = $("#walk_in_customer").select2('data') || [{ text: "" }];
+        let customer_data = getSelectedCustomerData() || [{ text: "" }];
         let is_self_order = $("#is_self_order").val() || "No";
         let self_order_table_person = $("#self_order_table_person").val() || "0";
         // let customer_address = $("#walk_in_customer").find(':selected').attr('data-customer_address') || "";
         // let customer_gst_number = $("#walk_in_customer").find(':selected').attr('data-customer_gst_number') || "";
         // Para obtener el objeto del cliente seleccionado:
-        let data_customer = $("#walk_in_customer").select2('data')[0]; // [0] porque es single select
+        let data_customer = getSelectedCustomerData(); // [0] porque es single select
+        // console.log('data_customer:', data_customer);
 
         // Ahora puedes acceder a todos los campos que regresó tu AJAX:
         let customer_address = data_customer && data_customer.address ? data_customer.address : "";
         let customer_gst_number = data_customer && data_customer.gst_number ? data_customer.gst_number : "";
-
 
         let waiter_data = '';
         let customer_name = '';
@@ -8625,8 +8679,8 @@ function getSafePrice(priceAttr) {
             toastr['error']((please_add_your_table_person_number), '');
             return false;
         }
-        customer_name = (customer_data[0] && customer_data[0].text) ? customer_data[0].text : "";
-    
+        customer_name = (customer_data && customer_data.text) ? customer_data.text : "";
+
         let sale_vat_objects = [];
         $("#tax_row_show .tax_field").each(function () {
             let tax_field_id = $(this).attr("data-tax_field_id") || "";
@@ -8684,10 +8738,10 @@ function getSafePrice(priceAttr) {
                 let op2 = $("#select_waiter").data("select2");
                 op1.open();
                 op2.close();
-                if (customer_address == "") {
-                    let you_need_to_add_address_with_your_selected_customer = $("#you_need_to_add_address_with_your_selected_customer").val() || "";
-                    toastr['error']((you_need_to_add_address_with_your_selected_customer), '');
-                }
+                // if (customer_address == "") {
+                //     let you_need_to_add_address_with_your_selected_customer = $("#you_need_to_add_address_with_your_selected_customer").val() || "";
+                //     toastr['error']((you_need_to_add_address_with_your_selected_customer), '');
+                // }
                 return false;
             }
         } else if (selected_order_type_object.attr("data-id") == "dine_in_button") {
@@ -9030,6 +9084,10 @@ function getSafePrice(priceAttr) {
                 push_online_for_kitchen(order_info, 'Yes', sale_no_new, 1);
                 clearFooterCartCalculation();
             } else {
+                
+                // console.log('customer_gst_number', customer_gst_number);
+                // console.log('order_info', order_info);
+
                 add_sale_by_ajax(update_sale_id, order_info, outlet_id_indexdb, company_id_indexdb, sale_no_new, "", action_type, "");
                 add_sale_by_ajax_kot_print(update_sale_id, order_info, outlet_id_indexdb, company_id_indexdb, sale_no_new, "");
                 push_online_for_kitchen(order_info, '', sale_no_new, 1);
@@ -9098,10 +9156,10 @@ function getSafePrice(priceAttr) {
               let sub_total_discount_type = "";
               let customer_id = $("#walk_in_customer").val();
               let waiter_id = $("#select_waiter").val();
-              let customer_data = $("#walk_in_customer").select2('data'); //Added By Jobayer
+              let customer_data = getSelectedCustomerData(); //Added By Jobayer
               let waiter_data = $("#select_waiter").select2('data'); //Added By Jobayer
   
-              let customer_name = customer_data[0].text; //Added By Jobayer
+              let customer_name = customer_data.text; //Added By Jobayer
               let waiter_name = ''; //Added By Jobayer
               if(waiter_data[0].text!=undefined){
                   waiter_name = waiter_data[0].text; //Added By Jobayer
@@ -9109,7 +9167,7 @@ function getSafePrice(priceAttr) {
             //   let customer_address = $("#walk_in_customer").find(':selected').attr('data-customer_address');
             //   let customer_gst_number = $("#walk_in_customer").find(':selected').attr('data-customer_gst_number');
   
-                let data_customer = $("#walk_in_customer").select2('data')[0]; // [0] porque es single select
+                let data_customer = getSelectedCustomerData(); // [0] porque es single select
 
                 // Ahora puedes acceder a todos los campos que regresó tu AJAX:
                 let customer_address = data_customer && data_customer.address ? data_customer.address : "";
@@ -9165,15 +9223,15 @@ function getSafePrice(priceAttr) {
                           return false;
                       }
   
-                      if (customer_address == "") {
-                          let op1 = $("#walk_in_customer").data("select2");
-                          let op2 = $("#select_waiter").data("select2");
-                          op1.open();
-                          op2.close();
-                          let you_need_to_add_address_with_your_selected_customer = $("#you_need_to_add_address_with_your_selected_customer").val();
-                          toastr['error']((you_need_to_add_address_with_your_selected_customer), '');
-                          return false;
-                      }
+                    //   if (customer_address == "") {
+                    //       let op1 = $("#walk_in_customer").data("select2");
+                    //       let op2 = $("#select_waiter").data("select2");
+                    //       op1.open();
+                    //       op2.close();
+                    //       let you_need_to_add_address_with_your_selected_customer = $("#you_need_to_add_address_with_your_selected_customer").val();
+                    //       toastr['error']((you_need_to_add_address_with_your_selected_customer), '');
+                    //       return false;
+                    //   }
                   } else if (selected_order_type_object.attr("data-id") == "dine_in_button") {
                       order_type = 1;
                       if (waiter_id == "" && waiter_app_status!="Yes" && is_self_order!="Yes" && is_online_order!="Yes") {
@@ -9774,7 +9832,7 @@ function getPaymentArrayWithChangeAndDue() {
           }
         }
         let paymentsStatus = getPaymentArrayWithChangeAndDue();
-        console.log(paymentsStatus);
+        // console.log(paymentsStatus);
         // console.log(paymentsStatus);
         if (paymentsStatus !== false) {
   
@@ -9907,7 +9965,7 @@ function getPaymentArrayWithChangeAndDue() {
                 let customer_data = selected_action.parent().parent().find('.split_customer_id').select2('data'); //Added By Jobayer
   
                 let waiter_data = $("#select_waiter").select2('data'); //Added By Jobayer
-                let customer_name = customer_data[0].text; //Added By Jobayer
+                let customer_name = customer_data.text; //Added By Jobayer
                 let waiter_name = ''; //Added By Jobayer
                 if(waiter_data[0].text!=undefined){
                     waiter_name = waiter_data[0].text; //Added By Jobayer
@@ -10727,34 +10785,43 @@ function getPaymentArrayWithChangeAndDue() {
                 }
   
                 if (foundItems[key].parent_id == '0') {
+                    let code_txt = (foundItems[key].item_code.length > 0) ? '<br><small>' + foundItems[key].item_code + '</small>' : '';
                     searched_category_items_to_show +=
-                        '<div class="single_item animate__animated all_item_custom" data-price="' + foundItems[key].price + '"  data-price_take="' + foundItems[key].price_take + '"   data-is_variation="' + foundItems[key].is_variation + '"   data-iva_tipo="' + foundItems[key].iva_tipo + '"  data-parent_id="' + foundItems[key].parent_id + '"    data-price_delivery="' + foundItems[key].price_delivery + '" data-veg_status="' +
-                        veg_status +
-                        '" data-beverage_status="' +
-                        beverage_status +
-                        '" id="item_' +
-                        foundItems[key].item_id +
-                        '">';
+                        '<div class="single_item animate__animated all_item_custom"'
+                        + ' data-price="' + foundItems[key].price + '"'
+                        + ' data-price_take="' + foundItems[key].price_take + '"'
+                        + ' data-price_delivery="' + foundItems[key].price_delivery + '"'
+                        + ' data-is_variation="' + foundItems[key].is_variation + '"'
+                        + ' data-iva_tipo="' + foundItems[key].iva_tipo + '"'
+                        + ' data-parent_id="' + foundItems[key].parent_id + '"'
+                        + ' data-code="' + foundItems[key].item_code + '"'
+                        + ' data-veg_status="' + veg_status + '"'
+                        + ' data-beverage_status="' + beverage_status + '"'
+                        + ' data-bar_status="' + (foundItems[key].bar_status || "no") + '"'
+                        + ' data-tax_information=\'' + (foundItems[key].tax_information || "[]") + '\''
+                        + ' data-product_type="' + (foundItems[key].product_type || "") + '"'
+                        + ' data-product_comb="' + (foundItems[key].product_comb || "") + '"'
+                        + ' data-is_promo="' + (foundItems[key].is_promo || "No") + '"'
+                        + ' data-promo_type="' + (foundItems[key].promo_type || "") + '"'
+                        + ' data-string_text="' + (foundItems[key].string_text || "") + '"'
+                        + ' data-discount="' + (foundItems[key].discount || 0) + '"'
+                        + ' data-get_food_menu_id="' + (foundItems[key].get_food_menu_id || 0) + '"'
+                        + ' data-qty="' + (foundItems[key].qty || 1) + '"'
+                        + ' data-get_qty="' + (foundItems[key].get_qty || 1) + '"'
+                        + ' data-modal_item_name_row="' + (foundItems[key].modal_item_name_row || "") + '"'
+                        + ' id="item_' + foundItems[key].item_id + '">';
+
                     searched_category_items_to_show +=
                         '<img src="' + foundItems[key].image + '" alt="" width="141">';
                     searched_category_items_to_show +=
-                        '<p class="item_name" data-tippy-content="' +
-                        foundItems[key].item_name +
-                        '">' +
-                        foundItems[key].item_name +
-                        "</p>";
+                        '<p class="item_name" data-tippy-content="' + foundItems[key].item_name + '">' + foundItems[key].item_name + code_txt +  '</p>';
                     searched_category_items_to_show +=
-                        '<p class="item_price">' +
-                        inv_currency +
-                        " " +
-                        formatNumberToCurrency(foundItems[key].price) +
-                        "</p>";
+                        '<p class="item_price">' + inv_currency + " " + formatNumberToCurrency(foundItems[key].price) + "</p>";
                     searched_category_items_to_show +=
-                        '<span class="item_vat_percentage ir_display_none">' +
-                        foundItems[key].vat_percentage +
-                        "</span>";
+                        '<span class="item_vat_percentage ir_display_none">' + foundItems[key].vat_percentage + "</span>";
                     searched_category_items_to_show += "</div>";
                 }
+
             }
         }
         searched_category_items_to_show += "<div>";
@@ -11603,19 +11670,34 @@ function fetchAndDisplayArticles(searchText, categoryId = "", type = "", autoCli
                 if(item.parent_id == '0'){
                     let veg_status = (item.veg_item == "Veg Yes") ? "yes" : "no";
                     let image_path = item.photo ? (base_url + "images/" + item.photo) : (base_url + "images/image_thumb.png");
+                    
+                    let code_txt = (item.code.length > 0) ? `<br><small>${item.code}</small>` : '';
                     html += `
                         <div class="single_item animate__animated animate__flipInX" 
                             data-price="${safePriceAttr(item.sale_price)}" 
                             data-price_take="${safePriceAttr(item.sale_price_take_away)}"
+                            data-price_delivery="${safePriceAttr(item.sale_price_delivery)}" 
                             data-is_variation="${item.is_variation}" 
                             data-iva_tipo="${item.iva_tipo}" 
                             data-parent_id="${item.parent_id}"
                             data-code="${item.code}"
-                            data-price_delivery="${safePriceAttr(item.sale_price_delivery)}" 
                             data-veg_status="${veg_status}" 
+                            data-beverage_status="${item.beverage_item === 'Bev Yes' ? 'yes' : 'no'}"
+                            data-bar_status="${item.bar_item === 'Bar Yes' ? 'yes' : 'no'}"
+                            data-tax_information='${item.tax_information || "[]"}'
+                            data-product_type="${item.product_type || ""}"
+                            data-product_comb="${item.combo_ids || ""}"
+                            data-is_promo="${item.is_promo || "No"}"
+                            data-promo_type="${item.promo_type || ""}"
+                            data-string_text="${item.string_text || ""}"
+                            data-discount="${item.discount || 0}"
+                            data-get_food_menu_id="${item.get_food_menu_id || 0}"
+                            data-qty="${item.qty || 1}"
+                            data-get_qty="${item.get_qty || 1}"
+                            data-modal_item_name_row="${item.modal_item_name_row || ""}"
                             id="item_${item.id}">
                             <img src="${image_path}" alt="" width="141">
-                            <p class="item_name" data-tippy-content="${item.name}">${item.name}</p>
+                            <p class="item_name" data-tippy-content="${item.name}">${item.name} ${code_txt}  </p>
                             <p class="item_price">${inv_currency} ${formatNumberToCurrency(item.sale_price)}</p>
                         </div>
                     `;
@@ -22099,6 +22181,8 @@ $(document).on('click', '#pre_impresa_orden_button', function() {
             if (ruc_txt == "null") {
                 ruc_txt = "";
             }
+            // console.log('order_info', order_info);
+            // console.log(order_info.customer_gst_number, ruc_txt);
             $("#preimpresa_ruc").val(ruc_txt);
             $("#preimpresa_nombre").val(order_info.customer_name || "Cliente Ocasional");
             $("#preimpresa_direccion").val(order_info.customer_address || "");
@@ -22170,36 +22254,103 @@ function selectDefaultOrPlaceholderCustomer() {
 // Función auxiliar para seleccionar un cliente en Select2 AJAX
 // Ahora acepta un objeto "customer_data" con todos los campos extra
 function selectCustomerById(customer_id, customer_name, customer_phone, customer_data = {}) {
+  // Crea el objeto que Select2 necesita (igual al que devuelve AJAX)
+  var customerObj = Object.assign(
+    {
+      id: customer_id,
+      text: customer_name && customer_phone ? (customer_name + ' ' + customer_phone) : customer_name || customer_id
+    },
+    customer_data
+  );
+
   let $selects = $('#walk_in_customer, #walk_in_customer1');
   $selects.each(function() {
     var $select = $(this);
     if (!customer_id) {
-      // Si no hay cliente, selecciona el placeholder
       $select.val("").trigger('change');
       return;
     }
-    // Si ya existe la opción, solo selecciónala
-    if ($select.find('option[value="' + customer_id + '"]').length) {
-      $select.val(customer_id).trigger('change');
+
+    var $option = $select.find('option[value="' + customerObj.id + '"]');
+    if ($option.length === 0) {
+      // Si no existe, agrega el option
+      $option = $('<option>')
+        .val(customerObj.id)
+        .text(customerObj.text)
+        .prop('selected', true);
+
+      // Agrega los data-* si existen en customerObj
+      if (customerObj.default_discount !== undefined) $option.attr('data-default_discount', customerObj.default_discount);
+      if (customerObj.current_due !== undefined) $option.attr('data-current_due', customerObj.current_due);
+      if (customerObj.address !== undefined) $option.attr('data-address', customerObj.address);
+      if (customerObj.same_or_diff_state !== undefined) $option.attr('data-same_or_diff_state', customerObj.same_or_diff_state);
+      if (customerObj.gst_number !== undefined) $option.attr('data-gst_number', customerObj.gst_number);
+
+      $select.append($option);
     } else {
-      // Crea el texto a mostrar
-      var text = customer_name && customer_phone ? (customer_name + ' ' + customer_phone) : customer_name || customer_id;
-      // Crea el option
-      var newOption = new Option(text, customer_id, true, true);
-      // Agrega los data-* si existen en customer_data
-      if (customer_data) {
-        if (customer_data.default_discount !== undefined) $(newOption).attr('data-default_discount', customer_data.default_discount);
-        if (customer_data.current_due !== undefined) $(newOption).attr('data-current_due', customer_data.current_due);
-        if (customer_data.address !== undefined) $(newOption).attr('data-customer_address', customer_data.address);
-        if (customer_data.same_or_diff_state !== undefined) $(newOption).attr('data-same_or_diff_state', customer_data.same_or_diff_state);
-        if (customer_data.gst_number !== undefined) $(newOption).attr('data-customer_gst_number', customer_data.gst_number);
-      }
-      $select.append(newOption).val(customer_id).trigger('change');
+      // Si ya existe, actualiza los data-* por si cambiaron
+      if (customerObj.default_discount !== undefined) $option.attr('data-default_discount', customerObj.default_discount);
+      if (customerObj.current_due !== undefined) $option.attr('data-current_due', customerObj.current_due);
+      if (customerObj.address !== undefined) $option.attr('data-address', customerObj.address);
+      if (customerObj.same_or_diff_state !== undefined) $option.attr('data-same_or_diff_state', customerObj.same_or_diff_state);
+      if (customerObj.gst_number !== undefined) $option.attr('data-gst_number', customerObj.gst_number);
     }
+
+    // Selecciona el cliente y fuerza la data interna de Select2
+    $select.val(customerObj.id).trigger('change');
+    $select.trigger({
+      type: 'select2:select',
+      params: {
+        data: customerObj
+      }
+    });
   });
 }
 
+function getDataCustomerSelect2(){
+    let $option = $('#walk_in_customer').find('option:selected');
+    var gst_number = $option.data('gst_number');
+    console.log($option.data());
+    // console.log(gst_number);
+    return $("#walk_in_customer").select2('data')[0];
+}
 
+function agregarClienteSelect2(id, name, data = {}) {
+    var selectors = ['#walk_in_customer', '#walk_in_customer1'];
+  selectors.forEach(function(selector) {
+    var $select = $(selector);
+    var $option = $select.find('option[value="' + id + '"]');
+    if ($option.length === 0) {
+      $option = $('<option>')
+        .val(id)
+        .text(name)
+        .prop('selected', true);
+      Object.entries(data).forEach(function([key, value]) {
+        $option.attr('data-' + key, value);
+      });
+      $select.append($option);
+    }
+    $select.val(id).trigger('change');
+    $select.trigger({ type: 'select2:select', params: { data: Object.assign({id, text: name}, data) } });
+  });
+}
+
+function getSelectedCustomerData(selector = "#walk_in_customer") {
+  var select2Data = $(selector).select2('data')[0] || {};
+  var $option = $(selector).find('option:selected');
+  // Extrae los data-* del <option>
+  var optionData = $option.data() || {};
+  // Unifica: primero los datos de select2, luego completa con data-* si faltan
+  return Object.assign({}, optionData, select2Data);
+}
+
+window.selectCustomerById = selectCustomerById;
+window.selectDefaultOrPlaceholderCustomer = selectDefaultOrPlaceholderCustomer;
+// window.addCustomerToSelect2 = addCustomerToSelect2;
+// window.selectCustomerByIdOld = selectCustomerByIdOld;
+window.getDataCustomerSelect2 = getDataCustomerSelect2;
+window.agregarClienteSelect2 = agregarClienteSelect2;
+window.getSelectedCustomerData = getSelectedCustomerData;
 
   })(jQuery);
   
