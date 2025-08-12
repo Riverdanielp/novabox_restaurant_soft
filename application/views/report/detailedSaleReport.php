@@ -40,10 +40,10 @@
     <div class="box-wrapper">
         <div class="row">
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
-                <?php echo form_open(base_url() . 'Report/detailedSaleReport') ?>
+                <?php echo form_open(base_url() . 'Report/detailedSaleReport', array('method' => 'get')) ?>
                 <div class="form-group">
                     <input tabindex="1" type="text" id="" name="startDate" readonly class="form-control customDatepicker"
-                           placeholder="<?php echo lang('start_date'); ?>" value="<?php echo set_value('startDate'); ?>">
+                           placeholder="<?php echo lang('start_date'); ?>" value="<?php echo isset($start_date) ? $start_date : ''; ?>">
                 </div>
             </div>
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
@@ -51,7 +51,7 @@
                 <div class="form-group">
                     <input tabindex="2" type="text" id="endMonth" name="endDate" readonly
                            class="form-control customDatepicker" placeholder="<?php echo lang('end_date'); ?>"
-                           value="<?php echo set_value('endDate'); ?>">
+                           value="<?php echo isset($end_date) ? $end_date : ''; ?>">
                 </div>
             </div>
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
@@ -63,7 +63,7 @@
                         <?php
                         foreach ($users as $value) {
                             ?>
-                            <option value="<?php echo escape_output($value->id) ?>" <?php echo set_select('user_id', $value->id); ?>>
+                            <option value="<?php echo escape_output($value->id) ?>" <?php echo ($user_id == $value->id) ? 'selected' : ''; ?>>
                                 <?php echo escape_output($value->full_name) ?></option>
                         <?php } ?>
                     </select>
@@ -77,11 +77,18 @@
                         foreach ($users as $value) {
                             if($value->designation=="Waiter"):
                                 ?>
-                                <option value="<?php echo escape_output($value->id) ?>" <?php echo set_select('waiter_id', $value->id); ?>>
+                                <option value="<?php echo escape_output($value->id) ?>" <?php echo ($waiter_id == $value->id) ? 'selected' : ''; ?>>
                                     <?php echo escape_output($value->full_name) ?></option>
                                 <?php
                             endif;
                         } ?>
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
+                <div class="form-group">
+                    <select id="customer_search" name="customer" class="form-control select2 ir_w_100">
+                        <option value="all">Todos</option>
                     </select>
                 </div>
             </div>
@@ -249,3 +256,65 @@
 <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
 
 <script src="<?php echo base_url(); ?>frequent_changing/js/custom_report.js"></script>
+
+
+<script>
+    
+    var base_url = "<?php echo base_url(); ?>";
+
+$(document).ready(function() {
+    var selectedCustomer = "<?php echo isset($customer) ? $customer : 'all'; ?>";
+    var selectedCustomerText = "Todos"; // Puedes buscar el nombre si no es 'all'
+    
+    // Si no es 'all', puedes hacer una petición AJAX para obtener el nombre.
+    if(selectedCustomer !== "all" && selectedCustomer) {
+        $.ajax({
+            url: base_url + "Report/search_customers",
+            data: { q: selectedCustomer },
+            dataType: "json",
+            success: function(data) {
+                if(data && data.length > 0) {
+                    selectedCustomerText = data[0].text;
+                }
+                setCustomerSelect2();
+            }
+        });
+    } else {
+        setCustomerSelect2();
+    }
+
+    function setCustomerSelect2() {
+        var option = new Option(selectedCustomerText, selectedCustomer, true, true);
+        $('#customer_search').append(option).trigger('change');
+        
+        $('#customer_search').select2({
+            placeholder: "Seleccione o Agregue un Cliente",
+            allowClear: true,
+            minimumInputLength: 1,
+            ajax: {
+                url: base_url + 'Report/search_customers',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { q: params.term };
+                },
+                processResults: function (data) {
+                    let results = [{ id: 'all', text: 'Todos' }];
+                    results = results.concat(data);
+                    return { results: results };
+                },
+                cache: true
+            },
+            templateResult: function(data) {
+                if (data.id === 'all') {
+                    return $('<span style="font-weight:bold;">' + data.text + '</span>');
+                }
+                return data.text;
+            },
+            templateSelection: function(data) {
+                return data.text || data.id;
+            }
+        });
+    }
+});
+</script>

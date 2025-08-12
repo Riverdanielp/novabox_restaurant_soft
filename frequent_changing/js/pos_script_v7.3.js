@@ -3923,8 +3923,7 @@
                 currency +
                 ' <span id="hold_item_price_table_' +
                 this_item.food_menu_id +
-                '">' +
-                Number(this_item.menu_unit_price).toFixed(ir_precision) +
+                '">' + Number(this_item.menu_unit_price).toFixed(ir_precision) +
                 "</span></div>";
               draw_table_for_hold_order +=
                 '<div class="single_order_column_hold third_column column fix"><span id="hold_item_quantity_table_' +
@@ -4608,18 +4607,44 @@
             toastr['error']((please_select_an_order), '');
         }
     });
+    function removeHtmlTags(str) {
+        if (typeof str !== 'string') return str;
+        // Primero elimina <small>...</small>
+        str = removeSmallTags(str);
+        // Luego quita el resto de tags HTML
+        return str.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    }
+    function removeSmallTags(str) {
+        if (typeof str !== 'string') return str;
+        // Elimina todo <small>...</small> (soporta salto de línea dentro)
+        return str.replace(/<small>[\s\S]*?<\/small>/gi, '');
+    }
+    // Limpia todos los campos string de un objeto
+    function cleanObjectStrings(obj) {
+        return Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [
+                key,
+                typeof value === 'string' ? removeHtmlTags(value) : value
+            ])
+        );
+    }
+
     $(document).on("click", "#preimpresa_imprimir_button", function() {
         const sale_no = $(this).data('sale_no');
         console.log('Sale No:', sale_no);
         // Obtener los datos del formulario
-        const fecha = $("#preimpresa_fecha").val();
-        const ruc = $("#preimpresa_ruc").val();
-        const nombre = $("#preimpresa_nombre").val();
-        const direccion = $("#preimpresa_direccion").val();
-        const total = $("#preimpresa_total").val();
-        const tipo = $("#preimpresa_tipo").val();
-        const especifico = $("#preimpresa_especifico").val();
-        const items_data = jQuery.parseJSON($("#preimpresa_items").val());
+
+        const fecha = removeHtmlTags($("#preimpresa_fecha").val());
+        const ruc = removeHtmlTags($("#preimpresa_ruc").val());
+        const nombre = removeHtmlTags($("#preimpresa_nombre").val());
+        const direccion = removeHtmlTags($("#preimpresa_direccion").val());
+        const total = removeHtmlTags($("#preimpresa_total").val());
+        const tipo = removeHtmlTags($("#preimpresa_tipo").val());
+        const especifico = removeHtmlTags($("#preimpresa_especifico").val());
+
+        // Limpieza de arrays de objetos
+        const items_data_raw = jQuery.parseJSON($("#preimpresa_items").val());
+        const items_data = items_data_raw.map(cleanObjectStrings);
 
         // Validar campos requeridos
         if (!fecha || !ruc || !nombre || (tipo != "todos" && !total) || !tipo || (tipo === "Especifico" && !especifico)) {
@@ -4694,7 +4719,6 @@
                 items_data: items_data, // Datos del pedido
                 items: items // Incluimos el array items
             };
-            
             // // Codificación segura en JavaScript
             // const dataJson = JSON.stringify(data);
             // const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
@@ -4709,6 +4733,7 @@
 
             // Imprimir usando un iframe oculto
             function imprimirEnIframe(data) {
+                console.log(data);
                 const dataJson = JSON.stringify(data);
                 const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
                 $.ajax({

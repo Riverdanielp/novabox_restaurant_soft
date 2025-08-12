@@ -4,8 +4,8 @@
 // $base = "restaurant-soft_victorias";
 // $base = "restaurant-soft_lomitosycia";
 // $base = "restaurant-soft_miabuela2";
-$base2 = "restaurant-soft_market-miabuela";
-$base = "restaurant-soft_miabuela";
+$base = "restaurant-soft_market-miabuela";
+$base2 = "restaurant-soft_miabuela";
 
 $db_username = 'root';
 $db_password = '';

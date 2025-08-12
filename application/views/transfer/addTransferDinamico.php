@@ -18,7 +18,7 @@
                         </div>
                         <div class="col-md-3">
                             <label><?php echo lang('to_outlet'); ?></label>
-                            <select class="form-control select2" name="to_outlet_id" id="to_outlet_id" <?= $disable_to_outlet ? 'disabled' : '' ?>>
+                            <!-- <select class="form-control select2" name="to_outlet_id" id="to_outlet_id" <?= $disable_to_outlet ? 'disabled' : '' ?>>
                                 <option value=""><?php echo lang('select'); ?></option>
                                 <?php foreach ($outlets as $value) {
                                     $outlet_id = $this->session->userdata('outlet_id');
@@ -28,6 +28,59 @@
                                         <?php echo escape_output($value->outlet_name) ?>
                                     </option>
                                 <?php endif; } ?>
+                            </select> -->
+
+                            <select class="form-control select2" name="to_outlet_id" id="to_outlet_id" <?= $disable_to_outlet ? 'disabled' : '' ?>>
+                                <option value=""><?php echo lang('select'); ?></option>
+                                <?php
+                                    $outlet_id_actual = $this->session->userdata('outlet_id');
+                                    $db_key_actual = isset($db_key_actual) ? $db_key_actual : 'default';
+
+                                    // Datos de la transferencia actual
+                                    $to_outlet_id_selected   = isset($transfer_details) ? $transfer_details->to_outlet_id : '';
+                                    $to_db_key_selected     = isset($transfer_details) ? $transfer_details->to_db_key : '';
+                                    $remote_outlet_id_selected   = isset($transfer_details) ? $transfer_details->remote_outlet_id : '';
+
+                                    foreach ($outlets as $value):
+                                        $id_parts = explode('|', $value->id);
+
+                                        // LOCAL: solo id numérico
+                                        if (count($id_parts) == 1) {
+                                            $solo_id = $id_parts[0];
+                                            // Omitir si es el outlet actual
+                                            if ($outlet_id_actual == $solo_id && $db_key_actual == 'default') {
+                                                continue;
+                                            }
+
+                                            // Marcar seleccionado si coincide el id y la transferencia es local
+                                            $is_selected = (
+                                                $to_outlet_id_selected == $solo_id &&
+                                                (empty($to_db_key_selected) || $to_db_key_selected == 'default')
+                                            );
+                                        }
+                                        // MULTI-DB: id|db_key|outlet_name|nombre_sistema
+                                        else {
+
+                                            $solo_id = $id_parts[0];
+                                            $db_key = $id_parts[1];
+                                            $outlet_name = isset($id_parts[2]) ? $id_parts[2] : '';
+                                            $nombre_sistema = isset($id_parts[3]) ? $id_parts[3] : '';
+
+                                            // Omitir si es el outlet actual en la misma db
+                                            if ($outlet_id_actual == $solo_id && $db_key_actual == $db_key) {
+                                                continue;
+                                            }
+
+                                            $is_selected =
+                                                ($remote_outlet_id_selected == $solo_id) &&
+                                                ($to_db_key_selected == $db_key);
+                                        }
+                                ?>
+                                    <option value="<?php echo escape_output($value->id); ?>"
+                                        <?php echo $is_selected ? 'selected' : ''; ?>>
+                                        <?php echo escape_output($value->outlet_name); ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                             <?php if ($disable_to_outlet): ?>
                             <input type="hidden" name="to_outlet_id" id="to_outlet_id_hidden" value="<?= $transfer_details ? $transfer_details->to_outlet_id : '' ?>">

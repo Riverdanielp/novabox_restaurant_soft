@@ -110,12 +110,15 @@ class Report extends Cl_Controller {
             }elseif($segment_2=="kitchenPerformanceReport"){
                 $controller = "362";
                 $function = "view";
+            }elseif ($segment_2 == 'search_customers'){
             }else{
                 $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
                 redirect('Authentication/userProfile');
             }
 
-            if(!checkAccess($controller,$function)){
+            if ($segment_2 == 'search_customers'){
+
+            } elseif(!checkAccess($controller,$function)){
                 $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
                 redirect('Authentication/userProfile');
             }
@@ -928,21 +931,23 @@ class Report extends Cl_Controller {
     public function detailedSaleReport() {
         $data = array();
         $company_id = $this->session->userdata('company_id');
-        if (htmlspecialcharscustom($this->input->post('submit'))) {
-            $outlet_id  = isset($_POST['outlet_id']) && $_POST['outlet_id']?$_POST['outlet_id']:'';
+        if (htmlspecialcharscustom($this->input->get('submit'))) {
+            $outlet_id  = isset($_GET['outlet_id']) && $_GET['outlet_id']?$_GET['outlet_id']:'';
             if(!$outlet_id){
                 $outlet_id = $this->session->userdata('outlet_id');
             }
             $data['outlet_id'] = $outlet_id;
-            $start_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('startDate')));
-            $end_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('endDate')));
-            $user_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('user_id')));
-            $waiter_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('waiter_id')));
+            $start_date =htmlspecialcharscustom($this->input->get($this->security->xss_clean('startDate')));
+            $end_date =htmlspecialcharscustom($this->input->get($this->security->xss_clean('endDate')));
+            $user_id =htmlspecialcharscustom($this->input->get($this->security->xss_clean('user_id')));
+            $waiter_id =htmlspecialcharscustom($this->input->get($this->security->xss_clean('waiter_id')));
+            $customer =htmlspecialcharscustom($this->input->get($this->security->xss_clean('customer')));
             $data['user_id'] = $user_id;
             $data['waiter_id'] = $waiter_id;
             $data['start_date'] = $start_date;
             $data['end_date'] = $end_date;
-            $data['detailedSaleReport'] = $this->Report_model->detailedSaleReport($start_date, $end_date, $user_id,$outlet_id,$waiter_id);
+            $data['customer'] = $customer;
+            $data['detailedSaleReport'] = $this->Report_model->detailedSaleReport($start_date, $end_date, $user_id,$outlet_id,$waiter_id,$customer);
         }
         $data['paymentMethods'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_payment_methods");
         $data['users'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_users');
@@ -1602,6 +1607,38 @@ class Report extends Cl_Controller {
             'width'   => '80',
             // 'printer' => $ticket['printer'],
         ]);
+    }
+
+    
+    public function search_customers() {
+        $term = $this->input->get('q');
+        $this->db->like('name', $term);
+        $this->db->or_like('phone', $term);
+        $this->db->limit(10); // Solo 10 por búsqueda
+        $customers = $this->db->get('tbl_customers')->result();
+
+        $results = [];
+        foreach ($customers as $c) {
+            $results[] = [
+                'id' => $c->id,
+                'text' => $c->name . ' ' . $c->phone,
+                'default_discount' => $c->default_discount,
+                'address' => $c->address,
+                'gst_number' => $c->gst_number,
+                'same_or_diff_state' => $c->same_or_diff_state,
+                'email' => $c->email,
+                'date_of_birth' => $c->date_of_birth ? date('Y-m-d', strtotime($c->date_of_birth)) : '',
+                'date_of_anniversary' => $c->date_of_anniversary ? date('Y-m-d', strtotime($c->date_of_anniversary)) : '',
+                'customer_id' => $c->id,
+                'phone' => $c->phone,
+                'name' => $c->name,
+                'current_due' => getCustomerDue($c->id),
+
+                // ...otros campos útiles...
+            ];
+        }
+
+        echo json_encode($results);
     }
 
 }

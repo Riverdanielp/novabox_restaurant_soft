@@ -180,6 +180,10 @@ $(function() {
                     window.location.href = base_url + "Transfer/transferDinamico/" + res.transfer_id;
                     return;
                 }
+                if (res.reload && res.reload == true) {
+                    window.location.href = base_url + "Transfer/transferDinamico/" + res.transfer_id;
+                    return;
+                }
                 alert("Guardado correctamente.");
             } else {
                 alert(res.msg || "No se pudo guardar.");

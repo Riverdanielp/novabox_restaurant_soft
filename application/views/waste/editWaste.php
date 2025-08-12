@@ -103,7 +103,7 @@ let ingredient_id_container = <?php echo escape_output($ingredient_id_container)
                     <div class="col-md-4">
                         <div class="form-group">
                             <label><?php echo lang('ingredients'); ?> <span class="required_star">*</span></label>
-                            (<?php echo lang('only_purchase_ingredient'); ?>)
+                            <!-- (<?php //echo lang('only_purchase_ingredient'); ?>) -->
                             <select tabindex="4" class="form-control select2 ir_w_100" name="ingredient_id"
                                 id="ingredient_id">
                                 <option value=""><?php echo lang('Select'); ?></option>

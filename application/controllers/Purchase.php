@@ -413,6 +413,10 @@ class Purchase extends Cl_Controller {
             }
             $ingredient_data['food_id'] = $food_id;
             $ingredient_data['is_direct_food'] = 2;
+            if(isLMni()):
+                $json_data = array();
+                updatePrice($this->session->userdata('company_id'),$food_id,$food_menu_info['sale_price'],$food_menu_info['sale_price_take_away'],json_encode($json_data),$food_menu_info['sale_price_delivery']);
+            endif;
         }
         // Guardar ingrediente (crea o actualiza)
         $ingredient_id = setIngredients($food_id, $ingredient_data);

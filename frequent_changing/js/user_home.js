@@ -13,19 +13,35 @@ jQuery(document).ready(function ($) {
         warnBeforeRedirect(linkURL);
     });
 
+    // function warnBeforeRedirect(linkURL) {
+    //     swal({
+    //         title: warning + "!",
+    //         text: are_you_sure + "?",
+    //         cancelButtonText: cancel,
+    //         confirmButtonText: ok,
+    //         confirmButtonColor: '#3c8dbc',
+    //         showCancelButton: true
+    //     }, function () {
+    //         window.location.href = linkURL;
+    //     });
+    // }
+ 
     function warnBeforeRedirect(linkURL) {
         swal({
             title: warning + "!",
             text: are_you_sure + "?",
+            showCancelButton: true,
             cancelButtonText: cancel,
             confirmButtonText: ok,
             confirmButtonColor: '#3c8dbc',
-            showCancelButton: true
-        }, function () {
-            window.location.href = linkURL;
+            type: 'warning'
+        }).then(function(result) {
+            if (result.value) {
+                window.location.href = linkURL;
+            }
+            console.log("Resultado del swal:", result);
         });
     }
- 
 
 
     $(document).on('keydown', '.integerchk', function (e) {

@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420639';
+    return '?v=7.5420641';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -1608,24 +1608,38 @@ function get_all_running_order_for_new_pc_allNew() {
     return $query->result();
 }
 
+    // // Excluye órdenes que ya están en tbl_sales
+    // $query = $CI->db->query("
+    //     SELECT ks.id, ks.sale_no, ks.self_order_content 
+    //     FROM tbl_kitchen_sales ks
+    //     LEFT JOIN tbl_sales s ON ks.sale_no = s.sale_no
+    //     WHERE 
+    //         NOT FIND_IN_SET(ks.sale_no, '$sale_no_all') 
+    //         AND ks.company_id = '$company_id' 
+    //         AND ks.outlet_id = '$outlet_id' 
+    //         AND ks.del_status = 'Live'
+    //         AND s.id IS NULL
+    // ");  // Solo si no existe en tbl_sales
+
 function get_all_running_order_for_new_pc_all() {
     $CI = & get_instance();
     $sale_no_all = escape_output($_POST['sale_no_all']);
     $company_id = $CI->session->userdata('company_id');
     $outlet_id = $CI->session->userdata('outlet_id');
 
-    // Excluye órdenes que ya están en tbl_sales
-    $query = $CI->db->query("
-        SELECT ks.id, ks.sale_no, ks.self_order_content 
-        FROM tbl_kitchen_sales ks
-        LEFT JOIN tbl_sales s ON ks.sale_no = s.sale_no
-        WHERE 
-            NOT FIND_IN_SET(ks.sale_no, '$sale_no_all') 
-            AND ks.company_id = '$company_id' 
-            AND ks.outlet_id = '$outlet_id' 
-            AND ks.del_status = 'Live'
-            AND s.id IS NULL
-    ");  // Solo si no existe en tbl_sales
+    $sale_no_array = array_filter(explode(',', $sale_no_all)); // Convierte string a array, quita vacíos
+
+    $CI->db->select('ks.id, ks.sale_no, ks.self_order_content');
+    $CI->db->from('tbl_kitchen_sales ks');
+    $CI->db->join('tbl_sales s', 'ks.sale_no = s.sale_no AND s.outlet_id = ks.outlet_id AND s.company_id = ks.company_id AND s.del_status = "Live"', 'left');
+    if (!empty($sale_no_array)) {
+        $CI->db->where_not_in('ks.sale_no', $sale_no_array);
+    }
+    $CI->db->where('ks.company_id', $company_id);
+    $CI->db->where('ks.outlet_id', $outlet_id);
+    $CI->db->where('ks.del_status', 'Live');
+    $CI->db->where('s.id IS NULL', null, false);
+    $query = $CI->db->get();
 
     return $query->result();
 }

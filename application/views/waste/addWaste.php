@@ -70,9 +70,14 @@
                             <select tabindex="4" class="form-control select2 select2-hidden-accessible ir_w_100"
                                     name="employee_id" id="employee_id">
                                 <option value=""><?php echo lang('select'); ?></option>
+                                <?php $user_id = $this->session->userdata('user_id'); ?>
                                 <?php foreach ($employees as $empls) { ?>
                                     <option value="<?php echo escape_output($empls->id) ?>"
-                                        <?php echo set_select('unit_id', $empls->id); ?>><?php echo escape_output($empls->full_name) ?>
+                                        <?php echo set_select('unit_id', $empls->id); ?>
+                                        <?php if ($user_id == $empls->id) {
+                                            echo "selected";
+                                        } ?>>
+                                        <?php echo escape_output($empls->full_name) ?>
                                     </option>
                                 <?php } ?>
                             </select>
@@ -94,7 +99,7 @@
 
                         <div class="form-group select_waste">
                             <label><?php echo lang('ingredients'); ?> <span class="required_star">*</span></label>
-                            (<?php echo lang('only_purchase_ingredient'); ?>)
+                            <!-- (<?php //echo lang('only_purchase_ingredient'); ?>) -->
                             <select tabindex="4" class="form-control  select2" name="ingredient_id"
                                     id="ingredient_id">
                                 <option value=""><?php echo lang('select'); ?></option>

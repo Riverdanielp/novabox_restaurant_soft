@@ -45,6 +45,7 @@
                                  <th class="ir_w_11"><?php echo lang('ref_no'); ?></th>
                                  <th class="ir_w_11 display_none"><?php echo lang('transfer_type'); ?></th>
                                  <th class="ir_w_8"><?php echo lang('date'); ?></th>
+                                 <th class="ir_w_8"><?php echo lang('from_outlet'); ?></th>
                                  <th class="ir_w_8"><?php echo lang('to_outlet'); ?></th>
                                  <th class="ir_w_12"><?php echo lang('status'); ?></th>
                                  <th class="ir_w_8"><?php echo lang('received_date'); ?></th>
@@ -81,7 +82,28 @@
                                      </td>
                                  <td><?php echo escape_output(date($this->session->userdata('date_format'), strtotime($prchs->date))); ?>
                                  </td>
-                                 <td><?php echo escape_output(getOutletNameById($prchs->to_outlet_id)); ?></td>
+                                 <td>
+                                    <?php
+                                    // MultiDB: solo muestra el remote_outlet_name
+                                    if ($prchs->from_db_key != 'default') {
+                                        echo '<span style="color:#888;">' . escape_output($prchs->remote_outlet_name) . '</span>';
+                                    } else {
+                                        // Local: busca el nombre en la tabla local
+                                        echo escape_output(getOutletNameById($prchs->from_outlet_id));
+                                    }
+                                    ?>
+                                </td>
+                                 <td>
+                                    <?php
+                                    // MultiDB: solo muestra el remote_outlet_name
+                                    if ($prchs->to_db_key != 'default') {
+                                        echo '<span style="color:#888;">' . escape_output($prchs->remote_outlet_name) . '</span>';
+                                    } else {
+                                        // Local: busca el nombre en la tabla local
+                                        echo escape_output(getOutletNameById($prchs->to_outlet_id));
+                                    }
+                                    ?>
+                                </td>
                                  <td><?php
                                         if($prchs->status==1){
                                             echo '<span class="badge bg-primary">' .lang("Received") . '</span>';

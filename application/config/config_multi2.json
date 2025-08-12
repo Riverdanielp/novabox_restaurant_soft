@@ -2,16 +2,16 @@
     "base": "default",
     "bases": {
         "default": {
-            "nombre": "Administración",
+            "nombre": "Restaurants",
             "db_name": "default",
             "db_url": "default",
-            "nombre_sistema": "MiAbuelaMarket"
+            "nombre_sistema": "MiAbuelaRestaurant"
         },
         "db1": {
-            "nombre": "Restaurants",
+            "nombre": "Market",
             "db_name": "db1",
             "db_url": "https://novabox_restaurant_soft.test/",
-            "nombre_sistema": "MiAbuelaRestaurant"
+            "nombre_sistema": "MiAbuelaMarket"
         }
     }
 }

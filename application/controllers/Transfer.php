@@ -161,6 +161,19 @@ class Transfer extends Cl_Controller {
                     $this->Common_model->deletingMultipleFormData('transfer_id', $id, 'tbl_transfer_received_ingredients');
                     $to_outlet_id = isset($transfer_info['to_outlet_id']) ? $transfer_info['to_outlet_id'] : $transfer_details->to_outlet_id;
                     /*This variable could not be escaped because this is an array field*/
+                    // --- Confirmar en la BD origen si es multiDB y status = 1 ---
+                    if (
+                        isset($transfer_details->remote_transfer_id) && 
+                        $transfer_details->remote_transfer_id && 
+                        isset($transfer_details->from_db_key) &&
+                        $transfer_info['status'] == '1'
+                    ) {
+                        // Actualiza el status a 1 en la BD origen, y los ingredientes
+                        confirmar_transferencia_en_origen(
+                            $transfer_details->remote_transfer_id,
+                            $transfer_details->from_db_key // este es nombre_sistema (ej: 'MiAbuelaMarket')
+                        );
+                    }
                     $this->saveTransferIngredients($_POST['ingredient_id'], $id, $transfer_details->outlet_id,$to_outlet_id,$transfer_info['status'],$transfer_details->to_outlet_id);
                     $this->session->set_flashdata('exception',lang('update_success'));
                 }
@@ -236,7 +249,11 @@ class Transfer extends Cl_Controller {
                 $data = array();
                 $data['pur_ref_no'] = $this->Transfer_model->generatePurRefNo($outlet_id);
                 $data['ingredients'] = $this->Transfer_model->getIngredientListWithUnitAndPrice($company_id);
-                $data['outlets'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+                
+                $outlets1 = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+                $outlets2 = get_all_outlets_multi();
+                $data['outlets'] =  array_merge($outlets1, $outlets2);
+
                 $data['food_menus'] = $this->Common_model->getAllByTable("tbl_food_menus");
 
                 foreach ($data['food_menus'] as $key=>$value){
@@ -289,7 +306,11 @@ class Transfer extends Cl_Controller {
                     $data['food_menus'][$key]->ings_total_cost = $total;
                     $data['food_menus'][$key]->total_tax = $total_return_amount;
                 }
-                $data['outlets'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+
+                $outlets1 = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+                $outlets2 = get_all_outlets_multi();
+                $data['outlets'] =  array_merge($outlets1, $outlets2);
+
                 $data['main_content'] = $this->load->view('transfer/editTransfer', $data, TRUE);
                 $this->load->view('userHome', $data);
             }
@@ -351,7 +372,6 @@ class Transfer extends Cl_Controller {
     public function transferTicketJson($encrypted_id)
     {
         $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
-
         $transfer = $this->Common_model->getDataById($id, "tbl_transfer");
         $food_details = $this->Transfer_model->getFoodDetails($id);
         if (!$transfer) {
@@ -359,14 +379,32 @@ class Transfer extends Cl_Controller {
             return;
         }
 
-        // Construye el array de líneas para el ticket (personaliza a tu gusto)
+        $session_outlet_id = $this->session->userdata('outlet_id');
+        $is_envio = true;//($transfer->from_outlet_id == $session_outlet_id);
+
+        // FROM OUTLET
+        if ($transfer->from_db_key == 'default') {
+            $from_outlet_name = getOutletNameById($transfer->from_outlet_id);
+        } else {
+            // En multiDB, si es envío, mostramos el local, si es recepción mostramos el remote
+            $from_outlet_name = (isset($transfer->remote_outlet_name) ? $transfer->remote_outlet_name : getOutletNameById($transfer->from_outlet_id));
+        }
+
+        // TO OUTLET
+        if ($transfer->to_db_key == 'default') {
+            $to_outlet_name = getOutletNameById($transfer->to_outlet_id);
+        } else {
+            // En multiDB, si es envío mostramos remote_outlet_name, si es recepción el local
+            $to_outlet_name = $transfer->remote_outlet_name;
+        }
+
+        // Construye el array de líneas para el ticket
         $content = [];
         $content[] = [
             'type' => 'text',
             'align' => 'center',
-            'text' => 'Transferencia' . "\n" . lang('ref_no') . ': ' . $transfer->reference_no
+            'text' => '<h5>Transferencia</h5>' . "\n" . lang('ref_no') . ': ' . $transfer->reference_no
         ];
-        // $content[] = ['type' => 'cut'];
         $content[] = [
             'type' => 'text',
             'align' => 'left',
@@ -380,19 +418,18 @@ class Transfer extends Cl_Controller {
         $content[] = [
             'type' => 'text',
             'align' => 'left',
-            'text' => lang('from_outlet') . ': ' . getOutletNameById($transfer->from_outlet_id)
+            'text' => lang('from_outlet') . ': ' . escape_output($from_outlet_name)
         ];
         $content[] = [
             'type' => 'text',
             'align' => 'left',
-            'text' => lang('to_outlet') . ': ' . getOutletNameById($transfer->to_outlet_id)
+            'text' => lang('to_outlet') . ': ' . escape_output($to_outlet_name)
         ];
         $content[] = [
             'type' => 'text',
             'align' => 'left',
             'text' => lang('status') . ': ' . (($transfer->status==1)?lang("Received"): (($transfer->status==2)?lang("Draft"):lang("Sent")))
         ];
-        // $content[] = ['type' => 'cut'];
         if ($transfer->received_date) {
             $content[] = [
                 'type' => 'text',
@@ -400,22 +437,18 @@ class Transfer extends Cl_Controller {
                 'text' => lang('received_date') . ': ' . date($this->session->userdata('date_format'), strtotime($transfer->received_date))
             ];
         }
-        // $content[] = ['type' => 'cut'];
         $content[] = [
             'type' => 'text',
             'align' => 'center',
             'text' => lang('details')
         ];
-        // $content[] = ['type' => 'cut'];
 
         $sn = '-';
         foreach ($food_details as $fd) {
             if ($fd->transfer_type == 1) {
                 $name = getIngredientNameById($fd->ingredient_id) . " (" . getIngredientCodeById($fd->ingredient_id) . ")";
-                // $unit = unitName(getUnitIdByIgId($fd->ingredient_id));
             } else {
                 $name = getFoodMenuNameById($fd->ingredient_id) . " (" . getFoodMenuCodeById($fd->ingredient_id) . ")";
-                // $unit = "Pcs";
             }
             $content[] = [
                 'type' => 'extremos',
@@ -424,8 +457,8 @@ class Transfer extends Cl_Controller {
             ];
             $sn++;
         }
-        
-        // $content[] = ['type' => 'cut'];
+
+        // Notas
         if (strlen($transfer->note_for_sender) > 0) {
             $content[] = [
                 'type' => 'text',
@@ -433,15 +466,14 @@ class Transfer extends Cl_Controller {
                 'text' => "\n" . "\n" . lang('note_for_sender') . ': ' . $transfer->note_for_sender
             ];
         }
-            $content[] = ['type' => 'text','align' => 'left','text' => ''];
+        $content[] = ['type' => 'text','align' => 'left','text' => ''];
         if (strlen($transfer->note_for_receiver) > 0) {
-            $content[] = ['type' => 'text','align' => 'left','text' => "\n" . "\n" . lang('note_for_receiver') . $transfer->note_for_receiver];
+            $content[] = ['type' => 'text','align' => 'left','text' => "\n" . "\n" . lang('note_for_receiver'). ':' . "\n" . $transfer->note_for_receiver];
         }
         $content[] = ['type' => 'text','align' => 'left','text' => '' . "\n" . "\n" . "\n" . "\n" . "\n"];
         $content[] = ['type' => 'cut'];
         $content[] = ['type' => 'text','align' => 'center','text' => 'FIRMA DE ENVÍO'];
 
-        
         $content[] = ['type' => 'text','align' => 'left','text' => '' . "\n" . "\n" . "\n" . "\n" . "\n"];
         $content[] = ['type' => 'cut'];
         $content[] = ['type' => 'text','align' => 'center','text' => 'FIRMA DE TRANSPORTE'];
@@ -449,7 +481,6 @@ class Transfer extends Cl_Controller {
         $content[] = ['type' => 'text','align' => 'left','text' => '' . "\n" . "\n" . "\n" . "\n" . "\n"];
         $content[] = ['type' => 'cut'];
         $content[] = ['type' => 'text','align' => 'center','text' => 'FIRMA DE RECEPCIÓN'];
-
 
         header('Content-Type: application/json');
         echo json_encode([
@@ -548,7 +579,13 @@ class Transfer extends Cl_Controller {
         }
 
         $ingredients = $this->Transfer_model->getIngredientListWithUnitAndPrice($company_id);
-        $outlets = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+        $outlets1 = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+        $outlets2 = get_all_outlets_multi();
+        $outlets = array_merge($outlets1, $outlets2);
+
+        // echo '<pre>';
+        // var_dump($outlets);
+        // echo '</pre>';
 
         $data = [
             'pur_ref_no' => $pur_ref_no,
@@ -591,48 +628,223 @@ class Transfer extends Cl_Controller {
         $this->load->view('userHome', $data);
     }
 
-    public function ajaxAgregarTransferDetalle() {
-        $transfer_id = $this->input->post('transfer_id', true);
+public function ajaxAgregarTransferDetalle() {
+    $transfer_id = $this->input->post('transfer_id', true);
+    $to_outlet_id_raw = $this->input->post('to_outlet_id');
 
-        // Si no existe, crea el transfer en Draft
-        if (!$transfer_id) {
-            $data = [
-                'reference_no' => $this->input->post('reference_no'),
-                'date' => $this->input->post('date'),
-                'status' => 2, // Draft
-                'transfer_type' => $this->input->post('transfer_type'),
-                'user_id' => $this->session->userdata('user_id'),
-                'from_outlet_id' => $this->session->userdata('outlet_id'),
-                'to_outlet_id' => $this->input->post('to_outlet_id'),
-                'outlet_id' => $this->session->userdata('outlet_id'),
-                'del_status' => 'Live',
-            ];
-            // Solo guarda la nota que venga
-            if ($this->input->post('note_for_sender')) {
-                $data['note_for_sender'] = $this->input->post('note_for_sender');
-            }
-            if ($this->input->post('note_for_receiver')) {
-                $data['note_for_receiver'] = $this->input->post('note_for_receiver');
-            }
-            $transfer_id = $this->Common_model->insertInformation($data, "tbl_transfer");
-        } 
+    // Detecta destino multi-DB y también recupera el nombre del outlet si está en el ID enriquecido
+    if (strpos($to_outlet_id_raw, '|') !== false) {
+        $id_parts = explode('|', $to_outlet_id_raw);
+        $to_outlet_id_int = $id_parts[0];
+        $to_db_key = isset($id_parts[1]) ? $id_parts[1] : 'default';
+        $remote_outlet_name = isset($id_parts[2]) ? $id_parts[2] : '';
+    } else {
+        $to_outlet_id_int = $to_outlet_id_raw;
+        $to_db_key = 'default';
+        $remote_outlet_name = '';
+    }
 
-        // Guardar detalle
-        $detalle = [
-            'ingredient_id' => $this->input->post('ingredient_id'),
-            'quantity_amount' => $this->input->post('quantity_amount'),
-            'total_cost' => $this->input->post('total_cost'),
-            'single_cost_total' => $this->input->post('single_cost_total'),
-            'transfer_id' => $transfer_id,
-            'from_outlet_id' => $this->session->userdata('outlet_id'),
-            'to_outlet_id' => $this->input->post('to_outlet_id'),
+    // Si no existe, crea el transfer en Draft con los nuevos campos
+    $is_new_transfer = false;
+    if (!$transfer_id) {
+        $data = [
+            'reference_no' => $this->input->post('reference_no'),
+            'date' => $this->input->post('date'),
+            'status' => 2, // Draft
             'transfer_type' => $this->input->post('transfer_type'),
+            'user_id' => $this->session->userdata('user_id'),
+            'from_outlet_id' => $this->session->userdata('outlet_id'),
+            'to_outlet_id' => isset($id_parts[1]) ? null : $to_outlet_id_int,
+            'to_db_key' => $to_db_key,
+            'from_db_key' => 'default',
+            'outlet_id' => $this->session->userdata('outlet_id'),
+            'remote_outlet_id'    => isset($id_parts[1]) ? $to_outlet_id_int : null,
+            'remote_outlet_name' => $remote_outlet_name,
+            'del_status' => 'Live',
+        ];
+        if ($this->input->post('note_for_sender')) {
+            $data['note_for_sender'] = $this->input->post('note_for_sender');
+        }
+        if ($this->input->post('note_for_receiver')) {
+            $data['note_for_receiver'] = $this->input->post('note_for_receiver');
+        }
+        $transfer_id = $this->Common_model->insertInformation($data, "tbl_transfer");
+        $is_new_transfer = true;
+    } else {
+        $this->db->where('id', $transfer_id)->update('tbl_transfer', ['remote_outlet_name' => $remote_outlet_name]);
+    }
+
+    // Guardar detalle en la BD local
+    $detalle = [
+        'ingredient_id' => $this->input->post('ingredient_id'),
+        'quantity_amount' => $this->input->post('quantity_amount'),
+        'total_cost' => $this->input->post('total_cost'),
+        'single_cost_total' => $this->input->post('single_cost_total'),
+        'transfer_id' => $transfer_id,
+        'from_outlet_id' => $this->session->userdata('outlet_id'),
+        'to_outlet_id' => isset($id_parts[1]) ? null : $to_outlet_id_int,
+        'transfer_type' => $this->input->post('transfer_type'),
+        'del_status' => 'Live'
+    ];
+    $detalle_id = $this->Common_model->insertInformation($detalle, "tbl_transfer_ingredients");
+
+    // --- Sincronización multiDB: SIEMPRE si $to_db_key != 'default' ---
+    if ($to_db_key != 'default') {
+        // Buscar el remote_transfer_id en la local
+        $transfer_local = $this->db->get_where('tbl_transfer', ['id' => $transfer_id])->row();
+        $remote_transfer_id = isset($transfer_local->remote_transfer_id) ? $transfer_local->remote_transfer_id : null;
+        $from_outlet_id = $this->session->userdata('outlet_id');
+        $outlet_name = getOutletNameById($from_outlet_id);
+
+        // Si no existe en la remota, crearla
+        if (!$remote_transfer_id) {
+            $data = (array)$transfer_local;
+            $remote_transfer_id = crear_transferencia_remota($transfer_id, $data, $to_db_key, $outlet_name, $to_outlet_id_int);
+            // Guardar el id remoto en la local
+            $this->db->where('id', $transfer_id)->update('tbl_transfer', [
+                'remote_transfer_id' => $remote_transfer_id,
+                'sync_status' => 1
+            ]);
+        }
+
+        // Crear el ingrediente remoto (y food_menu si aplica)
+        $ingredient_id_remote = get_or_create_remote_ingredient($detalle['ingredient_id'], $to_db_key);
+
+        // Insertar el detalle en la remota
+        $db_remota = $this->load->database($to_db_key, TRUE);
+        $detalle_remoto = [
+            'ingredient_id' => $ingredient_id_remote,
+            'quantity_amount' => $detalle['quantity_amount'],
+            'total_cost' => $detalle['total_cost'],
+            'single_cost_total' => $detalle['single_cost_total'],
+            'transfer_id' => $remote_transfer_id, // id de la transferencia remota
+            'from_outlet_id' => null, //$detalle['from_outlet_id'],
+            'to_outlet_id' => $to_outlet_id_int, // id del outlet destino
+            'transfer_type' => $detalle['transfer_type'],
             'del_status' => 'Live'
         ];
-        $detalle_id = $this->Common_model->insertInformation($detalle, "tbl_transfer_ingredients");
-
-        echo json_encode(['success' => true, 'transfer_id' => $transfer_id, 'detalle_id' => $detalle_id]);
+        $db_remota->insert('tbl_transfer_ingredients', $detalle_remoto);
     }
+
+    echo json_encode(['success' => true, 'transfer_id' => $transfer_id, 'detalle_id' => $detalle_id]);
+}
+
+public function ajaxGuardarTransferInfo() {
+    $reload = false;
+    $transfer_id   = $this->input->post('transfer_id', true);
+    $to_outlet_id  = $this->input->post('to_outlet_id', true);
+    $reference_no  = $this->input->post('reference_no', true);
+    $date          = $this->input->post('date', true);
+    $status        = $this->input->post('status', true);
+
+    // --- Manejo de to_outlet_id y to_db_key y remote_outlet_name ---
+    if (strpos($to_outlet_id, '|') !== false) {
+        $id_parts = explode('|', $to_outlet_id);
+        $to_outlet_id_int = $id_parts[0];
+        $to_db_key = isset($id_parts[1]) ? $id_parts[1] : 'default';
+        $remote_outlet_name = isset($id_parts[2]) ? $id_parts[2] : '';
+    } else {
+        $to_outlet_id_int = $to_outlet_id;
+        $to_db_key = 'default';
+        $remote_outlet_name = '';
+    }
+
+    // Si no viene el outlet_id en el post y ya existe la transferencia, cargarlo de la base de datos:
+    if (!$to_outlet_id && $transfer_id) {
+        $transfer = $this->db->get_where('tbl_transfer', ['id' => $transfer_id])->row();
+        if ($transfer) {
+            $to_outlet_id_int = $transfer->to_outlet_id;
+            $to_db_key = $transfer->to_db_key;
+            $remote_outlet_name = $transfer->remote_outlet_name;
+        }
+    }
+
+    if (!$reference_no) {
+        echo json_encode(['success' => false, 'msg' => 'Referencia inválida.']);
+        return;
+    }
+    if (!$date) {
+        echo json_encode(['success' => false, 'msg' => 'Fecha inválida.']);
+        return;
+    }
+    if (!$status || !in_array($status, ['1','2','3'])) {
+        echo json_encode(['success' => false, 'msg' => 'Status inválida.']);
+        return;
+    }
+
+    $data = [
+        'reference_no'    => $reference_no,
+        'date'            => $date,
+        'to_outlet_id'    => isset($id_parts[1]) ? null : $to_outlet_id_int,
+        'to_db_key'       => $to_db_key,
+        'from_db_key'     => 'default', // o la actual si usas multi-DB para emisor
+        'remote_outlet_id'    => isset($id_parts[1]) ? $to_outlet_id_int : null,
+        'remote_outlet_name' => $remote_outlet_name,
+        'status'          => $status,
+    ];
+
+    if ($this->input->post('note_for_sender')) {
+        $data['note_for_sender'] = $this->input->post('note_for_sender');
+    }
+    if ($this->input->post('note_for_receiver')) {
+        $data['note_for_receiver'] = $this->input->post('note_for_receiver');
+    }
+
+    // ---- Si se está editando, verifica si cambió la locación ----
+    if ($transfer_id) {
+        $transfer_old = $this->db->get_where('tbl_transfer', ['id' => $transfer_id])->row();
+        $old_to_db_key = $transfer_old ? $transfer_old->to_db_key : null;
+        $reload = $transfer_old && $transfer_old->status != $status ? true : false;
+        $old_remote_transfer_id = $transfer_old ? $transfer_old->remote_transfer_id : null;
+
+        // Si el destino cambió y había transferencia remota, elimínala en la otra BD
+        if ($old_to_db_key && $old_to_db_key != $to_db_key && $old_remote_transfer_id) {
+            eliminar_transferencia_remota($old_remote_transfer_id, $old_to_db_key);
+            $this->db->where('id', $transfer_id)
+                ->update('tbl_transfer', [
+                    'remote_deleted' => 1,
+                    'remote_transfer_id' => null,
+                    'sync_status' => 0
+                ]);
+        }
+
+        // UPDATE
+        $this->db->where('id', $transfer_id)->update('tbl_transfer', $data);
+    } else {
+        // INSERT (crear cabecera nueva)
+        $user_id    = $this->session->userdata('user_id');
+        $company_id = $this->session->userdata('company_id');
+        $from_outlet_id = $this->session->userdata('outlet_id');
+        $data['reference_no'] = $reference_no;
+        $data['from_outlet_id'] = $from_outlet_id;
+        $data['outlet_id'] = $from_outlet_id;
+        $data['user_id'] = $user_id;
+        $this->db->insert('tbl_transfer', $data);
+        $transfer_id = $this->db->insert_id();
+    }
+
+    // --- Sincronización multiDB: SIEMPRE si $to_db_key != 'default' ---
+    if ($to_db_key != 'default') {
+        $transfer_local = $this->db->get_where('tbl_transfer', ['id' => $transfer_id])->row();
+        $from_outlet_id = $this->session->userdata('outlet_id');
+        $outlet_name = getOutletNameById($from_outlet_id);
+        $remote_transfer_id = $transfer_local && isset($transfer_local->remote_transfer_id) ? $transfer_local->remote_transfer_id : null;
+
+        // Si no existe en la remota, crearla
+        if (!$remote_transfer_id) {
+            $remote_transfer_id = crear_transferencia_remota($transfer_id, (array)$transfer_local, $to_db_key, $outlet_name, $to_outlet_id_int);
+            $this->db->where('id', $transfer_id)->update('tbl_transfer', [
+                'remote_transfer_id' => $remote_transfer_id,
+                'sync_status' => 1
+            ]);
+        } else {
+            // Actualiza la transferencia remota si ya existe
+            crear_transferencia_remota($transfer_id, (array)$transfer_local, $to_db_key, $outlet_name, $to_outlet_id_int);
+        }
+    }
+
+    echo json_encode(['success' => true, 'transfer_id' => $transfer_id, 'reload' => $reload]);
+}
 
     public function ajaxListarTransferDetalles() {
         $transfer_id = $this->input->post('transfer_id', true);
@@ -699,76 +911,6 @@ class Transfer extends Cl_Controller {
         } else {
             echo json_encode(['success' => false]);
         }
-    }
-
-    /**
-     * Ajax: Guardar información general del transfer (cabecera)
-     */
-    public function ajaxGuardarTransferInfo() {
-        $transfer_id   = $this->input->post('transfer_id', true);
-        $to_outlet_id  = $this->input->post('to_outlet_id', true);
-        $reference_no  = $this->input->post('reference_no', true);
-        $date          = $this->input->post('date', true);
-        $status        = $this->input->post('status', true);
-        // $note_for_sender = $this->input->post('note_for_sender', true);
-
-        // Si no viene el outlet_id en el post y ya existe la transferencia, cargarlo de la base de datos:
-        if (!$to_outlet_id && $transfer_id) {
-            $transfer = $this->db->get_where('tbl_transfer', ['id' => $transfer_id])->row();
-            if ($transfer) {
-                $to_outlet_id = $transfer->to_outlet_id;
-            }
-        }
-
-        if (!$reference_no) {
-            echo json_encode(['success' => false, 'msg' => 'Referencia inválida.']);
-            return;
-        }
-        if (!$date) {
-            echo json_encode(['success' => false, 'msg' => 'Fecha inválida.']);
-            return;
-        }
-        if (!$status || !in_array($status, ['1','2','3'])) {
-            echo json_encode(['success' => false, 'msg' => 'Status inválido.']);
-            return;
-        }
-
-        $data = [
-            'reference_no'    => $reference_no,
-            'date'            => $date,
-            'to_outlet_id'    => $to_outlet_id,
-            'status'          => $status,
-            // 'note_for_sender' => $note_for_sender,
-        ];
-
-        // Solo actualiza la nota correspondiente
-        if ($this->input->post('note_for_sender')) {
-            $data['note_for_sender'] = $this->input->post('note_for_sender');
-        }
-        if ($this->input->post('note_for_receiver')) {
-            $data['note_for_receiver'] = $this->input->post('note_for_receiver');
-        }
-
-        if ($transfer_id) {
-            // UPDATE
-            $this->db->where('id', $transfer_id)->update('tbl_transfer', $data);
-        } else {
-            
-            // INSERT (crear cabecera nueva)
-            $user_id    = $this->session->userdata('user_id');
-            $company_id = $this->session->userdata('company_id');
-            $from_outlet_id = $this->session->userdata('outlet_id');
-            $data['reference_no'] = $reference_no; // asegúrate que venga generado
-            $data['from_outlet_id'] = $from_outlet_id;
-            $data['outlet_id'] = $from_outlet_id;
-            $data['user_id'] = $user_id;
-            // $data['company_id'] = $company_id;
-            // $data['created'] = date('Y-m-d H:i:s');
-            $this->db->insert('tbl_transfer', $data);
-            $transfer_id = $this->db->insert_id();
-        }
-
-        echo json_encode(['success' => true, 'transfer_id' => $transfer_id]);
     }
 
 }

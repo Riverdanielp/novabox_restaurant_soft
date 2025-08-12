@@ -30,9 +30,9 @@ class Waste_model extends CI_Model {
         $this->db->join("tbl_purchase_ingredients", 'tbl_purchase_ingredients.ingredient_id = tbl_ingredients.id', 'left');
         $this->db->join("tbl_units", 'tbl_units.id = tbl_ingredients.unit_id', 'left');
         $this->db->order_by("tbl_ingredients.name", "ASC");
-        $this->db->where("tbl_ingredients.company_id", $company_id);
-        $this->db->where("tbl_purchase_ingredients.del_status", 'Live');
-        $this->db->where("tbl_purchase_ingredients.outlet_id", $outlet_id);
+        // $this->db->where("tbl_ingredients.company_id", $company_id);
+        // $this->db->where("tbl_purchase_ingredients.del_status", 'Live');
+        // $this->db->where("tbl_purchase_ingredients.outlet_id", $outlet_id);
         $result = $this->db->get()->result();
         return $result;
     }

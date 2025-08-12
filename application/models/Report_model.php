@@ -1750,7 +1750,7 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
      * @param string
      * @param int
      */
-    public function detailedSaleReport($startMonth = '', $endMonth = '', $user_id = '',$outlet_id='',$waiter_id='') {
+    public function detailedSaleReport($startMonth = '', $endMonth = '', $user_id = '',$outlet_id='',$waiter_id='',$customer='all') {
         if ($startMonth || $endMonth || $user_id):
             $this->db->select('tbl_sales.*,tbl_users.full_name,tbl_payment_methods.name');
             $this->db->from('tbl_sales');
@@ -1773,6 +1773,9 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
             }
             if ($waiter_id != '') {
                 $this->db->where('tbl_sales.waiter_id', $waiter_id);
+            }
+            if ($customer != '') {
+                $this->db->where('tbl_sales.customer_id', $customer);
             }
             $this->db->where('order_status', '3');
             $this->db->where('tbl_sales.outlet_id', $outlet_id);
