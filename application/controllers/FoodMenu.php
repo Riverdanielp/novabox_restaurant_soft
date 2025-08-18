@@ -1436,7 +1436,7 @@ class FoodMenu extends Cl_Controller {
         $field = $input['field'];
         $value = $input['value'];
         $this->db->where('id', $id)->update('tbl_food_menus', [$field => $value]);
-        if ($field == 'iva_tipo' || $field == 'sale_price') {
+        if ($field == 'iva_tipo' || $field == 'sale_price' || $field == 'code') {
             $this->db->where('food_id', $id)->update('tbl_ingredients', [$field => $value]);
         }
         echo json_encode(['status' => 'ok']);

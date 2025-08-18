@@ -22,7 +22,7 @@ $(function() {
         if(thisSuffix > suffix) suffix = thisSuffix;
     });
 
-    $(document).on('click', '.btn-delete-row', function(e) {
+    $(document).on('click', '.btn-delete-row_old', function(e) {
         e.preventDefault();
         let $row = $(this).closest('tr');
         let suffix = $row.data('id');
@@ -34,7 +34,7 @@ $(function() {
         updateRowNo();
     });
 
-    $(document).on('change', '#ingredient_id', function() {
+    $(document).on('change', '#ingredient_id_old', function() {
         let ingredient_details = $('#ingredient_id').val();
         if (ingredient_details != '') {
             let ingredient_details_array = ingredient_details.split('|');

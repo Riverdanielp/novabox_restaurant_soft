@@ -60,6 +60,9 @@ if (!function_exists('get_all_outlets_multi')) {
         $config_multi = get_multi_config();
         $outlets = [];
 
+        if (!$config_multi || !isset($config_multi['bases'])) {
+            return $outlets; // Retorna vacío si no hay configuración
+        }
         foreach ($config_multi['bases'] as $db_key => $db_info) {
             if ($db_key === 'default') {
                 continue; // Omite la base de datos por defecto
@@ -235,13 +238,17 @@ function updatePriceRemoto($db_remota, $company_id, $item_id, $price, $sale_pric
                 $data_price_array[$index_name] = $price."||".$sale_price_take_away."||".$sale_price_delivery;
             }
             $available_counter = 1;
-            foreach ($delivery_price as $key=>$value){
-                $key_id = explode("index_",$key);
-                if(($key_id[1]==$item_id)){
-                    $data_delivery_price_array[$key] = $delivery_prices;
-                    $available_counter++;
-                }else{
-                    $data_delivery_price_array[$key] = $value;
+            if (!is_array($delivery_prices)) {
+                $delivery_prices = [];
+            } else {
+                foreach ($delivery_price as $key=>$value){
+                    $key_id = explode("index_",$key);
+                    if(($key_id[1]==$item_id)){
+                        $data_delivery_price_array[$key] = $delivery_prices;
+                        $available_counter++;
+                    }else{
+                        $data_delivery_price_array[$key] = $value;
+                    }
                 }
             }
             if($available_counter==1){

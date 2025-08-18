@@ -53,13 +53,13 @@ $(function() {
                 '<input type="hidden" id="ingredient_id_' + suffix +
                 '" name="ingredient_id[]" value="' + ingredient_details_array[0] + '"/>' +
                 '<td><input type="text" tabindex="' + tab_index + '" id="unit_price_' + suffix +
-                '" name="unit_price[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="Unit Price"/ value="' +
+                '" name="unit_price[]" onfocus="this.select();" class="form-control  aligning" placeholder="Unit Price"/ value="' +
                 ingredient_details_array[3] +
                 '" onkeyup="return calculateAll();"/><span class="label_aligning">' + currency +
                 '</span></td>' +
                 '<td><input type="text" data-countID="' + suffix + '" tabindex="' + tab_index + 1 +
                 '" id="quantity_amount_' + suffix +
-                '" name="quantity_amount[]" onfocus="this.select();" class="form-control integerchk aligning countID"  placeholder="Cant/Monto" onkeyup="return calculateAll();" ><span class="label_aligning">' +
+                '" name="quantity_amount[]" onfocus="this.select();" class="form-control  aligning countID"  placeholder="Cant/Monto" onkeyup="return calculateAll();" ><span class="label_aligning">' +
                 ingredient_details_array[2] + '</span></td>' +
                 '<td><input type="text" id="total_' + suffix +
                 '" name="total[]" class="form-control aligning" placeholder="Total" readonly /><span class="label_aligning">' +

@@ -29,9 +29,34 @@ $(function() {
         }, 'json');
     });
 
+    // Funciones para código variable de balanza
+    function esCodigoVariable(codigo) {
+        let limpio = codigo.replace(/\D/g, '');
+        return limpio.length === 13 && limpio.startsWith("2");
+    }
+    function decodificarCodigoVariable(codigo) {
+        let limpio = codigo.replace(/\D/g, '');
+        let plu = limpio.substr(1, 6); // Quita ceros a la izquierda .replace(/^0+/, '')
+        let valor = limpio.substr(7, 5);
+        let cantidad;
+        if (valor === "00001") {
+            cantidad = 1;
+        } else {
+            cantidad = parseInt(valor, 10) / 1000;
+        }
+        return {
+            plu: plu,
+            cantidad: cantidad
+        };
+    }
+
+    // --- Manejo de sugerencias y códigos variables en keydown ---
     $("#codigo_busqueda").on('keydown', function(e) {
+        let valor = $(this).val().trim();
         let items = $("#sugerencias .sugerencia-item");
-        if ($("#sugerencias").is(":visible")) {
+        let sugerenciasVisibles = $("#sugerencias").is(":visible") && items.length > 0;
+
+        if (sugerenciasVisibles) {
             if (e.key === "ArrowDown") {
                 e.preventDefault();
                 if (seleccion_sugerencia < items.length - 1) {
@@ -39,6 +64,7 @@ $(function() {
                 }
                 items.removeClass("bg-primary text-white");
                 $(items[seleccion_sugerencia]).addClass("bg-primary text-white");
+                return;
             } else if (e.key === "ArrowUp") {
                 e.preventDefault();
                 if (seleccion_sugerencia > 0) {
@@ -46,16 +72,49 @@ $(function() {
                 }
                 items.removeClass("bg-primary text-white");
                 $(items[seleccion_sugerencia]).addClass("bg-primary text-white");
+                return;
             } else if (e.key === "Enter") {
                 if (seleccion_sugerencia >= 0 && items.length > 0) {
                     e.preventDefault();
                     $(items[seleccion_sugerencia]).trigger('mousedown');
+                    return;
                 } else {
+                    // Si no hay selección pero sí sugerencias, buscar por código normal
                     buscarPorCodigo();
+                    return;
                 }
             } else if (e.key === "Escape") {
                 $("#sugerencias").hide();
+                return;
             }
+            // Si hay sugerencias, no procesamos nada más
+            return;
+        }
+
+        // Si NO hay sugerencias, procesar código variable o normal
+        if (e.key === "Enter" && valor.length > 0) {
+            if (esCodigoVariable(valor)) {
+                e.preventDefault();
+                let datos = decodificarCodigoVariable(valor);
+                $.post(base_url + "Transfer/ajaxBuscarIngredientePorCodigo", { codigo: datos.plu }, function(res) {
+                    if (res.success) {
+                        $("#producto_nombre").val(res.name);
+                        $("#ingrediente_id").val(res.id);
+                        $("#qty_stock").val(res.stock);
+                        $("#qty_transfer").val(datos.cantidad);
+                        setTimeout(function() {
+                            $("#btn_agregar_detalle").click();
+                            $("#codigo_busqueda").val('').focus();
+                        }, 100);
+                    } else {
+                        alert("Producto de balanza no encontrado (PLU: " + datos.plu + ")");
+                    }
+                }, 'json');
+                return;
+            }
+            // Si no es código variable, buscar por código normal
+            buscarPorCodigo();
+            return;
         }
     });
 
@@ -94,20 +153,17 @@ $(function() {
     $("#btn_buscar_codigo").on('click', buscarPorCodigo);
 
     function validarCampos() {
-        // let to_outlet_id = $("#to_outlet_id").val();
         let to_outlet_id = $("#to_outlet_id").prop("disabled") ? $("#to_outlet_id_hidden").val() : $("#to_outlet_id").val();
         let reference_no = $("#reference_no").val();
         let date = $("#date").val();
         let status = $("#status").val();
         let note_for_sender = $("#note_for_sender_dinamico").val();
 
-        // Validación: outlet destino obligatorio
         if (!to_outlet_id) {
             alert("Debes seleccionar una sucursal destino.");
             $("#to_outlet_id").focus();
             return false;
         }
-        // (Opcionales, puedes agregar más validaciones aquí)
         if (!reference_no) {
             alert("Referencia faltante.");
             return false;
@@ -116,7 +172,7 @@ $(function() {
             alert("Fecha faltante.");
             return false;
         }
-        return true; // Si todo está bien
+        return true;
     }
 
     // --- Agregar detalles ---
@@ -128,7 +184,6 @@ $(function() {
             alert("Completa todos los campos.");
             return;
         }
-        // NOTA: Solo envía el campo correspondiente
         let data = {
             transfer_id: transfer_id,
             reference_no: $("#reference_no").val(),
@@ -239,9 +294,8 @@ $(function() {
 
     $("#qty_transfer").on("keydown", function(e) {
         if (e.key === "Enter") {
-            e.preventDefault(); // Evita que el formulario se envíe
+            e.preventDefault();
             $("#btn_agregar_detalle").click();
-            // Espera un poco por si hay AJAX, luego enfoca
             setTimeout(function() {
                 $("#codigo_busqueda").focus();
             }, 100);
@@ -249,6 +303,4 @@ $(function() {
     });
 
     $("#codigo_busqueda").focus();
-
-    
 });

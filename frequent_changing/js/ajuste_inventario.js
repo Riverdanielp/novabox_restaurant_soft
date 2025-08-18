@@ -1,6 +1,28 @@
 $(function() {
     let ajuste_id = $("#ajuste_id").val();
 
+    // Verifica si el artículo ya está en la tabla por código (buscará en la columna de código)
+    function articuloYaAgregado(codigo) {
+        let repetido = false;
+        $("#tabla_ajustes tbody tr").each(function() {
+            let cod = $(this).find('td').eq(1).text().trim();
+            if (cod === codigo) repetido = true;
+        });
+        return repetido;
+    }
+
+    // Muestra el aviso de repetido
+    function mostrarAvisoArticuloRepetido() {
+        $("#aviso_articulo_repetido")
+            .text("Ya ha agregado ese articulo en este listado de ajuste")
+            .show();
+    }
+
+    // Oculta el aviso de repetido
+    function ocultarAvisoArticuloRepetido() {
+        $("#aviso_articulo_repetido").hide().text('');
+    }
+
     // Buscar producto por código
     $("#codigo_busqueda").on('keypress', function(e) {
         if (e.which == 13) {
@@ -13,8 +35,16 @@ $(function() {
                     $("#qty_old").val(res.stock);
                     $("#costo").val(res.costo);
                     $("#qty_new").focus();
+                    
+                    // Revisión de repetidos
+                    if (articuloYaAgregado(res.code)) {
+                        mostrarAvisoArticuloRepetido();
+                    } else {
+                        ocultarAvisoArticuloRepetido();
+                    }
                 } else {
                     alert("Producto no encontrado");
+                    ocultarAvisoArticuloRepetido();
                 }
             }, 'json');
         }
@@ -127,6 +157,7 @@ $(function() {
             $("#total_diferencia").attr('class', totalDifClass).html(formatNumberToCurrency(totalDifSign + totalDif));
             $("#total_costo_dif").attr('class', totalCostoClass).html(formatNumberToCurrency(totalCostoSign + totalCostoDif));
         }, 'json');
+        ocultarAvisoArticuloRepetido();
     }
     
     // Borrar ajuste detalle
@@ -151,6 +182,7 @@ $(function() {
         $("#costo").val('');
         $("#qty_dif").val('');
         $("#costo_dif").val('');
+        ocultarAvisoArticuloRepetido();
     }
     // Asumiendo que #qty_new es el input de cantidad nueva
     $("#qty_new").on('keypress', function(e) {
@@ -168,6 +200,7 @@ $(function() {
 
     // AUTOCOMPLETADO POR NOMBRE
     $("#codigo_busqueda").on('input', function(e) {
+        ocultarAvisoArticuloRepetido();
         let valor = $(this).val().trim();
         if (valor.length < 2) {
             $("#sugerencias").hide();
@@ -223,8 +256,15 @@ $(function() {
                             $("#qty_old").val(res.stock);
                             $("#costo").val(res.costo);
                             $("#qty_new").focus();
+                            // Revisión de repetidos
+                            if (articuloYaAgregado(res.code)) {
+                                mostrarAvisoArticuloRepetido();
+                            } else {
+                                ocultarAvisoArticuloRepetido();
+                            }
                         } else {
                             alert("Producto no encontrado");
+                            ocultarAvisoArticuloRepetido();
                         }
                     }, 'json');
                 }
@@ -247,8 +287,15 @@ $(function() {
                 $("#qty_old").val(res.stock);
                 $("#costo").val(res.costo);
                 $("#qty_new").focus();
+                // Revisión de repetidos
+                if (articuloYaAgregado(res.code)) {
+                    mostrarAvisoArticuloRepetido();
+                } else {
+                    ocultarAvisoArticuloRepetido();
+                }
             } else {
                 alert("Producto no encontrado");
+                ocultarAvisoArticuloRepetido();
             }
         }, 'json');
         $("#sugerencias").hide();

@@ -931,6 +931,9 @@ class Report extends Cl_Controller {
     public function detailedSaleReport() {
         $data = array();
         $company_id = $this->session->userdata('company_id');
+        $user_id = null;
+        $waiter_id = null;
+        $customer = null;
         if (htmlspecialcharscustom($this->input->get('submit'))) {
             $outlet_id  = isset($_GET['outlet_id']) && $_GET['outlet_id']?$_GET['outlet_id']:'';
             if(!$outlet_id){
@@ -942,13 +945,13 @@ class Report extends Cl_Controller {
             $user_id =htmlspecialcharscustom($this->input->get($this->security->xss_clean('user_id')));
             $waiter_id =htmlspecialcharscustom($this->input->get($this->security->xss_clean('waiter_id')));
             $customer =htmlspecialcharscustom($this->input->get($this->security->xss_clean('customer')));
-            $data['user_id'] = $user_id;
-            $data['waiter_id'] = $waiter_id;
             $data['start_date'] = $start_date;
             $data['end_date'] = $end_date;
-            $data['customer'] = $customer;
             $data['detailedSaleReport'] = $this->Report_model->detailedSaleReport($start_date, $end_date, $user_id,$outlet_id,$waiter_id,$customer);
         }
+        $data['user_id'] = $user_id;
+        $data['waiter_id'] = $waiter_id;
+        $data['customer'] = $customer;
         $data['paymentMethods'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_payment_methods");
         $data['users'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_users');
         $data['main_content'] = $this->load->view('report/detailedSaleReport', $data, TRUE);

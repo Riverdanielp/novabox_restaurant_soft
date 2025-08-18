@@ -11,7 +11,7 @@
 <input type="hidden" id="are_you_sure" value="<?php echo lang('are_you_sure'); ?>">
 <input type="hidden" id="alert" value="<?php echo lang('alert'); ?>">
 
-<script type="text/javascript" src="<?php echo base_url('frequent_changing/js/add_production.js'); ?>"></script>
+<script type="text/javascript" src="<?php echo base_url('frequent_changing/js/add_production.js'.VERS()); ?>"></script>
 
 
 

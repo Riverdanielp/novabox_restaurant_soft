@@ -38,9 +38,15 @@ class Purchase extends Cl_Controller {
         }elseif($segment_2=="purchaseDetails" && $segment_3){
             $function = "view_details";
         }elseif($segment_2=="addEditPurchase" || $segment_2=="getSupplierList" || $segment_2=="addNewSupplierByAjax" || 
-                $segment_2=="ajax_save_ingredient_and_product"){
+                $segment_2=="ajax_save_ingredient_and_product" 
+                || $segment_2=="ajaxCrearCompraYAgregarItem" 
+                || $segment_2=="ajaxAgregarItemCompra" 
+                || $segment_2=="ajaxEditarItemCompra" 
+                || $segment_2=="ajaxGuardarDatosCompra"
+                || $segment_2=="ajaxCheckFacturaNro"
+                 ){
             $function = "add";
-        }elseif($segment_2=="deletePurchase"){
+        }elseif($segment_2=="deletePurchase" || $segment_2=="ajaxEliminarItemCompra"){
             $function = "delete";
         }else{
             $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
@@ -155,7 +161,13 @@ class Purchase extends Cl_Controller {
         if ($id == "") {
             $purchase_info['reference_no'] = $this->Purchase_model->generatePurRefNo($outlet_id);
         } else {
-            $purchase_info['reference_no'] = $this->Common_model->getDataById($id, "tbl_purchase")->reference_no;
+            $info_purchase = $this->Common_model->getDataById($id, "tbl_purchase");
+            if ($info_purchase){
+                $purchase_info['reference_no'] = $info_purchase->reference_no;
+            } else {
+                $this->session->set_flashdata('exception_3', 'No se ha encontrado el registro de compra!');
+                redirect('Purchase/purchases');
+            }
         }
 
         if (htmlspecialcharscustom($this->input->post('submit'))) {
@@ -436,4 +448,226 @@ class Purchase extends Cl_Controller {
         ]);
     }
 
+    public function ajaxCrearCompraYAgregarItem() {
+        $data = $this->input->post();
+        $outlet_id = $this->session->userdata('outlet_id');
+
+        // 1. Buscar si ya existe una compra con el mismo reference_no y outlet_id
+        $this->db->where('reference_no', $data['reference_no']);
+        // $this->db->where('outlet_id', $outlet_id);
+        $purchase = $this->db->get('tbl_purchase')->row();
+
+        if ($purchase) {
+            $purchase_id = $purchase->id;
+        } else {
+            // Crear compra
+            $purchase_info = [
+                'reference_no' => $data['reference_no'],
+                'supplier_id' => $data['supplier_id'],
+                'date' => $data['date'],
+                'paid' => $data['paid'],
+                'payment_id' => $data['payment_id'],
+                'user_id' => $this->session->userdata('user_id'),
+                'outlet_id' => $outlet_id
+            ];
+            $purchase_id = $this->Common_model->insertInformation($purchase_info, "tbl_purchase");
+        }
+
+        // Guardar primer item
+        $item = $data['item'];
+        $item_data = [
+            'ingredient_id' => $item['ingredient_id'],
+            'unit_price' => $item['unit_price'],
+            'quantity_amount' => $item['quantity_amount'],
+            // 'sale_price' => $item['sale_price'],
+            'iva_tipo' => $item['iva_tipo'],
+            'purchase_id' => $purchase_id,
+            'outlet_id' => $outlet_id,
+            'total' => $item['unit_price'] * $item['quantity_amount']
+        ];
+        $item_id = $this->Common_model->insertInformation($item_data, "tbl_purchase_ingredients");
+
+        $ingrediente = getIngredient($item['ingredient_id']);
+        echo json_encode([
+            'purchase_id' => $purchase_id,
+            'item' => [
+                'id' => $item_id,
+                'ingredient_id' => $item['ingredient_id'],
+                'name' => $ingrediente->name,
+                'unit_price' => $item['unit_price'],
+                'quantity_amount' => $item['quantity_amount'],
+                'sale_price' => $item['sale_price'],
+                'iva_tipo' => $item['iva_tipo'],
+                'total' => $item_data['total'],
+                'sn' => 1
+            ]
+        ]);
+    }
+
+    // Agregar ítem a compra existente
+    public function ajaxAgregarItemCompra() {
+        $data = $this->input->post();
+        $item = $data['item'];
+        $purchase_id = $data['purchase_id'];
+        $item_data = [
+            'ingredient_id' => $item['ingredient_id'],
+            'unit_price' => $item['unit_price'],
+            'quantity_amount' => $item['quantity_amount'],
+            // 'sale_price' => $item['sale_price'],
+            'iva_tipo' => $item['iva_tipo'],
+            'purchase_id' => $purchase_id,
+            'outlet_id' => $this->session->userdata('outlet_id'),
+            'total' => $item['unit_price'] * $item['quantity_amount']
+        ];
+        $item_id = $this->Common_model->insertInformation($item_data, "tbl_purchase_ingredients");
+        $ingrediente = getIngredient($item['ingredient_id']);
+        // Puedes calcular el número de fila buscando los existentes
+        echo json_encode([
+            'item' => [
+                'id' => $item_id,
+                'ingredient_id' => $item['ingredient_id'],
+                'name' => $ingrediente->name,
+                'unit_price' => $item['unit_price'],
+                'quantity_amount' => $item['quantity_amount'],
+                'sale_price' => $item['sale_price'],
+                'iva_tipo' => $item['iva_tipo'],
+                'total' => $item_data['total'],
+                'sn' => 1 // Calcula si lo deseas
+            ]
+        ]);
+    }
+
+    // Eliminar ítem
+    public function ajaxEliminarItemCompra() {
+        $item_id = $this->input->post('purchase_item_id');
+        $this->Common_model->deleteStatusChangeWithChild($item_id, $item_id, "tbl_purchase_ingredients", "", 'id', '');
+        echo json_encode(['success' => true]);
+    }
+
+
+    // Editar ítem
+    public function ajaxEditarItemCompra() {
+        $item_id = $this->input->post('purchase_item_id');
+        $unit_price = $this->input->post('unit_price');
+        $quantity_amount = $this->input->post('quantity_amount');
+        $sale_price = $this->input->post('sale_price');
+        $iva_tipo = $this->input->post('iva_tipo');
+
+        // 1. Actualizar tbl_purchase_ingredients
+        $data = [
+            'unit_price' => $unit_price,
+            'quantity_amount' => $quantity_amount,
+            // 'sale_price' => $sale_price,
+            'iva_tipo' => $iva_tipo,
+            'total' => $unit_price * $quantity_amount
+        ];
+        $this->Common_model->updateInformation($data, $item_id, "tbl_purchase_ingredients");
+
+        // 2. Obtener el ingrediente_id de este purchase_ingredient
+        $item_row = $this->Common_model->getDataById($item_id, 'tbl_purchase_ingredients');
+        $ingredient_id = $item_row ? $item_row->ingredient_id : null;
+        if ($ingredient_id) {
+            // 2.1 Actualizar tbl_ingredients
+            $ingredient_update = [
+                'sale_price' => $sale_price,
+                'purchase_price' => $unit_price,
+                'iva_tipo' => $iva_tipo,
+            ];
+            $this->Common_model->updateInformation($ingredient_update, $ingredient_id, 'tbl_ingredients');
+
+            // --- SI TIENE food_id, actualizar food_menu ---
+            $ingredient = $this->Common_model->getDataById($ingredient_id, 'tbl_ingredients');
+            if ($ingredient && $ingredient->food_id) {
+                $food_menu_update = [
+                    'sale_price' => $sale_price,
+                    'sale_price_take_away' => $sale_price,
+                    'sale_price_delivery' => $sale_price,
+                    'iva_tipo' => $iva_tipo,
+                    'purchase_price' => $unit_price
+                ];
+                $this->Common_model->updateInformation($food_menu_update, $ingredient->food_id, 'tbl_food_menus');
+            }
+
+            // set average cost for profit loss report
+            setAverageCost($ingredient_id);
+            // update ingredenits purchase amount
+            $conversion_rate = isset($ingredient->conversion_rate) && $ingredient->conversion_rate ? $ingredient->conversion_rate : 1;
+            $inline_cost = ($unit_price / $conversion_rate);
+            $data2 = [
+                'consumption_unit_cost' => $inline_cost,
+                'purchase_price' => $unit_price
+            ];
+            $this->db->where('id', $ingredient_id);
+            $this->db->update("tbl_ingredients", $data2);
+
+            updatedFoodCost($ingredient_id);
+        }
+
+        echo json_encode(['success' => true]);
+    }
+
+    public function ajaxGuardarDatosCompra() {
+        $purchase_id = $this->input->post('purchase_id');
+        $data = [
+            'reference_no' => $this->input->post('reference_no'),
+            'supplier_id' => $this->input->post('supplier_id'),
+            'factura_nro' => $this->input->post('factura_nro'),
+            'date' => $this->input->post('date'),
+            'paid' => $this->input->post('paid'),
+            'payment_id' => $this->input->post('payment_id'),
+            'grand_total' => $this->input->post('grand_total'),
+            'due' => $this->input->post('due'),
+        ];
+        $this->Common_model->updateInformation($data, $purchase_id, "tbl_purchase");
+        echo json_encode(['success' => true]);
+    }
+
+    /**
+     * AJAX: Verificar si un N° de factura ya existe
+     * - Restringido por company_id
+     * - Excluye la compra actual si se envía purchase_id
+     */
+    public function ajaxCheckFacturaNro() {
+        $factura_nro = trim($this->input->post('factura_nro'));
+        $purchase_id = $this->input->post('purchase_id'); // puede venir null cuando es alta
+
+        if ($factura_nro === '') {
+            echo json_encode(['found' => false, 'message' => '']);
+            return;
+        }
+
+        $this->db->from('tbl_purchase');
+        $this->db->where('factura_nro', $factura_nro);
+        // Mantén el filtro por estado si tu borrado es lógico
+        $this->db->where('del_status !=', 'Deleted');
+        // Excluir el propio registro si estás editando
+        if (!empty($purchase_id)) {
+            $this->db->where('id !=', $purchase_id);
+        }
+
+        $row = $this->db->get()->row();
+
+        if ($row) {
+            $supplier_name = '';
+            if (!empty($row->supplier_id)) {
+                $sp = $this->Common_model->getDataById($row->supplier_id, 'tbl_suppliers');
+                $supplier_name = $sp ? $sp->name : '';
+            }
+            echo json_encode([
+                'found' => true,
+                'message' => 'Este N° de factura ya está registrado.',
+                'purchase' => [
+                    'id' => $row->id,
+                    'reference_no' => $row->reference_no,
+                    'date' => $row->date,
+                    'supplier' => $supplier_name
+                ]
+            ]);
+        } else {
+            echo json_encode([
+                'found' => false,
+                'message' => 'Este N° de factura está disponible.'
+            ]);
+        }
+    }
 }

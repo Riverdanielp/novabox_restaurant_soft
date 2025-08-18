@@ -54,7 +54,7 @@ $(function() {
                 '</span></td>' +
                 '<td class=""><input type="text" data-countID="' + suffix +
                 '" id="consumption_amount_' + suffix +
-                '" name="consumption_amount[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="'+consumption_amount+'" onkeyup="return calculateAll();"/><span class="label_aligning"> ' +
+                '" name="consumption_amount[]" onfocus="this.select();" class="form-control  aligning" placeholder="'+consumption_amount+'" onkeyup="return calculateAll();"/><span class="label_aligning"> ' +
                 ingredient_details_array[2] + '</span></td>' +
                 '<td><select tabindex="4" class="form-control select2" name="consumption_status[]" id="consumption_status_' +
                 suffix +

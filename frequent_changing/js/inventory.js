@@ -7,11 +7,11 @@ $(function() {
         '#grandTotal').val() +
         '<a class="top" title="" data-placement="top" data-toggle="tooltip" style="cursor:pointer" data-original-title="Calculado en base al último precio de compra y no se considera el ingrediente con cantidad/cantidad de stock negativa"><i data-feather="help-circle"></i></a>'
     );
-    //iCheck for checkbox and radio inputs
-    $('input[type="checkbox"].minimal, input[type="radio"].minimal').iCheck({
-        checkboxClass: 'icheckbox_minimal-blue',
-        radioClass: 'iradio_minimal-blue'
-    });
+    // //iCheck for checkbox and radio inputs
+    // $('input[type="checkbox"].minimal, input[type="radio"].minimal').iCheck({
+    //     checkboxClass: 'icheckbox_minimal-blue',
+    //     radioClass: 'iradio_minimal-blue'
+    // });
 
     $(document).on('change','#food_id' , function(e){
         let value = this.value;

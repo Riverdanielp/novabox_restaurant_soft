@@ -76,7 +76,7 @@ $(function() {
                 '" name="ingredient_id[]" value="' + ingredient_details_array[0] + '"/>' +
                 ingredient_details_array[2] + '</span></td>' +'<td><input type="text" data-countID="' + suffix + '" tabindex="' + tab_index + 1 +
                 '" id="quantity_amount_' + suffix +
-                '" name="quantity_amount[]" onfocus="this.select();" class="form-control integerchk aligning countID"  placeholder="Cant/Monto"><span class="label_aligning">' +ingredient_details_array[3]+
+                '" name="quantity_amount[]" onfocus="this.select();" class="form-control  aligning countID"  placeholder="Cant/Monto"><span class="label_aligning">' +ingredient_details_array[3]+
                 '<td><a class="btn btn-danger btn-xs row_delete" style="margin-left: 5px; margin-top: 10px;" ><i style="color:white" class="fa fa-trash"></i> </a></td>' +
                 '</tr>';
             tab_index++;
@@ -118,9 +118,9 @@ $(function() {
                 '" name="ingredient_id[]" value="' + ingredient_details_array[0] + '"/>' +
                 ingredient_details_array[2] + '</span></td>' +'<td><input type="text" data-countID="' + suffix + '" tabindex="' + tab_index + 1 +
                 '" id="quantity_amount_' + suffix +
-                '" name="quantity_amount[]" onfocus="this.select();" class="form-control integerchk aligning countID cal_culate"  placeholder="Cant/Monto"><span class="label_aligning">Pcs</span></td><td><input type="text" data-countID="' + suffix + '" tabindex="' + tab_index + 1 +
+                '" name="quantity_amount[]" onfocus="this.select();" class="form-control  aligning countID cal_culate"  placeholder="Cant/Monto"><span class="label_aligning">Pcs</span></td><td><input type="text" data-countID="' + suffix + '" tabindex="' + tab_index + 1 +
                 '" id="total_cost_' + suffix +
-                '" name="total_cost[]" onfocus="this.select();" readonly data-total_cost="'+ingredient_details_array[3]+'"  data-total_sale_amount="'+ingredient_details_array[4]+'"  data-total_tax="'+ingredient_details_array[5]+'" class="form-control integerchk aligning countID total_cost_c"  placeholder="Total Cost"><input type="hidden" class="single_cost_total_c" name="single_cost_total[]" value="'+ingredient_details_array[3]+'"><input type="hidden" class="total_sale_amount_c" name="total_sale_amount[]" value="'+ingredient_details_array[4]+'"><input type="hidden" class="total_tax_c" name="total_tax[]" value="'+ingredient_details_array[5]+'"><input type="hidden" name="single_total_sale_amount[]" value="'+ingredient_details_array[4]+'"><input type="hidden" name="single_total_tax[]" value="'+ingredient_details_array[5]+'"></td>' +
+                '" name="total_cost[]" onfocus="this.select();" readonly data-total_cost="'+ingredient_details_array[3]+'"  data-total_sale_amount="'+ingredient_details_array[4]+'"  data-total_tax="'+ingredient_details_array[5]+'" class="form-control  aligning countID total_cost_c"  placeholder="Total Cost"><input type="hidden" class="single_cost_total_c" name="single_cost_total[]" value="'+ingredient_details_array[3]+'"><input type="hidden" class="total_sale_amount_c" name="total_sale_amount[]" value="'+ingredient_details_array[4]+'"><input type="hidden" class="total_tax_c" name="total_tax[]" value="'+ingredient_details_array[5]+'"><input type="hidden" name="single_total_sale_amount[]" value="'+ingredient_details_array[4]+'"><input type="hidden" name="single_total_tax[]" value="'+ingredient_details_array[5]+'"></td>' +
                 '<td><a class="btn btn-danger btn-xs row_delete" style="margin-left: 5px; margin-top: 10px;" ><i style="color:white" class="fa fa-trash"></i> </a></td>' +
                 '</tr>';
             tab_index++;

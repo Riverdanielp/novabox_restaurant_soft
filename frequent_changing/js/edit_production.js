@@ -54,7 +54,7 @@ $(function() {
                 '" name="ingredient_id[]" value="' + ingredient_details_array[0] + '"/>' +
                 '<td><input type="text" data-countID="' + suffix + '" tabindex="' + tab_index + 1 +
                 '" id="quantity_amount_' + suffix +
-                '" name="quantity_amount[]" onfocus="this.select();" class="form-control integerchk aligning countID"  placeholder="Cant/Monto" onkeyup="return calculateAll();" ><span class="label_aligning">' +
+                '" name="quantity_amount[]" onfocus="this.select();" class="form-control  aligning countID"  placeholder="Cant/Monto" onkeyup="return calculateAll();" ><span class="label_aligning">' +
                 ingredient_details_array[2] + '</span></td>' +
                 '<td><a class="btn btn-danger btn-xs" style="margin-left: 5px; margin-top: 10px;" onclick="return deleter(' +
                 suffix + ',' + ingredient_details_array[0] +

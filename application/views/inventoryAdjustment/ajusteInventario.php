@@ -59,6 +59,7 @@
                         <div class="col-md-3">
                             <label>Producto</label>
                             <input type="text" id="producto_nombre" class="form-control" readonly>
+                            <div id="aviso_articulo_repetido" style="display:none;color:#c0392b;font-weight:bold;font-size:13px;margin-top:2px;"></div>
                             <input type="hidden" id="ingrediente_id">
                         </div>
                         <div class="col-md-2">

@@ -18,6 +18,11 @@ $(function() {
     $(document).on('click', '.sidebar-toggle', function(){
         sidebarDesgin();
     });
+    $(document).on('click', '#push_menu_btn', function(){
+        setInterval(function() {
+            sidebarDesgin();
+        },100);
+    });
     $(document).on('mouseenter', '.main-sidebar', function() {
         let loggle_status = $('.sidebar-toggle').attr('data-status');
         if(loggle_status == '1'){
@@ -98,52 +103,52 @@ $(function() {
     })
 
 
-    $('.food_menu_slider').slick({
-        dots: false,
-        arrows: true,
-        infinite: true,
-        prevArrow: '<button type="button" class="slick-prev"><i class="fas fa-angle-left"></i></button>',
-        nextArrow: '<button type="button" class="slick-next"><i class="fas fa-angle-right"></i></button>',
-        speed: 300,
-        slidesToShow: 7,
-        slidesToScroll: 8,
-        responsive: [
-            {
-                breakpoint: 1600,
-                settings: {
-                    slidesToShow: 6,
-                    arrows: true,
-                }
-            },
-            {
-                breakpoint: 1366,
-                settings: {
-                    slidesToShow: 4,
-                    arrows: true,
-                }
-            },
-            {
-                breakpoint: 1200,
-                settings: {
-                    slidesToShow: 3,
-                    arrows: true,
-                }
-            },
-            {
-                breakpoint: 992,
-                settings: {
-                    slidesToShow: 2,
-                    arrows: false,
-                }
-            },
-            {
-                breakpoint: 480,
-                settings: {
-                    slidesToShow: 1,
-                    arrows: false,
-                }
-            }
-        ]
-    });
+    // $('.food_menu_slider').slick({
+    //     dots: false,
+    //     arrows: true,
+    //     infinite: true,
+    //     prevArrow: '<button type="button" class="slick-prev"><i class="fas fa-angle-left"></i></button>',
+    //     nextArrow: '<button type="button" class="slick-next"><i class="fas fa-angle-right"></i></button>',
+    //     speed: 300,
+    //     slidesToShow: 7,
+    //     slidesToScroll: 8,
+    //     responsive: [
+    //         {
+    //             breakpoint: 1600,
+    //             settings: {
+    //                 slidesToShow: 6,
+    //                 arrows: true,
+    //             }
+    //         },
+    //         {
+    //             breakpoint: 1366,
+    //             settings: {
+    //                 slidesToShow: 4,
+    //                 arrows: true,
+    //             }
+    //         },
+    //         {
+    //             breakpoint: 1200,
+    //             settings: {
+    //                 slidesToShow: 3,
+    //                 arrows: true,
+    //             }
+    //         },
+    //         {
+    //             breakpoint: 992,
+    //             settings: {
+    //                 slidesToShow: 2,
+    //                 arrows: false,
+    //             }
+    //         },
+    //         {
+    //             breakpoint: 480,
+    //             settings: {
+    //                 slidesToShow: 1,
+    //                 arrows: false,
+    //             }
+    //         }
+    //     ]
+    // });
 
 });

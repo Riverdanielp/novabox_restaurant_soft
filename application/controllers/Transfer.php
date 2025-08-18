@@ -490,6 +490,24 @@ class Transfer extends Cl_Controller {
         ]);
     }
 
+    public function addTransferDinamico() {
+        $outlet_id = $this->session->userdata('outlet_id');
+        $company_id = $this->session->userdata('company_id');
+
+        // Genera número de referencia
+        $pur_ref_no = $this->Transfer_model->generatePurRefNo($outlet_id);
+        $ingredients = $this->Transfer_model->getIngredientListWithUnitAndPrice($company_id);
+        $outlets = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+
+        $data = [
+            'pur_ref_no' => $pur_ref_no,
+            'ingredients' => $ingredients,
+            'outlets' => $outlets,
+        ];
+        $data['main_content'] = $this->load->view('transfer/addTransferDinamico', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+    
     public function transferDinamico($id = null) {
         $outlet_id  = $this->session->userdata('outlet_id');
         $company_id = $this->session->userdata('company_id');
@@ -610,23 +628,6 @@ class Transfer extends Cl_Controller {
         $this->load->view('userHome', $data);
     }
 
-    public function addTransferDinamico() {
-        $outlet_id = $this->session->userdata('outlet_id');
-        $company_id = $this->session->userdata('company_id');
-
-        // Genera número de referencia
-        $pur_ref_no = $this->Transfer_model->generatePurRefNo($outlet_id);
-        $ingredients = $this->Transfer_model->getIngredientListWithUnitAndPrice($company_id);
-        $outlets = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
-
-        $data = [
-            'pur_ref_no' => $pur_ref_no,
-            'ingredients' => $ingredients,
-            'outlets' => $outlets,
-        ];
-        $data['main_content'] = $this->load->view('transfer/addTransferDinamico', $data, TRUE);
-        $this->load->view('userHome', $data);
-    }
 
 public function ajaxAgregarTransferDetalle() {
     $transfer_id = $this->input->post('transfer_id', true);

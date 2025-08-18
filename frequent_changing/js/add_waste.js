@@ -97,7 +97,7 @@ $(function() {
                             "(" + v.code + ")" + '</span></td>' +
                             '<td class="ir_w_15"><input readonly  type="text" data-countID="' +
                             i + '" id="waste_amount_' + i +
-                            '" name="waste_amount[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="Waste Amt" value=" ' +
+                            '" name="waste_amount[]" onfocus="this.select();" class="form-control  aligning" placeholder="Waste Amt" value=" ' +
                             qty + ' " /><span class="label_aligning"> ' + v
                                 .unit_name +
                             '</span><span id="unit_consumption_ingredient_' + i +
@@ -185,7 +185,7 @@ $(function() {
                 '</span></td>' +
                 '<td class="ir_w_15"><input type="text" data-countID="' + suffix +
                 '" id="waste_amount_' + suffix +
-                '" name="waste_amount[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="'+wast_amt+'" onkeyup="return calculateAll();"/><span class="label_aligning"> ' +
+                '" name="waste_amount[]" onfocus="this.select();" class="form-control  aligning" placeholder="'+wast_amt+'" onkeyup="return calculateAll();"/><span class="label_aligning"> ' +
             ingredient_details_array[2] + '</span></td>' +
             '<input type="hidden" id="last_purchase_price_' + suffix +
             '" name="last_purchase_price[]" value="' + ingredient_details_array[3] + '"/>' +

@@ -484,7 +484,7 @@
                     <div class="hh_wrapper">
                         <div class="navbar-custom-menu">
                             <div class="menu-trigger-box">
-                                <a href="javascript:void(0)" data-toggle="push-menu" class="st"><i data-feather="align-right"></i></a>
+                                <a href="javascript:void(0)" data-toggle="push-menu" id="push_menu_btn" class="st "><i data-feather="align-right"></i></a>
                                 <a href="javascript:void(0)" class="om"><i data-feather="link"></i></a>
                             </div>
                             <ul class="screen-list">
@@ -1328,7 +1328,7 @@ endif;
     <script src="<?php echo base_url(); ?>frequent_changing/js/media.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/new-script.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/plugins/slick-slider/slick.min.js?v=7.5"></script>
-    <script src="<?php echo base_url(); ?>frequent_changing/js/new_ui_design.js?v=7.5"></script>
+    <script src="<?php echo base_url(); ?>frequent_changing/js/new_ui_design.js?v=7.51"></script>
 </body>
 
 </html>

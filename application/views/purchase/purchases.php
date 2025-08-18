@@ -32,7 +32,7 @@
                          <thead>
                              <tr>
                                  <th class="ir_w_1"><?php echo lang('sn'); ?></th>
-                                 <th class="ir_w_11"><?php echo lang('ref_no'); ?></th>
+                                 <th class="ir_w_11">Factura Nro. </th>
                                  <th class="ir_w_11"><?php echo lang('payment_method'); ?></th>
                                  <th class="ir_w_8"><?php echo lang('date'); ?></th>
                                  <th class="ir_w_18"><?php echo lang('supplier'); ?></th>
@@ -52,7 +52,7 @@
                                 ?>
                              <tr>
                                  <td><?php echo escape_output($i--); ?></td>
-                                 <td><?php echo escape_output($prchs->reference_no) ?></td>
+                                 <td><?php echo escape_output($prchs->factura_nro) ?></td>
                                  <td> <?php echo escape_output(getPaymentName($prchs->payment_id)) ; ?></td>
                                  <td><?php echo escape_output(date($this->session->userdata('date_format'), strtotime($prchs->date))); ?> </td>
                                  <td><?php echo getSupplierNameById($prchs->supplier_id); ?></td>
