@@ -452,17 +452,18 @@ class Purchase extends Cl_Controller {
         $data = $this->input->post();
         $outlet_id = $this->session->userdata('outlet_id');
 
-        // 1. Buscar si ya existe una compra con el mismo reference_no y outlet_id
-        $this->db->where('reference_no', $data['reference_no']);
-        // $this->db->where('outlet_id', $outlet_id);
-        $purchase = $this->db->get('tbl_purchase')->row();
+        // // 1. Buscar si ya existe una compra con el mismo reference_no y outlet_id
+        // $this->db->where('reference_no', $data['reference_no']);
+        // // $this->db->where('outlet_id', $outlet_id);
+        // $purchase = $this->db->get('tbl_purchase')->row();
 
-        if ($purchase) {
-            $purchase_id = $purchase->id;
-        } else {
+        // if ($purchase) {
+        //     $purchase_id = $purchase->id;
+        // } else {
             // Crear compra
             $purchase_info = [
                 'reference_no' => $data['reference_no'],
+                'factura_nro' => $data['factura_nro'],
                 'supplier_id' => $data['supplier_id'],
                 'date' => $data['date'],
                 'paid' => $data['paid'],
@@ -471,7 +472,7 @@ class Purchase extends Cl_Controller {
                 'outlet_id' => $outlet_id
             ];
             $purchase_id = $this->Common_model->insertInformation($purchase_info, "tbl_purchase");
-        }
+        // }
 
         // Guardar primer item
         $item = $data['item'];
@@ -629,6 +630,7 @@ class Purchase extends Cl_Controller {
      */
     public function ajaxCheckFacturaNro() {
         $factura_nro = trim($this->input->post('factura_nro'));
+        $provider_id = trim($this->input->post('provider_id'));
         $purchase_id = $this->input->post('purchase_id'); // puede venir null cuando es alta
 
         if ($factura_nro === '') {
@@ -638,6 +640,7 @@ class Purchase extends Cl_Controller {
 
         $this->db->from('tbl_purchase');
         $this->db->where('factura_nro', $factura_nro);
+        $this->db->where('supplier_id', $provider_id);
         // Mantén el filtro por estado si tu borrado es lógico
         $this->db->where('del_status !=', 'Deleted');
         // Excluir el propio registro si estás editando

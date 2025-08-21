@@ -163,7 +163,7 @@ class Inventory extends Cl_Controller {
         if ($cat_id) {
             $results = $this->Inventory_model->getDataByCatId($cat_id, "tbl_ingredients");
         } else {
-            $results = $this->Inventory_model->getAllByOutletIdForDropdown($outlet_id, "tbl_ingredients");
+            $results = $this->Common_model->getAllByOutletIdForDropdown($outlet_id, "tbl_ingredients");
         }
         echo json_encode($results);
     }

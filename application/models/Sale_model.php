@@ -1325,7 +1325,6 @@ class Sale_model extends CI_Model {
       if (!$user_id) {
         $user_id = $this->session->userdata('user_id');
       }
-      $user_id = $this->session->userdata('user_id');
       if (!$outlet_id) {
         $outlet_id = $this->session->userdata('outlet_id');
       }

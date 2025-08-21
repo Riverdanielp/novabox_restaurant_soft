@@ -598,6 +598,7 @@ function agregarItemAJAX(item) {
         ajax_url = base_url + 'Purchase/ajaxCrearCompraYAgregarItem';
         ajax_data = {
             reference_no: $('#reference_no').val(),
+            factura_nro: $('#factura_nro').val(),
             supplier_id: $('#supplier_id').val(),
             date: $('#date').val(),
             paid: $('#paid').val(),
@@ -877,7 +878,11 @@ function calculateAll() {
             $.ajax({
                 url: base_url + 'Purchase/ajaxCheckFacturaNro',
                 method: 'POST',
-                data: { factura_nro: val, purchase_id: purchase_id },
+                data: { 
+                    factura_nro: val, 
+                    purchase_id: purchase_id,
+                    provider_id: $('#supplier_id').val()
+                 },
                 success: function(resp){
                     var res;
                     try { res = JSON.parse(resp); } catch(e) { return; }

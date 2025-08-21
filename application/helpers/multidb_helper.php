@@ -129,7 +129,7 @@ if (!function_exists('crear_transferencia_remota')) {
             'remote_outlet_id'       => $data['outlet_id'],
             'remote_outlet_name' => $outlet_name,
             'to_db_key'       => 'default',
-            'user_id'         => $data['user_id'],
+            'user_id'         => 1, //$data['user_id'],
             'note_for_sender' => isset($data['note_for_sender']) ? $data['note_for_sender'] : '',
             'note_for_receiver' => isset($data['note_for_receiver']) ? $data['note_for_receiver'] : '',
             'status'          => $data['status'],
@@ -171,18 +171,17 @@ if (!function_exists('eliminar_transferencia_remota')) {
 /**
  * Busca o crea una categoría de ingredientes en la BD remota por nombre
  */
-function get_or_create_remote_ingredient_category($category_name, $company_id, $user_id, $db_remota) {
+function get_or_create_remote_ingredient_category($category_name, $company_id, $db_remota) {
     $cat = $db_remota->get_where('tbl_ingredient_categories', [
         'category_name' => $category_name,
-        'company_id' => $company_id,
         'del_status' => 'Live'
     ])->row();
     if ($cat) return $cat->id;
     $cat_data = [
         'category_name' => $category_name ?: 'Sin Categoría',
         'description' => '',
-        'user_id' => $user_id,
-        'company_id' => $company_id,
+        'user_id' => 1, //$user_id,
+        'company_id' => 1, //$company_id,
         'del_status' => 'Live'
     ];
     $db_remota->insert('tbl_ingredient_categories', $cat_data);
@@ -203,10 +202,10 @@ function get_or_create_remote_unit($unit_name, $company_id, $db_remota) {
 /**
  * Busca o crea una categoría de food menu en la BD remota por nombre
  */
-function get_or_create_remote_foodmenu_category($category_name, $company_id, $user_id, $db_remota) {
-    $id = $db_remota->query("SELECT id FROM tbl_food_menu_categories WHERE company_id=$company_id and user_id=$user_id and category_name='" . $category_name . "' and del_status='Live'")->row('id');
+function get_or_create_remote_foodmenu_category($category_name, $company_id, $db_remota) {
+    $id = $db_remota->query("SELECT id FROM tbl_food_menu_categories WHERE category_name='" . $category_name . "' and del_status='Live'")->row('id');
     if ($id != '') return $id;
-    $data = array('category_name' => $category_name, 'company_id' => $company_id, 'user_id' => $user_id, 'del_status' => 'Live');
+    $data = array('category_name' => $category_name, 'company_id' => $company_id, 'user_id' => 1, 'del_status' => 'Live');
     $db_remota->insert('tbl_food_menu_categories', $data);
     return $db_remota->insert_id();
 }
@@ -279,7 +278,7 @@ function get_or_create_remote_ingredient($ingredient_id_local, $to_db_key) {
     $db_remota = $CI->load->database($to_db_key, TRUE);
 
     // Categoría y unidad
-    $ingredient_category_id = get_or_create_remote_ingredient_category($ingredient_local->category_id ? categoryName($ingredient_local->category_id) : '', $company_id, $user_id, $db_remota);
+    $ingredient_category_id = get_or_create_remote_ingredient_category($ingredient_local->category_id ? categoryName($ingredient_local->category_id) : '', $company_id, $db_remota);
     $unit_id = get_or_create_remote_unit(unitName($ingredient_local->unit_id), $company_id, $db_remota);
     $purchase_unit_id = get_or_create_remote_unit(unitName($ingredient_local->purchase_unit_id), $company_id, $db_remota);
 
@@ -301,7 +300,7 @@ function get_or_create_remote_ingredient($ingredient_id_local, $to_db_key) {
         $food_menu_local = $CI->Common_model->getDataById($ingredient_local->food_id, "tbl_food_menus");
         if ($food_menu_local) {
             $is_direct_food_remote = 2;
-            $foodmenu_category_id = get_or_create_remote_foodmenu_category(foodMenucategoryName($food_menu_local->category_id), $company_id, $user_id, $db_remota);
+            $foodmenu_category_id = get_or_create_remote_foodmenu_category(foodMenucategoryName($food_menu_local->category_id), $company_id, $db_remota);
 
             // Buscar food_menu remoto
             $food_menu_remote = $db_remota
@@ -333,7 +332,7 @@ function get_or_create_remote_ingredient($ingredient_id_local, $to_db_key) {
                     'ing_category_id' => $food_menu_local->ing_category_id,
                     'tax_information' => $food_menu_local->tax_information,
                     'tax_string' => $food_menu_local->tax_string,
-                    'user_id' => $user_id,
+                    'user_id' => 1, //$user_id,
                     'company_id' => $company_id,
                     'delivery_price' => $food_menu_local->delivery_price,
                     'photo' => $food_menu_local->photo,
@@ -374,7 +373,7 @@ function get_or_create_remote_ingredient($ingredient_id_local, $to_db_key) {
         'consumption_unit_cost' => $ingredient_local->purchase_price, // igual que purchase_price
         'average_consumption_per_unit' => $ingredient_local->purchase_price,
         'conversion_rate' => $ingredient_local->conversion_rate,
-        'user_id' => $user_id,
+        'user_id' => 1, //$user_id,
         'company_id' => $company_id,
         'is_direct_food' => $is_direct_food_remote,
         'food_id' => $food_id_remote,
