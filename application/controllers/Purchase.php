@@ -240,11 +240,13 @@ class Purchase extends Cl_Controller {
                 $data['ingredients'] = $this->Purchase_model->getIngredientListWithUnitAndPrice($company_id);
                 $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                 $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
+                $data['detalles_factura'] = [];
                 $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
                 $data = array();
                 $data['encrypted_id'] = $encrypted_id;
+                $data['detalles_factura'] = (tipoFacturacion() == 'RD_AI') ? verificar_compra($id) : [];
                 $data['payment_methods'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_payment_methods");
                 $data['purchase_details'] = $this->Common_model->getDataById($id, "tbl_purchase");
                 $data['suppliers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_suppliers');
@@ -452,27 +454,37 @@ class Purchase extends Cl_Controller {
         $data = $this->input->post();
         $outlet_id = $this->session->userdata('outlet_id');
 
-        // // 1. Buscar si ya existe una compra con el mismo reference_no y outlet_id
-        // $this->db->where('reference_no', $data['reference_no']);
-        // // $this->db->where('outlet_id', $outlet_id);
-        // $purchase = $this->db->get('tbl_purchase')->row();
-
-        // if ($purchase) {
-        //     $purchase_id = $purchase->id;
-        // } else {
-            // Crear compra
-            $purchase_info = [
-                'reference_no' => $data['reference_no'],
-                'factura_nro' => $data['factura_nro'],
-                'supplier_id' => $data['supplier_id'],
-                'date' => $data['date'],
-                'paid' => $data['paid'],
-                'payment_id' => $data['payment_id'],
-                'user_id' => $this->session->userdata('user_id'),
-                'outlet_id' => $outlet_id
-            ];
+        // Crear compra
+        $purchase_info = [
+            'reference_no' => $data['reference_no'],
+            // 'factura_nro' => $data['factura_nro'],
+            'supplier_id' => $data['supplier_id'],
+            'date' => $data['date'],
+            'paid' => $data['paid'],
+            'payment_id' => $data['payment_id'],
+            'user_id' => $this->session->userdata('user_id'),
+            'outlet_id' => $outlet_id
+        ];
+        if (tipoFacturacion() == 'RD_AI'){
+            $prefijo = htmlspecialchars($this->input->post($this->security->xss_clean('prefijo')));
+            $ncf = htmlspecialchars($this->input->post($this->security->xss_clean('ncf')));
+            $purchase_info['factura_nro'] = $ncf;
+            $purchase_info['itbis'] = $this->input->post('itbis');
             $purchase_id = $this->Common_model->insertInformation($purchase_info, "tbl_purchase");
-        // }
+
+            $factura_info = array();
+            $factura_info['id_proveedor'] =htmlspecialchars($this->input->post($this->security->xss_clean('supplier_id')));
+            $factura_info['fecha_comprobante'] =htmlspecialchars($this->input->post($this->security->xss_clean('date')));
+            $factura_info['ncf'] =htmlspecialchars($this->input->post($this->security->xss_clean('ncf')));
+            $factura_info['numeracion_tipo'] =htmlspecialchars($this->input->post($this->security->xss_clean('tipo_numeracion')));
+            $factura_info['fecha_venc'] =htmlspecialchars($this->input->post($this->security->xss_clean('fecha_venc')));
+            $factura_info['tipo_cyg'] =htmlspecialchars($this->input->post($this->security->xss_clean('tipo_cyg')));
+            $factura_info['tipo_pago'] =htmlspecialchars($this->input->post($this->security->xss_clean('tipo_pago')));
+            facturar_compra($purchase_id,$factura_info);
+        } else {
+            $purchase_info['factura_nro'] = $this->input->post('factura_nro');
+            $purchase_id = $this->Common_model->insertInformation($purchase_info, "tbl_purchase");
+        }
 
         // Guardar primer item
         $item = $data['item'];
@@ -484,7 +496,7 @@ class Purchase extends Cl_Controller {
             'iva_tipo' => $item['iva_tipo'],
             'purchase_id' => $purchase_id,
             'outlet_id' => $outlet_id,
-            'total' => $item['unit_price'] * $item['quantity_amount']
+            'total' => floatval($item['unit_price']) * floatval($item['quantity_amount'])
         ];
         $item_id = $this->Common_model->insertInformation($item_data, "tbl_purchase_ingredients");
 
@@ -518,7 +530,7 @@ class Purchase extends Cl_Controller {
             'iva_tipo' => $item['iva_tipo'],
             'purchase_id' => $purchase_id,
             'outlet_id' => $this->session->userdata('outlet_id'),
-            'total' => $item['unit_price'] * $item['quantity_amount']
+            'total' => floatval($item['unit_price']) * floatval($item['quantity_amount'])
         ];
         $item_id = $this->Common_model->insertInformation($item_data, "tbl_purchase_ingredients");
         $ingrediente = getIngredient($item['ingredient_id']);
@@ -560,7 +572,7 @@ class Purchase extends Cl_Controller {
             'quantity_amount' => $quantity_amount,
             // 'sale_price' => $sale_price,
             'iva_tipo' => $iva_tipo,
-            'total' => $unit_price * $quantity_amount
+            'total' => floatval($unit_price) * floatval($quantity_amount)
         ];
         $this->Common_model->updateInformation($data, $item_id, "tbl_purchase_ingredients");
 
@@ -612,13 +624,30 @@ class Purchase extends Cl_Controller {
         $data = [
             'reference_no' => $this->input->post('reference_no'),
             'supplier_id' => $this->input->post('supplier_id'),
-            'factura_nro' => $this->input->post('factura_nro'),
+            // 'factura_nro' => $this->input->post('factura_nro'),
             'date' => $this->input->post('date'),
             'paid' => $this->input->post('paid'),
             'payment_id' => $this->input->post('payment_id'),
             'grand_total' => $this->input->post('grand_total'),
             'due' => $this->input->post('due'),
         ];
+        if (tipoFacturacion() == 'RD_AI'){
+            $factura_info = array();
+            $factura_info['id_proveedor'] =htmlspecialchars($this->input->post($this->security->xss_clean('supplier_id')));
+            $factura_info['fecha_comprobante'] =htmlspecialchars($this->input->post($this->security->xss_clean('date')));
+            $factura_info['ncf'] =htmlspecialchars($this->input->post($this->security->xss_clean('ncf')));
+            $factura_info['numeracion_tipo'] =htmlspecialchars($this->input->post($this->security->xss_clean('tipo_numeracion')));
+            $factura_info['fecha_venc'] =htmlspecialchars($this->input->post($this->security->xss_clean('fecha_venc')));
+            $factura_info['tipo_cyg'] =htmlspecialchars($this->input->post($this->security->xss_clean('tipo_cyg')));
+            $factura_info['tipo_pago'] =htmlspecialchars($this->input->post($this->security->xss_clean('tipo_pago')));
+            facturar_compra($purchase_id,$factura_info);
+            $prefijo = htmlspecialchars($this->input->post($this->security->xss_clean('prefijo')));
+            $ncf = htmlspecialchars($this->input->post($this->security->xss_clean('ncf')));
+            $data['factura_nro'] = $ncf;
+            $data['itbis'] = $this->input->post('itbis');
+        } else {
+            $data['factura_nro'] = $this->input->post('factura_nro');
+        }
         $this->Common_model->updateInformation($data, $purchase_id, "tbl_purchase");
         echo json_encode(['success' => true]);
     }

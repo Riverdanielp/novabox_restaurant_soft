@@ -43,7 +43,7 @@ class Inventory_adjustment extends Cl_Controller {
             $function = "delete";
         }elseif($segment_2=="ajuste"){
             $function = "ajuste";
-        }elseif($segment_2=="ajaxBuscarIngredientePorCodigo" || "ajaxBuscarIngredientesPorNombre" == $segment_2 || $segment_2=="ajaxBorrarAjusteDetalle"){
+        }elseif($segment_2=="ajaxBuscarIngredientePorCodigo" || $segment_2=="ajaxBuscarIngredientesPorNombre" || $segment_2=="ajaxBorrarAjusteDetalle"){
             $function = "ajaxBuscarIngredientePorCodigo";
         }elseif($segment_2=="ajaxGuardarAjusteDinamico"){
             $function = "ajaxGuardarAjusteDinamico";
@@ -55,10 +55,10 @@ class Inventory_adjustment extends Cl_Controller {
         }
 
         
-        if( $segment_2=="ajuste" ||
-            $segment_2=="ajaxBuscarIngredientePorCodigo" ||
-            $segment_2=="ajaxGuardarAjusteDinamico" ||
-            $segment_2=="ajaxListarAjusteDetalles"
+        if( $function=="ajuste" ||
+            $function=="ajaxBuscarIngredientePorCodigo" ||
+            $function=="ajaxGuardarAjusteDinamico" ||
+            $function=="ajaxListarAjusteDetalles"
             ){
         } else {
             if(!checkAccess($controller,$function)){

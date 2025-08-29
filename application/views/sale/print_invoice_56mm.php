@@ -40,6 +40,28 @@
                         endif;
                             ?>
                     <p>
+
+                    
+                        <!-- /// *** INSERCIÓN DATO DE FACTURACION *** /// -->
+                        <?php if(tipoFacturacion() == 'RD_AI') : ?>
+                            <?php if (!empty(datos_factura($sale_object->id))) : ?>
+                                <hr>
+                                <b><?php echo datos_factura($sale_object->id)->Tipo; ?></b><br>
+                                <?php echo 'NCF' ?>: <b><?php echo datos_factura($sale_object->id)->Prefijo . rellenar_num(datos_factura($sale_object->id)->numero); ?></b><br>
+                                <?php $vencimiento = datos_factura($sale_object->id)->Vencimiento;
+                                    $date = date_create("$vencimiento");
+                                    $newDate = date_format($date,"d/m/Y");
+                                    ?>
+                                <?php if (datos_factura($sale_object->id)->Vencimiento != NULL) :
+                                echo 'Vencimiento' ?>: <b><?php echo date_format($date,"d/m/Y"); ;//date('d/m/Y',strtotime($vencimiento)) ; ?></b><br>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        <!-- /// *** INSERCIÓN DATO DE FACTURACION *** /// -->
+                         
+
+
+
                     <?php echo lang('address'); ?>: <?php echo escape_output($this->session->userdata('address')); ?>
                         <br>
                        <?php echo lang('phone'); ?>: <?php echo escape_output($this->session->userdata('phone')); ?>

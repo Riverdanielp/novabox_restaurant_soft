@@ -1279,7 +1279,11 @@ class Sale extends Cl_Controller {
         $is_new_address = trim_checker($this->input->post($this->security->xss_clean('is_new_address')));
         $data['user_id'] = $this->session->userdata('user_id');
         $data['company_id'] = $this->session->userdata('company_id');
-       $id_return = 0;
+        if (tipoFacturacion() == 'RD_AI') {
+            $data['tipo_ident'] = $this->input->post($this->security->xss_clean('customer_tipo_ident'));
+            $data['tipo_numeracion'] = $this->input->post($this->security->xss_clean('customer_tipo_numeracion'));
+        }
+        $id_return = 0;
         if($customer_id>0 && $customer_id!=""){
             $this->db->where('id', $customer_id);
             $this->db->update('tbl_customers', $data);
@@ -2742,6 +2746,7 @@ class Sale extends Cl_Controller {
         $data['paid_amount'] = trim_checker($order_details->paid_amount);
         $data['due_amount'] = trim_checker($order_details->due_amount);
         $data['zatca_value'] = trim_checker($order_details->zatca_invoice_value);
+
         $total_tax = 0;
         if(isset($order_details->sale_vat_objects) && $order_details->sale_vat_objects){
             foreach ($order_details->sale_vat_objects as $keys=>$val){
@@ -2751,6 +2756,11 @@ class Sale extends Cl_Controller {
         $data['vat'] = $total_tax;
         $data['sale_vat_objects'] = json_encode($order_details->sale_vat_objects);
         $data['order_type'] = trim_checker($order_details->order_type);
+        if (tipoFacturacion() == 'RD_AI') {
+            // $data['numeracion'] = trim_checker($order_details->numeracion);
+            $numeracion = trim_checker($order_details->numeracion);
+        }
+
         $this->db->trans_begin();
         if($sale_id>0){
             $data['modified'] = 'Yes';
@@ -2781,6 +2791,13 @@ class Sale extends Cl_Controller {
             $sale_no_update_array = array('sale_no' => $sale_no);
             $this->db->where('id', $sales_id);
             $this->db->update('tbl_sales', $sale_no_update_array);
+            
+            // ***************************** Insertar Aqui codigo de Facturas usando $sales_id ********************
+            if (tipoFacturacion() == 'RD_AI') {
+                nueva_factura_venta($sales_id,$numeracion);
+            }
+
+            // ***************************** Fin del código ********************
         }
         foreach($order_details->orders_table as $single_order_table){
             $order_table_info = array();
@@ -5955,13 +5972,19 @@ class Sale extends Cl_Controller {
         if (empty($sale_details)) {
             $sale_id = '';
             $sale_info = $this->get_all_information_of_a_sale($sale_no);
+            $payments = [];
         } else {
             $sale_id = $sale_details->id;
             $sale_info = $this->get_all_information_of_a_sale_modify($sale_id);
+            $payments = salePaymentDetails($sale_id, $this->session->userdata('outlet_id'));
         }
         if (empty($sale_info)) {
             return;
         }
+        // echo '<pre>';
+        // var_dump($payments);
+        // echo '</pre>';
+
         $data['sale_object'] = $sale_info;
         $sale = $data['sale_object'];
     
@@ -5992,16 +6015,42 @@ class Sale extends Cl_Controller {
             ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
             ['type' => 'text', 'align' => 'center', 'text' => ''],
-    
-            // Información de la venta
-            ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale->selected_number_name],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))],
-            // ['type' => 'text', 'align' => 'left', 'text' => 'Usuario: ' . $sale->user_name],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name . $customer_phone],
-            ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
         ];
+    
+        // ✅ Agregar condición justo antes de "Información de la venta"
+        if (tipoFacturacion() == 'RD_AI') {
+            $df = datos_factura($sale_id);
+            if (!empty($df)) {
+
+                // Línea separadora
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
+
+                // Tipo de factura
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => $df->Tipo];
+
+                // NCF con prefijo y número rellenado
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'NCF: ' . $df->Prefijo . rellenar_num($df->numero)];
+
+                // Fecha de vencimiento si existe
+                if ($df->Vencimiento != NULL) {
+                    $date = date_create($df->Vencimiento);
+                    $newDate = date_format($date, "d/m/Y");
+                    $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Vencimiento: ' . $newDate];
+                }
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+            }
+        }
+
+        // Información de la venta
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Orden: ' . $sale->sale_no];
+        if (!empty($sale->selected_number_name)) {
+            $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Comanda #' . $sale->selected_number_name];
+        }
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($sale->sale_date)) . ' ' . date('H:i', strtotime($sale->order_time))];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . $sale->customer_name . $customer_phone];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Vendedor: ' . $sale->waiter_name];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
     
         // Detalles de los productos
         $content[] = ['type' => 'extremos', 'textLeft' => 'Descripción', 'textRight' => 'Importe'];
@@ -6050,12 +6099,27 @@ class Sale extends Cl_Controller {
         $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'TOTAL: ' . getAmtPCustom($sale->total_payable)];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
     
+        if ($payments && !empty($payments)) {
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => '----------' ];
+            foreach ($payments as $payment) {
+                $txt_point = '';
+                if ($payment->id == 5) {
+                    $txt_point = " (Puntos de Usuario: " . $payment->usage_point . ")";
+                }
+                $content[] = ['type' => 'text', 'align' => 'right', 'text' => $payment->payment_name . $txt_point . ': ' . getAmtPCustom($payment->amount)];
+            }
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => '----------' ];
+        }
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'cut'];
     
+        // echo '<pre>';
+        // var_dump($content); 
+        // echo '<pre>';
+        
         // Obtener la configuración de la impresora
         $company_id = $this->session->userdata('company_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
@@ -7714,4 +7778,10 @@ class Sale extends Cl_Controller {
         echo '</pre>';
     }
 
+    
+	function NumeracionesActivasByJson()
+	{
+		echo json_encode(NumeracionesActivas());
+	}
+    
 }

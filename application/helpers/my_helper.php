@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420642';
+    return '?v=7.5420643';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -4544,11 +4544,21 @@ function sanitize_font_html($input) {
     return trim(strip_tags($input));
 }
 
+function tipoFacturacion(){
+    $CI =& get_instance();
+    $CI->load->config('config');  // Cargar el archivo de configuración
+
+    // Obtener las configuraciones desde config.php
+    $tipo_facturacion = $CI->config->item('tipo_facturacion') ?? 'No';
+    return $tipo_facturacion;
+}
+
 function tipoConsultaRuc(){
     $CI =& get_instance();
     $CI->load->config('config');  // Cargar el archivo de configuración
 
     // Obtener las configuraciones desde config.php
+    //tipo_facturacion: 'No','RD_AI','RD_FE','Py_FE'
     $tipo_consulta_ruc = $CI->config->item('tipo_consulta_ruc') ?? 'CI/RUC';
     return $tipo_consulta_ruc;
 }

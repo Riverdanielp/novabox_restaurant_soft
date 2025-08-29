@@ -13,15 +13,16 @@ $(function() {
             $('.menu-header.small span').css('display', 'block');
             $('.menu-header.small svg').css('display', 'none');
         }
+        // console.log('sidebarDesgin');
     }
     sidebarDesgin();
     $(document).on('click', '.sidebar-toggle', function(){
         sidebarDesgin();
     });
     $(document).on('click', '#push_menu_btn', function(){
-        setInterval(function() {
+        setTimeout(function() {
             sidebarDesgin();
-        },100);
+        },500);
     });
     $(document).on('mouseenter', '.main-sidebar', function() {
         let loggle_status = $('.sidebar-toggle').attr('data-status');
@@ -32,6 +33,18 @@ $(function() {
             $('.menu-header.small svg').css('display', 'none');
             
         }
+    });
+    $(document).on('mouseenter', '#push_menu_btn', function() {
+        setTimeout(function() {
+            let loggle_status = $('.sidebar-toggle').attr('data-status');
+            if(loggle_status == '1'){
+                $('.menu-header.small').css('padding-top', '15px');
+
+                $('.menu-header.small span').css('display', 'block');
+                $('.menu-header.small svg').css('display', 'none');
+                
+            }
+        },500);
     });
     $(document).on('mouseleave', '.main-sidebar', function() {
         let loggle_status = $('.sidebar-toggle').attr('data-status');

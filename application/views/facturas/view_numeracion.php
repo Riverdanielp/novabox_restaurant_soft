@@ -1,0 +1,112 @@
+<section class="main-content-wrapper">
+    <?php
+        if ($this->session->flashdata('exception')) {
+
+            echo '<section class="alert-wrapper">
+            <div class="alert alert-success alert-dismissible fade show"> 
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="alert-body">
+            <p class="m-0"><i class="icon fa fa-check"></i>';
+            echo escape_output($this->session->flashdata('exception'));
+            echo '</p></div></div></section>';
+        }
+        $plusSVG= '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-plus me-50 font-small-4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+
+    ?>
+
+    <section class="content-header px-0">
+            <h1 class="top-left-header">
+            Facturas de Ventas Realizadas </h1>
+        </section>
+    <div class="box-wrapper">
+        <div class="table-box">
+            <div class="row">
+                <div class="col-sm-12 col-md-6">
+                    <p><b> Tipo Documento:</b> <?php echo $Numeracion->TipoDoc; ?></p>
+                    <p><b> Tipo Factura:</b> <?php echo $Numeracion->Tipo; ?></p>
+                    <p><b> Nombre:</b> <?php echo $Numeracion->nombre; ?></p>
+                    <p><b> Fecha de Creación:</b> <?php echo date('d-m-Y H:i:s',strtotime($Numeracion->created)); ?></p>
+                </div>
+                <div class="col-sm-12 col-md-6">
+                    <p><b> ID:</b> <?php echo $Numeracion->id; ?> <b> Prefijo:</b> <?php echo $Numeracion->prefijo; ?></p>
+                    <p><b> Secuencia:</b> <?php echo "$Numeracion->num_ini - $Numeracion->num_fin"; ?></p>
+                    <p><b> Número Actual:</b> <?php echo $Numeracion->num_sig; ?></p>
+                    <p><b> Fecha Vencimiento:</b> <?php echo date('d-m-Y',strtotime($Numeracion->fecha_venc)); ?></p>
+                </div>
+            </div>
+        </div>
+    </div>
+        <hr>
+    <div class="row">
+        <div class="col-sm-12 col-md-3">
+            <div class="box-wrapper">
+                <div class="table-box">
+                    <table>
+                        <?php if (!empty($Numeraciones)): ?>
+                            <?php foreach($Numeraciones as $Num):?>
+                                <tr>
+                                    <th>
+                                        <button class="btn_list w-100 m-right btn btn-primary" id="factura_<?php echo $Num->id; ?>" onclick="VerFactura('<?php echo $Num->sale_id; ?>')">
+                                            <?php echo "<b>$Num->Prefijo</b>" . "<b>-$Num->numero</b> - <b>ID Venta:</b> $Num->sale_id ";
+                                            echo ($Num->nombre != NULL && $Num->nombre != '' && $Num->nombre != '') ? "- <b>Cliente:</b> $Num->nombre " : '';
+                                            echo ($Num->rnc != NULL && $Num->rnc != '' && $Num->rnc != '') ? "- <b>RNC:</b> $Num->rnc" : ''; ?>
+                                        </button>
+                                    </th>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <a class="list-group-item" ></i>Aún no se registraron facturas con esta numeración.</a>
+
+                        <?php endif; ?>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-9">
+            <div class="box-wrapper">
+                <div class="table-box">
+                    <div class="row">
+                        <h3 class="top-left-header">Factura: </h3>
+                        <iframe id="Factura_iframe" width="100%" height="25" frameborder="0"></iframe>
+                        <!-- <iframe src="< ?php echo site_url("facturas/view_fact_iframe/1"); ?>" width="100%" height="600" frameborder="0"></iframe> -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+    var Factura_url = "<?php echo base_url() . "Sale/print_invoice/"; ?>";
+    function VerFactura(id){
+
+        let frame = document.getElementById("Factura_iframe");
+        let enlace = Factura_url + id;
+        //console.log(enlace);
+
+        frame.height = '700';
+        frame.src = enlace;
+    };
+
+
+</script>
+
+<script src="<?php echo base_url(); ?>frequent_changing/js/inventory.js"></script>
+
+<!-- DataTables -->
+<script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jquery.dataTables.min.js"></script>
+<script src="<?php echo base_url(); ?>assets/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js">
+</script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/dataTables.bootstrap4.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/dataTables.buttons.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/buttons.html5.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/buttons.print.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jszip.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/pdfmake.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/buttons.colVis.min.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
+
+
+
+<script src="<?php echo base_url(); ?>frequent_changing/js/custom_report.js"></script>

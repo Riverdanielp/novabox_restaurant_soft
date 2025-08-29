@@ -79,23 +79,86 @@
                             <p id="supplier_id_err_msg"></p>
                         </div>
                     </div>
-                    <!-- Factura nro -->
-                    <div class="col-sm-12 col-md-6 mb-2 col-lg-4">
-                        <div class="form-group">
-                            <label>N° Factura</label>
-                            <input tabindex="1" type="text" id="factura_nro" name="factura_nro"
-                                class="form-control" placeholder="N° Factura"
-                                value="<?php echo set_value('factura_nro', isset($purchase_details) ? escape_output($purchase_details->factura_nro) : ''); ?>">
+
+
+
+                    <?php if(tipoFacturacion() == 'RD_AI'): ?>
+
+                        <!-- Tipo numeracion -->
+                        <div class="col-xs-4 col-sm-4 col-md-2 mb-2 col-lg-1">
+                            <div class="form-group">
+                                <label for="tipo_numeracion">Prefijo:</label>
+                                <select name="tipo_numeracion" class="form-control form-inps" id="tipo_numeracion" required>
+                                        <?php $TiposNumeracion = TipoNumeracion();
+                                        foreach ($TiposNumeracion as $Tipo) : ?>
+                                                <option value="<?php echo $Tipo->id ?>"<?php if ($detalles_factura != NULL && $Tipo->id == $detalles_factura->numeracion_tipo) {echo ' selected';}; ?>><small><?php echo $Tipo->prefijo ?></small></option>
+                                        <?php endforeach; ?>
+                                    
+                                </select>
+                            </div>
                         </div>
-                        <?php if (form_error('factura_nro')) { ?>
-                        <div class="callout callout-danger my-2">
-                            <?php echo form_error('factura_nro'); ?>
+  
+                        <div class="col-xs-4 col-sm-8 col-md-4 mb-2 col-lg-3">
+                            <div class="form-group">
+                                <label>NCF <span class="required_star">*</span></label>
+                                <input tabindex="1" type="text" id="ncf" name="ncf"
+                                    class="form-control" placeholder="Ejemplo: B0200000001."
+                                    value="<?php echo ($detalles_factura != NULL) ? $detalles_factura->ncf : '' ?>" required>
+                            </div>
                         </div>
-                        <?php } ?>
-                        <div class="callout callout-danger my-2 error-msg factura_nro_msg_contnr">
-                            <p id="factura_nro_msg"></p>
+
+                        <div class="col-sm-12 col-md-6 mb-2 col-lg-4">
+                            <div class="form-group">
+                                <label>Vencimiento Factura:</label>
+                                <input tabindex="4" type="date" id="fecha_venc" name="fecha_venc" class="form-control"
+                                    placeholder="Ingrese fecha de vencimiento de la factura." value="<?php echo ($detalles_factura != NULL) ? date('Y-m-d', strtotime($detalles_factura->fecha_venc)) : ''; ?>">
+                            </div>
+                            <?php if (form_error('fecha_venc')) { ?>
+                            <div class="callout callout-danger my-2">
+                                <?php echo form_error('fecha_venc'); ?>
+                            </div>
+                            <?php } ?>
+                            <div class="callout callout-danger my-2 error-msg date_err_msg_contnr"">
+                                <p id="date_err_msg">
+                                </p>
+                            </div>
                         </div>
-                    </div>
+
+                        <div class="col-sm-12 col-md-6 mb-2 col-lg-4">
+                            <div class="form-group">
+                                <label for="tipo_cyg">Tipo Costo/Gasto: <span class="required_star">*</span></label>
+                                <select name="tipo_cyg" class="form-control form-inps" id="tipo_cyg" required>
+                                        <?php $TipoCyG = TipoCyG();
+                                        foreach ($TipoCyG as $Tipo) : ?>
+                                                <option value="<?php echo $Tipo->id ?>"<?php if ($detalles_factura != NULL && $Tipo->id == $detalles_factura->tipo_cyg) {echo ' selected';}; ?>><?php echo $Tipo->nombre ?></option>
+                                        <?php endforeach; ?>
+                                    
+                                </select>
+                            </div>
+                        </div>
+
+                    <?php else: ?>
+                        
+                        <!-- Factura nro -->
+                        <div class="col-sm-12 col-md-6 mb-2 col-lg-4">
+                            <div class="form-group">
+                                <label>N° Factura</label>
+                                <input tabindex="1" type="text" id="factura_nro" name="factura_nro"
+                                    class="form-control" placeholder="N° Factura"
+                                    value="<?php echo set_value('factura_nro', isset($purchase_details) ? escape_output($purchase_details->factura_nro) : ''); ?>">
+                            </div>
+                            <?php if (form_error('factura_nro')) { ?>
+                            <div class="callout callout-danger my-2">
+                                <?php echo form_error('factura_nro'); ?>
+                            </div>
+                            <?php } ?>
+                            <div class="callout callout-danger my-2 error-msg factura_nro_msg_contnr">
+                                <p id="factura_nro_msg"></p>
+                            </div>
+                        </div>
+
+                    <?php endif; ?>
+
                     <!-- Date -->
                     <div class="col-sm-12 col-md-6 mb-2 col-lg-4">
                         <div class="form-group">
@@ -166,7 +229,11 @@
                                         <th><?php echo lang('unit_price'); ?></th>
                                         <th><?php echo lang('quantity_amount'); ?></th>
                                         <th><?php echo lang('sale_price'); ?></th>
-                                        <th>IVA</th>
+                                        <th>
+                                            <?php if(tipoFacturacion() != 'RD_AI'): ?>
+                                                IVA
+                                            <?php endif; ?>
+                                        </th>
                                         <th><?php echo lang('total'); ?></th>
                                         <th><?php echo lang('actions'); ?></th>
                                     </tr>
@@ -180,6 +247,33 @@
 
                 <!-- Totals & payment -->
                 <div class="row">
+                    <?php if(tipoFacturacion() == 'RD_AI'): ?>
+                        
+                        <div class="col-md-8"></div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="tipo_pago">Tipo Pago <span class="required_star">*</span></label>
+                                <select name="tipo_pago" class="form-control form-inps" id="tipo_pago" required>
+                                        <?php $TipoPago = TipoPago();
+                                        foreach ($TipoPago as $Tipo) : ?>
+                                                <option value="<?php echo $Tipo->id ?>"<?php if ($detalles_factura != NULL && $Tipo->id == $detalles_factura->tipo_pago) {echo ' selected';}; ?>><?php echo $Tipo->nombre ?></option>
+                                        <?php endforeach; ?>
+                                    
+                                </select>
+                            </div>
+                            <br>
+                        </div>
+                        
+                        <div class="col-md-8"></div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label><?php echo 'ITBIS' ?> <span class="required_star">*</span></label>
+                                <input class="form-control" type="text" name="itbis"
+                                       id="itbis" value="<?php echo set_value('itbis', isset($purchase_details) ? escape_output($purchase_details->itbis) : ''); ?>">
+                            </div>
+                        </div>
+
+                    <?php endif; ?>
                     <div class="col-md-8"></div>
                     <div class="col-md-3">
                         <div class="form-group">
@@ -598,12 +692,24 @@ function agregarItemAJAX(item) {
         ajax_url = base_url + 'Purchase/ajaxCrearCompraYAgregarItem';
         ajax_data = {
             reference_no: $('#reference_no').val(),
-            factura_nro: $('#factura_nro').val(),
+            // factura_nro: $('#factura_nro').val(),
             supplier_id: $('#supplier_id').val(),
             date: $('#date').val(),
             paid: $('#paid').val(),
             payment_id: $('#payment_id').val(),
-            item: item
+            item: item,
+            
+            <?php if(tipoFacturacion() == 'RD_AI'): ?>
+                tipo_numeracion: $('#tipo_numeracion').val(),
+                prefijo: $('#tipo_numeracion option:selected').text(),
+                ncf: $('#ncf').val(),
+                fecha_venc: $('#fecha_venc').val(),
+                tipo_cyg: $('#tipo_cyg').val(),
+                tipo_pago: $('#tipo_pago').val(),
+                itbis: $('#itbis').val(),
+            <?php else: ?>
+                factura_nro: $('#factura_nro').val(),
+            <?php endif; ?>
         };
     } else {
         ajax_url = base_url + 'Purchase/ajaxAgregarItemCompra';
@@ -627,17 +733,25 @@ function agregarItemAJAX(item) {
 }
 
 function agregarFilaHTML(item) {
+    let iva = '';
+    
+    <?php if(tipoFacturacion() == 'RD_AI'): ?>
+        iva = '<td><input type="hidden" value="' + item.iva_tipo + '" class="edit-iva-tipo" /></td>';
+    <?php else : ?>
+        iva = '<td><select class="form-control edit-iva-tipo">' +
+            '<option value="10"' + (item.iva_tipo == '10' ? ' selected' : '') + '>IVA 10</option>' +
+            '<option value="5"' + (item.iva_tipo == '5' ? ' selected' : '') + '>IVA 5</option>' +
+            '<option value="0"' + (item.iva_tipo == '0' ? ' selected' : '') + '>IVA Exonerado</option>' +
+        '</select></td>';
+    <?php endif; ?>
+
     let cart_row = '<tr class="rowCount" data-item_id="' + item.ingredient_id + '" data-purchase_item_id="' + item.id + '" id="row_' + item.id + '">' +
         '<td style="padding-left: 10px;"><p>' + item.sn + '</p></td>' +
         '<td>' + item.name + '</td>' +
         '<td><input type="text" value="' + item.unit_price + '" class="form-control aligning edit-unit-price" /></td>' +
         '<td><input type="text" value="' + item.quantity_amount + '" class="form-control aligning edit-quantity" /></td>' +
         '<td><input type="text" value="' + item.sale_price + '" class="form-control aligning edit-sale-price" /></td>' +
-        '<td><select class="form-control edit-iva-tipo">' +
-            '<option value="10"' + (item.iva_tipo == '10' ? ' selected' : '') + '>IVA 10</option>' +
-            '<option value="5"' + (item.iva_tipo == '5' ? ' selected' : '') + '>IVA 5</option>' +
-            '<option value="0"' + (item.iva_tipo == '0' ? ' selected' : '') + '>IVA Exonerado</option>' +
-        '</select></td>' +
+        iva +
         '<td><input type="text" value="' + item.total + '" class="form-control aligning edit-total" readonly /></td>' +
         '<td>' +
             '<a href="#" class="btn btn-danger btn-xs btn-delete-row" data-id="' + item.id + '"><i class="fa fa-trash"></i></a>' +
@@ -723,7 +837,7 @@ $(function(){
             total: item.total,
             sn: idx+1
         };
-        console.log(rowObj);
+        // console.log(rowObj);
         agregarFilaHTML(rowObj);
     });
             calculateAll();
@@ -777,12 +891,23 @@ function guardarCompraFinalAjax() {
             purchase_id: purchase_id,
             reference_no: $('#reference_no').val(),
             supplier_id: $('#supplier_id').val(),
-            factura_nro: $('#factura_nro').val(),
             date: $('#date').val(),
             paid: $('#paid').val(),
             payment_id: $('#payment_id').val(),
             grand_total: $('#grand_total').val(),
-            due: $('#due').val()
+            due: $('#due').val(),
+            
+            <?php if(tipoFacturacion() == 'RD_AI'): ?>
+                tipo_numeracion: $('#tipo_numeracion').val(),
+                prefijo: $('#tipo_numeracion option:selected').text(),
+                ncf: $('#ncf').val(),
+                fecha_venc: $('#fecha_venc').val(),
+                tipo_cyg: $('#tipo_cyg').val(),
+                tipo_pago: $('#tipo_pago').val(),
+                itbis: $('#itbis').val(),
+            <?php else: ?>
+                factura_nro: $('#factura_nro').val(),
+            <?php endif; ?>
         },
         success: function(response) {
             let res = JSON.parse(response);

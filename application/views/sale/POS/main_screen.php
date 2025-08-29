@@ -2209,6 +2209,30 @@ foreach ($notifications as $single_notification){
                         <span id="ruc_message" class="mt-2 text-info">(Ingrese <?php echo $RUC ?> y presione 'Enter')</span> 
                             <br>
                         </div>
+                        <?php if (tipoFacturacion() == 'RD_AI'){?>
+                            <div class="customer_section">
+                                <label for="customer_tipo_ident">Tipo Documento:*</label>
+                                <select name="customer_tipo_ident" class="form-control form-inps" id="customer_tipo_ident" required>
+                                                <option value="1">RNC</option>
+                                                <option value="2">Cédula</option>
+                                </select>
+                            </div>
+                            
+                            <div class="customer_section">
+                                <label for="customer_tipo_numeracion">Tipo Numeración:*</label>
+                                <select name="customer_tipo_numeracion" class="form-control form-inps" id="customer_tipo_numeracion" required>
+                                    <option selected="selected">Seleccione un tipo</option> 
+                                        <?php $tiposNumeracion = TipoNumeracion();
+                                        foreach ($tiposNumeracion as $tipo) : ?>
+                                                <option value="<?php echo $tipo->id ?>"><?php echo $tipo->prefijo ?> - <?php echo $tipo->nombre ?></option>
+                                        <?php endforeach; ?>
+                                    
+                                </select>
+                            </div>
+                        <?php } else { ?>
+                            <input type="hidden" value="2" id="customer_tipo_ident"     >
+                            <input type="hidden" value="" id="customer_tipo_numeracion">
+                        <?php } ?>
                         <div class="customer_section">
                             <p class="input_level"><?php echo lang('dob'); ?></p>
                             <input type="datable" class="add_customer_modal_input" autocomplete="off"
@@ -2224,13 +2248,6 @@ foreach ($notifications as $single_notification){
                             <input type="text" class="add_customer_modal_input" placeholder="<?php echo lang('default_discount_pl'); ?>" autocomplete="off"
                                    id="customer_default_discount_modal">
                         </div>
-                        <?php if(collectGST()=="Yes"){?>
-                            <div class="customer_section">
-                                <p class="input_level"><?php echo lang('gst_number'); ?> <span class="required_star">*</span></p>
-                                <input type="text" placeholder="<?php echo lang('gst_number'); ?>" class="add_customer_modal_input" id="customer_gst_number_modal">
-
-                            </div>
-                        <?php } ?>
                     </div>
                 </div>
 
@@ -3931,6 +3948,41 @@ foreach ($notifications as $single_notification){
                                                     <button id="open_finalize_cart_details"><?php echo lang('Cart_Details') ?></button>
                                             <?php endif?>
 
+                                            
+                                            <?php if (tipoFacturacion() == 'RD_AI') : ?>
+                                                <!-- *** Numeraciones de Comprobantes Fiscales Disponibles *** -->
+
+                                                <?php if (NumeracionesActivas() != NULL) : ?>
+                                                    <div class="fo_3 fix">
+                                                        <div class="half fix floatleft textleft"> 
+                                                            Seleccione una numeración activa:
+                                                        </div>
+                                                        <div class="half fix floatleft textright">
+                                                            <select name="numeracion" class="select2" id="numeracion" required>
+                                                                    <?php $NumeracionesAct = NumeracionesActivas();
+                                                                    foreach ($NumeracionesAct as $Tipo) : ?>
+                                                                            <option value="<?php echo $Tipo->id ?>"<?php echo $Tipo->tipo == 2 ? ' selected' : ''; ?> ><?php echo $Tipo->prefijo . " - " . $Tipo->nombre . " (Sig. 0" . $Tipo->num_sig . ")"; ?></option>
+                                                                    <?php endforeach; ?>
+                                                                
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                <?php else : ?>
+                                                    <div class="fo_3 fix">
+                                                        <div class="half fix floatleft textleft">
+                                                            <button style="color: #fb5d5d">Sin numeraciones disponibles:</button>
+                                                        </div>
+                                                        <div class="half fix floatleft textright">
+                                                            <button style="color: #fb5d5d"><i class="fas fa-times"></i>
+                                                                No podrá facturar!</button>
+                                                            <input type="hidden" name="numeracion" value="0">
+                                                        </div>
+                                                    </div>
+                                                <?php endif ; ?>
+
+                                                <!-- *** FIN Numeraciones de Comprobantes Fiscales Disponibles *** -->
+                                                
+                                            <?php endif?>
                                         </div>
                                     </div>
                                 </div>
@@ -5249,6 +5301,67 @@ foreach ($notifications as $single_notification){
             }
         });
     </script>
+
+    
+    <script>
+        //document.getElementById('numeracion').innerHTML
+        var numeraciones_url = "<?php echo base_url() . 'sale/NumeracionesActivasByJson' ?>"; 
+
+        async function Actualizar_numeraciones(){
+            
+            let respuesta = await fetch(numeraciones_url);
+            //console.log(respuesta);
+            if (respuesta.ok) { 
+                let json = await respuesta.json();
+
+                //console.log(json);
+                if (json.length >= 1){
+                    //console.log('Existen ' + json.length + ' Numeraciones activas');
+                    Agregar_Selected(json);
+                } else {
+                    console.log('No hay numeraciones activas!');
+                    SelectSinNum();
+                }
+            } else {
+                console.log('Error al conectar con el servidor!');
+            }
+        }
+
+        function SelectSinNum(){
+            if (document.getElementById('numeracion')){
+                let select_nuevo = '';
+                select_nuevo += `
+                <option value="0" style="color: #fb5d5d"><span style="color: #fb5d5d">Sin Numeración Disponible! No podrá Facturar!</span></option>
+                `;
+                
+                document.getElementById('numeracion').innerHTML = '';
+                document.getElementById('numeracion').innerHTML += select_nuevo;
+            };
+        }
+
+        function Agregar_Selected(json){
+            
+            if (document.getElementById('numeracion')){
+                let select_nuevo = '';
+                for(let i = 0; i < json.length; ++i){
+                    //console.log(json[i]);
+                    
+                    select_nuevo += `
+                        <option value="${json[i].id}"`;
+                    if (json[i].tipo == 2) {
+                        select_nuevo += `selected`;
+                    }
+                        
+                    select_nuevo += `>${json[i].prefijo} - ${json[i].nombre} (Sig. 0${json[i].num_sig})</option>
+                    `;
+                };
+                
+                document.getElementById('numeracion').innerHTML = '';
+                document.getElementById('numeracion').innerHTML += select_nuevo;
+            };
+        }
+    </script>
+    
     <!--for datatable-->
     <script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jquery.dataTables.min.js?v=7.5"></script>

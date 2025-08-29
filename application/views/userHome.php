@@ -903,6 +903,17 @@
                             <?php endif?>
                             </ul>
                         </li>
+
+                        
+                        <?php if(tipoFacturacion() == 'RD_AI'): ?>
+                        <li class="menu_assign_class menu__cidirp_5 common_use">
+                            <a style="display: ;" href="<?php echo base_url()?>facturas">
+                                <i data-feather="file-text"></i>
+                                <span> Facturación</span>
+                            </a>
+                        </li>
+                        <?php endif?>
+                        
                         <?php if(isServiceAccess('','','sGmsJaFJE')): ?>
                         <li data-access="view-291" class="menu_assign_class menu__cidirp_18 setting_report1" data-menu__cid="irp_18">
                             <a  href="<?php echo base_url()?>Plugin/plugins">
@@ -1328,7 +1339,7 @@ endif;
     <script src="<?php echo base_url(); ?>frequent_changing/js/media.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/new-script.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/plugins/slick-slider/slick.min.js?v=7.5"></script>
-    <script src="<?php echo base_url(); ?>frequent_changing/js/new_ui_design.js?v=7.51"></script>
+    <script src="<?php echo base_url(); ?>frequent_changing/js/new_ui_design.js?v=7.52"></script>
 </body>
 
 </html>

@@ -2,6 +2,8 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 // $config['tipo_consulta_ruc'] = 'RNC';
+//tipo_facturacion: 'No','RD_AI','RD_FE','Py_FE'
+// $config['tipo_facturacion'] = 'RD_AI';
 
 // Configuración de Redis
 $config['redis_prefix'] = 'restora_';       // Prefijo para las claves de Redis de cada proyecto
