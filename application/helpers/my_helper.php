@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420643';
+    return '?v=7.5420644';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -4064,13 +4064,167 @@ function checkAndRemoveAllRemovedItem($object_cart,$sale_id){
             $selected_fm_id = $value->food_menu_id;
         }
         if (!in_array($selected_fm_id, $cart_ids)) {
-            //remove on update if remove any item from cart
-            $CI->db->delete('tbl_kitchen_sales_details', array('id' => $value->id));
+            // Soft delete en vez de delete físico
+            $CI->db->update('tbl_kitchen_sales_details', array('del_status' => 'Deleted'), array('id' => $value->id));
+            // Si necesitas soft delete en modifiers, hazlo aquí también
+            // $CI->db->update('tbl_kitchen_sales_details_modifiers', array('del_status' => 'Deleted'), array('sales_details_id' => $value->id));
+            // Si no tienes campo del_status en modifiers, podrías dejar el delete como está, o ajustarlo según tu modelo
             $CI->db->delete('tbl_kitchen_sales_details_modifiers', array('sales_details_id' => $value->id));
         }
     }
 
 }
+/**
+ * Genera una firma única para un item de la orden.
+ * Esta firma se basa en el food_menu_id, la nota y los modificadores.
+ *
+ * @param object $item El objeto del item (del carrito o de la BD).
+ * @param array|null $modifiers_ids Array de IDs de modificadores (opcional).
+ * @return string La firma única del item.
+ */
+function generate_item_signature($item, $modifiers_ids = null) {
+    $CI = & get_instance();
+
+    // Normalizar la nota para evitar diferencias por null/vacío.
+    $note = isset($item->menu_note) ? trim($item->menu_note) : '';
+    if(isset($item->item_note) && !$note) {
+        $note = trim($item->item_note);
+    }
+
+    // Obtener los modificadores
+    if ($modifiers_ids === null) {
+        // Si es un item del carrito, los IDs vienen en una cadena.
+        $modifiers_ids = (isset($item->modifiers_id) && !empty($item->modifiers_id)) ? explode(',', $item->modifiers_id) : [];
+    }
+    
+    // Es CRUCIAL ordenar los modificadores para que la firma sea consistente.
+    // "mod1,mod2" debe ser igual a "mod2,mod1".
+    sort($modifiers_ids);
+    $modifiers_string = implode(',', $modifiers_ids);
+
+    // Construir la firma.
+    return $item->food_menu_id . '|' . $note . '|' . $modifiers_string;
+}
+
+/**
+ * Obtiene todos los items de una orden con sus modificadores agregados.
+ *
+ * @param int $sale_id
+ * @return array
+ */
+function getAllOrderItemsWithModifiers($sale_id) {
+    $CI = & get_instance();
+    
+    // 1. Obtener todos los items "Live"
+    $CI->db->select('*');
+    $CI->db->from('tbl_kitchen_sales_details');
+    $CI->db->where('sales_id', $sale_id);
+    $CI->db->where('del_status', 'Live');
+    $items = $CI->db->get()->result();
+
+    if (empty($items)) {
+        return [];
+    }
+
+    $item_ids = array_map(function($item) { return $item->id; }, $items);
+
+    // 2. Obtener todos los modificadores para esos items de una sola vez
+    $CI->db->select('sales_details_id, modifier_id');
+    $CI->db->from('tbl_kitchen_sales_details_modifiers');
+    $CI->db->where_in('sales_details_id', $item_ids);
+    $modifiers_result = $CI->db->get()->result();
+
+    // 3. Agrupar modificadores por sales_details_id
+    $modifiers_map = [];
+    foreach ($modifiers_result as $mod) {
+        if (!isset($modifiers_map[$mod->sales_details_id])) {
+            $modifiers_map[$mod->sales_details_id] = [];
+        }
+        $modifiers_map[$mod->sales_details_id][] = $mod->modifier_id;
+    }
+
+    // 4. Adjuntar los modificadores a cada item
+    foreach ($items as $item) {
+        $item->modifiers_ids = isset($modifiers_map[$item->id]) ? $modifiers_map[$item->id] : [];
+    }
+
+    return $items;
+}
+
+/**
+ * Reconcilia los items de una venta de cocina al actualizar una orden.
+ * En lugar de borrar, marca los items eliminados o reducidos en cantidad.
+ *
+ * @param array $cart_items Objeto con los items del carrito actualizados.
+ * @param int $sale_id El ID de la venta (tbl_kitchen_sales).
+ * @param int $user_id El ID del usuario que realiza la modificación.
+ */
+function reconcile_kitchen_sale_items($cart_items, $sale_id, $user_id) {
+    $CI = & get_instance();
+
+    // 1. Obtener todos los items "Live" actuales de la venta desde la BD.
+    $CI->db->select('*');
+    $CI->db->from('tbl_kitchen_sales_details');
+    $CI->db->where('sales_id', $sale_id);
+    $CI->db->where('del_status', 'Live');
+    $existing_items_query = $CI->db->get();
+    $existing_items = $existing_items_query->result();
+
+    // 2. Preparar arrays para una comparación eficiente.
+    // Agrupamos por food_menu_id para manejar items duplicados.
+    $cart_items_map = [];
+    foreach ($cart_items as $item) {
+        if (!isset($cart_items_map[$item->food_menu_id])) {
+            $cart_items_map[$item->food_menu_id] = [];
+        }
+        $cart_items_map[$item->food_menu_id][] = $item;
+    }
+
+    $existing_items_map = [];
+    foreach ($existing_items as $item) {
+        if (!isset($existing_items_map[$item->food_menu_id])) {
+            $existing_items_map[$item->food_menu_id] = [];
+        }
+        $existing_items_map[$item->food_menu_id][] = $item;
+    }
+
+    // 3. Iterar sobre los items existentes en la BD y compararlos con el carrito.
+    foreach ($existing_items_map as $food_menu_id => $db_items) {
+        $cart_item_instances = isset($cart_items_map[$food_menu_id]) ? $cart_items_map[$food_menu_id] : [];
+
+        foreach ($db_items as $index => $db_item) {
+            if (isset($cart_item_instances[$index])) {
+                // El item existe en ambos, verificar si la cantidad se redujo.
+                $cart_item = $cart_item_instances[$index];
+                if ($cart_item->qty < $db_item->qty) {
+                    $qty_difference = $db_item->qty - $cart_item->qty;
+
+                    // Crear un nuevo registro para la diferencia, marcado como "Deleted".
+                    $deleted_item_data = (array) $db_item;
+                    unset($deleted_item_data['id']); // Quitar ID para que se cree un nuevo registro.
+                    $deleted_item_data['qty'] = $qty_difference;
+                    $deleted_item_data['tmp_qty'] = 0; // No se imprime.
+                    $deleted_item_data['del_status'] = 'Deleted';
+                    $deleted_item_data['user_id'] = $user_id; // Guardar quién hizo el cambio.
+                    $deleted_item_data['cooking_status'] = 'Cancelled';
+                    $deleted_item_data['menu_note'] = 'Registro de reducción de cantidad desde ' . $db_item->qty . ' a ' . $cart_item->qty;
+                    
+                    $CI->db->insert('tbl_kitchen_sales_details', $deleted_item_data);
+                }
+            } else {
+                // El item existe en la BD pero no en el carrito (fue eliminado).
+                $update_data = [
+                    'del_status' => 'Deleted',
+                    'user_id' => $user_id, // Guardar quién lo eliminó.
+                    'cooking_status' => 'Cancelled'
+                ];
+                $CI->db->where('id', $db_item->id);
+                $CI->db->update('tbl_kitchen_sales_details', $update_data);
+            }
+        }
+    }
+}
+
 function htmlspecialcharscustom($value) {
     return (isset($value) && $value?htmlspecialchars($value):'');
 }

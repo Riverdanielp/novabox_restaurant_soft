@@ -67,6 +67,7 @@ foreach ($waiters as $waiter){
 
 <input type="hidden" id="registro_ocultar" value="<?php echo escape_output($getOutletInfo->registro_ocultar)?>">
 <input type="hidden" id="registro_detallado" value="<?php echo escape_output($getOutletInfo->registro_detallado)?>">
+<input type="hidden" id="tables_count" value="<?php echo count($tables)?>">
 
 <input type="hidden" id="base_url_pos" value="<?php echo base_url()?>">
 <input type="hidden" id="waiter_app_status" value="<?php echo escape_output($waiter_app_status)?>">

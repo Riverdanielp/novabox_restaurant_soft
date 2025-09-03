@@ -9,6 +9,73 @@ class Kitchen_model extends CI_Model {
      * @param int
      */
     public function getNewOrders($outlet_id, $kitchen_id = null) {
+        // Aseguramos que los IDs sean números para prevenir inyección SQL.
+        $safe_outlet_id = (int) $outlet_id;
+
+        $this->db->select("
+            s.*,
+            c.name as customer_name, 
+            c.phone as customer_phone,
+            c.email as customer_email,
+            c.address as customer_address,
+            s.id as sales_id,
+            u.full_name as waiter_name,
+            t.name as table_name,
+            
+            COUNT(DISTINCT CASE WHEN ksd.del_status = 'Live' THEN ksd.id END) as total_kitchen_type_items,
+            COUNT(DISTINCT CASE WHEN ksd.del_status = 'Live' AND ksd.cooking_status = 'Done' THEN ksd.id END) as total_kitchen_type_done_items,
+            COUNT(DISTINCT CASE WHEN ksd.del_status = 'Live' AND ksd.cooking_status = 'Started Cooking' THEN ksd.id END) as total_kitchen_type_started_cooking_items,
+            
+            GROUP_CONCAT(DISTINCT ot.table_id) as table_ids
+        ");
+        
+        $this->db->from('tbl_kitchen_sales s');
+        
+        // JOINS para datos principales y para los conteos/agregaciones
+        $this->db->join('tbl_tables t', 't.id = s.table_id', 'left');
+        $this->db->join('tbl_users u', 'u.id = s.waiter_id', 'left');
+        $this->db->join('tbl_customers c', 'c.id = s.customer_id', 'left');
+        $this->db->join('tbl_kitchen_sales_details ksd', 'ksd.sales_id = s.id', 'left');
+        $this->db->join('tbl_orders_table ot', 'ot.sale_id = s.id', 'left');
+
+        // Condiciones WHERE
+        $this->db->where("s.is_self_order", "No");
+        $this->db->where("s.outlet_id", $safe_outlet_id);
+        $this->db->where_in("s.order_status", ['1', '2']); // Más limpio y claro
+        $this->db->where("s.is_accept", 1);
+        $this->db->where("s.date_time >= DATE_SUB(NOW(), INTERVAL 3 HOUR)", NULL, FALSE);
+        
+        // Filtro condicional por cocina
+        if ($kitchen_id) {
+            $safe_kitchen_id = (int) $kitchen_id;
+
+            // Usamos WHERE EXISTS, que es muy eficiente para este tipo de filtro.
+            // No necesita JOIN en la consulta principal, evitando así multiplicar filas innecesariamente.
+            $sub_query = "
+                EXISTS (
+                    SELECT 1 FROM tbl_kitchen_sales_details sd
+                    JOIN tbl_food_menus fm ON fm.id = sd.food_menu_id
+                    JOIN tbl_kitchen_categories kc ON kc.cat_id = fm.category_id
+                    JOIN tbl_kitchens k ON k.id = kc.kitchen_id
+                    WHERE sd.sales_id = s.id 
+                    AND k.id = $safe_kitchen_id
+                    AND kc.outlet_id = $safe_outlet_id
+                    AND k.outlet_id = $safe_outlet_id
+                    AND sd.cooking_status != 'Done'
+                    AND sd.del_status = 'Live'
+                )";
+            $this->db->where($sub_query, NULL, FALSE);
+        }
+        
+        // Agrupamos por el ID de la venta para que los conteos y GROUP_CONCAT funcionen por venta.
+        $this->db->group_by('s.id');
+        
+        $this->db->order_by('s.id', 'ASC');
+        
+        return $this->db->get()->result();
+    }
+
+    public function getNewOrdersOld2($outlet_id, $kitchen_id = null) {
         $this->db->select("
                         s.id, s.customer_id, s.sale_no, s.number_slot, s.number_slot_name, 
                         s.total_items, s.sub_total, s.paid_amount, s.due_amount, s.disc, 
@@ -71,6 +138,7 @@ class Kitchen_model extends CI_Model {
                 WHERE sd.sales_id = s.id 
                 AND k.id = $kitchen_id
                 AND sd.cooking_status != 'Done'
+                AND sd.del_status = 'Live'
             )");
         }
         
@@ -237,6 +305,69 @@ class Kitchen_model extends CI_Model {
      * @param int
      */
     public function getAllKitchenItemsFromSalesDetailBySalesId($sales_id, $kitchen_id) {
+        // === PASO 1: Obtener todos los detalles de la venta (los platos) ===
+        $this->db->select('sd.*, sd.id as sales_details_id, fm.name as menu_name');
+        $this->db->from('tbl_kitchen_sales_details sd');
+        $this->db->join('tbl_food_menus fm', 'fm.id = sd.food_menu_id', 'left');
+        $this->db->where('sd.sales_id', $sales_id);
+        $this->db->where("sd.del_status", "Live");
+
+        if ($kitchen_id) {
+            $this->db->join('tbl_kitchen_categories kc', 'kc.cat_id = fm.category_id', 'left');
+            $this->db->join('tbl_kitchens k', 'k.id = kc.kitchen_id', 'left');
+            $this->db->where("kc.del_status", "Live");
+            $this->db->where('k.id', $kitchen_id);
+        }
+
+        $this->db->order_by('sd.id', 'ASC');
+        $sales_details = $this->db->get()->result();
+
+        // Si no hay detalles, no hay nada más que hacer.
+        if (empty($sales_details)) {
+            return [];
+        }
+
+        // === PASO 2: Obtener todos los modificadores en una sola consulta ===
+        
+        // Extraer los IDs de los detalles de venta para la consulta de modificadores.
+        $sales_details_ids = array_map(function($item) {
+            return $item->sales_details_id;
+        }, $sales_details);
+
+        $this->db->select('sdm.sales_details_id, m.id, m.name');
+        $this->db->from('tbl_kitchen_sales_details_modifiers sdm');
+        $this->db->join('tbl_modifiers m', 'm.id = sdm.modifier_id', 'inner'); // INNER JOIN es más eficiente si siempre hay un modificador.
+        $this->db->where('sdm.sales_id', $sales_id);
+        $this->db->where_in('sdm.sales_details_id', $sales_details_ids);
+        $all_modifiers = $this->db->get()->result();
+
+        // === PASO 3: Mapear los modificadores a sus detalles de venta ===
+
+        // Creamos un mapa para un acceso rápido. La clave será el ID del detalle de venta.
+        $modifiers_map = [];
+        foreach ($all_modifiers as $modifier) {
+            // Si la clave no existe, la inicializamos como un array vacío.
+            if (!isset($modifiers_map[$modifier->sales_details_id])) {
+                $modifiers_map[$modifier->sales_details_id] = [];
+            }
+            // Agregamos el modificador al plato correspondiente.
+            $modifiers_map[$modifier->sales_details_id][] = (object)['id' => $modifier->id, 'name' => $modifier->name];
+        }
+        
+        // Finalmente, asignamos los modificadores a cada detalle de venta.
+        foreach ($sales_details as $item) {
+            if (isset($modifiers_map[$item->sales_details_id])) {
+                $item->modifiers = $modifiers_map[$item->sales_details_id];
+            } else {
+                // Aseguramos que la propiedad 'modifiers' siempre exista, incluso si está vacía.
+                $item->modifiers = [];
+            }
+        }
+
+        return $sales_details;
+    }
+
+    public function getAllKitchenItemsFromSalesDetailBySalesIdOld2($sales_id, $kitchen_id) {
         $this->db->select('sd.*, 
                         sd.id as sales_details_id,  
                           fm.name as menu_name,
@@ -248,6 +379,7 @@ class Kitchen_model extends CI_Model {
         $this->db->from('tbl_kitchen_sales_details sd');
         $this->db->join('tbl_food_menus fm', 'fm.id = sd.food_menu_id', 'left');
         $this->db->where('sd.sales_id', $sales_id);
+        $this->db->where("sd.del_status", "Live");
         
         if ($kitchen_id) {
             $this->db->join('tbl_kitchen_categories kc', 'kc.cat_id = fm.category_id', 'left');

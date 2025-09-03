@@ -149,6 +149,7 @@
       let not_booked_yet = $("#not_booked_yet").val();
       let transfer_transferred_msg = $("#transfer_transferred_msg").val();
       let assets_vers = $("#assets_vers").val();
+      let tables_count = $("#tables_count").val();
 
 
       let print_kitchen = $("#print_kitchen").val();
@@ -5189,67 +5190,67 @@
                 return false;
             }
 
-            if (total_items_in_cart > 0) {
-                swal(
-                    {
-                        title: warning + "!",
-                        text: order_type_changing_alert,
-                        confirmButtonColor: "#3c8dbc",
-                        confirmButtonText: ok,
-                        showCancelButton: true,
-                    },
-                    function () {
-                        $(".order_table_holder .order_holder").empty();
-                        clearFooterCartCalculation();
+            // if (total_items_in_cart > 0) {
+            //     swal(
+            //         {
+            //             title: warning + "!",
+            //             text: order_type_changing_alert,
+            //             confirmButtonColor: "#3c8dbc",
+            //             confirmButtonText: ok,
+            //             showCancelButton: true,
+            //         },
+            //         function () {
+            //             $(".order_table_holder .order_holder").empty();
+            //             clearFooterCartCalculation();
   
-                        $("#dine_in_button").css("border", "unset");
-                        $("#take_away_button").css("border", "unset");
-                        $("#delivery_button").css("border", "unset");
+            //             $("#dine_in_button").css("border", "unset");
+            //             $("#take_away_button").css("border", "unset");
+            //             $("#delivery_button").css("border", "unset");
   
-                        //set default delivery or service charge modal
-                        let service_amount = $("#service_amount").val();
-                        let delivery_amount = $("#delivery_amount").val();
-                        $("#delivery_charge").val('');
-                        $("#charge_type").val('service').change();
+            //             //set default delivery or service charge modal
+            //             let service_amount = $("#service_amount").val();
+            //             let delivery_amount = $("#delivery_amount").val();
+            //             $("#delivery_charge").val('');
+            //             $("#charge_type").val('service').change();
   
-                        $(".main_top").find("button").attr("data-selected", "unselected");
-                        this_action.attr("data-selected", "selected").addClass("selected__btn");
-                        $("#table_button").attr("disabled", false);
+            //             $(".main_top").find("button").attr("data-selected", "unselected");
+            //             this_action.attr("data-selected", "selected").addClass("selected__btn");
+            //             $("#table_button").attr("disabled", false);
   
-                        if (this_action.attr("data-id") == "dine_in_button") {
-                            $("#delivery_charge").val(service_amount);
-                            $("#charge_type").val('service').change();
-                            $(".set_quick_action").removeClass("set_quick_action_active");
-                            $(".get_area_table").eq(0).click();
+            //             if (this_action.attr("data-id") == "dine_in_button") {
+            //                 $("#delivery_charge").val(service_amount);
+            //                 $("#charge_type").val('service').change();
+            //                 $(".set_quick_action").removeClass("set_quick_action_active");
+            //                 $(".get_area_table").eq(0).click();
 
-                        } else if (this_action.attr("data-id") == "take_away_button") {
-                            $("#table_button").attr("disabled", true);
-                            $(".single_table_div[data-table-checked=checked]").attr(
-                                "data-table-checked",
-                                "unchecked"
-                            );
-                            // $('.single_table_div[data-table-checked=checked]').css('background-color', 'red');
-                        } else if (this_action.attr("data-id") == "delivery_button") {
-                            /*delivery partner*/
-                            let delivery_partner = Number($("#delivery_partner").val());
-                            if(delivery_partner){
-                                $("#show_delivery_partner").addClass("active");
-                                $(".pos__modal__overlay").fadeIn(200);
-                            }
+            //             } else if (this_action.attr("data-id") == "take_away_button") {
+            //                 $("#table_button").attr("disabled", true);
+            //                 $(".single_table_div[data-table-checked=checked]").attr(
+            //                     "data-table-checked",
+            //                     "unchecked"
+            //                 );
+            //                 // $('.single_table_div[data-table-checked=checked]').css('background-color', 'red');
+            //             } else if (this_action.attr("data-id") == "delivery_button") {
+            //                 /*delivery partner*/
+            //                 let delivery_partner = Number($("#delivery_partner").val());
+            //                 if(delivery_partner){
+            //                     $("#show_delivery_partner").addClass("active");
+            //                     $(".pos__modal__overlay").fadeIn(200);
+            //                 }
   
-                            $("#delivery_charge").val(delivery_amount);
-                            $("#charge_type").val('delivery').change();
+            //                 $("#delivery_charge").val(delivery_amount);
+            //                 $("#charge_type").val('delivery').change();
   
-                            $("#table_button").attr("disabled", true);
-                            $(".single_table_div[data-table-checked=checked]").attr(
-                                "data-table-checked",
-                                "unchecked"
-                            );
-                        }
-                        do_addition_of_item_and_modifiers_price();
-                    }
-                );
-            }else{
+            //                 $("#table_button").attr("disabled", true);
+            //                 $(".single_table_div[data-table-checked=checked]").attr(
+            //                     "data-table-checked",
+            //                     "unchecked"
+            //                 );
+            //             }
+            //             do_addition_of_item_and_modifiers_price();
+            //         }
+            //     );
+            // }else{
                 $("#dine_in_button").css("border", "unset");
                 $("#take_away_button").css("border", "unset");
                 $("#delivery_button").css("border", "unset");
@@ -5294,7 +5295,7 @@
   
                 }
                 do_addition_of_item_and_modifiers_price();
-            }
+            // }
         }
       );
 // Modal para producto con variaciones (llamado desde .single_item si is_variation == "Yes")
@@ -5333,7 +5334,7 @@ function openProductEditModal(parent_id, item_name, id) {
     $("#modal_total_price").html(total_price);
 
     // --- Variaciones ---
-    let foundItems_variations = [];//get_variations_search_by_menu_id(menu_id, window.items);
+    let foundItems_variations = get_variations_search_by_menu_id(menu_id, window.items); //[];//
     let variations = "";
     for (let key1 in foundItems_variations) {
         let vr01_selected_order_type_object = $(".main_top").find("button[data-selected=selected]");
@@ -5627,10 +5628,6 @@ function getSafePrice(priceAttr) {
             let item_id = $(this).attr("id").substr(5);
             if (selected_order_type_object.length > 0) {
                 // //vr01
-                // let is_variation = ($(this).attr('data-is_variation'));
-                // let iva_tipo = ($(this).attr('data-iva_tipo'));
-                // let parent_id = ($(this).attr('data-parent_id'));
-                // let veg_status = $(this).attr("data-veg_status"); // Obtener el estado veg_status
 
                 let $item = $(this);
 
@@ -6215,7 +6212,7 @@ function getSafePrice(priceAttr) {
             $("#vr01_modal_price_variable").html(item_price);
             $(".variation_div_modal").show();
             $("#is_variation_product").html(parent_id);
-            let foundItems_variations = []; //get_variations_search_by_menu_id(parent_id, window.items);
+            let foundItems_variations = get_variations_search_by_menu_id(parent_id, window.items); //[]; //
             let variations = "";
             for (let key1 in foundItems_variations) {
                 let vitem_price = 0;
@@ -7374,8 +7371,11 @@ function getSafePrice(priceAttr) {
         } else {
           $("#order_number_or_new_text").html("New");
         }
-        $("#show_tables_modal2").addClass("active");
-        $(".pos__modal__overlay").fadeIn(200);
+
+        if (Number(tables_count) > 0) {
+            $("#show_tables_modal2").addClass("active");
+            $(".pos__modal__overlay").fadeIn(200);
+        }
 
         $(".bottom_person").val("1");
   

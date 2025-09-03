@@ -317,6 +317,7 @@ class Sale_model extends CI_Model {
   
       foreach ($menus as &$menu) {
           $menu->modifiers = isset($mod_map[$menu->id]) ? array_values($mod_map[$menu->id]) : [];
+          $menu->is_promo = isset($mod_map[$menu->id]) ? 'Yes' : 'No';
       }
   }
   public function getModifiersByMenuId($menu_id) {

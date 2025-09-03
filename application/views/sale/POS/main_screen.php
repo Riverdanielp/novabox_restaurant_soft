@@ -1311,7 +1311,7 @@ foreach ($notifications as $single_notification){
                                     }
                             ?>
                             <button class="selected__btn_c  <?php echo escape_output($is_self_order_class) ?> dine_in_button" data-id="dine_in_button"
-                                data-selected="<?php echo escape_output($selected)?>" style="display: none;">
+                                data-selected="<?php echo escape_output($selected)?>">
                                 <i class="fal fa-table"></i> <?php echo lang('dine'); ?>
                             </button>
 

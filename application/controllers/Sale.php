@@ -504,6 +504,7 @@ class Sale extends Cl_Controller {
         $data['notifications'] = $this->get_new_notification();
         $data['sale_details'] = $this->Common_model->getDataById($sale_id, "tbl_sales");
         $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
+        $data['tables'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_tables");
         $this->db->where("outlet_id", $outlet_id);
         $this->db->where("del_status", "Live");
         // $this->db->order_by("name", "ASC");
@@ -1544,7 +1545,9 @@ class Sale extends Cl_Controller {
                 }
                 $this->db->where('id', $sale_id);
                 $this->db->update('tbl_kitchen_sales', $data);
-                checkAndRemoveAllRemovedItem($order_details->items,$sale_id);
+                // checkAndRemoveAllRemovedItem($order_details->items,$sale_id);
+                $user_id = $this->session->userdata('user_id');
+                reconcile_kitchen_sale_items($order_details->items,$sale_id, $user_id);
             }else{
                 $is_new = 1;
                 $data['date_time'] = date('Y-m-d H:i:s');
@@ -1617,134 +1620,257 @@ class Sale extends Cl_Controller {
                     $this->db->insert('tbl_orders_table',$order_table_info);
                 }
             }
-            if($sale_id>0 && count($order_details->items)>0){
-                $previous_food_id = 0;
-                $arr_item_id = array();
-                $existing_items = getAllOrderItems($sale_id);
-                $existing_items_by_id = [];
-                foreach ($existing_items as $ex_item) {
-                    $fid = $ex_item->food_menu_id;
-                    if (!isset($existing_items_by_id[$fid])) $existing_items_by_id[$fid] = [];
-                    $existing_items_by_id[$fid][] = $ex_item;
+            // ESTE ES EL NUEVO BLOQUE QUE DEBES PEGAR
+            // ==================================================================
+            // === INICIO DE LA MODIFICACIÓN PRINCIPAL: PROCESAMIENTO DE ITEMS ===
+            // ==================================================================
+            if ($sale_id > 0 && count($order_details->items) > 0) {
+                
+                // 1. AGRUPAR ITEMS DEL CARRITO POR FIRMA
+                $cart_items_grouped_by_signature = [];
+                foreach ($order_details->items as $item) {
+                    $signature = generate_item_signature($item);
+                    if (!isset($cart_items_grouped_by_signature[$signature])) {
+                        $cart_items_grouped_by_signature[$signature] = [
+                            'item' => $item, // Usamos el primer item como representante
+                            'qty' => 0
+                        ];
+                    }
+                    $cart_items_grouped_by_signature[$signature]['qty'] += intval($item->qty);
                 }
-                $counter_by_id = [];
-                foreach($order_details->items as $key_counter=>$item){
-                    $fid = $item->food_menu_id;
-                    if (!isset($counter_by_id[$fid])) $counter_by_id[$fid] = 0;
-                    $occurrence = $counter_by_id[$fid]++;
-                    $existing_item = isset($existing_items_by_id[$fid][$occurrence]) ? $existing_items_by_id[$fid][$occurrence] : null;
-                    if ($is_new > 0) { // Es una orden nueva
-                        $tmp_var = intval($item->qty);
-                    } else {
-                        if ($existing_item) {
-                            $tmp = intval($item->qty) - intval($existing_item->qty);
-                            $tmp_var = ($tmp > 0) ? $tmp : 0;
-                        } else {
-                            $tmp_var = intval($item->qty);
-                        }
+
+                // 2. OBTENER ITEMS DE LA BD Y AGRUPARLOS POR FIRMA
+                $existing_items_live = getAllOrderItemsWithModifiers($sale_id); // Necesitamos una función que traiga modificadores
+                $db_items_grouped_by_signature = [];
+                foreach($existing_items_live as $db_item) {
+                    $signature = generate_item_signature($db_item, $db_item->modifiers_ids);
+                    if (!isset($db_items_grouped_by_signature[$signature])) {
+                        $db_items_grouped_by_signature[$signature] = [
+                            'db_item' => $db_item, // El registro principal de la BD
+                            'qty' => 0
+                        ];
                     }
-                    $item_data = array();
-                    $item_data['food_menu_id'] = sanitize_font_html($item->food_menu_id);
-                    $item_data['menu_name'] = sanitize_font_html($item->menu_name);
-                    if ($item->is_free==1) {
-                        $item_data['is_free_item'] = $previous_food_id;
+                    $db_items_grouped_by_signature[$signature]['qty'] += intval($db_item->qty);
+                }
+
+                // 3. PROCESAR: COMPARAR CARRITO VS BD
+                foreach ($cart_items_grouped_by_signature as $signature => $cart_group) {
+                    $item = $cart_group['item'];
+                    $new_total_qty = $cart_group['qty'];
+
+                    $item_data = [
+                        'food_menu_id'                  => sanitize_font_html($item->food_menu_id),
+                        'menu_name'                     => sanitize_font_html($item->menu_name),
+                        'menu_price_without_discount'   => sanitize_font_html($item->menu_price_without_discount),
+                        'menu_price_with_discount'      => sanitize_font_html($item->menu_price_with_discount),
+                        'menu_unit_price'               => sanitize_font_html($item->menu_unit_price),
+                        'menu_taxes'                    => json_encode($item->item_vat),
+                        'menu_discount_value'           => sanitize_font_html($item->menu_discount_value),
+                        'discount_type'                 => sanitize_font_html($item->discount_type),
+                        'menu_note'                     => sanitize_font_html($item->item_note),
+                        'menu_combo_items'              => sanitize_font_html($item->menu_combo_items),
+                        'discount_amount'               => sanitize_font_html($item->item_discount_amount),
+                        'item_type'                     => "Kitchen Item",
+                        'sales_id'                      => $sale_id,
+                        'user_id'                       => $this->session->userdata('user_id'),
+                        'outlet_id'                     => $this->session->userdata('outlet_id'),
+                        'del_status'                    => 'Live',
+                    ];
+
+                    if (isset($db_items_grouped_by_signature[$signature])) {
+                        // --- EL GRUPO DE ITEMS YA EXISTE: ACTUALIZAR ---
+                        $db_group = $db_items_grouped_by_signature[$signature];
+                        $db_item = $db_group['db_item'];
+                        $old_total_qty = $db_group['qty'];
+                        $sales_details_id = $db_item->id;
+
+                        $qty_diff = $new_total_qty - $old_total_qty;
+                        $item_data['tmp_qty'] = ($qty_diff > 0) ? $qty_diff : 0;
+                        $item_data['qty'] = $new_total_qty;
+
+                        // Conservar estado y tiempos de cocina
+                        $item_data['cooking_status'] = ($qty_diff > 0) ? 'New' : $db_item->cooking_status;
+                        $item_data['cooking_start_time'] = $db_item->cooking_start_time;
+                        $item_data['cooking_done_time'] = $db_item->cooking_done_time;
+
+                        $this->Common_model->updateInformation($item_data, $sales_details_id, "tbl_kitchen_sales_details");
+                        
+                        // Marcar este grupo de la BD como ya procesado
+                        unset($db_items_grouped_by_signature[$signature]);
+
                     } else {
-                        $item_data['is_free_item'] = 0;
-                    }
-                    $item_data['qty'] = sanitize_font_html($item->qty);
-                    $item_data['tmp_qty'] = sanitize_font_html($tmp_var);
-                    $item_data['menu_price_without_discount'] = sanitize_font_html($item->menu_price_without_discount);
-                    $item_data['menu_price_with_discount'] = sanitize_font_html($item->menu_price_with_discount);
-                    $item_data['menu_unit_price'] = sanitize_font_html($item->menu_unit_price);
-                    $item_data['menu_taxes'] = json_encode($item->item_vat);
-                    $item_data['menu_discount_value'] = sanitize_font_html($item->menu_discount_value);
-                    $item_data['discount_type'] = sanitize_font_html($item->discount_type);
-                    $item_data['menu_note'] = sanitize_font_html($item->item_note);
-                    $item_data['menu_combo_items'] = sanitize_font_html($item->menu_combo_items);
-                    $item_data['discount_amount'] = sanitize_font_html($item->item_discount_amount);
-                    $item_data['item_type'] = "Kitchen Item";
-                    $item_data['cooking_start_time'] = ($item->item_cooking_start_time=="" || $item->item_cooking_start_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_start_time));
-                    $item_data['cooking_done_time'] = ($item->item_cooking_done_time=="" || $item->item_cooking_done_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_done_time));
-                    $item_data['previous_id'] = ($item->item_previous_id=="")?0:$item->item_previous_id;
-                    $item_data['sales_id'] = $sale_id;
-                    $item_data['user_id'] = $this->session->userdata('user_id');
-                    $item_data['outlet_id'] = $this->session->userdata('outlet_id');
-                    $item_data['is_print'] = 0;
-                    if($order_details->customer_id!=1){
-                        $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
-                    }
-                    $item_data['del_status'] = 'Live';
-                    $sales_details_id = '';
-                    if ($sale_id) {
-                        if ($existing_item) {
-                            $sales_details_id = $existing_item->id;
-                            if ($item->qty > $existing_item->qty) {
-                                $item_data['cooking_status'] = 'New';
-                            } else {
-                                $item_data['cooking_status'] = $existing_item->cooking_status;
-                            }
-                            if ($item->qty != $existing_item->qty) {
-                                $updated_notifications = $this->Common_model->getOrderedKitchens($sale_id);
-                                foreach ($updated_notifications as $k=>$kitchen){
-                                    $notification_message = 'La Orden:'.$sale_no.' fue modificada. Item Modificado: '.$item->menu_name.", Cant:".$item->qty;
-                                    $bar_kitchen_notification_data = array();
-                                    $bar_kitchen_notification_data['notification'] = $notification_message;
-                                    $bar_kitchen_notification_data['sale_id'] = $sale_id;
-                                    $bar_kitchen_notification_data['outlet_id'] = $this->session->userdata('outlet_id');
-                                    $bar_kitchen_notification_data['kitchen_id'] = $kitchen->kitchen_id;
-                                    $this->db->insert('tbl_notification_bar_kitchen_panel', $bar_kitchen_notification_data);
-                                }
-                            }
-                            $this->Common_model->updateInformation($item_data, $sales_details_id, "tbl_kitchen_sales_details");
-                        } else {
-                            $item_data['cooking_status'] = 'New';
-                            $this->db->insert('tbl_kitchen_sales_details', $item_data);
-                            $sales_details_id = $this->db->insert_id();
-                        }
-                    } else {
+                        // --- GRUPO DE ITEMS NUEVO: INSERTAR ---
+                        $item_data['qty'] = $new_total_qty;
+                        $item_data['tmp_qty'] = $new_total_qty;
                         $item_data['cooking_status'] = 'New';
+                        $item_data['cooking_start_time'] = '0000-00-00 00:00:00';
+                        $item_data['cooking_done_time'] = '0000-00-00 00:00:00';
+
                         $this->db->insert('tbl_kitchen_sales_details', $item_data);
                         $sales_details_id = $this->db->insert_id();
                     }
-                    $previous_food_id = $sales_details_id;
-                    $update_previous_id = array();
-                    $update_previous_id['previous_id'] = $previous_food_id;
-                    $this->Common_model->updateInformation($update_previous_id, $sales_details_id, "tbl_kitchen_sales_details");
-                    $modifier_id_array = ($item->modifiers_id!="")?explode(",",$item->modifiers_id):null;
-                    $modifier_price_array = ($item->modifiers_price!="")?explode(",",$item->modifiers_price):null;
-                    $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat!="")?explode("|||",$item->modifier_vat):null;
-                    if(!empty($modifier_id_array)>0){
-                        $i = 0;
-                        foreach($modifier_id_array as $key1=>$single_modifier_id){
-                            $modifier_data = array();
-                            $modifier_data['modifier_id'] = sanitize_font_html($single_modifier_id);
-                            $modifier_data['modifier_price'] = sanitize_font_html($modifier_price_array[$i]);
-                            $modifier_data['food_menu_id'] = sanitize_font_html($item->food_menu_id);
-                            $modifier_data['sales_id'] = $sale_id;
-                            $modifier_data['sales_details_id'] = $sales_details_id;
-                            $modifier_data['menu_taxes'] = isset($modifier_vat_array[$key1]) && $modifier_vat_array[$key1]?sanitize_font_html($modifier_vat_array[$key1]):'';
-                            $modifier_data['user_id'] = $this->session->userdata('user_id');
-                            $modifier_data['outlet_id'] = $this->session->userdata('outlet_id');
-                            $modifier_data['customer_id'] = sanitize_font_html($order_details->customer_id);
-                            if($sale_id){
-                                $check_exist_modifer = checkExistItemModifer($sale_id,$item->food_menu_id,$sales_details_id,$single_modifier_id);
-                                if(isset($check_exist_modifer) && $check_exist_modifer){
-                                    $sales_details_modifier_id = $check_exist_modifer->id;
-                                    if($existing_item && $item->qty!=$existing_item->qty){
-                                        $modifier_data['is_print'] = 1;
-                                    }
-                                    $this->Common_model->updateInformation($modifier_data, $sales_details_modifier_id, "tbl_kitchen_sales_details_modifiers");
-                                }else{
-                                    $this->db->insert('tbl_kitchen_sales_details_modifiers', $modifier_data);
-                                }
-                            }else{
-                                $this->db->insert('tbl_kitchen_sales_details_modifiers', $modifier_data);
-                            }
-                            $i++;
+                    
+                    // --- Procesar Modificadores (Borrar y Re-insertar es lo más seguro) ---
+                    $this->db->where('sales_details_id', $sales_details_id)->delete('tbl_kitchen_sales_details_modifiers');
+                    $modifier_id_array = ($item->modifiers_id != "") ? explode(",", $item->modifiers_id) : [];
+                    if (!empty($modifier_id_array)) {
+                        $modifier_price_array = ($item->modifiers_price != "") ? explode(",", $item->modifiers_price) : [];
+                        $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat != "") ? explode("|||", $item->modifier_vat) : [];
+                        foreach ($modifier_id_array as $i => $single_modifier_id) {
+                            $this->db->insert('tbl_kitchen_sales_details_modifiers', [
+                                'modifier_id' => $single_modifier_id, 'modifier_price' => $modifier_price_array[$i], 'food_menu_id' => $item->food_menu_id,
+                                'sales_id' => $sale_id, 'sales_details_id' => $sales_details_id, 'user_id' => $this->session->userdata('user_id'),
+                                'outlet_id' => $this->session->userdata('outlet_id'), 'customer_id' => $order_details->customer_id,
+                                'menu_taxes' => isset($modifier_vat_array[$i]) ? $modifier_vat_array[$i] : ''
+                            ]);
                         }
                     }
                 }
+
+                // 4. PROCESAR ITEMS ELIMINADOS
+                // Cualquier grupo que quede en $db_items_grouped_by_signature fue eliminado del carrito.
+                foreach ($db_items_grouped_by_signature as $signature => $db_group) {
+                    $db_item_to_delete = $db_group['db_item'];
+                    $this->db->where('id', $db_item_to_delete->id);
+                    $this->db->update('tbl_kitchen_sales_details', [
+                        'del_status' => 'Deleted',
+                        'user_id' => $this->session->userdata('user_id'),
+                        'cooking_status' => 'Cancelled'
+                    ]);
+                }
             }
+            // ================================================================
+            // === FIN DE LA MODIFICACIÓN PRINCIPAL: PROCESAMIENTO DE ITEMS ===
+            // ================================================================
+
+            // if($sale_id>0 && count($order_details->items)>0){
+            //     $previous_food_id = 0;
+            //     $arr_item_id = array();
+            //     $existing_items = getAllOrderItems($sale_id);
+            //     $existing_items_by_id = [];
+            //     foreach ($existing_items as $ex_item) {
+            //         $fid = $ex_item->food_menu_id;
+            //         if (!isset($existing_items_by_id[$fid])) $existing_items_by_id[$fid] = [];
+            //         $existing_items_by_id[$fid][] = $ex_item;
+            //     }
+            //     $counter_by_id = [];
+            //     foreach($order_details->items as $key_counter=>$item){
+            //         $fid = $item->food_menu_id;
+            //         if (!isset($counter_by_id[$fid])) $counter_by_id[$fid] = 0;
+            //         $occurrence = $counter_by_id[$fid]++;
+            //         $existing_item = isset($existing_items_by_id[$fid][$occurrence]) ? $existing_items_by_id[$fid][$occurrence] : null;
+            //         if ($is_new > 0) { // Es una orden nueva
+            //             $tmp_var = intval($item->qty);
+            //         } else {
+            //             if ($existing_item) {
+            //                 $tmp = intval($item->qty) - intval($existing_item->qty);
+            //                 $tmp_var = ($tmp > 0) ? $tmp : 0;
+            //             } else {
+            //                 $tmp_var = intval($item->qty);
+            //             }
+            //         }
+            //         $item_data = array();
+            //         $item_data['food_menu_id'] = sanitize_font_html($item->food_menu_id);
+            //         $item_data['menu_name'] = sanitize_font_html($item->menu_name);
+            //         if ($item->is_free==1) {
+            //             $item_data['is_free_item'] = $previous_food_id;
+            //         } else {
+            //             $item_data['is_free_item'] = 0;
+            //         }
+            //         $item_data['qty'] = sanitize_font_html($item->qty);
+            //         $item_data['tmp_qty'] = sanitize_font_html($tmp_var);
+            //         $item_data['menu_price_without_discount'] = sanitize_font_html($item->menu_price_without_discount);
+            //         $item_data['menu_price_with_discount'] = sanitize_font_html($item->menu_price_with_discount);
+            //         $item_data['menu_unit_price'] = sanitize_font_html($item->menu_unit_price);
+            //         $item_data['menu_taxes'] = json_encode($item->item_vat);
+            //         $item_data['menu_discount_value'] = sanitize_font_html($item->menu_discount_value);
+            //         $item_data['discount_type'] = sanitize_font_html($item->discount_type);
+            //         $item_data['menu_note'] = sanitize_font_html($item->item_note);
+            //         $item_data['menu_combo_items'] = sanitize_font_html($item->menu_combo_items);
+            //         $item_data['discount_amount'] = sanitize_font_html($item->item_discount_amount);
+            //         $item_data['item_type'] = "Kitchen Item";
+            //         $item_data['cooking_start_time'] = ($item->item_cooking_start_time=="" || $item->item_cooking_start_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_start_time));
+            //         $item_data['cooking_done_time'] = ($item->item_cooking_done_time=="" || $item->item_cooking_done_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_done_time));
+            //         $item_data['previous_id'] = ($item->item_previous_id=="")?0:$item->item_previous_id;
+            //         $item_data['sales_id'] = $sale_id;
+            //         $item_data['user_id'] = $this->session->userdata('user_id');
+            //         $item_data['outlet_id'] = $this->session->userdata('outlet_id');
+            //         $item_data['is_print'] = 0;
+            //         if($order_details->customer_id!=1){
+            //             $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
+            //         }
+            //         $item_data['del_status'] = 'Live';
+            //         $sales_details_id = '';
+            //         if ($sale_id) {
+            //             if ($existing_item) {
+            //                 $sales_details_id = $existing_item->id;
+            //                 if ($item->qty > $existing_item->qty) {
+            //                     $item_data['cooking_status'] = 'New';
+            //                 } else {
+            //                     $item_data['cooking_status'] = $existing_item->cooking_status;
+            //                 }
+            //                 if ($item->qty != $existing_item->qty) {
+            //                     $updated_notifications = $this->Common_model->getOrderedKitchens($sale_id);
+            //                     foreach ($updated_notifications as $k=>$kitchen){
+            //                         $notification_message = 'La Orden:'.$sale_no.' fue modificada. Item Modificado: '.$item->menu_name.", Cant:".$item->qty;
+            //                         $bar_kitchen_notification_data = array();
+            //                         $bar_kitchen_notification_data['notification'] = $notification_message;
+            //                         $bar_kitchen_notification_data['sale_id'] = $sale_id;
+            //                         $bar_kitchen_notification_data['outlet_id'] = $this->session->userdata('outlet_id');
+            //                         $bar_kitchen_notification_data['kitchen_id'] = $kitchen->kitchen_id;
+            //                         $this->db->insert('tbl_notification_bar_kitchen_panel', $bar_kitchen_notification_data);
+            //                     }
+            //                 }
+            //                 $this->Common_model->updateInformation($item_data, $sales_details_id, "tbl_kitchen_sales_details");
+            //             } else {
+            //                 $item_data['cooking_status'] = 'New';
+            //                 $this->db->insert('tbl_kitchen_sales_details', $item_data);
+            //                 $sales_details_id = $this->db->insert_id();
+            //             }
+            //         } else {
+            //             $item_data['cooking_status'] = 'New';
+            //             $this->db->insert('tbl_kitchen_sales_details', $item_data);
+            //             $sales_details_id = $this->db->insert_id();
+            //         }
+            //         $previous_food_id = $sales_details_id;
+            //         $update_previous_id = array();
+            //         $update_previous_id['previous_id'] = $previous_food_id;
+            //         $this->Common_model->updateInformation($update_previous_id, $sales_details_id, "tbl_kitchen_sales_details");
+            //         $modifier_id_array = ($item->modifiers_id!="")?explode(",",$item->modifiers_id):null;
+            //         $modifier_price_array = ($item->modifiers_price!="")?explode(",",$item->modifiers_price):null;
+            //         $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat!="")?explode("|||",$item->modifier_vat):null;
+            //         if(!empty($modifier_id_array)>0){
+            //             $i = 0;
+            //             foreach($modifier_id_array as $key1=>$single_modifier_id){
+            //                 $modifier_data = array();
+            //                 $modifier_data['modifier_id'] = sanitize_font_html($single_modifier_id);
+            //                 $modifier_data['modifier_price'] = sanitize_font_html($modifier_price_array[$i]);
+            //                 $modifier_data['food_menu_id'] = sanitize_font_html($item->food_menu_id);
+            //                 $modifier_data['sales_id'] = $sale_id;
+            //                 $modifier_data['sales_details_id'] = $sales_details_id;
+            //                 $modifier_data['menu_taxes'] = isset($modifier_vat_array[$key1]) && $modifier_vat_array[$key1]?sanitize_font_html($modifier_vat_array[$key1]):'';
+            //                 $modifier_data['user_id'] = $this->session->userdata('user_id');
+            //                 $modifier_data['outlet_id'] = $this->session->userdata('outlet_id');
+            //                 $modifier_data['customer_id'] = sanitize_font_html($order_details->customer_id);
+            //                 if($sale_id){
+            //                     $check_exist_modifer = checkExistItemModifer($sale_id,$item->food_menu_id,$sales_details_id,$single_modifier_id);
+            //                     if(isset($check_exist_modifer) && $check_exist_modifer){
+            //                         $sales_details_modifier_id = $check_exist_modifer->id;
+            //                         if($existing_item && $item->qty!=$existing_item->qty){
+            //                             $modifier_data['is_print'] = 1;
+            //                         }
+            //                         $this->Common_model->updateInformation($modifier_data, $sales_details_modifier_id, "tbl_kitchen_sales_details_modifiers");
+            //                     }else{
+            //                         $this->db->insert('tbl_kitchen_sales_details_modifiers', $modifier_data);
+            //                     }
+            //                 }else{
+            //                     $this->db->insert('tbl_kitchen_sales_details_modifiers', $modifier_data);
+            //                 }
+            //                 $i++;
+            //             }
+            //         }
+            //     }
+            // }
             $this->db->trans_complete();
             if ($this->db->trans_status() === FALSE) {
                 $this->db->trans_rollback();
@@ -3078,388 +3204,6 @@ class Sale extends Cl_Controller {
             $this->db->trans_commit();
         }
     }
-    // public function push_online(){
-    //     $sale_id_offline = $this->input->post('sales_id');
-    //     $order_details = json_decode(($this->input->post('orders')));
-    //     $sale_no = $order_details->sale_no;
-    //     $sale_id = '';
-    //     $check_existing = getSaleDetailsBySaleNo($sale_no);
-    //     $select_kitchen_row = getKitchenSaleDetailsBySaleNo($sale_no);
-
-    //     $kitchen_sale = $this->db->select('number_slot,number_slot_name')
-    //     ->where('sale_no', $sale_no)
-    //     ->get('tbl_kitchen_sales')
-    //     ->row();
-
-    //     if(isset($check_existing) && $check_existing){
-    //         $sale_id = $check_existing->id;
-    //     }
-    //     $data = array();
-    //     $data['self_order_content'] = $this->input->post('orders');
-    //     $data['number_slot'] = (isset($kitchen_sale) && $kitchen_sale->number_slot) ? $kitchen_sale->number_slot : '';
-    //     $data['number_slot_name'] = (isset($kitchen_sale) && $kitchen_sale->number_slot_name) ? $kitchen_sale->number_slot_name : '';
-    //     $data['customer_id'] = trim_checker($order_details->customer_id);
-    //     $data['counter_id'] = trim_checker($order_details->counter_id);
-    //     $data['delivery_partner_id'] = trim_checker($order_details->delivery_partner_id);
-    //     $data['total_items'] = trim_checker($order_details->total_items_in_cart);
-    //     $data['sub_total'] = trim_checker($order_details->sub_total);
-    //     $data['charge_type'] = trim_checker($order_details->charge_type);
-    //     $data['previous_due_tmp'] = trim_checker($order_details->previous_due_tmp);
-    //     $data['vat'] = trim_checker($order_details->total_vat);
-    //     $data['total_payable'] = trim_checker($order_details->total_payable);
-    //     $data['total_item_discount_amount'] = trim_checker($order_details->total_item_discount_amount);
-    //     $data['sub_total_with_discount'] = trim_checker($order_details->sub_total_with_discount);
-    //     $data['sub_total_discount_amount'] = trim_checker($order_details->sub_total_discount_amount);
-    //     $data['total_discount_amount'] = trim_checker($order_details->total_discount_amount);
-    //     $data['tips_amount'] = trim_checker($order_details->tips_amount);
-    //     $data['tips_amount_actual_charge'] = trim_checker($order_details->tips_amount_actual_charge);
-    //     $data['delivery_charge'] = trim_checker($order_details->delivery_charge);
-    //     $data['delivery_charge_actual_charge'] = trim_checker($order_details->delivery_charge_actual_charge);
-    //     $data['sub_total_discount_value'] = trim_checker($order_details->sub_total_discount_value);
-    //     $data['sub_total_discount_type'] = trim_checker($order_details->sub_total_discount_type);
-    //     $data['given_amount'] = trim_checker($order_details->hidden_given_amount);
-    //     $data['change_amount'] = trim_checker($order_details->hidden_change_amount);
-    //     $data['token_number'] = trim_checker($order_details->token_number);
-    //     $data['random_code'] = trim_checker(isset($order_details->random_code) && $order_details->random_code?$order_details->random_code:'');
-    //     $data['user_id'] = $this->session->userdata('user_id');;
-    //     $data['waiter_id'] = trim_checker($order_details->waiter_id);
-    //     $data['outlet_id'] = $this->session->userdata('outlet_id');
-    //     $data['company_id'] = $this->session->userdata('company_id');
-    //     $data['sale_date'] = trim_checker(isset($order_details->open_invoice_date_hidden) && $order_details->open_invoice_date_hidden?$order_details->open_invoice_date_hidden:date('Y-m-d'));
-    //     $data['date_time'] = date('Y-m-d H:i:s',strtotime($order_details->date_time));
-    //     $data['order_time'] = date('Y-m-d H:i:s',strtotime($order_details->date_time));
-    //     $data['paid_date_time'] = date('Y-m-d H:i:s');
-    //     $data['order_status'] = 3;
-    //     $data['orders_table_text'] = ($order_details->orders_table_text);
-    //     $data['payment_method_id'] = trim_checker($order_details->payment_method_type);
-    //     $data['paid_amount'] = trim_checker($order_details->paid_amount);
-    //     $data['due_amount'] = trim_checker($order_details->due_amount);
-    //     $data['zatca_value'] = trim_checker($order_details->zatca_invoice_value);
-    //     $total_tax = 0;
-    //     if(isset($order_details->sale_vat_objects) && $order_details->sale_vat_objects){
-    //         foreach ($order_details->sale_vat_objects as $keys=>$val){
-    //             $total_tax+=$val->tax_field_amount;
-    //         }
-    //     }
-    //     $data['vat'] = $total_tax;
-    //     $data['sale_vat_objects'] = json_encode($order_details->sale_vat_objects);
-    //     $data['order_type'] = trim_checker($order_details->order_type);
-    //     $this->db->trans_begin();
-    //     if($sale_id>0){
-    //         $data['modified'] = 'Yes';
-    //         $this->db->where('id', $sale_id);
-    //         $this->db->update('tbl_sales', $data);
-
-    //         //end of send notification process
-    //         $this->db->delete('tbl_sales_details', array('sales_id' => $sale_id));
-    //         $this->db->delete('tbl_sales_details_modifiers', array('sales_id' => $sale_id));
-    //         $this->db->delete('tbl_sale_consumptions', array('sale_id' => $sale_id));
-    //         $this->db->delete('tbl_sale_consumptions_of_menus', array('sales_id' => $sale_id));
-    //         $this->db->delete('tbl_sale_consumptions_of_modifiers_of_menus', array('sales_id' => $sale_id));
-    //         $this->db->delete('tbl_sale_payments', array('sale_id' => $sale_id));
-    //         $sales_id = $sale_id;
-
-
-    //         $paymentarray = array();
-    //         $paymentarray['payment_id'] = 1;
-    //         $paymentarray['payment_name'] = "Cash";
-    //         $paymentarray['amount'] = $order_details->total_payable;
-    //         $paymentarray['date_time'] = date('Y-m-d H:i:s');;
-    //         $paymentarray['sale_id'] = $sales_id;
-    //         $paymentarray['user_id'] = $this->session->userdata('user_id');
-    //         $paymentarray['outlet_id'] = $data['outlet_id'] ;
-    //         $paymentarray['counter_id'] = $this->session->userdata('counter_id');
-    //         $this->Common_model->insertInformation($paymentarray, "tbl_sale_payments");
-    //     }else{
-    //         $this->db->insert('tbl_sales', $data);
-    //         $sales_id = $this->db->insert_id();
-    //         $sale_no_update_array = array('sale_no' => $sale_no);
-    //         $this->db->where('id', $sales_id);
-    //         $this->db->update('tbl_sales', $sale_no_update_array);
-    //     }
-    //     foreach($order_details->orders_table as $single_order_table){
-    //         $order_table_info = array();
-    //         $order_table_info['persons'] = $single_order_table->persons;
-    //         $order_table_info['booking_time'] = date('Y-m-d H:i:s');
-    //         $order_table_info['sale_id'] = $sales_id;
-    //         $order_table_info['sale_no'] = $sale_no;
-    //         $order_table_info['outlet_id'] = $this->session->userdata('outlet_id');
-    //         $order_table_info['table_id'] = $single_order_table->table_id;
-    //         $this->db->insert('tbl_orders_table',$order_table_info);
-    //     }
-    //     $data_sale_consumptions = array();
-    //     $data_sale_consumptions['sale_id'] = $sales_id;
-    //     $data_sale_consumptions['user_id'] = $this->session->userdata('user_id');
-    //     $data_sale_consumptions['outlet_id'] = $this->session->userdata('outlet_id');
-    //     $data_sale_consumptions['del_status'] = 'Live';
-    //     $this->db->insert('tbl_sale_consumptions',$data_sale_consumptions);
-    //     $sale_consumption_id = $this->db->insert_id();
-
-    //     if($sales_id>0 && count($order_details->items)>0){
-    //         foreach($order_details->items as $item){
-    //             // $tmp_var_111 = isset($item->p_qty) && $item->p_qty && $item->p_qty!='undefined'?$item->p_qty:0;
-    //             // $tmp = $item->qty-$tmp_var_111;
-    //             $qty = isset($item->qty) && is_numeric($item->qty) ? (int)$item->qty : 0;
-    //             $p_qty = isset($item->p_qty) && is_numeric($item->p_qty) ? (int)$item->p_qty : 0;
-    //             $tmp = $qty - $p_qty;
-
-    //             $tmp_var = 0;
-    //             if($tmp>0){
-    //                 $tmp_var = $tmp;
-    //             }
-
-    //             $food_details =  $this->Common_model->getDataById($item->food_menu_id, "tbl_food_menus");
-    //             $item_data = array();
-    //             $item_data['food_menu_id'] = $item->food_menu_id;
-    //             $p_name = getParentNameOnly($food_details->parent_id);
-    //             $item_data['menu_name'] = isset($p_name[0]) ? $p_name[0] . (isset($food_details->name) && $food_details->name ? " " . $food_details->name : '') : (isset($food_details->name) && $food_details->name ? $food_details->name : '');
-    //             $item_data['qty'] = $item->qty;
-    //             $item_data['tmp_qty'] = $tmp_var;
-    //             $item_data['menu_price_without_discount'] = $item->menu_price_without_discount;
-    //             $item_data['menu_price_with_discount'] = $item->menu_price_with_discount;
-    //             $item_data['menu_combo_items'] = isset($item->menu_combo_items) && $item->menu_combo_items && $item->menu_combo_items!="undefined"?$item->menu_combo_items:'';
-    //             $item_data['is_free_item'] = $item->is_free;
-    //             $item_data['menu_unit_price'] = $item->menu_unit_price;
-    //             $item_data['menu_taxes'] = json_encode($item->item_vat);
-    //             $item_data['menu_discount_value'] = $item->menu_discount_value;
-    //             $item_data['discount_type'] = $item->discount_type;
-    //             $item_data['menu_note'] = isset($item->item_note) && $item->item_note?$item->item_note:'';
-    //             $item_data['discount_amount'] = $item->item_discount_amount;
-    //             $item_data['item_type'] = ($this->Sale_model->getItemType($item->food_menu_id)->item_type=="Bar No")?"Kitchen Item":"Bar Item";
-    //             $item_data['cooking_status'] = ($item->item_cooking_status=="")?NULL:$item->item_cooking_status;
-                
-    //             if(isset($select_kitchen_row->id) && $select_kitchen_row->id){
-    //                 $kitchen_data = getKitchenItemDetails($select_kitchen_row->id,$item->food_menu_id);
-    //                 $item_data['cooking_start_time'] = isset($kitchen_data->cooking_start_time) && $kitchen_data->cooking_start_time?$kitchen_data->cooking_start_time:'0000-00-00 00:00:00';
-    //                 $item_data['cooking_done_time'] = isset($kitchen_data->cooking_done_time) && $kitchen_data->cooking_done_time?$kitchen_data->cooking_done_time:'0000-00-00 00:00:00';
-    //             }else{
-    //                 $item_data['cooking_start_time'] = ($item->item_cooking_start_time=="" || $item->item_cooking_start_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_start_time));
-    //                 $item_data['cooking_done_time'] = ($item->item_cooking_done_time=="" || $item->item_cooking_done_time=="0000-00-00 00:00:00")?'0000-00-00 00:00:00':date('Y-m-d H:i:s',strtotime($item->item_cooking_done_time));
-    //             }
-               
-    //             $item_data['previous_id'] = ($item->item_previous_id=="")?0:$item->item_previous_id;
-    //             $item_data['sales_id'] = $sales_id;
-    //             $item_data['user_id'] = $this->session->userdata('user_id');
-    //             $item_data['outlet_id'] = $this->session->userdata('outlet_id');
-    //             if($order_details->customer_id!=1){
-    //                 $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
-    //             }
-
-    //             $item_data['del_status'] = 'Live';
-    //             $this->db->insert('tbl_sales_details', $item_data);
-    //             $sales_details_id = $this->db->insert_id();
-
-    //             if($item->item_previous_id==""){
-    //                 $previous_id_update_array = array('previous_id' => $sales_details_id);
-    //                 $this->db->where('id', $sales_details_id);
-    //                 $this->db->update('tbl_sales_details', $previous_id_update_array);
-    //             }
-
-    //             if(isset($food_details->product_type) && $food_details->product_type==1){
-    //                 $food_menu_ingredients = $this->db->query("SELECT * FROM tbl_food_menus_ingredients WHERE food_menu_id=$item->food_menu_id")->result();
-    //                 foreach($food_menu_ingredients as $single_ingredient){
-    //                     $inline_total = $single_ingredient->cost;
-    //                     $data_sale_consumptions_detail = array();
-    //                     $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
-    //                     $data_sale_consumptions_detail['consumption'] = $item->qty*$single_ingredient->consumption;
-    //                     $data_sale_consumptions_detail['sale_consumption_id'] = $sale_consumption_id;
-    //                     $data_sale_consumptions_detail['sales_id'] = $sales_id;
-    //                     $data_sale_consumptions_detail['cost'] = $inline_total;
-    //                     $data_sale_consumptions_detail['food_menu_id'] = $item->food_menu_id;
-    //                     $data_sale_consumptions_detail['user_id'] = $this->session->userdata('outlet_id');
-    //                     $data_sale_consumptions_detail['outlet_id'] = $this->session->userdata('outlet_id');
-    //                     $data_sale_consumptions_detail['del_status'] = 'Live';
-    //                     $query = $this->db->insert('tbl_sale_consumptions_of_menus',$data_sale_consumptions_detail);
-    //                 }
-    //             }else if(isset($food_details->product_type) && $food_details->product_type==3){
-    //                 $food_menu_ingredients = $this->db->query("SELECT * FROM tbl_ingredients WHERE food_id=$item->food_menu_id")->result();
-    //                 foreach($food_menu_ingredients as $single_ingredient){
-    //                     $inline_total = $single_ingredient->consumption_unit_cost;
-    //                     $data_sale_consumptions_detail = array();
-    //                     $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->id;
-    //                     $data_sale_consumptions_detail['consumption'] = $item->qty;
-    //                     $data_sale_consumptions_detail['sale_consumption_id'] = $sale_consumption_id;
-    //                     $data_sale_consumptions_detail['sales_id'] = $sales_id;
-    //                     $data_sale_consumptions_detail['cost'] = $inline_total;
-    //                     $data_sale_consumptions_detail['food_menu_id'] = $item->food_menu_id;
-    //                     $data_sale_consumptions_detail['user_id'] = $this->session->userdata('outlet_id');
-    //                     $data_sale_consumptions_detail['outlet_id'] = $this->session->userdata('outlet_id');
-    //                     $data_sale_consumptions_detail['del_status'] = 'Live';
-    //                      $this->db->insert('tbl_sale_consumptions_of_menus',$data_sale_consumptions_detail);
-    //                 }
-    //             }else{
-    //                 $combo_food_menus = $this->db->query("SELECT * FROM tbl_combo_food_menus WHERE food_menu_id=$item->food_menu_id AND del_status='Live'")->result();
-    //                 if(isset($combo_food_menus) && $combo_food_menus){
-    //                     foreach ($combo_food_menus as $single_combo_fm){
-    //                         $food_menu_ingredients = $this->db->query("SELECT * FROM tbl_food_menus_ingredients WHERE food_menu_id=$single_combo_fm->added_food_menu_id")->result();
-    //                         foreach($food_menu_ingredients as $single_ingredient){
-    //                             $inline_total = $single_ingredient->cost*($item->qty*$single_combo_fm->quantity);
-    //                             $data_sale_consumptions_detail = array();
-    //                             $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
-    //                             $data_sale_consumptions_detail['consumption'] = ($item->qty*$single_combo_fm->quantity)*$single_ingredient->consumption;
-    //                             $data_sale_consumptions_detail['sale_consumption_id'] = $sale_consumption_id;
-    //                             $data_sale_consumptions_detail['sales_id'] = $sales_id;
-    //                             $data_sale_consumptions_detail['cost'] = $inline_total;
-    //                             $data_sale_consumptions_detail['food_menu_id'] = $item->food_menu_id;
-    //                             $data_sale_consumptions_detail['user_id'] = $this->session->userdata('outlet_id');
-    //                             $data_sale_consumptions_detail['outlet_id'] = $this->session->userdata('outlet_id');
-    //                             $data_sale_consumptions_detail['del_status'] = 'Live';
-    //                             $this->db->insert('tbl_sale_consumptions_of_menus',$data_sale_consumptions_detail);
-    //                         }
-    //                     }
-
-    //                 }
-    //             }
-
-
-
-    //             $modifier_id_array = isset($item->modifiers_id) && ($item->modifiers_id!="")?explode(",",$item->modifiers_id):null;
-    //             /*new_added_zak*/
-    //             $modifiers_mul_id_array = isset($item->modifiers_mul_id) && ($item->modifiers_mul_id!="")?explode(",",$item->modifiers_mul_id):null;
-    //             /*end_new_added_zak*/
-    //             $modifier_price_array = isset($item->modifiers_price) && ($item->modifiers_price!="")?explode(",",$item->modifiers_price):null;
-    //             $modifier_vat_array = (isset($item->modifier_vat) && $item->modifier_vat!="")?explode("|||",$item->modifier_vat):null;
-    //             if(!empty($modifier_id_array)>0){
-    //                 $i = 0;
-    //                 foreach($modifier_id_array as $key1=>$single_modifier_id){
-    //                     $modifiers_mul_id_array_value = isset($modifiers_mul_id_array[$key1]) && $modifiers_mul_id_array[$key1]?explode('_',$modifiers_mul_id_array[$key1]):'';
-
-    //                     $modifier_data = array();
-    //                     $modifier_data['modifier_id'] =$single_modifier_id;
-    //                     $modifier_data['modifier_price'] = $modifier_price_array[$i];
-    //                     $modifier_data['food_menu_id'] = $item->food_menu_id;
-    //                     $modifier_data['sales_id'] = $sales_id;
-    //                     $modifier_data['sales_details_id'] = $sales_details_id;
-    //                     $modifier_data['menu_taxes'] = isset($modifier_vat_array[$key1]) && $modifier_vat_array[$key1]?$modifier_vat_array[$key1]:'';
-    //                     $modifier_data['user_id'] = $this->session->userdata('user_id');
-    //                     $modifier_data['outlet_id'] = $this->session->userdata('outlet_id');
-    //                     $modifier_data['customer_id'] =$order_details->customer_id;
-    //                     $this->db->insert('tbl_sales_details_modifiers', $modifier_data);
-
-    //                     $modifier_ingredients = $this->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=$single_modifier_id")->result();
-
-    //                     foreach($modifier_ingredients as $single_ingredient){
-    //                         $data_sale_consumptions_detail = array();
-    //                         $data_sale_consumptions_detail['ingredient_id'] = $single_ingredient->ingredient_id;
-    //                         $data_sale_consumptions_detail['consumption'] = $item->qty*$single_ingredient->consumption;
-    //                         $data_sale_consumptions_detail['sale_consumption_id'] = $sale_consumption_id;
-    //                         $data_sale_consumptions_detail['sales_id'] = $sales_id;
-    //                         $data_sale_consumptions_detail['food_menu_id'] = $item->food_menu_id;
-    //                         $data_sale_consumptions_detail['user_id'] = $this->session->userdata('user_id');
-    //                         $data_sale_consumptions_detail['outlet_id'] = $this->session->userdata('outlet_id');
-    //                         $data_sale_consumptions_detail['del_status'] = 'Live';
-    //                         $this->db->insert('tbl_sale_consumptions_of_modifiers_of_menus',$data_sale_consumptions_detail);
-    //                     }
-    //                     $i++;
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     if(!$sale_id){
-    //         $this->db->delete('tbl_sale_payments', array('sale_id' => $sales_id));
-    //     }
-    //     //put payment details
-    //     if(isset($order_details->payment_object)){
-    //         $payment_details = json_decode($order_details->payment_object);
-        
-    //         // Si por alguna razón aún es string, decodifica de nuevo (caso datos viejos)
-    //         if (is_string($payment_details)) {
-    //             $payment_details = json_decode($payment_details);
-    //         }
-    //         // if(isset($order_details->split_sale_id) && $order_details->split_sale_id){
-    //         //     $payment_details = json_decode(($order_details->payment_object));
-    //         // }else{
-    //         //     $payment_details = json_decode(json_decode($order_details->payment_object));
-    //         // }
-
-    //         $currency_type = trim_checker($order_details->is_multi_currency);
-    //         $multi_currency = trim_checker($order_details->multi_currency);
-    //         $multi_currency_rate = trim_checker($order_details->multi_currency_rate);
-    //         $multi_currency_amount = trim_checker($order_details->multi_currency_amount);
-           
-
-    //         if($currency_type==1){
-    //             $check_existing_payment = getPaymentInfo($sales_id,1);
-    //             if(!$check_existing_payment){
-    //                 $data = array();
-    //                 $data['payment_id'] = 1;
-    //                 $data['payment_name'] = "Cash";
-    //                 $data['amount'] = $multi_currency_amount;
-    //                 $data['multi_currency'] = $multi_currency;
-    //                 $data['multi_currency_rate'] = $multi_currency_rate;
-    //                 $data['currency_type'] = $currency_type;
-    //                 $data['date_time'] = date('Y-m-d H:i:s'); //date('Y-m-d H:i:s',strtotime($order_details->date_time));
-    //                 $data['sale_id'] = $sales_id;
-    //                 $data['counter_id'] = $this->session->userdata('counter_id');
-    //                 $data['user_id'] = $this->session->userdata('user_id');
-    //                 $data['outlet_id'] = $this->session->userdata('outlet_id');
-    //                 $this->Common_model->insertInformation($data, "tbl_sale_payments");
-    //             }
-    //         }else{
-    //             foreach ($payment_details as $value){
-    //                 $check_existing_payment = getPaymentInfo($sales_id,$value->payment_id);
-    //                 if(!$check_existing_payment){
-    //                     $data = array();
-    //                     $data['payment_id'] = $value->payment_id;
-    //                     $data['payment_name'] = $value->payment_name;
-    //                     if($value->payment_id==5){
-    //                         $data['usage_point'] = $value->usage_point;
-    //                         $previous_id_update_array = array('loyalty_point_earn' => 0);
-    //                         $this->db->where('sales_id', $sales_id);
-    //                         $this->db->update('tbl_sales_details', $previous_id_update_array);
-    //                     }
-    //                     $data['amount'] = $value->amount;
-    //                     $data['date_time'] = date('Y-m-d H:i:s'); //date('Y-m-d H:i:s',strtotime($order_details->date_time));
-    //                     $data['sale_id'] = $sales_id;
-    //                     $data['counter_id'] = $this->session->userdata('counter_id');
-    //                     $data['user_id'] = $this->session->userdata('user_id');
-    //                     $data['outlet_id'] = $this->session->userdata('outlet_id');
-    //                     $this->Common_model->insertInformation($data, "tbl_sale_payments");
-    //                 }
-                  
-    //             }
-    //         }
-    //     }
-
-
-    //     $this->db->trans_complete();
-    //     if ($this->db->trans_status() === FALSE) {
-    //         $this->db->trans_rollback();
-    //     } else {
-    //         $this->db->where('sale_no', $sale_no)
-    //             ->update('tbl_numeros', [
-    //                 'sale_id' => NULL,
-    //                 'sale_no' => NULL,
-    //                 "user_id" => NULL
-    //             ]);
-    //         // if($kitchen_sale && $kitchen_sale->number_slot > 0) {
-    //         //     // Liberar el número en tbl_numeros
-
-    //         // }
-    //         // $send_sms_status = isset($order_details->send_sms_status) && $order_details->send_sms_status?$order_details->send_sms_status:'';
-    //         // if($send_sms_status==1){
-    //         //     $customer = getCustomerData(trim_checker($order_details->customer_id));
-    //         //     $outlet_name = $this->session->userdata('outlet_name');
-    //         //     $sms_content = "Hi ".$customer->name.", thank you for visiting '.$outlet_name.'. Total bill of your order on '.$order_details->date_time.' is ".getAmtCustom($order_details->total_payable).". Paid amount is: ".getAmtCustom($order_details->paid_amount).", Due Amount is: ".getAmtCustom($order_details->due_amount)."
-    //         // We hope to see you again!";
-    //         //     if($customer->phone){
-    //         //         smsSendOnly($sms_content,$customer->phone);
-    //         //     }
-    //         // }
-    //         // if($select_kitchen_row){
-    //         //     // $pre_or_post_payment = $this->session->userdata('pre_or_post_payment');
-    //         //     // if($pre_or_post_payment==1){
-    //         //         $this->db->delete("tbl_kitchen_sales_details", array("sales_id" => $select_kitchen_row->id));
-    //         //         $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
-    //         //         $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
-    //         //     // }
-    //         // }
-            
-    //         echo escape_output($sale_id_offline);
-    //         $this->db->trans_commit();
-    //     }
-    // }
      /**
      * add sale by ajax
      * @access public
@@ -6112,6 +5856,8 @@ class Sale extends Cl_Controller {
         }
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'cut'];
@@ -6253,6 +5999,8 @@ class Sale extends Cl_Controller {
     
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'cut'];
@@ -7068,6 +6816,8 @@ class Sale extends Cl_Controller {
         
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'cut'];

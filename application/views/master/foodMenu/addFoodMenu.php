@@ -794,10 +794,36 @@
 
 
 <script>
-    $(document).ready(function() {
+$(document).ready(function() {
+    // Inicialización para el select2 que NO está en el modal
     $('#ingredient_id').select2({
         placeholder: 'Buscar ingrediente',
         allowClear: true,
+        ajax: {
+            url: '<?php echo base_url('foodMenu/ajax_ingredients'); ?>',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    term: params.term // término de búsqueda
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data.results
+                };
+            },
+            cache: true
+        },
+        minimumInputLength: 1
+    });
+
+    // Inicialización para el select2 DENTRO del modal
+    $('#vr01_md_ingredient_id').select2({
+        placeholder: 'Buscar ingrediente',
+        allowClear: true,
+        // Adjunta el dropdown al modal para que el input de búsqueda funcione
+        dropdownParent: $('#variation_modal'), 
         ajax: {
             url: '<?php echo base_url('foodMenu/ajax_ingredients'); ?>',
             dataType: 'json',
