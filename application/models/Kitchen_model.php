@@ -8,7 +8,7 @@ class Kitchen_model extends CI_Model {
      * @return object
      * @param int
      */
-    public function getNewOrders($outlet_id, $kitchen_id = null) {
+    public function getNewOrdersNew($outlet_id, $kitchen_id = null) {
         // Aseguramos que los IDs sean números para prevenir inyección SQL.
         $safe_outlet_id = (int) $outlet_id;
 
@@ -75,7 +75,7 @@ class Kitchen_model extends CI_Model {
         return $this->db->get()->result();
     }
 
-    public function getNewOrdersOld2($outlet_id, $kitchen_id = null) {
+    public function getNewOrders($outlet_id, $kitchen_id = null) {
         $this->db->select("
                         s.id, s.customer_id, s.sale_no, s.number_slot, s.number_slot_name, 
                         s.total_items, s.sub_total, s.paid_amount, s.due_amount, s.disc, 
@@ -304,7 +304,7 @@ class Kitchen_model extends CI_Model {
      * @return object
      * @param int
      */
-    public function getAllKitchenItemsFromSalesDetailBySalesId($sales_id, $kitchen_id) {
+    public function getAllKitchenItemsFromSalesDetailBySalesIdNew($sales_id, $kitchen_id) {
         // === PASO 1: Obtener todos los detalles de la venta (los platos) ===
         $this->db->select('sd.*, sd.id as sales_details_id, fm.name as menu_name');
         $this->db->from('tbl_kitchen_sales_details sd');
@@ -367,7 +367,7 @@ class Kitchen_model extends CI_Model {
         return $sales_details;
     }
 
-    public function getAllKitchenItemsFromSalesDetailBySalesIdOld2($sales_id, $kitchen_id) {
+    public function getAllKitchenItemsFromSalesDetailBySalesId($sales_id, $kitchen_id) {
         $this->db->select('sd.*, 
                         sd.id as sales_details_id,  
                           fm.name as menu_name,

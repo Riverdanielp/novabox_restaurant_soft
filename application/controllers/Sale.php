@@ -1694,7 +1694,10 @@ class Sale extends Cl_Controller {
                         $item_data['cooking_done_time'] = $db_item->cooking_done_time;
 
                         $this->Common_model->updateInformation($item_data, $sales_details_id, "tbl_kitchen_sales_details");
-                        
+                        // <-- Añadir esto aquí
+                        $this->db->where('id', $sales_details_id);
+                        $this->db->update('tbl_kitchen_sales_details', ['previous_id' => $sales_details_id]);
+                                            
                         // Marcar este grupo de la BD como ya procesado
                         unset($db_items_grouped_by_signature[$signature]);
 
@@ -1708,6 +1711,8 @@ class Sale extends Cl_Controller {
 
                         $this->db->insert('tbl_kitchen_sales_details', $item_data);
                         $sales_details_id = $this->db->insert_id();
+                        $this->db->where('id', $sales_details_id);
+                        $this->db->update('tbl_kitchen_sales_details', ['previous_id' => $sales_details_id]);
                     }
                     
                     // --- Procesar Modificadores (Borrar y Re-insertar es lo más seguro) ---
