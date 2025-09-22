@@ -14,6 +14,9 @@ class Sale extends Cl_Controller {
         $this->load->model('Master_model');
         $this->load->model('Inventory_model');
         $this->load->library('form_validation');
+
+        $this->load->library('facturasend');
+
         // $this->load->driver('cache', array('adapter' => 'apc', 'backup' => 'file'));
         $this->Common_model->setDefaultTimezone();
         if (!$this->session->has_userdata('user_id') && $this->session->has_userdata('is_online_order')!="Yes") {
@@ -1262,7 +1265,7 @@ class Sale extends Cl_Controller {
      * @param no
      */
     public function add_customer_by_ajax(){
-        $customer_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_id')));
+        $customer_id = htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_id')));
         $data['name'] = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_name'))));
         $data['phone'] = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_phone'))));
         $data['default_discount'] = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_default_discount'))));
@@ -1284,33 +1287,51 @@ class Sale extends Cl_Controller {
             $data['tipo_ident'] = $this->input->post($this->security->xss_clean('customer_tipo_ident'));
             $data['tipo_numeracion'] = $this->input->post($this->security->xss_clean('customer_tipo_numeracion'));
         }
+
+        // ==== NUEVOS CAMPOS SIFEN SI EXISTEN EN POST ====
+        $fields_map = [
+            'nombre_fantasia' => 'customer_nombre_fantasia',
+            'es_proveedor_estado' => 'customer_es_proveedor_estado',
+            'es_contribuyente' => 'customer_es_contribuyente',
+            'tipo_documento' => 'customer_tipo_documento',
+            'numero_casa' => 'customer_numero_casa',
+            'tipo_contribuyente' => 'customer_tipo_contribuyente',
+            'codigo_pais' => 'codigo_pais',
+            'departamento_id' => 'departamento_id',
+            'distrito_id' => 'distrito_id',
+            'ciudad_id' => 'ciudad_id',
+        ];
+        foreach ($fields_map as $db_field => $post_field) {
+            $value = $this->input->post($this->security->xss_clean($post_field));
+            // Solo guarda si viene en el POST (puede ser '0' en checkboxes)
+            if($value !== null && $value !== false){
+                $data[$db_field] = trim_checker(htmlspecialcharscustom($value));
+            }
+        }
+        // ==== FIN NUEVOS CAMPOS ====
+
         $id_return = 0;
         if($customer_id>0 && $customer_id!=""){
             $this->db->where('id', $customer_id);
             $this->db->update('tbl_customers', $data);
             $id_return =  $customer_id;
         }else{
-            // $this->db->insert('tbl_customers', $data);
-            // $id_return =  $this->db->insert_id();
             $gst_number = $data['gst_number'];
             if($gst_number != ''){
                 $this->db->select('id');
                 $this->db->from('tbl_customers');
                 $this->db->where('gst_number', $gst_number);
-                // $this->db->where('company_id', $data['company_id']); // Asegurarse de que el gst_number sea único por compañía
                 $query = $this->db->get();
-                
                 if($query->num_rows() > 0){
-                    // Si ya existe un cliente con el mismo gst_number, obtenemos su id
                     $row = $query->row();
                     $id_return = $row->id;
+                    $this->db->where('id', $id_return);
+                    $this->db->update('tbl_customers', $data);
                 } else {
-                    // Si no existe, insertamos el nuevo cliente
                     $this->db->insert('tbl_customers', $data);
                     $id_return = $this->db->insert_id();
                 }
             } else {
-                // Si no existe, insertamos el nuevo cliente
                 $this->db->insert('tbl_customers', $data);
                 $id_return = $this->db->insert_id();
             }
@@ -1325,7 +1346,6 @@ class Sale extends Cl_Controller {
                 $this->Common_model->insertInformation($customer_address, "tbl_customer_address");
             }
         }else if ($customer_delivery_address_modal_id){
-
             $data_old['is_active'] = '0';
             $this->db->where('customer_id', $id_return);
             $this->db->update('tbl_customer_address', $data_old);
@@ -1352,6 +1372,7 @@ class Sale extends Cl_Controller {
         $customer_return['customer_data'] = $customer_data;
         echo json_encode($customer_return) ;
     }
+
 
     public function search_customers() {
         $term = $this->input->get('q');
@@ -1382,6 +1403,36 @@ class Sale extends Cl_Controller {
         }
 
         echo json_encode($results);
+    }
+
+    public function search_customers_by_gts() {
+        // Asegurarse de que sea una petición AJAX
+        if (!$this->input->is_ajax_request()) {
+            exit('No direct script access allowed');
+        }
+
+        $term = $this->input->post('term');
+        $company_id = $this->session->userdata('company_id');
+
+        if (!$term) {
+            echo json_encode([]);
+            return;
+        }
+
+        $this->db->select('id, name, gst_number');
+        $this->db->from('tbl_customers');
+        $this->db->where('company_id', $company_id);
+        $this->db->group_start();
+        $this->db->like('gst_number', $term, 'after'); // 'after' busca coincidencias al inicio (ej: 432... )
+        $this->db->group_end();
+        $this->db->where('del_status', 'Live');
+        $this->db->limit(10); // Limitar a 10 resultados para no sobrecargar
+
+        $query = $this->db->get();
+        $customers = $query->result();
+
+        // Devolver solo los datos necesarios para la lista
+        echo json_encode($customers);
     }
 
     public function online_customer_login_by_ajax(){
@@ -2107,6 +2158,198 @@ class Sale extends Cl_Controller {
         }
     }
 
+
+    /**
+     * Actualiza los datos del cliente de una venta existente vía AJAX.
+     * @access public
+     * @return json
+     */
+    public function update_customer_for_sale_ajax() {
+        // Validación de permisos (si es necesario)
+        if (isServiceAccessOnly('sGmsJaFJE') && !checkCreatePermissionInvoice()) {
+            echo json_encode(['status' => 'error', 'message' => lang('not_permission_invoice_create_error')]);
+            return;
+        }
+
+        $sale_no = $this->input->post('sale_no');
+        $customer_id = $this->input->post('customer_id');
+        $customer_name = $this->input->post('customer_name');
+        $customer_address = $this->input->post('customer_address');
+        $customer_gst_number = $this->input->post('customer_gst_number');
+
+        if (empty($sale_no) || empty($customer_id)) {
+            echo json_encode(['status' => 'error', 'message' => 'Faltan datos requeridos (Nº de venta o cliente).']);
+            return;
+        }
+
+        // Busca la venta en la tabla de cocina
+        $sale_details = getKitchenSaleDetailsBySaleNo($sale_no);
+
+        if (!$sale_details || !$sale_details->id) {
+            echo json_encode(['status' => 'error', 'message' => 'La venta no fue encontrada.']);
+            return;
+        }
+
+        $this->db->trans_begin();
+
+        try {
+            // 1. Actualizar los campos principales en tbl_kitchen_sales
+            $update_data = [
+                'customer_id' => trim_checker($customer_id),
+                'del_address' => trim_checker($customer_address) ?: "",
+                'is_update_sender' => 1,
+                'is_update_receiver' => 1,
+                'is_update_receiver_admin' => 1,
+                'last_update' => gmdate('Y-m-d H:i:s'),
+                'modified' => 'Yes'
+            ];
+            $this->db->where('id', $sale_details->id);
+            $this->db->update('tbl_kitchen_sales', $update_data);
+
+            // 2. Actualizar el JSON 'self_order_content'
+            $order_content = json_decode($sale_details->self_order_content);
+            if ($order_content) {
+                $order_content->customer_id = trim_checker($customer_id);
+                $order_content->customer_name = trim_checker($customer_name);
+                $order_content->customer_address = trim_checker($customer_address) ?: "";
+                $order_content->customer_gst_number = trim_checker($customer_gst_number) ?: "";
+
+                $updated_json = json_encode($order_content);
+                $this->db->where('id', $sale_details->id);
+                $this->db->update('tbl_kitchen_sales', ['self_order_content' => $updated_json]);
+            }
+
+            // 3. Opcional: Notificar a la cocina sobre el cambio de cliente (si es relevante)
+            $notification_message = "El cliente del pedido {$sale_no} ha sido cambiado a: {$customer_name}";
+            $kitchens = $this->Common_model->getOrderedKitchens($sale_details->id);
+            foreach ($kitchens as $kitchen) {
+                $notification_data = [
+                    'notification' => $notification_message,
+                    'sale_id' => $sale_details->id,
+                    'outlet_id' => $this->session->userdata('outlet_id'),
+                    'kitchen_id' => $kitchen->kitchen_id
+                ];
+                $this->db->insert('tbl_notification_bar_kitchen_panel', $notification_data);
+            }
+
+            if ($this->db->trans_status() === FALSE) {
+                $this->db->trans_rollback();
+                echo json_encode(['status' => 'error', 'message' => 'Error en la transacción de la base de datos.']);
+            } else {
+                $this->db->trans_commit();
+                echo json_encode(['status' => 'success', 'message' => 'Cliente actualizado con éxito.']);
+            }
+
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            echo json_encode(['status' => 'error', 'message' => 'Ocurrió una excepción: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Actualiza los datos del cliente de una venta existente vía AJAX.
+     * @access public
+     * @return json
+     */
+    public function update_customer_for_sale_and_proc_fe_ajax() {
+        // Validación de permisos (si es necesario)
+        if (isServiceAccessOnly('sGmsJaFJE') && !checkCreatePermissionInvoice()) {
+            echo json_encode(['status' => 'error', 'message' => lang('not_permission_invoice_create_error')]);
+            return;
+        }
+
+        $sale_no = $this->input->post('sale_no');
+        $customer_id = $this->input->post('customer_id');
+        $customer_name = $this->input->post('customer_name');
+        $customer_address = $this->input->post('customer_address');
+        $customer_gst_number = $this->input->post('customer_gst_number');
+
+        if (empty($sale_no) || empty($customer_id)) {
+            echo json_encode(['status' => 'error', 'message' => 'Faltan datos requeridos (Nº de venta o cliente).']);
+            return;
+        }
+
+        // Busca la venta en la tabla de cocina
+        $sale_detail = getSaleDetails($sale_no);
+        if (!$sale_detail || !$sale_detail->id) {
+            echo json_encode(['status' => 'error', 'message' => 'La venta no fue encontrada.']);
+            return;
+        }
+        $sale_details = $this->get_all_information_of_a_sale_modify($sale_detail->id);
+
+        if (!$sale_details || !$sale_details->id) {
+            echo json_encode(['status' => 'error', 'message' => 'La venta no fue encontrada.']);
+            return;
+        }
+
+        $this->db->trans_begin();
+
+        try {
+            // 1. Actualizar los campos principales en tbl_kitchen_sales
+            $update_data = [
+                'customer_id' => trim_checker($customer_id),
+                'del_address' => trim_checker($customer_address) ?: "",
+                // 'is_update_sender' => 1,
+                // 'is_update_receiver' => 1,
+                // 'is_update_receiver_admin' => 1,
+                // 'last_update' => gmdate('Y-m-d H:i:s'),
+                // 'modified' => 'Yes'
+            ];
+            $this->db->where('id', $sale_details->id);
+            $this->db->update('tbl_sales', $update_data);
+
+            // 2. Actualizar el JSON 'self_order_content'
+            $order_content = json_decode($sale_details->self_order_content);
+            if ($order_content) {
+                $order_content->customer_id = trim_checker($customer_id);
+                $order_content->customer_name = trim_checker($customer_name);
+                $order_content->customer_address = trim_checker($customer_address) ?: "";
+                $order_content->customer_gst_number = trim_checker($customer_gst_number) ?: "";
+
+                $updated_json = json_encode($order_content);
+                $this->db->where('id', $sale_details->id);
+                $this->db->update('tbl_sales', ['self_order_content' => $updated_json]);
+            }
+
+            // // 3. Opcional: Notificar a la cocina sobre el cambio de cliente (si es relevante)
+            // $notification_message = "El cliente del pedido {$sale_no} ha sido cambiado a: {$customer_name}";
+            // $kitchens = $this->Common_model->getOrderedKitchens($sale_details->id);
+            // foreach ($kitchens as $kitchen) {
+            //     $notification_data = [
+            //         'notification' => $notification_message,
+            //         'sale_id' => $sale_details->id,
+            //         'outlet_id' => $this->session->userdata('outlet_id'),
+            //         'kitchen_id' => $kitchen->kitchen_id
+            //     ];
+            //     $this->db->insert('tbl_notification_bar_kitchen_panel', $notification_data);
+            // }
+
+            if ($this->db->trans_status() === FALSE) {
+                $this->db->trans_rollback();
+                echo json_encode(['status' => 'error', 'message' => 'Error en la transacción de la base de datos.']);
+            } else {
+                $this->db->trans_commit();
+
+                //generar factura electrónica
+                $estado_factura = $this->generar_factura_electronica($sale_details->id);
+                echo json_encode(
+                    [
+                        // 'printer_app' => $this->printer_app_invoice_prepare($sale_no),
+                        'status' => 'success', 
+                        'message' => 'Cliente actualizado con  éxito.',
+                        'estado_factura' => $estado_factura['status'],
+                        'message_factura' => $estado_factura['message'],
+                        'details_factura' => $estado_factura['details'] ?? 'Sin detalles disponibles'
+                    ]
+                );
+            }
+
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            echo json_encode(['status' => 'error', 'message' => 'Ocurrió una excepción: ' . $e->getMessage()]);
+        }
+    }
+
     public function getPrintDataForOrder($sale_no = null) {
         $sale_no = ($sale_no == null) ? $this->input->post('sale_no') : $sale_no;
         $all = $this->input->post('all') ?? '0';
@@ -2824,6 +3067,14 @@ class Sale extends Cl_Controller {
         $sale_id_offline = $this->input->post('sales_id');
         $order_details = json_decode(($this->input->post('orders')));
         $sale_no = $order_details->sale_no;
+    
+        // --- 2. Preparar el array de respuesta ---
+        $response_data = [
+            'status' => 'error', // Estado por defecto
+            'sale_id_offline' => $sale_id_offline,
+            'factura_electronica' => null // Espacio para el resultado de la FE
+        ];
+
         $sale_id = '';
         $check_existing = getSaleDetailsBySaleNo($sale_no);
         $select_kitchen_row = getKitchenSaleDetailsBySaleNo($sale_no);
@@ -2922,13 +3173,6 @@ class Sale extends Cl_Controller {
             $sale_no_update_array = array('sale_no' => $sale_no);
             $this->db->where('id', $sales_id);
             $this->db->update('tbl_sales', $sale_no_update_array);
-            
-            // ***************************** Insertar Aqui codigo de Facturas usando $sales_id ********************
-            if (tipoFacturacion() == 'RD_AI') {
-                nueva_factura_venta($sales_id,$numeracion);
-            }
-
-            // ***************************** Fin del código ********************
         }
         foreach($order_details->orders_table as $single_order_table){
             $order_table_info = array();
@@ -3106,10 +3350,10 @@ class Sale extends Cl_Controller {
                 }
             }
         }
-        
+
         if(!$sale_id){
             $this->db->delete('tbl_sale_payments', array('sale_id' => $sales_id));
-        }
+        } 
         //put payment details
         if(isset($order_details->payment_object)){
             $payment_details = json_decode($order_details->payment_object);
@@ -3176,6 +3420,7 @@ class Sale extends Cl_Controller {
         $this->db->trans_complete();
         if ($this->db->trans_status() === FALSE) {
             $this->db->trans_rollback();
+            $response_data['message'] = 'Error al sincronizar la venta en la base de datos.';
         } else {
             $this->db->where('sale_no', $sale_no)
                 ->update('tbl_numeros', [
@@ -3183,32 +3428,30 @@ class Sale extends Cl_Controller {
                     'sale_no' => NULL,
                     "user_id" => NULL
                 ]);
-            // if($kitchen_sale && $kitchen_sale->number_slot > 0) {
-            //     // Liberar el número en tbl_numeros
-
-            // }
-            // $send_sms_status = isset($order_details->send_sms_status) && $order_details->send_sms_status?$order_details->send_sms_status:'';
-            // if($send_sms_status==1){
-            //     $customer = getCustomerData(trim_checker($order_details->customer_id));
-            //     $outlet_name = $this->session->userdata('outlet_name');
-            //     $sms_content = "Hi ".$customer->name.", thank you for visiting '.$outlet_name.'. Total bill of your order on '.$order_details->date_time.' is ".getAmtCustom($order_details->total_payable).". Paid amount is: ".getAmtCustom($order_details->paid_amount).", Due Amount is: ".getAmtCustom($order_details->due_amount)."
-            // We hope to see you again!";
-            //     if($customer->phone){
-            //         smsSendOnly($sms_content,$customer->phone);
-            //     }
-            // }
-            // if($select_kitchen_row){
-            //     // $pre_or_post_payment = $this->session->userdata('pre_or_post_payment');
-            //     // if($pre_or_post_payment==1){
-            //         $this->db->delete("tbl_kitchen_sales_details", array("sales_id" => $select_kitchen_row->id));
-            //         $this->db->delete("tbl_kitchen_sales_details_modifiers", array("sales_id" => $select_kitchen_row->id));
-            //         $this->db->delete("tbl_kitchen_sales", array("id" => $select_kitchen_row->id));
-            //     // }
-            // }
-            echo escape_output($sale_id_offline);
             $this->db->trans_commit();
+
+            $response_data['sale_id_offline'] = $sale_id_offline;
+            $response_data['status'] = 'success';
+            $response_data['message'] = 'Venta sincronizada correctamente.';
+
+            // ***************************** Insertar Aqui codigo de Facturas usando $sales_id ********************//
+            if (tipoFacturacion() == 'RD_AI') {
+                nueva_factura_venta($sales_id,$numeracion);
+            }
+
+            if (tipoFacturacion() == 'Py_FE') {
+                // Llamamos a la función refactorizada y guardamos su resultado
+                $fe_result = $this->generar_factura_electronica($sales_id);
+                $response_data['factura_electronica'] = $fe_result;
+            }
+            // ***************************** Fin del código ********************************************************//
         }
-    }
+        
+        // --- 5. Enviar la respuesta JSON final ---
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response_data));
+        }
      /**
      * add sale by ajax
      * @access public
@@ -3329,10 +3572,10 @@ class Sale extends Cl_Controller {
      */
     public function get_all_information_of_a_sale($sale_no){
         $sales_information = $this->get_all_information_of_a_sale_kitchen($sale_no);
-    //     echo 'get_all_information_of_a_sale';
-    //    echo '<pre>';
-    //    var_dump($sales_information); 
-    //    echo '<pre>';
+            //     echo 'get_all_information_of_a_sale';
+            //    echo '<pre>';
+            //    var_dump($sales_information); 
+            //    echo '<pre>';
        
 
         @$sales_information->selected_number = $sales_information->number_slot ?? '';
@@ -3516,6 +3759,15 @@ class Sale extends Cl_Controller {
         }
     }
       
+    public function print_ticket($sale_no){
+        $sale_info = $this->Sale_model->getSaleBySaleNo($sale_no);
+        if (isset($sale_info) && isset($sale_info->id)){
+            $sale_id = $sale_info->id;
+            
+            $this->print_invoice($sale_id);
+        }
+    }
+
      /**
      * print bill
      * @access public
@@ -3622,12 +3874,7 @@ class Sale extends Cl_Controller {
         /*This variable could not be escaped because this is html content*/
         echo $number_of_holds_of_this_user_and_outlet;
     }
-     /**
-     * get current hold
-     * @access public
-     * @return object
-     * @param no
-     */
+
     public function get_current_hold(){
         $outlet_id = $this->session->userdata('outlet_id');
         $user_id = $this->session->userdata('user_id');
@@ -5717,6 +5964,13 @@ class Sale extends Cl_Controller {
     }
 
     public function printer_app_invoice($sale_no) {
+        $return = $this->printer_app_invoice_prepare($sale_no);
+        if ($return){
+            echo $return;
+        }
+    }
+
+    public function printer_app_invoice_prepare($sale_no) {
         $sale_details = getSaleDetails($sale_no);
         if (empty($sale_details)) {
             $sale_id = '';
@@ -5730,13 +5984,19 @@ class Sale extends Cl_Controller {
         if (empty($sale_info)) {
             return;
         }
-        // echo '<pre>';
-        // var_dump($payments);
-        // echo '</pre>';
 
         $data['sale_object'] = $sale_info;
         $sale = $data['sale_object'];
     
+        // Cargar los datos de la factura electrónica al principio
+        $datos_fe = null;
+        if (tipoFacturacion() == 'Py_FE') {
+            $this->load->helper('factura_send');
+            $datos_fe = fs_get_factura_details_by_sale_id($sale->id);
+        }
+        $customer = getCustomerData($sale->customer_id);
+        $identImpuestoName = (tipoConsultaRuc() == 'RNC') ? 'RNC' : 'RUC' ;
+
         // Obtener la información de la empresa
         $company = [
             'name' => $this->session->userdata('outlet_name'),
@@ -5744,6 +6004,7 @@ class Sale extends Cl_Controller {
             'phone' => $this->session->userdata('phone'),
             'invoice_logo' => $this->session->userdata('invoice_logo'),
             'footer' => $this->session->userdata('invoice_footer'),
+            'tax_registration_no' => $this->session->userdata('tax_registration_no')
         ];
     
         // Obtener la información de la venta
@@ -5757,30 +6018,28 @@ class Sale extends Cl_Controller {
         }
     
         $customer_phone = (isset($sale->customer_phone) && $sale->customer_phone != '') ? ' (' . $sale->customer_phone . ')' : '';
+        
         // Crear el contenido del ticket
         $content = [
             // Encabezado de la empresa
             ['type' => 'text', 'align' => 'center', 'text' => $company['name']],
             ['type' => 'text', 'align' => 'center', 'text' => $company['address']],
             ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']],
-            ['type' => 'text', 'align' => 'center', 'text' => ''],
         ];
+        
+        if ($company['tax_registration_no']) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => $identImpuestoName . ': ' . $company['tax_registration_no']];
+        }
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+
     
-        // ✅ Agregar condición justo antes de "Información de la venta"
+        // ✅ Bloque para facturación RD_AI
         if (tipoFacturacion() == 'RD_AI') {
             $df = datos_factura($sale_id);
             if (!empty($df)) {
-
-                // Línea separadora
                 $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
-
-                // Tipo de factura
                 $content[] = ['type' => 'text', 'align' => 'center', 'text' => $df->Tipo];
-
-                // NCF con prefijo y número rellenado
                 $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'NCF: ' . $df->Prefijo . rellenar_num($df->numero)];
-
-                // Fecha de vencimiento si existe
                 if ($df->Vencimiento != NULL) {
                     $date = date_create($df->Vencimiento);
                     $newDate = date_format($date, "d/m/Y");
@@ -5788,6 +6047,23 @@ class Sale extends Cl_Controller {
                 }
                 $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
                 $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+            }
+        }
+
+        // ✅ Bloque para Factura Electrónica (Py_FE)
+        if ($datos_fe) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'FACTURA ELECTRÓNICA'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Timbrado Nº: ' . escape_output($datos_fe->numero_timbrado)];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Fecha Inicio Vigencia: ' . date('d/m/Y', strtotime($datos_fe->timbrado_vigente))];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Factura Electrónica: ' . escape_output($datos_fe->numero_factura_formateado)];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Fecha y hora de emisión: ' . date('d/m/Y H:i:s', strtotime($datos_fe->fecha_emision))];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
+            if ($customer) {
+                $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Razón Social: ' . escape_output($customer->name)];
+                $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'RUC: ' . escape_output($customer->gst_number)];
+                $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Condicion: Contado'];
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
             }
         }
 
@@ -5805,15 +6081,34 @@ class Sale extends Cl_Controller {
         $content[] = ['type' => 'extremos', 'textLeft' => 'Descripción', 'textRight' => 'Importe'];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
     
+        $total_exonerado = 0;
+        $total_gravado_5 = 0;
+        $total_gravado_10 = 0;
+
         if (isset($sale->items)) {
             $totalItems = 0;
             foreach ($sale->items as $row) {
+                // Cálculo de totales por tipo de IVA para FE
+                $iva_txt = '';
+                if ($datos_fe) {
+                    $iva_tipo = floatval($row->iva_tipo);
+                    $iva_txt = ' (10%)';
+                    if ($iva_tipo == 5) {
+                        $total_gravado_5 += $row->menu_price_with_discount;
+                    $iva_txt = ' (5%)';
+                    } elseif ($iva_tipo == 0) {
+                        $total_exonerado += $row->menu_price_with_discount;
+                        $iva_txt = ' (Exenta)';
+                    } else {
+                        $total_gravado_10 += $row->menu_price_with_discount;
+                    }
+                }
+
                 $totalItems += $row->qty;
                 $menu_unit_price = getAmtPCustom($row->menu_unit_price);
-                $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->menu_name];
-                $content[] = ['type' => 'extremos', 'textLeft' => $row->qty . ' x ' . $menu_unit_price, 'textRight' => getAmtPCustom($row->menu_price_without_discount)];
+                $content[] = ['type' => 'text', 'align' => 'left', 'text' => $row->code . ' - ' . $row->menu_name];
+                $content[] = ['type' => 'extremos', 'textLeft' => $row->qty . ' x ' . $menu_unit_price . $iva_txt, 'textRight' => getAmtPCustom($row->menu_price_without_discount)];
     
-                // Agregar modificadores si existen
                 if (count($row->modifiers) > 0) {
                     foreach ($row->modifiers as $modifier) {
                         $content[] = ['type' => 'extremos', 'textLeft' => ' + ' . $modifier->name, 'textRight' => getAmtPCustom($modifier->modifier_price)];
@@ -5824,59 +6119,96 @@ class Sale extends Cl_Controller {
     
         // Totales
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        // $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Total Items: ' . $totalItems];
         if ($sale->sub_total != $sale->total_payable) {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Subtotal: ' . getAmtPCustom($sale->sub_total)];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'Subtotal:', 'textRight' => getAmtPCustom($sale->sub_total)];
         }
     
         if ($sale->total_discount_amount && $sale->total_discount_amount != "0.00") {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Descuento: ' . getAmtPCustom($sale->total_discount_amount)];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'Descuento:', 'textRight' => getAmtPCustom($sale->total_discount_amount)];
         }
     
         if ($sale->delivery_charge && $sale->delivery_charge != "0.00") {
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'Serv. Delivery: ' . getPlanTextOrP($sale->delivery_charge)];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'Serv. Delivery:', 'textRight' => getPlanTextOrP($sale->delivery_charge)];
         }
     
         if ($this->session->userdata('collect_tax') == 'Yes' && $sale->sale_vat_objects != NULL) {
             foreach (json_decode($sale->sale_vat_objects) as $single_tax) {
                 if ($single_tax->tax_field_amount && $single_tax->tax_field_amount != "0.00") {
-                    $content[] = ['type' => 'text', 'align' => 'right', 'text' => $single_tax->tax_field_type . ': ' . getAmtPCustom($single_tax->tax_field_amount)];
+                    $content[] = ['type' => 'extremos', 'textLeft' => $single_tax->tax_field_type . ':', 'textRight' => getAmtPCustom($single_tax->tax_field_amount)];
                 }
             }
         }
+        $content[] = ['type' => 'text', 'align' => 'right', 'text' => '----------' ];
+        $content[] = ['type' => 'extremos', 'textLeft' => 'TOTAL:', 'textRight' => getAmtPCustom($sale->total_payable)];
     
-        $content[] = ['type' => 'text', 'align' => 'right', 'text' => 'TOTAL: ' . getAmtPCustom($sale->total_payable)];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-    
+        // ✅ Bloque de desglose de impuestos para Factura Electrónica
+        if ($datos_fe) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'Gravada 5%', 'textRight' => getAmtCustom($total_gravado_5)];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'Gravada 10%', 'textRight' => getAmtCustom($total_gravado_10)];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Detalle de Impuesto'];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'Exenta', 'textRight' => getAmtCustom(0)];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'IVA 5%', 'textRight' => getAmtCustom($datos_fe->iva5)];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'IVA 10%', 'textRight' => getAmtCustom($datos_fe->iva10)];
+            $content[] = ['type' => 'extremos', 'textLeft' => 'Liquidación Total de IVA', 'textRight' => getAmtCustom(floatval($datos_fe->iva10) + floatval($datos_fe->iva5))];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
+        }
+
         if ($payments && !empty($payments)) {
             $content[] = ['type' => 'text', 'align' => 'right', 'text' => '----------' ];
             foreach ($payments as $payment) {
                 $txt_point = '';
                 if ($payment->id == 5) {
-                    $txt_point = " (Puntos de Usuario: " . $payment->usage_point . ")";
+                    $txt_point = " (Puntos: " . $payment->usage_point . ")";
                 }
-                $content[] = ['type' => 'text', 'align' => 'right', 'text' => $payment->payment_name . $txt_point . ': ' . getAmtPCustom($payment->amount)];
+                $content[] = ['type' => 'extremos', 'textLeft' => $payment->payment_name . $txt_point, 'textRight' => getAmtPCustom($payment->amount)];
             }
             $content[] = ['type' => 'text', 'align' => 'right', 'text' => '----------' ];
         }
+        
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
+
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
+
+        // ✅ Bloque final para Factura Electrónica (QR y textos)
+        if ($datos_fe) {
+            $content[] = [
+                "type" => "qr",
+                "qrUrl" => $datos_fe->qr, // URL dinámica del QR
+                "align" => "center"
+            ];
+            // $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Consulte la validez de este documento'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'con el número de CDC:'];
+            // Separar el CDC en dos líneas para mejor visualización
+            if (isset($datos_fe->cdc) && strlen($datos_fe->cdc) == 44) {
+                // Primera línea: 6 grupos de 4 (24 dígitos)
+                $cdc_linea1 = substr($datos_fe->cdc, 0, 24);
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => implode(' ', str_split($cdc_linea1, 4))];
+
+                // Segunda línea: 5 grupos de 4 (20 dígitos)
+                $cdc_linea2 = substr($datos_fe->cdc, 24);
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => implode(' ', str_split($cdc_linea2, 4))];
+            } else if (isset($datos_fe->cdc)) {
+                // Si el CDC no tiene 44 dígitos, lo imprimimos como estaba para evitar errores
+                $content[] = ['type' => 'text', 'align' => 'center', 'text' => chunk_split($datos_fe->cdc, 4, ' ')];
+            }
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'En el portal E-kuatia:'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'https://ekuatia.set.gov.py/consultas'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------------------'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'ESTE DOCUMENTO ES UNA REPRESENTACIÓN'];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'GRÁFICA DE UN DOCUMENTO ELECTRÓNICO (XML)'];
+
+        }
+
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
-        $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'cut'];
     
-        // echo '<pre>';
-        // var_dump($content); 
-        // echo '<pre>';
-        
         // Obtener la configuración de la impresora
         $company_id = $this->session->userdata('company_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
-        // $printer = getPrinterInfo(isset($company_data->receipt_printer_bill) && $company_data->receipt_printer_bill ? $company_data->receipt_printer_bill : '');
-        // $printer_id = $this->session->userdata('printer_id');
-        // $printer = getPrinterInfo(isset($printer_id) && $printer_id?$printer_id:'');
         
         $counter_details = $this->Common_model->getPrinterIdByCounterId($this->session->userdata('counter_id'));
         $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
@@ -5889,26 +6221,18 @@ class Sale extends Cl_Controller {
             $width = 58;
         }
     
-        // echo '<pre>';
-        // var_dump($printer); 
-        // echo '<pre>';
-        
         // Crear el objeto de solicitud de impresión
         $printRequest = [
-            'printer' => $path, // Nombre de la impresora
-            'width' => $width, // Ancho de impresión (80mm)
+            'printer' => $path,
+            'width' => $width,
             'content' => filterArrayRecursivelyEscPos($content)
         ];
     
-        // Convertir a JSON
         $data = json_encode($printRequest);
-    
-        // Comprimir y codificar en Base64
         $compressed = gzdeflate($data, 9);
         $base64 = base64_encode($compressed);
     
-        // Devolver el contenido codificado
-        echo $base64;
+        return $base64;
     }
 
     public function printer_app_bill($sale_id) {
@@ -7539,4 +7863,1095 @@ class Sale extends Cl_Controller {
 		echo json_encode(NumeracionesActivas());
 	}
     
+    function factura_send(){
+
+        $this->facturasend->test();
+        $resultado = $this->facturasend->get_tipos_regimenes();
+        echo '<pre>';
+        var_dump($resultado);
+        echo '</pre>';
+
+    }
+        
+    function ruc($ruc){
+
+        $resultado = $this->facturasend->consulta_ruc($ruc);
+        echo '<pre>';
+        var_dump($resultado);
+        echo '</pre>';
+
+    }
+
+    public function crear_factura($tipo_documento = 1, $numero_factura = 1, $cdc_asociado = '')
+    {
+        // ... (el array $documentos es el mismo que antes)
+        // $documentos = $this->crear_lote(); //[ /* ... */ ];
+
+        $data = [];
+        if ($tipo_documento == 1) {
+            // Factura Electrónica
+            $data = $this->data_demo_facturacion_electronica($numero_factura);
+        } elseif ($tipo_documento == 4) {
+            // Autofactura Electrónica
+            $data = $this->data_demo_autofactura_electronica($numero_factura, $cdc_asociado);
+        } elseif ($tipo_documento == 5) {
+            // Nota de Crédito Electrónica
+            $data = $this->data_demo_nota_credito_electronica($numero_factura, $cdc_asociado);
+        } elseif ($tipo_documento == 6) {
+            // Nota de Débito Electrónica
+            $data = [$this->data_demo_nota_debito_electronica($numero_factura, $cdc_asociado)];
+        } elseif ($tipo_documento == 7) {
+            // Nota de Remisión Electrónica
+            $data = [$this->data_demo_nota_remision_electronica($numero_factura, $cdc_asociado)];
+        }
+        
+        $resultado = $this->facturasend->crear_lote_documentos($data);
+
+        // --- MANEJO DE ERRORES ---
+        // Si el estado es 503, significa que la configuración no está completa.
+        if (isset($resultado['status']) && $resultado['status'] === 503) {
+            // Aquí puedes decidir qué hacer:
+            // 1. Mostrar un error amigable en una vista.
+            // 2. Registrar el error en un log.
+            // 3. Simplemente devolver el JSON de error.
+            
+            // Enviamos la cabecera con el código de error
+            $this->output->set_status_header(503); 
+        }
+
+        // Imprimir la respuesta para depuración
+        $this->output
+             ->set_content_type('application/json')
+             ->set_output(json_encode($resultado, JSON_PRETTY_PRINT));
+    }
+
+    // // Reemplaza estos datos con los tuyos reales
+    // private $api_url = "https://api.facturasend.com.py/";
+    // private $tenantId = "TU_TENANT_ID";
+    // private $api_key = "TU_API_KEY";
+
+    public function data_demo_facturacion_electronica($numero_factura)
+    {
+        //tipo documento 1=Factura Electronica
+        $data = [
+            [
+                "tipoDocumento" => 1,
+                    // Tipo de documento
+                    // 1=Factura Electronica
+                    // 4=Autofactura electrónica
+                    // 5=Nota de Crédito Electrónica
+                    // 6=Nota de Débito Electrónica
+                    // 7=Nota de Remisión Electrónica
+
+                "establecimiento" => 1,
+                "punto" => "001",
+                "numero" => $numero_factura,
+                "descripcion" => "Aparece en el documento",
+                "observacion" => "Cualquier información de marketing, promociones, etc.",
+                "fecha" => "2025-09-11T10:11:00",
+                "tipoEmision" => 1,
+                    // Tipo de emisión del DE (1 o 2)
+                    // Valores:
+                    // 1=Normal (Por defecto).
+                    // 2=Contingencia.
+
+                "tipoTransaccion" => 1,
+                    // Tipo de Transacción.
+                    // Valores:
+                    // 1=Venta de mercadería (Por defecto).
+                    // 2=Prestación de servicios.
+                    // 3=Mixto (Venta de mercadería y servicios).
+                    // 4=Venta de activo fijo.
+                    // 5=Venta de divisas.
+                    // 6=Compra de divisas.
+                    // 7=Promoción o entrega de muestras.
+                    // 8=Donación.
+                    // 9=Anticipo.
+                    // 10=Compra de Productos.
+                    // 11=Venta de Crédito fiscal.
+                    // 12=Compra de Crédito fiscal.
+
+                    // 13=Muestras médicas (Art. 3 RG 24/2014).
+                    // tipoTransaccion es obligatorio para el tipo de documento (tipoDocumento) igual a 1-Factura Electrónica o 4-AutoFactura.
+                "tipoImpuesto" => 1,
+                    // Tipo de impuesto afectado.
+                    // Valores:
+                    // 1=IVA.
+                    // 2=ISC.
+                    // 3=Renta.
+                    // 4=Ninguno.
+                    // 5=IVA – Renta.
+                "moneda" => "PYG",
+                "cliente" => [
+                    // Consideraciones especiales en objeto data.cliente.tipoOperacion
+                    //
+                    // Si el Cliente es un contribuyente (data.cliente.contribuyente = true), entonces:
+                    // a) si el tipo de cliente es Persona Física (data.cliente.tipoContribuyente = 1), entonces éste campo puede enviarse con el valor 1-B2B (Business to Business), o;
+                    // b) si el tipo de cliente es Persona Jurídica (data.cliente.tipoContribuyente = 2), entonces éste campo puede enviarse con el valor 2-B2C (Business to Consumer), o;
+                    // c) si el RUC pertenece a un proveedor del estado, entonces éste valor debe enviarse como 3-B2G (Business to Goverment).
+                    // Si el Cliente NO es contribuyente (data.cliente.contribuyente = false), entonces:
+                    // a) Si el tipo de documento es Cédula de Identidad, Pasaporte, Carnet de residencia, Innominado, Tarjeta Diplomática de exoneración fiscal u otro (data.cliente.documentoTipo = 1,2,4,5,6 o 9), entonces éste campo puede enviarse con el valor 2-B2C (Business to Consumer), o;
+                    // b) Si el tipo de documento es Cédula Extranjera (data.cliente.documentoTipo = 3), entonces éste campo puede enviarse con el valor 4-B2F (Business to Foreign).
+                    
+                    "contribuyente" => true,
+                    "ruc" => "4430335-1",
+                    "razonSocial" => "Sevelio Vera",
+                    "nombreFantasia" => "Sevelio Vera",
+                    "tipoOperacion" => 1,
+                        // Tipo de operación(1= B2B, 2= B2C, 3= B2G, 4= B2F)
+                        // Se debe enviar 3=B2G si es una Institucion del Estado, ya sea si es una operación sin licitacion o si tiene datos de licitacion de la DNCP, caso contrario enviar como 1=B2B*
+                    "direccion" => "Avda Calle Segunda y Proyectada",
+                    	// Direccion del Cliente, Campo obligatorio cuando tipoDocumento =7 o tipoOperacion=4
+                    "numeroCasa" => "1515", //obligatorio, si no lleve 0
+                    "departamento" => 11, //desde la tabla de departamentos 
+                    // Código del departamento,Campo obligatorio si se informa la dirección y tipoOperacion ≠ 4, no se debe informar cuando tipoOperacion = 4.
+                    // "departamentoDescripcion" => "ALTO PARANA",
+                    "distrito" => 143,
+                    // "distritoDescripcion" => "DOMINGO MARTINEZ DE IRALA",
+                    "ciudad" => 3344,
+                    // Código de la ciudad del Cliente. Campo obligatorio si se informa la dirección y tipoOperacion≠4, no se debe informar cuando tipoOperacion = 4.
+                    // "ciudadDescripcion" => "PASO ITA (INDIGENA)",
+                    "pais" => "PRY",
+                    "paisDescripcion" => "Paraguay",
+                    "tipoContribuyente" => 2, 
+                        // Tipo de contribuyente
+                        // 1=Persona Física
+                        // 2=Persona Jurídica
+                    "documentoTipo" => 1,
+                        // 1=Cédula paraguaya
+                        // 2=Pasaporte
+                        // 3=Cédula extranjera
+                        // 4=Carnet de residencia
+                        // 5=Innominado
+                        // 6=Tarjeta Diplomática de exoneración fiscal
+                        // 9=Informar
+                    "documentoNumero" => "2324234",
+                    'telefono' => '061507903',
+                    'celular' => '0973837201',
+                    'email' => 'cliente@cliente.com',
+                    "codigo" => "1548" //obligatario, por lomenos 3 cifras, rellenar en caso de que sea de un solo codigo
+                ],
+                "usuario" => [
+                    "documentoTipo" => 1,
+                    "documentoNumero" => "157264",
+                    "nombre" => "Marcos Jara",
+                    "cargo" => "Vendedor"
+                ],
+                "factura" => [
+                    "presencia" => 1
+                    	// Indicador de presencia
+                        // 1= Operación presencial
+                        // 2= Operación electrónica
+                        // 3= Operación telemarketing
+                        // 4= Venta a domicilio
+                        // 5= Operación bancaria
+                        // 6= Operación cíclica
+                        // 9= Otro
+                ],
+                "condicion" => [
+                    "tipo" => 1,
+                        // Condición de la operación.
+                        // 1= Contado
+                        // 2= Crédito
+
+                        // Datos que describen la forma de pago al contado o del monto de la entrega inicial.
+                    "entregas" => [
+                        [
+                            "tipo" => 1,
+                            // Tipo de pago Ej.:1= Efectivo, 2= Cheque,3= Tarjeta de crédito, 4= Tarjeta de débito.
+                            "monto" => "150000",
+                            "moneda" => "PYG",
+                            "monedaDescripcion" => "Guarani",
+                            "cambio" => 0.0
+                        ],
+                        [
+                            "tipo" => 3,
+                            // Tipo de pago Ej.:1= Efectivo, 2= Cheque,3= Tarjeta de crédito, 4= Tarjeta de débito.
+                            "monto" => "150000",
+                            "moneda" => "PYG",
+                            "monedaDescripcion" => "Guarani",
+                            "cambio" => 0.0,
+                            "infoTarjeta" => [
+                                "numero" => 1234,
+                                "tipo" => 1,
+                                "tipoDescripcion" => "Dinelco",
+                                "titular" => "Marcos Jara",
+                                "ruc" => "69695654-1",
+                                "razonSocial" => "Bancard",
+                                "medioPago" => 1,
+                                "codigoAutorizacion" => 232524234
+                            ]
+                        ],
+                        [
+                            "tipo" => 2,
+                                // Tipo de pago Ej.:1= Efectivo, 2= Cheque,3= Tarjeta de crédito, 4= Tarjeta de débito.
+                            "monto" => "150000",
+                            "moneda" => "PYG",
+                            "monedaDescripcion" => "Guarani",
+                            "cambio" => 0.0,
+                            "infoCheque" => [
+                                "numeroCheque" => "32323232",
+                                "banco" => "Sudameris"
+                            ]
+                        ]
+                    ],
+                        // Datos que describen la forma de pago a crédito.
+                    "credito" => [
+                        "tipo" => 1,
+                        "plazo" => "30 días",
+                        "cuotas" => 2,
+                        "montoEntrega" => 1500000.00,
+                        "infoCuotas" => [
+                            [
+                                "moneda" => "PYG",
+                                "monto" => 800000.00,
+                                "vencimiento" => "2021-10-30"
+                            ],
+                            [
+                                "moneda" => "PYG",
+                                "monto" => 800000.00,
+                                "vencimiento" => "2021-11-30"
+                            ]
+                        ]
+                    ]
+                ],
+                "items" => [
+                    [
+                        "codigo" => "A-001",
+                            // Código interno de identificación de la mercadería o servicio de responsabilidad del emisor
+                        "descripcion" => "Producto A",
+                            // Descripción del producto y/o servicio. Equivalente a nombre del producto establecido en la RG 24/2019
+                        "observacion" => "",
+                        // "ncm" => "123456",
+                            // Nomenclatura común del Mercosur (NCM) 
+                        "unidadMedida" => 77,
+                        "cantidad" => 1,
+                        "precioUnitario" => 199000,
+                        "cambio" => 0.0,
+                        "ivaTipo" => 1,
+                        	// Forma de afectación tributaria del IVA
+                            // 1= Gravado IVA
+                            // 2= Exonerado (Art. 83- Ley 125/91)
+                            // 3= Exento
+                            // 4= Gravado parcial Grav-Exento)
+                        "ivaBase" => 100,
+                            // Base gravada del IVA por ítem
+                        "iva" => 10,
+                            // Tasa del IVA
+                            // Posibles valores = 0, 5 o 10
+                        "lote" => "058",
+                        "vencimiento" => "2022-10-30",
+                        "numeroSerie" => "", //opcional
+                        "numeroPedido" => "", //opcional
+                        "numeroSeguimiento" => "", //opcional
+                        // "registroSenave" => "123456789"
+                            // 	Número de registro del producto otorgado por el SENAVE
+                            // Obligados por la RG N° 16/2019 y la RG N° 24/2019 – Agroquímicos
+
+                    ]
+                ]
+            ]
+        ];
+        return $data;
+    }
+
+    public function data_demo_autofactura_electronica($numero_factura = 1, $doc_asociado = '')
+    {
+        //tipo documento 4=Autofactura electrónica
+        $data = [
+            'tipoDocumento' => 4,
+            'establecimiento' => 1,
+            'punto' => '001',
+            'numero' => $numero_factura,
+            'descripcion' => 'Aparece en el documento',
+            'observacion' => 'Cualquier información de interés',
+            'tipoContribuyente' => 1,
+            'fecha' => '2022-01-12T10:11:00',
+            'tipoEmision' => 1,
+            'tipoTransaccion' => 1,
+            'tipoImpuesto' => 2,
+            'moneda' => 'PYG',
+            'cambio' => 6700,
+            'cliente' => [
+                'contribuyente' => true,
+                'ruc' => '4430335-1',
+                'razonSocial' => 'Sevelio Vera',
+                'nombreFantasia' => 'Sevelio Vera',
+                'tipoOperacion' => 2,
+                'direccion' => 'Avda Calle Segunda y Proyectada',
+                'numeroCasa' => '1515',
+                'departamento' => 11,
+                'departamentoDescripcion' => 'ALTO PARANA',
+                'distrito' => 143,
+                'distritoDescripcion' => 'DOMINGO MARTINEZ DE IRALA2',
+                'ciudad' => 3344,
+                'ciudadDescripcion' => 'PASO ITA (INDIGENA)',
+                'pais' => 'PRY',
+                'paisDescripcion' => 'Paraguay',
+                'tipoContribuyente' => 1,
+                'documentoTipo' => 1,
+                'documentoNumero' => '2324234',
+                'telefono' => '061507903',
+                'celular' => '0973837201',
+                'email' => 'cliente@cliente.com',
+                'codigo' => '1548'
+            ],
+            'usuario' => [
+                'documentoTipo' => 1,
+                'documentoNumero' => '157264',
+                'nombre' => 'Marcos Jara',
+                'cargo' => 'Vendedor'
+            ],
+            'autoFactura' => [
+                'tipoVendedor' => 1,
+                'documentoTipo' => 1,
+                'documentoNumero' => '2295305',
+                'nombre' => 'Jodvino Santiago Cartes',
+                'direccion' => 'Area 4',
+                'numeroCasa' => '001',
+                'departamento' => 11,
+                'departamentoDescripcion' => 'ALTO PARANA',
+                'distrito' => 145,
+                'distritoDescripcion' => 'CIUDAD DEL ESTE',
+                'ciudad' => 3420,
+                'ciudadDescripcion' => 'DON BOSCO',
+                'ubicacion' => [
+                    'lugar' => 'Donde se realiza la transacción',
+                    'departamento' => 11,
+                    'departamentoDescripcion' => 'ALTO PARANA',
+                    'distrito' => 145,
+                    'distritoDescripcion' => 'CIUDAD DEL ESTE',
+                    'ciudad' => 3420,
+                    'ciudadDescripcion' => 'DON BOSCO'
+                ]
+            ],
+            'condicion' => [
+                'tipo' => 1,
+                'entregas' => [
+                    [
+                        'tipo' => 1,
+                        'monto' => '150000',
+                        'moneda' => 'PYG',
+                        'monedaDescripcion' => 'Guarani',
+                        'cambio' => 0
+                    ]
+                ]
+            ],
+            'items' => [
+                [
+                    'codigo' => 'B-001',
+                    'descripcion' => 'Producto B',
+                    'observacion' => 'Cualquier información de interés',
+                    'partidaArancelaria' => 4444,
+                    'ncm' => '123456',
+                    'unidadMedida' => 77,
+                    'cantidad' => 10.5,
+                    'precioUnitario' => 10800,
+                    'pais' => 'PRY',
+                    'paisDescripcion' => 'Paraguay',
+                    'ivaTipo' => 1,
+                    'ivaBase' => 100,
+                    'iva' => 5
+                ]
+            ],
+            'documentoAsociado' => [
+                'formato' => 3,
+                'constanciaTipo' => 1,
+                'constanciaNumero' => 42804571677,
+                'constanciaControl' => '8f9708d2'
+            ]
+        ];
+        return $data;
+    }
+    
+    public function data_demo_nota_credito_electronica($numero_factura = 1, $cdc_asociado = '')
+    {
+        //tipo documento 5=Nota de Crédito Electrónica
+        $data = [
+            'tipoDocumento' => 5,
+            'establecimiento' => 1,
+            'punto' => '001',
+            'numero' => $numero_factura,
+            'descripcion' => 'Aparece en el documento',
+            'observacion' => 'Cualquier información de interés',
+            'tipoContribuyente' => 1,
+            'fecha' => '2022-07-12T08:11:00',
+            'tipoEmision' => 1,
+            'tipoTransaccion' => 1,
+            'tipoImpuesto' => 1,
+            'moneda' => 'PYG',
+            'cliente' => [
+                'contribuyente' => true,
+                'ruc' => '4430335-1',
+                'razonSocial' => 'Sevelio Vera',
+                'nombreFantasia' => 'Sevelio Vera',
+                'tipoOperacion' => 1,
+                'direccion' => 'Avda Calle Segunda y Proyectada',
+                'numeroCasa' => '1515',
+                'departamento' => 11,
+                'distrito' => 143,
+                'ciudad' => 3344,
+                'pais' => 'PRY',
+                'tipoContribuyente' => 1,
+                'documentoTipo' => 1,
+                'documentoNumero' => '2324234',
+                'telefono' => '061987544',
+                'celular' => '0983524132',
+                'email' => 'cliente@cliente.com',
+                'codigo' => '1548'
+            ],
+            'usuario' => [
+                'documentoTipo' => 1,
+                'documentoNumero' => '157264',
+                'nombre' => 'Marcos Jara',
+                'cargo' => 'Vendedor'
+            ],
+            'notaCreditoDebito' => [
+                'motivo' => 1
+            ],
+            'items' => [
+                [
+                    'codigo' => 'B-001',
+                    'descripcion' => 'Producto B',
+                    'observacion' => 'Cualquier informacion de interés',
+                    'unidadMedida' => 77,
+                    'cantidad' => 10.5,
+                    'precioUnitario' => 10800,
+                    'pais' => 'PRY',
+                    'ivaTipo' => 1,
+                    'ivaBase' => 100,
+                    'iva' => 5
+                ]
+            ],
+            'documentoAsociado' => [
+                'formato' => 1,
+                'cdc' => $cdc_asociado
+            ]
+        ];
+        return $data;
+    }
+
+    public function data_demo_nota_debito_electronica($numero_factura = 1, $cdc_asociado = '')
+    {
+        //tipo documento 6=Nota de Débito Electrónica
+        $data = [
+            'tipoDocumento' => 6,
+            'establecimiento' => 1,
+            'punto' => '001',
+            'numero' => $numero_factura,
+            'descripcion' => 'Aparece en el documento',
+            'observacion' => 'Cualquier informacion de interes',
+            'tipoContribuyente' => 1,
+            'fecha' => '2022-01-12T10:11:00',
+            'tipoEmision' => 1,
+            'tipoTransaccion' => 1,
+            'tipoImpuesto' => 1,
+            'moneda' => 'PYG',
+            'condicionAnticipo' => null,
+            'condicionTipoCambio' => null,
+            'cambio' => 6700,
+            'cliente' => [
+                'contribuyente' => true,
+                'ruc' => '4430335-1',
+                'razonSocial' => 'Sevelio Vera',
+                'nombreFantasia' => 'Sevelio Vera',
+                'tipoOperacion' => 1,
+                'direccion' => 'Avda Calle Segunda y Proyectada',
+                'numeroCasa' => '1515',
+                'departamento' => 11,
+                'departamentoDescripcion' => 'ALTO PARANA',
+                'distrito' => 143,
+                'distritoDescripcion' => 'DOMINGO MARTINEZ DE IRALA',
+                'ciudad' => 3344,
+                'ciudadDescripcion' => 'PASO ITA (INDIGENA)',
+                'pais' => 'PRY',
+                'paisDescripcion' => 'Paraguay',
+                'tipoContribuyente' => 1,
+                'documentoTipo' => 1,
+                'documentoNumero' => '2324234',
+                'telefono' => '061507903',
+                'celular' => '0973837201',
+                'email' => 'cliente@cliente.com',
+                'codigo' => '1548'
+            ],
+            'usuario' => [
+                'documentoTipo' => 1,
+                'documentoNumero' => '157264',
+                'nombre' => 'Marcos Jara',
+                'cargo' => 'Vendedor'
+            ],
+            'notaCreditoDebito' => [
+                'motivo' => 1
+            ],
+            'items' => [
+                [
+                    'codigo' => 'B-001',
+                    'descripcion' => 'Producto B',
+                    'observacion' => 'Cualquier informacion de interes',
+                    'partidaArancelaria' => 4444,
+                    'ncm' => '123456',
+                    'unidadMedida' => 77,
+                    'cantidad' => 10.5,
+                    'precioUnitario' => 10800,
+                    'pais' => 'PRY',
+                    'paisDescripcion' => 'Paraguay',
+                    'ivaTipo' => 1,
+                    'ivaBase' => 100,
+                    'iva' => 5,
+                    'lote' => 'A-001',
+                    'vencimiento' => '2022-10-30'
+                ]
+            ],
+            'documentoAsociado' => [
+                'formato' => 1,
+                'cdc' => $cdc_asociado
+            ]
+        ];
+        return $data;
+    }
+
+    public function data_demo_nota_remision_electronica($numero_factura = 1, $cdc_asociado = '')
+    {
+        //tipo documento 7=Nota de Remisión Electrónica
+        $data = [
+            'tipoDocumento' => 7,
+            'establecimiento' => 1,
+            'punto' => '001',
+            'numero' => $numero_factura,
+            'descripcion' => 'Aparece en el documento',
+            'observacion' => 'Cualquier informacion de interes',
+            'tipoContribuyente' => 1,
+            'fecha' => '2021-10-19T10:11:00',
+            'tipoEmision' => 1,
+            'tipoTransaccion' => 1,
+            'tipoImpuesto' => 1,
+            'moneda' => 'PYG',
+            'cambio' => 6700,
+            'cliente' => [
+                'contribuyente' => true,
+                'ruc' => '4430335-1',
+                'razonSocial' => 'Sevelio Vera',
+                'nombreFantasia' => 'Sevelio Vera',
+                'tipoOperacion' => 1,
+                'direccion' => 'Avda Calle Segunda y Proyectada',
+                'numeroCasa' => '1515',
+                'departamento' => 11,
+                'departamentoDescripcion' => 'ALTO PARANA',
+                'distrito' => 143,
+                'distritoDescripcion' => 'DOMINGO MARTINEZ DE IRALA',
+                'ciudad' => 3344,
+                'ciudadDescripcion' => 'PASO ITA (INDIGENA)',
+                'pais' => 'PRY',
+                'paisDescripcion' => 'Paraguay',
+                'tipoContribuyente' => 1,
+                'documentoTipo' => 1,
+                'documentoNumero' => '2324234',
+                'telefono' => 'xyz',
+                'celular' => 'xyz',
+                'email' => 'cliente@cliente.com',
+                'codigo' => '1548'
+            ],
+            'usuario' => [
+                'documentoTipo' => 1,
+                'documentoNumero' => '157264',
+                'nombre' => 'Marcos Jara',
+                'cargo' => 'Vendedor'
+            ],
+            'remision' => [
+                'motivo' => 1,
+                'tipoResponsable' => 1,
+                'kms' => 150,
+                'fechaFactura' => '2021-10-21'
+            ],
+            'items' => [
+                [
+                    'codigo' => 'A-001',
+                    'descripcion' => 'Producto A',
+                    'observacion' => 'Cualquier informacion de interes',
+                    'ncm' => '123456',
+                    'unidadMedida' => 77,
+                    'cantidad' => 10.5,
+                    'precioUnitario' => 10800,
+                    'pais' => 'PRY',
+                    'paisDescripcion' => 'Paraguay',
+                    'tolerancia' => 1,
+                    'toleranciaCantidad' => 1,
+                    'toleranciaPorcentaje' => 1,
+                    'cdcAnticipo' => $cdc_asociado,
+                    'ivaTipo' => 1,
+                    'ivaBase' => 100,
+                    'iva' => 5,
+                    'lote' => 'A-001',
+                    'vencimiento' => '2022-10-30'
+                ]
+            ],
+            'transporte' => [
+                'tipo' => 1,
+                'modalidad' => 1,
+                'tipoResponsable' => 1,
+                'condicionNegociacion' => 'FOB',
+                'numeroManifiesto' => 'AF-2541',
+                'numeroDespachoImportacion' => '153223232332',
+                'inicioEstimadoTranslado' => '2021-11-01',
+                'finEstimadoTranslado' => '2021-11-01',
+                'paisDestino' => 'PRY',
+                'paisDestinoNombre' => 'Paraguay',
+                'salida' => [
+                    'direccion' => 'Paraguay',
+                    'numeroCasa' => '3232',
+                    'complementoDireccion1' => 'Entre calle 2',
+                    'complementoDireccion2' => 'y Calle 7',
+                    'departamento' => 11,
+                    'departamentoDescripcion' => 'ALTO PARANA',
+                    'distrito' => 143,
+                    'distritoDescripcion' => 'DOMINGO MARTINEZ DE IRALA',
+                    'ciudad' => 3344,
+                    'ciudadDescripcion' => 'PASO ITA (INDIGENA)',
+                    'pais' => 'PRY',
+                    'paisDescripcion' => 'Paraguay',
+                    'telefonoContacto' => '097x'
+                ],
+                'entrega' => [
+                    'direccion' => 'Paraguay',
+                    'numeroCasa' => '3232',
+                    'complementoDireccion1' => 'Entre calle 2',
+                    'complementoDireccion2' => 'y Calle 7',
+                    'departamento' => 11,
+                    'departamentoDescripcion' => 'ALTO PARANA',
+                    'distrito' => 143,
+                    'distritoDescripcion' => 'DOMINGO MARTINEZ DE IRALA',
+                    'ciudad' => 3344,
+                    'ciudadDescripcion' => 'PASO ITA (INDIGENA)',
+                    'pais' => 'PRY',
+                    'paisDescripcion' => 'Paraguay',
+                    'telefonoContacto' => '097x'
+                ],
+                'vehiculo' => [
+                    'tipo' => 'Camioneta',
+                    'marca' => 'Nissan',
+                    'documentoTipo' => 1,
+                    'documentoNumero' => '232323-1',
+                    'obs' => '',
+                    'numeroMatricula' => 'ALTO PARANA',
+                    'numeroVuelo' => '32123'
+                ],
+                'transportista' => [
+                    'contribuyente' => true,
+                    'nombre' => 'EMPRESA DE TRANSPORTE VANGUARDIA S A C I',
+                    'ruc' => '80011235-0',
+                    'documentoTipo' => 1,
+                    'documentoNumero' => '235306',
+                    'direccion' => 'y Calle 7',
+                    'obs' => 11,
+                    'pais' => 'PRY',
+                    'paisDescripcion' => 'Paraguay',
+                    'chofer' => [
+                        'documentoNumero' => '32324253',
+                        'nombre' => 'Jose Benitez',
+                        'direccion' => 'Jose Benitez'
+                    ],
+                    'agente' => [
+                        'nombre' => 'Jose Benitez',
+                        'ruc' => '251458-1',
+                        'direccion' => 'Jose Benitez'
+                    ]
+                ]
+            ],
+            'documentoAsociado' => [
+                'formato' => 1,
+                'cdc' => $cdc_asociado, // '4280457167700000001000000000001'
+            ]
+        ];
+        return $data;
+    }
+
+    public function crear_lote($tipo_documento = 1, $numero_factura = 1, $cdc_asociado = '')
+    {
+        if ($tipo_documento == 1) {
+            // Factura Electrónica
+            $data = $this->data_demo_facturacion_electronica();
+        } elseif ($tipo_documento == 4) {
+            // Autofactura Electrónica
+            $data = $this->data_demo_autofactura_electronica($numero_factura, $cdc_asociado);
+        } elseif ($tipo_documento == 5) {
+            // Nota de Crédito Electrónica
+            $data = $this->data_demo_nota_credito_electronica($numero_factura, $cdc_asociado);
+        } elseif ($tipo_documento == 6) {
+            // Nota de Débito Electrónica
+            $data = $this->data_demo_nota_debito_electronica($numero_factura, $cdc_asociado);
+        } elseif ($tipo_documento == 7) {
+            // Nota de Remisión Electrónica
+            $data = $this->data_demo_nota_remision_electronica($numero_factura, $cdc_asociado);
+        }
+
+        return $data;
+        // Puedes ajustar los query params según tu necesidad
+        $queryParams = '?draft=true&xml=true&qr=true&tax=true';
+
+        $endpoint = $this->api_url . $this->tenantId . "/lote/create" . $queryParams;
+
+        $headers = [
+            "Authorization: Bearer api_key_" . $this->api_key,
+            "Content-Type: application/json; charset=utf-8"
+        ];
+
+        // Inicializar cURL
+        $ch = curl_init($endpoint);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+
+        $response = curl_exec($ch);
+        $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
+        curl_close($ch);
+
+        // Mostrar respuesta para debug
+        header('Content-Type: application/json');
+        if ($http_status == 200) {
+            $result = json_decode($response, true);
+            if (isset($result['success']) && $result['success']) {
+                echo json_encode([
+                    "ok" => true,
+                    "loteId" => $result['result']['loteId'],
+                    "deList" => $result['result']['deList']
+                ]);
+            } else {
+                echo json_encode([
+                    "ok" => false,
+                    "error" => isset($result['error']) ? $result['error'] : 'Error desconocido',
+                    "errores" => isset($result['errores']) ? $result['errores'] : []
+                ]);
+            }
+        } else {
+            echo json_encode([
+                "ok" => false,
+                "error" => "HTTP $http_status",
+                "curl_error" => $curl_error,
+                "response" => $response
+            ]);
+        }
+    }
+
+    
+    public function get_departamentos(){
+        $this->output->set_content_type('application/json')->set_output(json_encode(fs_get_departamentos()));
+    }
+    public function get_distritos($departamento_id){
+        $this->output->set_content_type('application/json')->set_output(json_encode(fs_get_distritos(null, $departamento_id)));
+    }
+    public function get_ciudades($distrito_id){
+        $this->output->set_content_type('application/json')->set_output(json_encode(fs_get_ciudades(null, $distrito_id)));
+    }
+    public function get_paises(){
+        $this->output->set_content_type('application/json')->set_output(json_encode(fs_get_paises()));
+    }
+
+    function test_venta($id){
+            $Sale = $this->Sale_model->getSaleInfo($id);
+
+            
+            // Obtener detalles de la venta
+            $result = $this->db->query("SELECT s.*,u.full_name,c.name as customer_name,c.gst_number as nro_documento,c.tipo_ident,m.name as payment_method
+            FROM tbl_sales s
+            LEFT JOIN tbl_customers c ON(s.customer_id=c.id)
+            LEFT JOIN tbl_users u ON(s.user_id=u.id)
+            LEFT JOIN tbl_payment_methods m ON(s.payment_method_id=m.id)
+            -- LEFT JOIN tbl_tables tbl ON(s.table_id=tbl.id) 
+            WHERE s.id=$id AND s.del_status = 'Live'")->row();
+            $sale = $result;
+
+            
+            $customer_info = $this->Sale_model->getCustomerInfoById($sale->customer_id);
+
+            // Obtener detalles de items de la venta
+            $this->db->select("l.*, fm.iva_tipo, fm.code");
+            $this->db->from("tbl_sales_details l");
+            $this->db->join("tbl_food_menus fm", "fm.id = l.food_menu_id", "left");
+            $this->db->where("l.sales_id", $id);
+            $resultados = $this->db->get();
+			$sale_detalles = $resultados->result();
+            echo '<pre>';
+            var_dump($sale); 
+            var_dump($customer_info); 
+            var_dump($sale_detalles); 
+            echo '<pre>';
+            
+    }
+
+    // application/controllers/Sale.php
+
+    public function generar_factura_electronicaOld($sale_id)
+    {
+        $this->load->helper('factura_send');
+        $this->load->library('facturasend');
+
+        // --- 1. Validaciones Previas (Igual que antes) ---
+        $sale = $this->db->where('id', $sale_id)->get('tbl_sales')->row();
+        if (!$sale) { /* ... manejo de error ... */ }
+        $customer = $this->db->where('id', $sale->customer_id)->get('tbl_customers')->row();
+        if (!$customer->es_contribuyente || strpos($customer->gst_number, '-') === false) { /* ... manejo de error ... */ }
+        
+        $outlet_id = $sale->outlet_id;
+        
+        $outlet_info = $this->Common_model->getDataById($outlet_id, 'tbl_outlets');
+        $sifen_sucursal_id = $outlet_info->sifen_sucursal_id;
+
+        $punto_expedicion_valido = fs_get_punto_expedicion_activo($sifen_sucursal_id);
+        echo '<pre>';
+        var_dump($punto_expedicion_valido); 
+        echo '</pre>';
+        
+        if (!$punto_expedicion_valido) { 
+            return 'No hay un punto de expedicion disponible';
+            /* ... manejo de error ... */ 
+        }
+
+        // --- 2. Recopilar Datos (Igual que antes) ---
+        $sale_details = $this->db->select("sd.*, fm.code, fm.iva_tipo")
+                                ->from("tbl_sales_details sd")
+                                ->join("tbl_food_menus fm", "fm.id = sd.food_menu_id", "left")
+                                ->where("sd.sales_id", $sale_id)
+                                ->get()->result();
+        $user = $this->db->where('id', $sale->user_id)->get('tbl_users')->row();
+        $payment_methods_json = json_decode($sale->self_order_content, true)['payment_object'] ?? '[{"payment_id":"1","amount":"'.$sale->total_payable.'"}]';
+        $payment_methods = json_decode($payment_methods_json, true);
+
+        // --- 3. NORMALIZACIÓN DE DATOS ---
+        // Aquí se mapean los datos del sistema a un array genérico.
+        
+        $cliente_normalizado = [
+            'id_sistema'        => $customer->id,
+            'es_contribuyente'  => (bool)$customer->es_contribuyente,
+            'ruc'               => $customer->gst_number,
+            'nombre'            => $customer->name,
+            'nombre_fantasia'   => $customer->nombre_fantasia,
+            'email'             => $customer->email,
+            'direccion'         => $customer->address,
+            'numero_casa'       => (string)intval($customer->numero_casa),
+            'es_proveedor_estado' => (bool)$customer->es_proveedor_estado,
+            'tipo_contribuyente'=> (int)$customer->tipo_contribuyente,
+            'tipo_documento'    => (int)$customer->tipo_documento,
+            'departamento_id'   => (int)$customer->departamento_id,
+            'distrito_id'       => (int)$customer->distrito_id,
+            'ciudad_id'         => (int)$customer->ciudad_id,
+            'pais_codigo'       => $customer->codigo_pais
+        ];
+
+        $usuario_normalizado = [
+            'id_sistema' => $user->id,
+            'nombre'     => $user->full_name,
+            'cargo'      => 'Vendedor' // O un rol dinámico si lo tienes
+        ];
+
+        $items_normalizados = array_map(function($item) {
+            $iva_valor = 0;
+            if ($item->iva_tipo == '10') $iva_valor = 10;
+            elseif ($item->iva_tipo == '5') $iva_valor = 5;
+
+            return [
+                'codigo'          => $item->code,
+                'descripcion'     => $item->menu_name,
+                'cantidad'        => $item->qty,
+                'precio_unitario' => $item->menu_unit_price,
+                'iva'             => $iva_valor,
+                // Aquí puedes añadir más campos normalizados si los necesitas
+            ];
+        }, $sale_details);
+
+        $condicion_normalizada = [
+            'tipo' => 1, // 1=Contado
+            'entregas' => array_map(function($pago) {
+                return [
+                    'tipo'   => fs_map_payment_method($pago['payment_id']),
+                    'monto'  => $pago['amount'],
+                    'moneda' => 'PYG'
+                ];
+            }, $payment_methods)
+        ];
+
+        // Array final, completamente normalizado, para el helper.
+        $invoice_data = [
+            'venta_id_sistema'  => $sale->id,
+            'fecha'             => date('Y-m-d\TH:i:s'),
+            'moneda'            => 'PYG',
+            'punto_expedicion'  => $punto_expedicion_valido, // Objeto del propio helper, es seguro pasarlo.
+            'cliente'           => $cliente_normalizado,
+            'usuario'           => $usuario_normalizado,
+            'items'             => $items_normalizados,
+            'condicion_venta'   => $condicion_normalizada
+        ];
+
+        echo '<pre>';
+        var_dump($invoice_data); 
+        echo '</pre>';
+        // --- 4. Llamar al Helper con datos limpios ---
+        $resultado = fs_create_and_send_invoice($invoice_data);
+
+        echo '<pre>';
+        var_dump($resultado); 
+        echo '</pre>';
+        
+        // --- 5. Devolver Respuesta (Igual que antes) ---
+        // ... tu lógica para el success/error ...
+    }
+
+    public function generar_factura_electronica($sale_id)
+    {
+        $this->load->helper('factura_send');
+        $this->load->library('facturasend');
+
+        // --- 1. Validaciones Previas (con manejo de errores JSON) ---
+        $sale = $this->db->where('id', $sale_id)->get('tbl_sales')->row();
+        if (!$sale) {
+            return ['status' => 'error', 'message' => "Venta con ID '$sale_id' no encontrada."];
+        }
+
+        $customer = $this->db->where('id', $sale->customer_id)->get('tbl_customers')->row();
+        if (!$customer) {
+            return ['status' => 'error', 'message' => "Cliente con ID '$sale->customer_id' no encontrado."];
+        }
+
+        if (!isset($customer->es_contribuyente) || !$customer->es_contribuyente || strpos($customer->gst_number, '-') === false) {
+            return ['status' => 'error', 'message' => 'Facturación cancelada: El cliente no es contribuyente o su RUC no es válido.'];
+        }
+        
+        // --- Validación de Punto de Expedición ---
+        $outlet_id = $sale->outlet_id;
+        if (!$outlet_id) {
+            return ['status' => 'error', 'message' => 'La venta no tiene una sucursal (outlet) asignada.'];
+        }
+        
+        $outlet_info = $this->Common_model->getDataById($outlet_id, 'tbl_outlets');
+        if (!$outlet_info || !isset($outlet_info->sifen_sucursal_id) || empty($outlet_info->sifen_sucursal_id)) {
+            return ['status' => 'error', 'message' => "La sucursal del sistema (Outlet ID: $outlet_id) no tiene un ID de sucursal SIFEN configurado ('sifen_sucursal_id')."];
+        }
+        
+        $sifen_sucursal_id = $outlet_info->sifen_sucursal_id;
+        
+        $punto_expedicion_valido = fs_get_punto_expedicion_activo($sifen_sucursal_id);
+
+        // Usamos la nueva función de bloqueo
+        // $punto_expedicion_valido = fs_get_and_lock_punto_expedicion($sifen_sucursal_id);
+
+        if (!$punto_expedicion_valido) { 
+            $this->db->trans_rollback(); // Liberamos cualquier bloqueo potencial
+            return ['status' => 'error', 'message' => "No se encontró un punto de expedición activo y bloqueable para la sucursal SIFEN ID: $sifen_sucursal_id."];
+        }
+
+        
+        if (!$punto_expedicion_valido) { 
+            return ['status' => 'error', 'message' => "No se encontró un punto de expedición activo con timbrado vigente para la sucursal SIFEN ID: $sifen_sucursal_id."];
+        }
+
+        // --- 2. Recopilar Datos (Igual que antes) ---
+        // (Tu código de recolección de datos es correcto y no necesita cambios)
+        $sale_details = $this->db->select("sd.*, fm.code, fm.iva_tipo")
+                                ->from("tbl_sales_details sd")
+                                ->join("tbl_food_menus fm", "fm.id = sd.food_menu_id", "left")
+                                ->where("sd.sales_id", $sale_id)
+                                ->get()->result();
+        $user = $this->db->where('id', $sale->user_id)->get('tbl_users')->row();
+        $payment_methods_json = json_decode($sale->self_order_content, true)['payment_object'] ?? '[{"payment_id":"1","amount":"'.$sale->total_payable.'"}]';
+        $payment_methods = json_decode($payment_methods_json, true);
+
+        // --- 3. NORMALIZACIÓN DE DATOS ---
+        // (Tu código de normalización es correcto y no necesita cambios)
+        $cliente_normalizado = [
+            'id_sistema'        => $customer->id,
+            'es_contribuyente'  => (bool)$customer->es_contribuyente,
+            'ruc'               => $customer->gst_number,
+            'nombre'            => $customer->name,
+            'nombre_fantasia'   => $customer->nombre_fantasia,
+            'email'             => $customer->email,
+            'direccion'         => $customer->address,
+            'es_proveedor_estado' => (bool)$customer->es_proveedor_estado,
+            'tipo_contribuyente'=> (int)$customer->tipo_contribuyente,
+            'tipo_documento'    => (int)$customer->tipo_documento,
+            'departamento_id'   => (int)$customer->departamento_id,
+            'distrito_id'       => (int)$customer->distrito_id,
+            'ciudad_id'         => (int)$customer->ciudad_id,
+            'pais_codigo'       => $customer->codigo_pais,
+            'numero_casa'       => (string)intval($customer->numero_casa),
+        ];
+        $usuario_normalizado = [
+            'id_sistema' => $user->id,
+            'nombre'     => $user->full_name,
+            'documento'  => $user->documento,
+            'cargo'      => 'Vendedor'
+        ];
+        $items_normalizados = array_map(function($item) {
+            $iva_valor = 0;
+            if ($item->iva_tipo == '10') $iva_valor = 10;
+            elseif ($item->iva_tipo == '5') $iva_valor = 5;
+            return [
+                'codigo'          => $item->code,
+                'descripcion'     => $item->menu_name,
+                'cantidad'        => $item->qty,
+                'precio_unitario' => $item->menu_unit_price,
+                'iva'             => $iva_valor,
+            ];
+        }, $sale_details);
+        $condicion_normalizada = [
+            'tipo' => 1,
+            'entregas' => array_map(function($pago) {
+                return [
+                    'tipo'   => fs_map_payment_method($pago['payment_id']),
+                    'monto'  => $pago['amount'],
+                    'moneda' => 'PYG'
+                ];
+            }, $payment_methods)
+        ];
+
+        $invoice_data = [
+            'venta_id_sistema'  => $sale->id,
+            'fecha'             => date('Y-m-d\TH:i:s'),
+            'moneda'            => 'PYG',
+            'punto_expedicion'  => $punto_expedicion_valido,
+            'cliente'           => $cliente_normalizado,
+            'usuario'           => $usuario_normalizado,
+            'items'             => $items_normalizados,
+            'punto_expedicion'  => $punto_expedicion_valido, // Pasamos el objeto ya bloqueado
+            'condicion_venta'   => $condicion_normalizada
+        ];
+
+        // --- 4. Llamar al Helper ---
+        $resultado_helper = fs_create_and_send_invoice($invoice_data);
+
+        // --- 5. Finalizar Transacción y Devolver Resultado ---
+        $fe_result_data = []; // Datos específicos de la FE para devolver
+
+        // --- 5. Devolver Respuesta Final ---
+        if (isset($resultado_helper['status']) && $resultado_helper['status'] === 'success') {
+            $this->db->trans_commit(); // Éxito, se confirman todos los cambios y se libera el bloqueo.
+            // --- Caso de Éxito ---
+            $update_data_sales = [
+                'py_factura_id' => $resultado_helper['factura_py_id'],
+                'fe_estado'     => 'EXITO',
+                'fe_cdc'        => $resultado_helper['cdc'],
+                'fe_lote_id'    => $resultado_helper['loteId'],
+                'fe_error_log'  => NULL // Limpiar cualquier error previo
+            ];
+
+            // Actualizar la tabla de ventas
+            $this->db->where('id', $sale_id)->update('tbl_sales', $update_data_sales);
+
+            $fe_result_data = [
+                'status'  => 'success',
+                'message' => 'Factura generada y enviada correctamente.',
+                'loteId'  => $resultado_helper['loteId'],
+                'cdc'     => $resultado_helper['cdc']
+            ];
+        } else {
+            $this->db->trans_rollback(); 
+            $fe_result_data = [
+                'status'  => 'error',
+                'message' => $resultado_helper['message'] ?? 'Error desconocido en el helper.',
+                'details' => $resultado_helper['api_response'] ?? null
+            ];
+        }
+        
+        return $fe_result_data; // Devuelve siempre un array
+    }
 }

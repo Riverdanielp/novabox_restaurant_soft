@@ -736,7 +736,12 @@ function agregarFilaHTML(item) {
     let iva = '';
     
     <?php if(tipoFacturacion() == 'RD_AI'): ?>
-        iva = '<td><input type="hidden" value="' + item.iva_tipo + '" class="edit-iva-tipo" /></td>';
+        // iva = '<td><input type="hidden" value="' + item.iva_tipo + '" class="edit-iva-tipo" /></td>';
+        iva = '<td><select class="form-control edit-iva-tipo">' +
+            '<option value="18"' + (item.iva_tipo == '18' ? ' selected' : '') + '>ITBIS 18</option>' +
+            '<option value="16"' + (item.iva_tipo == '16' ? ' selected' : '') + '>ITBIS 16</option>' +
+            '<option value="0"' + (item.iva_tipo == '0' ? ' selected' : '') + '>ITBIS Exonerado</option>' +
+        '</select></td>';
     <?php else : ?>
         iva = '<td><select class="form-control edit-iva-tipo">' +
             '<option value="10"' + (item.iva_tipo == '10' ? ' selected' : '') + '>IVA 10</option>' +
@@ -935,38 +940,48 @@ function guardarCompraFinalAjax() {
 
 function calculateAll() {
     let subtotal = 0;
+    let total_itbis = 0;
     let i = 1;
     $(".rowCount").each(function() {
-        // let id = $(this).attr("data-id"); // Ya no necesitas esto
         let $row = $(this);
-        // Usar clases para encontrar los inputs/selecs dentro de la fila actual
         let unit_price = parseFloat($row.find('.edit-unit-price').val()) || 0;
         let quantity_amount = parseFloat($row.find('.edit-quantity').val()) || 0;
 
-        // Actualiza número de fila
         $row.find("td:first p").html(i);
         i++;
 
         let total = unit_price * quantity_amount;
-        $row.find('.edit-total').val(total);
+        $row.find('.edit-total').val(total.toFixed(2));
         subtotal += total;
+
+        <?php if(tipoFacturacion() == 'RD_AI'): ?>
+        let iva_tipo = parseFloat($row.find('.edit-iva-tipo').val()) || 0;
+        if (iva_tipo > 0) {
+            let base_imponible = total / (1 + iva_tipo / 100);
+            total_itbis += base_imponible * (iva_tipo / 100);
+        }
+        <?php endif; ?>
     });
 
     if (isNaN(subtotal)) subtotal = 0;
-    $("#subtotal").val(subtotal);
+    $("#subtotal").val(subtotal.toFixed(2));
+
+    <?php if(tipoFacturacion() == 'RD_AI'): ?>
+    $("#itbis").val(total_itbis.toFixed(2));
+    <?php endif; ?>
 
     let other = parseFloat($.trim($("#other").val()));
     if ($.trim(other) == "" || $.isNumeric(other) == false) other = 0;
 
     let grand_total = parseFloat(subtotal) + parseFloat(other);
     grand_total = grand_total;
-    $("#grand_total").val(grand_total);
+    $("#grand_total").val(grand_total.toFixed(2));
 
     let paid = $("#paid").val();
     if ($.trim(paid) == "" || $.isNumeric(paid) == false) paid = 0;
 
     let due = parseFloat(grand_total) - parseFloat(paid);
-    $("#due").val(due);
+    $("#due").val(due.toFixed(2));
 }
 
 </script>

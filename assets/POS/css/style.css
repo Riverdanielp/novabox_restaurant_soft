@@ -2606,7 +2606,11 @@ p {
 }
 
 #add_customer_modal .customer_add_modal_info_holder {
-  padding: 10px;
+    padding: 10px;
+    width: 100%;
+    min-height: 200px;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 
 #generate_sale_hold_modal .generate_hold_sale_modal_info_holder {
@@ -4204,4 +4208,18 @@ POS MODAL DESIGN CORRECTED BY AZHAR
 }
 #secondary_item_holder::-webkit-scrollbar {
 display:none;
+}
+
+.customer_section label {
+    display: flex;
+    align-items: center; /* Centra verticalmente */
+    gap: 6px; /* Espacio entre checkbox y texto */
+    cursor: pointer;
+    font-size: 14px; /* Ajusta según tu diseño */
+}
+
+.customer_section input[type="checkbox"] {
+    margin: 0; /* Quita espacios extra */
+    width: 25px;
+    height: 25px;
 }

@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is User Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -118,18 +103,6 @@ class User extends Cl_Controller {
         }
         if (htmlspecialcharscustom($this->input->post('submit'))) {
             $this->form_validation->set_rules('full_name',  lang('name'), 'required|max_length[50]');
-            // if ($id != '') {
-            //     $post_phone =htmlspecialcharscustom($this->input->post($this->security->xss_clean('phone')));
-            //     $existing_phone = $user_details->phone;
-            //     if ($post_phone != $existing_phone) {
-            //         $this->form_validation->set_rules('phone',  lang('phone'), "required|numeric");
-            //     } else {
-            //         $this->form_validation->set_rules('phone',  lang('phone'), "required|numeric");
-            //     }
-            // } else {
-            //     $this->form_validation->set_rules('phone', lang('phone'), "required|numeric");
-            // }
-
             if ($id != '') {
                 $post_email_address =htmlspecialcharscustom($this->input->post($this->security->xss_clean('email_address')));
                 $post_login_pin =htmlspecialcharscustom($this->input->post($this->security->xss_clean('login_pin')));
@@ -184,6 +157,7 @@ class User extends Cl_Controller {
                 $user_info['full_name'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('full_name')));
                 $user_info['email_address'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('email_address')));
                 $user_info['phone'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('phone')));
+                $user_info['documento'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('documento')));
                 $user_info['designation'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('designation')));
                 $user_info['login_pin'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('login_pin')));
                 $user_info['will_login'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('will_login')));

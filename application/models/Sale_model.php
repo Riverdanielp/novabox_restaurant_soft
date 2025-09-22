@@ -724,6 +724,33 @@ class Sale_model extends CI_Model {
           return false;
         }
     }
+    
+    /**
+     * get Sale By Sale Id
+     * @access public
+     * @return object
+     * @param int
+     */
+    public function getSaleBySaleNo($sales_no){
+      $this->db->select("tbl_sales.*,w.full_name as waiter_name,tbl_customers.name as customer_name,tbl_customers.address as customer_address,tbl_tables.name as table_name,tbl_users.full_name as user_name,tbl_companies.invoice_footer as invoice_footer");
+      $this->db->from('tbl_sales');
+      $this->db->join('tbl_customers', 'tbl_customers.id = tbl_sales.customer_id', 'left');
+      $this->db->join('tbl_users', 'tbl_users.id = tbl_sales.user_id', 'left');
+      $this->db->join('tbl_tables', 'tbl_tables.id = tbl_sales.table_id', 'left');
+      $this->db->join('tbl_companies', 'tbl_companies.id = tbl_sales.outlet_id', 'left');
+      $this->db->join('tbl_users w', 'w.id = tbl_sales.waiter_id', 'left');
+      $this->db->where("tbl_sales.sale_no", $sales_no);
+      $this->db->where('tbl_sales.del_status', 'Live');
+      $this->db->order_by('tbl_sales.id', 'ASC');
+      $result = $this->db->get();
+
+        if($result != false){
+          return $result->row();
+        }else{
+          return false;
+        }
+    }
+
     /**
      * get Single Sale By Sale Id
      * @access public
@@ -823,7 +850,7 @@ class Sale_model extends CI_Model {
      * @param int
      */
     public function getAllItemsFromSalesDetailBySalesId($sales_id){
-      $this->db->select("tbl_sales_details.*,tbl_sales_details.id as sales_details_id,tbl_food_menus.code as code");
+      $this->db->select("tbl_sales_details.*,tbl_sales_details.id as sales_details_id,tbl_food_menus.code as code,tbl_food_menus.iva_tipo");
       $this->db->from('tbl_sales_details');
       $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_sales_details.food_menu_id', 'left');
       $this->db->where("sales_id", $sales_id);
@@ -838,7 +865,7 @@ class Sale_model extends CI_Model {
         }
     }
     public function getAllItemsFromSalesDetailBySalesIdKitchen($sales_id){
-      $this->db->select("tbl_kitchen_sales_details.*,tbl_kitchen_sales_details.id as sales_details_id,tbl_food_menus.code as code");
+      $this->db->select("tbl_kitchen_sales_details.*,tbl_kitchen_sales_details.id as sales_details_id,tbl_food_menus.code as code,tbl_food_menus.iva_tipo");
       $this->db->from('tbl_kitchen_sales_details');
       $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id', 'left');
       $this->db->where("sales_id", $sales_id);
@@ -859,7 +886,7 @@ class Sale_model extends CI_Model {
      * @param int
      */
     public function getAllItemsFromSalesDetailBySalesIdModify($sales_id){
-      $this->db->select("tbl_sales_details.*,tbl_sales_details.id as sales_details_id,tbl_food_menus.code as code");
+      $this->db->select("tbl_sales_details.*,tbl_sales_details.id as sales_details_id,tbl_food_menus.code as code,tbl_food_menus.iva_tipo");
       $this->db->from('tbl_sales_details');
       $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_sales_details.food_menu_id', 'left');
       $this->db->where("sales_id", $sales_id);
@@ -881,7 +908,7 @@ class Sale_model extends CI_Model {
      * @param int
      */
     public function getAllItemsFromSalesDetailBySalesIdModifyChild($row_id,$sale_id){
-      $this->db->select("tbl_sales_details.*,tbl_sales_details.id as sales_details_id,tbl_food_menus.code as code");
+      $this->db->select("tbl_sales_details.*,tbl_sales_details.id as sales_details_id,tbl_food_menus.code as code,tbl_food_menus.iva_tipo");
       $this->db->from('tbl_sales_details');
       $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_sales_details.food_menu_id', 'left');
       $this->db->where("is_free_item", $row_id);

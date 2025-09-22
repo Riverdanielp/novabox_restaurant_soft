@@ -85,7 +85,10 @@ $route['singup'] = 'authentication/singup';
 $route['send-email'] = 'authentication/sendEmail';
 $route['contact-us'] = 'authentication/contactUs';
 $route['invoice/(:any)'] = 'Authentication/qr_code_invoice/$1';
-$route['invoice/(:any)'] = 'authentication/qr_code_invoice/$1';
+// --- NUEVA RUTA ---
+// Permitirá descargar el PDF de la factura electrónica usando el ID de la venta
+$route['factura/(:any)'] = 'authentication/descargar_factura_electronica/$1'; 
+
 $route['hst'] = 'authentication/hst';
 $route['forgot-password-step-one'] = 'authentication/forgotPasswordStepOne';
 $route['forgot-password-step-two'] = 'authentication/forgotPasswordStepTwo';
@@ -112,5 +115,6 @@ $route['set-nearest-outlet'] = 'Frontend/setNearestOutlet';
 $route['food-details/(:any)/(:any)'] = 'Frontend/menuItemDetails/$1/$2';
 $route['rating-submit'] = 'Frontend/ratingSubmit';
 $route['translate_uri_dashes'] = FALSE;
+
 
 

@@ -442,7 +442,7 @@ class Purchase extends Cl_Controller {
                 'id' => $ingredient_id,
                 'name' => $ingredient_data['name'],
                 'code' => $ingredient_data['code'],
-                'unit_name' => 'Pcs', // O lo que corresponda
+                'unit_name' => 'UNI', // O lo que corresponda
                 'purchase_price' => $ingredient_data['purchase_price'],
                 'sale_price' => $data['sale_price'],
                 'iva_tipo' => $ingredient_data['iva_tipo'] ?? '10'

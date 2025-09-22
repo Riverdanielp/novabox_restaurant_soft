@@ -127,7 +127,7 @@
                                         $unit = unitName(getUnitIdByIgId($value->ingredient_id));
                                     }else{
                                         $name = getFoodMenuNameById($value->ingredient_id)." (".getFoodMenuCodeById($value->ingredient_id).")";
-                                        $unit = "Pcs";
+                                        $unit = "UNI";
                                     }
                                     $key++;
                                     ?>

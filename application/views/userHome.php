@@ -1185,6 +1185,12 @@
                             </ul>
                         </li>
 
+                        <?php if (tipoFacturacion() == 'Py_FE') : ?>
+                        <li  class="menu_assign_class"><a class="child-menu" href="<?php echo base_url()?>facturacion_py/listado">
+                                <i data-feather="cloud"></i>  <span> <?php echo 'Facturacion Electrónica'; ?></span></a></li>
+                        <?php endif; ?>
+
+
                         <li data-access="view-321" class="menu_assign_class"><a class="child-menu" href="<?php echo base_url()?>Short_message_service/smsService">
                         <i data-feather="message-square"></i>  <span> <?php echo lang('send_sms'); ?></span></a></li>
 

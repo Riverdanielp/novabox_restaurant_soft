@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420644';
+    return '?v=7.542066';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -3416,7 +3416,7 @@ if(!function_exists('pre')){
 }
 /**
  * return get Ref Attendance
- * @return string
+ * @return string || false
  * @param string
  * @param int
  */

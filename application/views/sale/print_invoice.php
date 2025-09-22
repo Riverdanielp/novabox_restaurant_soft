@@ -1,3 +1,14 @@
+<?php
+// Cargar los datos de la factura electrónica al principio
+$datos_fe = null;
+if (tipoFacturacion() == 'Py_FE') {
+    $this->load->helper('factura_send');
+    $datos_fe = fs_get_factura_details_by_sale_id($sale_object->id);
+}
+$customer = getCustomerData($sale_object->customer_id);
+$identImpuestoName = (tipoConsultaRuc() == 'RNC') ? 'RNC' : 'RUC' ; 
+$download_url = "";
+?>
 <!doctype html>
 <html>
 
@@ -18,6 +29,8 @@
         <div id="receiptData">
 
             <div id="receipt-data">
+
+            
                 <div class="text-center">
                     <?php
                     $invoice_logo = $this->session->userdata('invoice_logo');
@@ -32,14 +45,20 @@
                     </h3>
                    
                        <?php
-                            if ($this->session->userdata['tax_registration_no'] && $this->session->userdata('collect_tax')=='Yes'):
+                            if ($this->session->userdata['tax_registration_no']):
                                 ?>
                          
-                        <?php echo lang('Tax_Registration_No'); ?>: <?php
+                        <?php echo $identImpuestoName; ?>: <?php
                             echo escape_output($this->session->userdata('tax_registration_no'));
                         endif;
                             ?>
+                            <br>
 
+                        <?php echo lang('address'); ?>: <?php echo escape_output($this->session->userdata('address')); ?>
+                            <br>
+                        <?php echo lang('phone'); ?>: <?php echo escape_output($this->session->userdata('phone')); ?>
+                            
+                        
                         <!-- /// *** INSERCIÓN DATO DE FACTURACION *** /// -->
                         <?php if(tipoFacturacion() == 'RD_AI') : ?>
                             <?php if (!empty(datos_factura($sale_object->id))) : ?>
@@ -55,19 +74,39 @@
                                 <?php endif; ?>
                             <?php endif; ?>
                         <?php endif; ?>
+
+                        
+                        <?php if(tipoFacturacion() == 'Py_FE') : ?>
+
+                            <?php if ($datos_fe): // --- INICIO DEL TICKET DE FACTURA ELECTRÓNICA --- ?>
+                                <hr style="border-top: 1px dashed black; margin: 5px 0;">
+                                <b>FACTURA ELECTRÓNICA</b>
+                                <br>
+                                <p style="font-size:14px; margin-bottom: 2px;">Timbrado Nº: <?= escape_output($datos_fe->numero_timbrado) ?></p>
+                                <p style="font-size:14px; margin-bottom: 2px;">Fecha Inicio de Vigencia: <?= date('d/m/Y', strtotime($datos_fe->timbrado_vigente)) ?></p>
+                                <p style="font-size:14px; margin-bottom: 2px;"><b>Factura Electrónica: <?= escape_output($datos_fe->numero_factura_formateado) ?></b></p>
+                                <p style="font-size:14px; margin-bottom: 2px;">Fecha y hora de emisión: <?= date('d/m/Y H:i:s', strtotime($datos_fe->fecha_emision)) ?></p>
+                            <?php endif; ?>
+
+
+                            <?php if ($customer): ?>
+                                <hr style="border-top: 1px dashed black; margin: 5px 0;">
+                                <p style="font-size:14px;">Razón Social: <b><?= escape_output($customer->name) ?></b></p>
+                                <p style="font-size:14px;">RUC: <b><?= escape_output($customer->gst_number) ?></b></p>
+                                <p style="font-size:14px;">Condición: Contado</b></p>
+                                <hr style="border-top: 1px dashed black; margin: 5px 0;">
+                            <?php endif; ?>
+
+                        <?php endif; ?>
+
                         <!-- /// *** INSERCIÓN DATO DE FACTURACION *** /// -->
 
 
 
-                    <p>
-                    <?php echo lang('address'); ?>: <?php echo escape_output($this->session->userdata('address')); ?>
-                        <br>
-                       <?php echo lang('phone'); ?>: <?php echo escape_output($this->session->userdata('phone')); ?>
-                        
-                     
+                
 
                         <?= isset($sale_object->token_no) && $sale_object->token_no ? lang('Token_No').": " . escape_output($sale_object->token_no ): '' ?>
-                        <br>
+                       
                         <?php
                           
                                 $order_type = '';
@@ -79,8 +118,7 @@
                                     $order_type = lang('delivery');;
                                 }
                             ?>
-                        <br>
-                    </p>
+                    
                 </div>
 
                 <table style="width:100%">
@@ -139,10 +177,21 @@
                 <table class="table table-condensed">
                     <tbody>
                         <?php
+                        $total_exonerado = 0;
+                        $total_gravado_5 = 0;
+                        $total_gravado_10 = 0;
                             if (isset($sale_object->items)) {
                                 $i = 1;
                                 $totalItems = 0;
                                 foreach ($sale_object->items as $row) {
+                                    $iva_tipo = floatval($row->iva_tipo);
+                                    if ($iva_tipo == 5) {
+                                        $total_gravado_5 += $row->menu_price_with_discount;
+                                    } elseif ($iva_tipo == 0) {
+                                        $total_exonerado += $row->menu_price_with_discount;
+                                    } else {
+                                        $total_gravado_10 += $row->menu_price_with_discount;
+                                    }
                                     $discount_amount = 0;
                                     if((float)$row->discount_amount){
                                         $discount_amount = $row->discount_amount;
@@ -280,10 +329,91 @@
                                 <h3><b><?php echo escape_output(getAmtCustom($sale_object->total_payable)); ?></b></h3>
                             </td>
                         </tr>
-                     
-
                     </tbody>
                 </table>
+
+                <?php if(tipoFacturacion() == 'RD_AI'): ?>
+                    <?php
+                    $total_itbis_18 = 0;
+                    $total_itbis_16 = 0;
+                    $base_itbis_18 = 0;
+                    $base_itbis_16 = 0;
+                    $total_exento = 0;
+                    if (isset($sale_object->items)) {
+                        foreach ($sale_object->items as $row) {
+                            $iva_tipo = floatval($row->iva_tipo);
+                            $item_total = $row->menu_price_with_discount * $row->qty;
+                            if ($iva_tipo == 18) {
+                                $base = $item_total / 1.18;
+                                $base_itbis_18 += $base;
+                                $total_itbis_18 += $item_total - $base;
+                            } elseif ($iva_tipo == 16) {
+                                $base = $item_total / 1.16;
+                                $base_itbis_16 += $base;
+                                $total_itbis_16 += $item_total - $base;
+                            } else {
+                                $total_exento += $item_total;
+                            }
+                        }
+                    }
+                    ?>
+                    <hr style="border-bottom:1px solid black;margin: 0px;">
+                    <table class="table table-condensed">
+                        <tbody>
+                            <?php if($total_itbis_18 > 0): ?>
+                            <tr>
+                                <th>Total ITBIS 18%</th>
+                                <th class="text-right"><?php echo escape_output(getAmtCustom($total_itbis_18)); ?></th>
+                            </tr>
+                            <?php endif; ?>
+                            <?php if($total_itbis_16 > 0): ?>
+                            <tr>
+                                <th>Total ITBIS 16%</th>
+                                <th class="text-right"><?php echo escape_output(getAmtCustom($total_itbis_16)); ?></th>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+
+                <?php if ($datos_fe): ?>
+                
+                    <hr style="border-bottom:1px solid black;margin: 0px;">
+                    <table class="table table-condensed">
+                        <tbody>
+                            <tr>
+                                <th>Gravada 5%</th>
+                                <th class="text-right"><?php echo getAmtCustom($total_gravado_5); ?></th>
+                            </tr>
+                            <tr>
+                                <th>Gravada 10%</th>
+                                <th class="text-right"><?php echo getAmtCustom($total_gravado_10); ?></th>
+                            </tr>
+                            <tr>
+                                <th>Detalle de Impuesto</th>
+                                <th class="text-right"></th>
+                            </tr>
+                            <tr>
+                                <th>Excenta</th>
+                                <th class="text-right"><?php echo getAmtCustom(0); ?></th>
+                            </tr>
+                            <tr>
+                                <th>IVA 5%</th>
+                                <th class="text-right"><?php echo getAmtCustom($datos_fe->iva5); ?></th>
+                            </tr>
+                            <tr>
+                                <th>IVA 10%</th>
+                                <th class="text-right"><?php echo getAmtCustom($datos_fe->iva10); ?></th>
+                            </tr>
+                            <tr>
+                                <th>Liquidación Total de IVA</th>
+                                <th class="text-right"><?php echo getAmtCustom(floatval($datos_fe->iva10) + floatval($datos_fe->iva5)); ?></th>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <hr style="border-bottom:1px solid black;margin: 0px;">
+
+                <?php endif; ?>
                 <?php
                 $outlet_id = $this->session->userdata('outlet_id');
                 $salePaymentDetails = salePaymentDetails($sale_object->id,$outlet_id);
@@ -318,7 +448,7 @@
                         endforeach;?>
 
 
-<?php
+                        <?php
                         if($sale_object->due_amount && $sale_object->due_amount!="0.00"):
                         ?>
                         <tr>
@@ -336,7 +466,7 @@
                         <table class="table">
                         <tbody> 
                        
-  <?php
+                        <?php
                         if($sale_object->given_amount && $sale_object->given_amount!="0.00"):
                         ?>
                         <tr>
@@ -371,8 +501,34 @@
                 ?>
                 <h3 style="text-align:center">**<?php echo lang('paid_ticket'); ?>*//*</h3>
                 <p style="text-align:center"><?php echo escape_output(($sale_object->paid_date_time)); ?></p>
-                <p class="text-center"> <?php echo ($this->session->userdata('invoice_footer')) ?></p>
-                <div class="text-center"><img src="<?php echo base_url()?>qr_code/<?php echo escape_output($sale_object->id)?>.png"></div>
+
+                <!-- ====================================================================== -->
+                <!-- SECCIÓN FINAL: QR Y TEXTOS (Solo para Factura Electrónica)              -->
+                <!-- ====================================================================== -->
+                <?php if ($datos_fe): ?>
+                    <?php
+                        // Construimos la URL para el QR que apunta a nuestra nueva función
+                        $download_url = $datos_fe->qr;
+                    ?>
+
+                    <div class="text-center">                        
+                        <!-- Este DIV generará el QR -->
+                        <div id="qrcode" style="display: flex; justify-content: center; margin: 10px 0;"></div>
+                    </div>
+
+                    <div class="text-center" style="font-size:10px; margin-top:10px;">
+                        <p style="margin-bottom:5px;">consulte la validez de este documento con el número de CDC:</p>
+                        <p style="font-family: monospace; letter-spacing: 2px; font-size: 11px;"><?= chunk_split($datos_fe->cdc, 4, ' ') ?></p>
+                        <p style="margin-top:10px;">En el portal E-kuatia: <b>https://ekuatia.set.gov.py/consultas</b></p>
+                        <hr style="border-top: 1px dashed black; margin: 10px 0;">
+                        <p style="margin-top:10px; margin-bottom:2px;">ESTE DOCUMENTO ES UNA REPRESENTACIÓN GRÁFICA DE UN DOCUMENTO ELECTRÓNICO (XML)</p>
+                    </div>
+
+
+                <?php else: // Footer para ticket normal ?>
+                    <p class="text-center"> <?php echo ($this->session->userdata('invoice_footer')) ?></p>
+                    <div class="text-center"><img src="<?php echo base_url()?>qr_code/<?php echo escape_output($sale_object->id)?>.png"></div>
+                <?php endif; ?>
             </div>
             <div class="ir_clear"></div>
         </div>
@@ -398,6 +554,36 @@
     </div>
     <script src="<?php echo base_url(); ?>assets/dist/js/print/jquery-2.0.3.min.js"></script>
     <script src="<?php echo base_url(); ?>assets/dist/js/print/custom.js<?php echo VERS() ?>"></script>
+
+    <!-- ====================================================================== -->
+    <!-- SCRIPTS AL FINAL DEL BODY                                              -->
+    <!-- ====================================================================== -->
+
+    <!-- Librería para generar el QR en el navegador -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <script type="text/javascript">
+        // Verificamos si existe el div 'qrcode' y la URL de descarga
+        const qrContainer = document.getElementById("qrcode");
+        const downloadUrl = "<?= $download_url ?? '' ?>";
+
+        if (qrContainer && downloadUrl) {
+            new QRCode(qrContainer, {
+                text: downloadUrl,
+                width: 200, // Un tamaño un poco más grande para mejor lectura
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H // Alta corrección de errores
+            });
+        }
+    </script>
+
+<script>
+    $(document).ready(function() {
+        window.print();
+    });
+</script>
 </body>
 
 </html>

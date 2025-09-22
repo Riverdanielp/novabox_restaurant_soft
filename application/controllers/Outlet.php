@@ -26,7 +26,15 @@ class Outlet extends Cl_Controller {
        
         if($segment_2=="outlets"){
             $function = "view";
-        }elseif($segment_2=="addEditOutlet" && $segment_3){
+        }elseif(
+            ($segment_2=="addEditOutlet" && $segment_3) 
+            || ($segment_2=="editOutletItems" && $segment_3)
+            || ($segment_2=="configuracionSifen" && $segment_3)
+            || ($segment_2=="ajax_add_timbrado")
+            || ($segment_2=="ajax_edit_timbrado")
+            || ($segment_2=="ajax_toggle_timbrado_status")
+            || ($segment_2=="ajax_save_sifen_sucursal")
+            ){
             $function = "update";
         }elseif($segment_2=="setOutletSession" && $segment_3){
             $function = "enter";
@@ -84,6 +92,7 @@ class Outlet extends Cl_Controller {
         $this->session->set_flashdata('exception',lang('delete_success'));
         redirect('Outlet/outlets');
     }
+    
     /**
      * add/Edit Outlet
      * @access public
@@ -142,6 +151,20 @@ class Outlet extends Cl_Controller {
                     $id = $this->Common_model->insertInformation($outlet_info, "tbl_outlets");
                     $this->session->set_flashdata('exception', lang('insertion_success'));
 
+                    // Asignar todos los items al nuevo outlet por defecto
+                    if(str_rot13($language_manifesto)=="eriutoeri"){
+                        $items = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
+                        $all_item_ids = [];
+                        $data_price_array = [];
+                        foreach ($items as $item) {
+                            $all_item_ids[] = $item->id;
+                            $data_price_array["tmp".$item->id] = $item->sale_price."||".$item->sale_price_take_away."||".$item->sale_price_delivery;
+                        }
+                        $data_food_menus['food_menus'] = implode(",", $all_item_ids);
+                        $data_food_menus['food_menu_prices'] = json_encode($data_price_array);
+                        $this->Common_model->updateInformation($data_food_menus, $id, "tbl_outlets");
+                    }
+
                     //update user
                     $user_id = $this->session->userdata('user_id');
                     $user_details = $this->Common_model->getDataById($user_id, "tbl_users");
@@ -156,70 +179,23 @@ class Outlet extends Cl_Controller {
                     $this->Common_model->updateInformation($outlet_info, $id, "tbl_outlets");
                     $this->session->set_flashdata('exception', lang('update_success'));
                 }
-                $language_manifesto = $this->session->userdata('language_manifesto');
-                if(str_rot13($language_manifesto)=="eriutoeri"):
-                    $item_check =$this->input->post($this->security->xss_clean('item_check'));
-                    if($item_check){
-                        $main_arr = '';
-                        $total_selected = sizeof($item_check);
-                        $data_price_array = array();
-                        $json_data = array();
-
-                        for($i=0;$i<$total_selected;$i++){
-                            $main_arr.=$item_check[$i];
-                            if($i <= ($total_selected) -1){
-                                $main_arr.=",";
-                                $name_generate = "price_".$item_check[$i];
-                                $price_ta_name_generate = "price_ta_".$item_check[$i];
-                                $price_de_name_generate = "price_de_".$item_check[$i];
-                                $data_price_array["tmp".$item_check[$i]] = htmlspecialcharscustom($this->input->post($this->security->xss_clean($name_generate)))."||".htmlspecialcharscustom($this->input->post($this->security->xss_clean($price_ta_name_generate)))."||".htmlspecialcharscustom($this->input->post($this->security->xss_clean($price_de_name_generate)));
-                            }
-
-                            $field_name = "sale_price_delivery_json".$item_check[$i];
-                            $delivery_person_field_name = "delivery_person".$item_check[$i];
-                            $del_price_total = $this->input->post($this->security->xss_clean($field_name));
-                            $delivery_person_field_name_value = $this->input->post($this->security->xss_clean($delivery_person_field_name));
-
-                            if(isset($del_price_total) && $del_price_total){
-                                $tmp_array = array();
-                                foreach ($del_price_total as $row => $value_1):
-                                    $tmp_array["index_".$delivery_person_field_name_value[$row]] = $value_1;
-                                endforeach;
-                                $json_data["index_".$item_check[$i]] = json_encode($tmp_array);
-                            }
-
-                        }
-                        //set food menu for this outlet
-                        $data_food_menus['food_menus'] = $main_arr;
-                        $data_food_menus['food_menu_prices'] = json_encode($data_price_array);
-                        $data_food_menus['delivery_price'] = json_encode($json_data);
-                        $this->Common_model->updateInformation($data_food_menus, $id, "tbl_outlets");
-                    }
-                endif;
+                
                 $data_c = getLanguageManifesto();
                 redirect($data_c[1]);
             } else {
+                $data = array();
+                $data['encrypted_id'] = $encrypted_id;
+                $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
+                $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
+                $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
+
                 if ($id == "") {
-                    $data = array();
-                    $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
-                    $data['deliveryPartners'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
-                    $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
                     $data['outlet_code'] = $this->Outlet_model->generateOutletCode();
-                    $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
-                    $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                     $data['main_content'] = $this->load->view('outlet/addOutlet', $data, TRUE);
-                    $this->load->view('userHome', $data);
                 } else {
-                    $data = array();
-                    $data['encrypted_id'] = $encrypted_id;
-                    $data['deliveryPartners'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
-                    $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
-                    $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
-                    $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
-                    $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                     $data['main_content'] = $this->load->view('outlet/editOutlet', $data, TRUE);
-                    $this->load->view('userHome', $data);
                 }
+                $this->load->view('userHome', $data);
             }
         } else {
             $language_manifesto = $this->session->userdata('language_manifesto');
@@ -229,35 +205,110 @@ class Outlet extends Cl_Controller {
                     redirect("Outlet/addEditOutlet/".$outlet_id);
                 }
             }
+            
+            $data = array();
+            $data['encrypted_id'] = $encrypted_id;
+            $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
+            $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
+            $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
+
             if ($id == "") {
-                $data = array();
-                $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
-                $data['deliveryPartners'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
-                $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
                 $data['outlet_code'] = $this->Outlet_model->generateOutletCode();
-                $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
-                $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                 $data['main_content'] = $this->load->view('outlet/addOutlet', $data, TRUE);
-                $this->load->view('userHome', $data);
             } else {
-                $data = array();
-                $data['encrypted_id'] = $encrypted_id;
-                $data['deliveryPartners'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
-                $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
-                $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
-                $data['waiters'] = $this->Sale_model->getWaitersForThisCompanyForOutlet($company_id,'tbl_users');
-                $selected_modules =  explode(',',$data['outlet_information']->food_menus);
-                $selected_modules_arr = array();
-                foreach ($selected_modules as $value) {
-                    $selected_modules_arr[] = $value;
-                }
-                $data['selected_modules_arr'] = $selected_modules_arr;
-                $data['printers'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_printers");
                 $data['main_content'] = $this->load->view('outlet/editOutlet', $data, TRUE);
-                $this->load->view('userHome', $data);
             }
+            $this->load->view('userHome', $data);
         }
     }
+
+    /**
+     * Edit Outlet Items and Prices
+     * @access public
+     * @return void
+     * @param int
+     */
+    public function editOutletItems($encrypted_id) {
+        $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
+        $company_id = $this->session->userdata('company_id');
+        $language_manifesto = $this->session->userdata('language_manifesto');
+
+        // Redirigir si no es el modo correcto
+        if(str_rot13($language_manifesto) != "eriutoeri"){
+             $data_c = getLanguageManifesto();
+             redirect($data_c[1]);
+        }
+
+        if (htmlspecialcharscustom($this->input->post('submit'))) {
+            $item_check = $this->input->post($this->security->xss_clean('item_check'));
+            $data_food_menus = [];
+            
+            if($item_check){
+                $main_arr = '';
+                $total_selected = sizeof($item_check);
+                $data_price_array = array();
+                $json_data = array();
+
+                for($i=0;$i<$total_selected;$i++){
+                    $main_arr.=$item_check[$i];
+                    if($i < ($total_selected) -1){ // Corregido el <= a <
+                        $main_arr.=",";
+                    }
+                    $name_generate = "price_".$item_check[$i];
+                    $price_ta_name_generate = "price_ta_".$item_check[$i];
+                    $price_de_name_generate = "price_de_".$item_check[$i];
+                    $data_price_array["tmp".$item_check[$i]] = htmlspecialcharscustom($this->input->post($this->security->xss_clean($name_generate)))."||".htmlspecialcharscustom($this->input->post($this->security->xss_clean($price_ta_name_generate)))."||".htmlspecialcharscustom($this->input->post($this->security->xss_clean($price_de_name_generate)));
+                    
+
+                    $field_name = "sale_price_delivery_json".$item_check[$i];
+                    $delivery_person_field_name = "delivery_person".$item_check[$i];
+                    $del_price_total = $this->input->post($this->security->xss_clean($field_name));
+                    $delivery_person_field_name_value = $this->input->post($this->security->xss_clean($delivery_person_field_name));
+
+                    if(isset($del_price_total) && $del_price_total){
+                        $tmp_array = array();
+                        foreach ($del_price_total as $row => $value_1):
+                            $tmp_array["index_".$delivery_person_field_name_value[$row]] = $value_1;
+                        endforeach;
+                        $json_data["index_".$item_check[$i]] = json_encode($tmp_array);
+                    }
+                }
+                //set food menu for this outlet
+                $data_food_menus['food_menus'] = $main_arr;
+                $data_food_menus['food_menu_prices'] = json_encode($data_price_array);
+                $data_food_menus['delivery_price'] = json_encode($json_data);
+            } else {
+                // Si no se selecciona ningún item
+                $data_food_menus['food_menus'] = '';
+                $data_food_menus['food_menu_prices'] = '[]';
+                $data_food_menus['delivery_price'] = '[]';
+            }
+            
+            $this->Common_model->updateInformation($data_food_menus, $id, "tbl_outlets");
+            $this->session->set_flashdata('exception', lang('update_success'));
+            redirect('Outlet/editOutletItems/'.$encrypted_id);
+
+        } else {
+            $data = array();
+            $data['encrypted_id'] = $encrypted_id;
+            $data['deliveryPartners'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
+            $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
+            $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
+            
+            $selected_modules =  explode(',',$data['outlet_information']->food_menus);
+            $selected_modules_arr = array();
+            foreach ($selected_modules as $value) {
+                $selected_modules_arr[] = $value;
+            }
+            $data['selected_modules_arr'] = $selected_modules_arr;
+            
+            $data['main_content'] = $this->load->view('outlet/editOutletItems', $data, TRUE);
+            $this->load->view('userHome', $data);
+        }
+    }
+
+
+
     /**
      * set Outlet Session
      * @access public
@@ -312,6 +363,190 @@ class Outlet extends Cl_Controller {
                 redirect($clicked_controller . '/' . $clicked_method);
             }
             
+        }
+    }
+
+    /**
+     * Página de Configuración SIFEN para un Outlet.
+     * Permite vincular un Outlet a una Sucursal SIFEN y gestionar sus puntos/timbrados.
+     * @access public
+     * @param string $encrypted_id ID del Outlet
+     */
+    public function configuracionSifen($encrypted_id)
+    {
+        $this->load->helper('factura_send_helper');
+        $outlet_id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
+
+        if ($this->input->post('submit_link')) {
+            // PROCESO 1: Vincular el Outlet a una Sucursal SIFEN
+            $sifen_sucursal_id = $this->input->post('sifen_sucursal_id');
+            $this->Common_model->updateInformation(['sifen_sucursal_id' => $sifen_sucursal_id], $outlet_id, 'tbl_outlets');
+            $this->session->set_flashdata('exception', 'El outlet ha sido vinculado a la sucursal SIFEN correctamente.');
+            redirect('Outlet/configuracionSifen/' . $encrypted_id);
+
+        } else if ($this->input->post('submit_puntos')) {
+            // PROCESO 2: Guardar cambios en los Puntos de Expedición
+            $sucursal_id = $this->input->post('sucursal_id_hidden');
+            $puntos_expedicion = $this->input->post('puntos');
+            
+            if (!empty($puntos_expedicion)) {
+                foreach ($puntos_expedicion as $key => $punto) {
+                    $punto_data = [
+                        'sucursal_id' => $sucursal_id,
+                        'codigo_punto' => $punto['codigo_punto'],
+                        'nombre' => $punto['nombre'],
+                        'numerador' => $punto['numerador'],
+                        'activo' => isset($punto['activo']) ? 1 : 0
+                    ];
+
+                    $punto_id = $punto['id'];
+                    if ($punto_id) { // Actualizar
+                        $this->Common_model->updateInformation($punto_data, $punto_id, 'py_sifen_puntos_expedicion');
+                    } else { // Insertar
+                        $punto_id = $this->Common_model->insertInformation($punto_data, 'py_sifen_puntos_expedicion');
+                    }
+
+                    // Asociar Timbrado
+                    $timbrado_id = $punto['timbrado_id'];
+                    $this->db->where('punto_expedicion_id', $punto_id)->delete('py_sifen_timbrados_puntos');
+                    if ($timbrado_id && $punto_data['activo']) {
+                        $this->Common_model->insertInformation(['timbrado_id' => $timbrado_id, 'punto_expedicion_id' => $punto_id], 'py_sifen_timbrados_puntos');
+                    }
+                }
+            }
+            $this->session->set_flashdata('exception', 'Los puntos de expedición han sido actualizados.');
+            redirect('Outlet/configuracionSifen/' . $encrypted_id);
+        }
+
+        // --- CARGAR VISTA (Método GET) ---
+        $data = [];
+        $data['encrypted_id'] = $encrypted_id;
+        $data['outlet_info'] = $this->Common_model->getDataById($outlet_id, 'tbl_outlets');
+        
+        // Obtener todas las sucursales SIFEN para el selector principal
+        $data['sifen_sucursales'] = $this->db->get('py_sifen_sucursales')->result();
+        
+        // Variables para los datos de la sucursal vinculada (si existe)
+        $data['sucursal_vinculada'] = null;
+        $data['puntos_expedicion'] = [];
+        $data['mapa_timbrados'] = [];
+
+        if ($data['outlet_info']->sifen_sucursal_id) {
+            // Si el outlet está vinculado, cargamos toda su información
+            $data['sucursal_vinculada'] = $this->db->where('id', $data['outlet_info']->sifen_sucursal_id)->get('py_sifen_sucursales')->row();
+            
+            if($data['sucursal_vinculada']){
+                // Obtener puntos de expedición de la sucursal vinculada
+                $data['puntos_expedicion'] = $this->db->where('sucursal_id', $data['sucursal_vinculada']->id)->get('py_sifen_puntos_expedicion')->result();
+
+                // Crear mapa de timbrados asociados a cada punto
+                $relaciones = $this->db->get('py_sifen_timbrados_puntos')->result();
+                foreach($relaciones as $rel){
+                    $data['mapa_timbrados'][$rel->punto_expedicion_id] = $rel->timbrado_id;
+                }
+            }
+        }
+
+        // Obtener timbrados (ambas listas, para gestión y para selectores)
+        $data['todos_los_timbrados'] = $this->db->order_by('fecha_fin', 'DESC')->get('py_sifen_timbrados')->result();
+        $today = date('Y-m-d');
+        $data['timbrados_activos'] = $this->db
+                                        ->where('activo', 1)
+                                        ->where('fecha_inicio <=', $today)
+                                        ->where('fecha_fin >=', $today)
+                                        ->order_by('fecha_fin', 'DESC')
+                                        ->get('py_sifen_timbrados')
+                                        ->result();
+
+        $data['main_content'] = $this->load->view('outlet/configuracion_sifen', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+
+    /**
+     * AJAX para añadir o editar una SUCURSAL SIFEN
+     */
+    public function ajax_save_sifen_sucursal(){
+        if ($this->input->is_ajax_request()) {
+            $id = $this->input->post('id');
+            $data = [
+                'codigo_establecimiento' => $this->input->post('codigo_establecimiento'),
+                'nombre' => $this->input->post('nombre'),
+                'direccion' => $this->input->post('direccion'),
+                'telefono' => $this->input->post('telefono')
+            ];
+
+            if($id){
+                $this->Common_model->updateInformation($data, $id, 'py_sifen_sucursales');
+                $message = 'Sucursal SIFEN actualizada con éxito.';
+            } else {
+                $id = $this->Common_model->insertInformation($data, 'py_sifen_sucursales');
+                $message = 'Sucursal SIFEN creada con éxito.';
+            }
+            
+            echo json_encode(['status' => 'success', 'message' => $message]);
+        } else {
+            show_404();
+        }
+    }
+
+    /**
+     * AJAX para guardar un nuevo timbrado desde el modal
+     */
+    public function ajax_add_timbrado(){
+        if ($this->input->is_ajax_request()) {
+            $data = [
+                'numero_timbrado' => $this->input->post('numero_timbrado'),
+                'fecha_inicio' => $this->input->post('fecha_inicio'),
+                'fecha_fin' => $this->input->post('fecha_fin'),
+                'activo' => 1
+            ];
+            $id = $this->Common_model->insertInformation($data, 'py_sifen_timbrados');
+            
+            if($id){
+                echo json_encode(['status' => 'success', 'message' => 'Timbrado añadido con éxito.', 'timbrado' => $data]);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'No se pudo guardar el timbrado.']);
+            }
+        } else {
+            show_404();
+        }
+    }
+
+    /**
+     * AJAX para editar un timbrado existente
+     */
+    public function ajax_edit_timbrado() {
+        if ($this->input->is_ajax_request()) {
+            $id = $this->input->post('id');
+            $data = [
+                'numero_timbrado' => $this->input->post('numero_timbrado'),
+                'fecha_inicio' => $this->input->post('fecha_inicio'),
+                'fecha_fin' => $this->input->post('fecha_fin')
+            ];
+
+            $this->Common_model->updateInformation($data, $id, 'py_sifen_timbrados');
+            
+            echo json_encode(['status' => 'success', 'message' => 'Timbrado actualizado con éxito.']);
+        } else {
+            show_404();
+        }
+    }
+
+    /**
+     * AJAX para cambiar el estado (activo/inactivo) de un timbrado
+     */
+    public function ajax_toggle_timbrado_status() {
+        if ($this->input->is_ajax_request()) {
+            $id = $this->input->post('id');
+            $new_status = $this->input->post('status');
+
+            $data = ['activo' => $new_status];
+            $this->Common_model->updateInformation($data, $id, 'py_sifen_timbrados');
+            
+            $message = $new_status == 1 ? 'Timbrado activado con éxito.' : 'Timbrado desactivado con éxito.';
+            echo json_encode(['status' => 'success', 'message' => $message]);
+        } else {
+            show_404();
         }
     }
 }

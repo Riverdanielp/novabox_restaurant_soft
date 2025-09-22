@@ -32,6 +32,21 @@
                         <div class="col-sm-12 mb-2 col-md-3">
 
                             <div class="form-group">
+                                <label>Nro. Documento  <span class="required_star">*</span></label>
+                                <input tabindex="3" type="text" name="documento" class="form-control" required
+                                    placeholder="Nro. Documento"
+                                    value="<?php echo ($user_details->documento) ?>">
+                            </div>
+                            <?php if (form_error('documento')) { ?>
+                            <div class="callout callout-danger my-2">
+                                <span class="error_paragraph"><?php echo form_error('documento'); ?></span>
+                            </div>
+                            <?php } ?>
+                        </div>
+
+                        <div class="col-sm-12 mb-2 col-md-3">
+
+                            <div class="form-group">
                                 <label><?php echo lang('email_address'); ?> </label>
                                 <input tabindex="2" type="text" name="email_address" class="form-control"
                                     placeholder="<?php echo lang('email_address'); ?>"
@@ -41,7 +56,7 @@
                         <div class="col-sm-12 mb-2 col-md-3">
 
                             <div class="form-group">
-                                <label><?php echo lang('phone'); ?> <span class="required_star">*</span></label>
+                                <label><?php echo lang('phone'); ?></label>
                                 <input tabindex="3" type="text" name="phone" class="form-control integerchk"
                                     placeholder="<?php echo lang('phone'); ?>"
                                     value="<?php echo escape_output($user_details->phone) ?>">
@@ -52,6 +67,8 @@
                             </div>
                             <?php } ?>
                         </div>
+                        
+
                         <div class="col-sm-12 mb-2 col-md-3">
                             <div class="form-group">
                                 <label><?php echo lang('designation'); ?> </label>
@@ -90,7 +107,7 @@
                         $language_manifesto = $this->session->userdata('language_manifesto');
                         if(str_rot13($language_manifesto)=="eriutoeri"  && !(isFoodCourt('sGmsJaFJE'))):
                         ?>
-                        <div class="col-sm-12 mb-2 col-md-6">
+                        <div class="col-sm-12 mb-2 col-md-4">
 
                             <div class="form-group">
                                 <label><?php echo lang('outlets'); ?></label>
@@ -122,7 +139,7 @@
                             <?php
                         endif;
                         ?>
-                        <div class="col-sm-12 mb-2 col-md-6">
+                        <div class="col-sm-12 mb-2 col-md-4">
                             <div class="form-group">
                                 <label><?php echo lang('kitchens'); ?><small>(<?php echo lang('user_tooltip_kitchens'); ?>)</small></label>
                                 <br>

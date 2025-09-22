@@ -184,7 +184,7 @@ input:checked + .slider:before {
                                 <div id="headerInputValidez" style="display:none; margin-top:2px;"></div>
                             </th>
                             <th class="ir_w_10">
-                                IVA
+                                <?php echo (tipoFacturacion() == 'RD_AI') ? 'ITBIS %' : 'IVA'; ?>
                                 <div id="headerSelectIVA" style="display:none; margin-top:2px;"></div>
                             </th>
                             <th class="ir_w_1"></th>
@@ -444,6 +444,7 @@ function renderHeaderMassiveControls(selectedCount) {
         `;
         hPU.style.display = '';
 
+        <?php if (tipoFacturacion() == 'RD_AI') : ?>
         // Select IVA
         hIVA.innerHTML = `
         <select id="massSelectIVA" class="form-control">
@@ -453,6 +454,19 @@ function renderHeaderMassiveControls(selectedCount) {
             <option value="0">IVA Exonerado</option>
         </select>
         `;
+        <?php else: ?>
+        // Select ITBIS
+        hIVA.innerHTML = `
+        <select id="massSelectIVA" class="form-control">
+            <option value="">Cambiar ITBIS</option>
+            <option value="18">ITBIS 18</option>
+            <option value="16">ITBIS 16</option>
+            <option value="0">ITBIS Exonerado</option>
+        </select>
+        `;
+        <?php endif; ?>
+
+
         hIVA.style.display = '';
         hValidez.innerHTML = `
         <input type="number" id="massInputValidez" class="form-control" style="width:85px;display:inline-block;" placeholder="Validez">
@@ -723,11 +737,22 @@ document.addEventListener('DOMContentLoaded', function() {
         // --------- IVA: Select inline, update on change
         let ivaTd = row.children[9];
         let ivaVal = ivaTd.textContent.trim();
+        <?php if (tipoFacturacion() == 'RD_AI') : ?>
+        // ITBIS
+        const ivaOptions = [
+          {value: '18', text: 'ITBIS 18'},
+          {value: '16', text: 'ITBIS 16'},
+          {value: '0', text: 'ITBIS Exonerado'}
+        ];
+        <?php else: ?>
+        // IVA
+
         const ivaOptions = [
           {value: '10', text: 'IVA 10'},
           {value: '5', text: 'IVA 5'},
           {value: '0', text: 'IVA Exonerado'}
         ];
+        <?php endif; ?>
         let select = document.createElement('select');
         select.className = 'form-control'; // <-- agrega esto
         ivaOptions.forEach(opt=>{

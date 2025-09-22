@@ -9,9 +9,15 @@ class Checkconn extends Cl_Controller {
     }
 
   public function index() {
-    $return = [
-        'check' => true,
-    ];
+    if ($this->session->has_userdata('user_id')) {
+      $return = [
+          'check' => true,
+      ];
+    } else {
+      $return = [
+          'check' => false,
+      ];
+    }
     echo json_encode($return);
   }
 

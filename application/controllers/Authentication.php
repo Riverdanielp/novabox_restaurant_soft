@@ -1,5 +1,7 @@
 <?php
 
+use phpDocumentor\Reflection\Types\Object_;
+
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Authentication extends Cl_Controller {
@@ -246,6 +248,7 @@ class Authentication extends Cl_Controller {
                                 //User Information
                                 $login_session['user_id'] = $user_information->id;
                                 $login_session['language'] = $user_information->language;
+                                $login_session['documento'] = $user_information->documento;
                                 $login_session['designation'] = $user_information->designation;
                                 $login_session['full_name'] = $user_information->full_name;
                                 $login_session['short_name'] = strtolower(substr($user_information->full_name,0, 1));
@@ -968,6 +971,8 @@ class Authentication extends Cl_Controller {
         $this->session->unset_userdata('designation');
         $this->session->unset_userdata('is_collapse');
         $this->session->unset_userdata('code_short');
+        
+        $this->session->unset_userdata('documento');
 
         //Shop Information
         $this->session->unset_userdata('currency');
@@ -1656,10 +1661,87 @@ class Authentication extends Cl_Controller {
                 $data['outlet_info'] = $outlet_info;
                 $this->load->view('sale/print_invoice_56mm_public', $data);
             }else{
-                    echo "<h1 style='color:red;text-align: center;margin-top:10%'>Your scanned QR-code is not valid!</h1>";
+                    echo "<h1 style='color:red;text-align: center;margin-top:10%'>Tu codigo QR escaneado no es válido!</h1>";
             }
 
     }
+    
+    
+    /**
+     * Maneja la descarga del PDF de una factura electrónica desde FacturaSend.
+     *
+     * @param int $sale_id El ID de la venta de tbl_sales.
+     */
+    public function descargar_factura_electronica($code)
+    {
+        $sale = getSaleDetailsByCode($code);
+        // 1. Cargar helpers y librerías
+        $this->load->helper('factura_send');
+        $this->load->library('facturasend');
+
+        if(isset($sale) && $sale){
+            $sale_id = $sale->id;
+            // 2. Obtener los detalles de la factura, específicamente el CDC
+            $factura_details = fs_get_factura_details_by_sale_id($sale_id);
+
+            if (!$factura_details || empty($factura_details->cdc)) {
+                echo "<h1 style='color:red;text-align: center;margin-top:10%'>No se encontró una factura electrónica válida para esta venta.</h1>";
+                return;
+            }
+
+           $data =  [
+                //    [ "cdc" => $factura_details->cdc ],
+                   [ "cdc" => '01111111111002001000000122025091117614904348' ]
+               ];
+
+            // 3. Llamar a la librería para obtener el PDF en base64
+            $pdf_response = $this->facturasend->obtener_pdf_de($data);
+
+            echo '<pre>';
+            var_dump($data);
+            var_dump($pdf_response);
+            echo '</pre>';
+
+            if ($pdf_response['status'] === 'success') {
+                // 4. Decodificar el base64 y forzar la descarga del PDF
+                try {
+                    $pdf_data = base64_decode($pdf_response['data']);
+                    
+                    // Comprobar si la decodificación fue exitosa
+                    if ($pdf_data === false) {
+                        throw new Exception("El string base64 devuelto por la API no es válido.");
+                    }
+
+                    $file_name = "Factura-{$factura_details->numero_factura_formateado}.pdf";
+
+                    // Forzar la descarga en el navegador
+                    header('Content-Type: application/pdf');
+                    header('Content-Disposition: inline; filename="' . $file_name . '"');
+                    header('Content-Length: ' . strlen($pdf_data));
+                    
+                    // Limpiar cualquier salida anterior
+                    ob_clean();
+                    flush();
+                    
+                    echo $pdf_data;
+                    exit;
+
+                } catch (Exception $e) {
+                    echo "<h1 style='color:red;text-align: center;margin-top:10%'>Error al procesar el PDF: " . $e->getMessage() . "</h1>";
+                }
+                
+            } else {
+                // Hubo un error al obtener el PDF de la API
+                echo "<h1 style='color:red;text-align: center;margin-top:10%'>No se pudo obtener el PDF de la factura desde el servicio externo.</h1>";
+                log_message('error', 'Error al descargar FE PDF (CDC: ' . $cdc . '): ' . $pdf_response['message']);
+            }
+            
+        }else{
+                echo "<h1 style='color:red;text-align: center;margin-top:10%'>Tu codigo QR escaneado no es válido!</h1>";
+        }
+    }
+
+
     /**
      * customer_panel
      * @access public
@@ -3016,6 +3098,7 @@ class Authentication extends Cl_Controller {
                                 $login_session['user_id'] = $user_information->id;
                                 $login_session['language'] = $user_information->language;
                                 $login_session['designation'] = $user_information->designation;
+                                $login_session['documento'] = $user_information->documento;
                                 $login_session['full_name'] = $user_information->full_name;
                                 $login_session['short_name'] = strtolower(substr($user_information->full_name,0, 1));
                                 $login_session['phone'] = $user_information->phone;

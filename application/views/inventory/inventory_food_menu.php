@@ -53,7 +53,7 @@
                                     <td><?= escape_output($value->name . "(" . $value->code . ")") ?></td>
                                     <td><?= escape_output(getFoodMenuCateCodeById($value->category_id)) ?></td>
                                     <td><span
-                                        ><?= ($totalStock) ? getAmtP($totalStock) : getAmtP(0) ?><?= " " . escape_output("Pcs")?></span>
+                                        ><?= ($totalStock) ? getAmtP($totalStock) : getAmtP(0) ?><?= " " . escape_output("UNI")?></span>
                                     </td>
                                 </tr>
                                 <?php

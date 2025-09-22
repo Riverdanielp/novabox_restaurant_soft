@@ -833,6 +833,36 @@ foreach ($notifications as $single_notification){
             color: white;
             background-color:rgb(0 150 50) !important
         }
+
+        .search-results-container {
+            position: relative;
+        }
+
+        #gst_search_results {
+            position: absolute;
+            background-color: white;
+            /* border: 1px solid #ddd; */
+            border-top: none;
+            z-index: 2002; /* Más alto que el modal para que se vea por encima */
+            width: 80%;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .search-result-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .search-result-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -2144,7 +2174,7 @@ foreach ($notifications as $single_notification){
     </div>
 
     <!-- The Modal -->
-    <div id="add_customer_modal" class="modal">
+    <div id="add_customer_modal" class="modal" style="z-index: 2001;" data-update-context="" data-update-last-context="">
 
         <!-- Modal content -->
         <div class="modal-content" id="editCustomer1">
@@ -2162,7 +2192,9 @@ foreach ($notifications as $single_notification){
                     <div class="left-item b">
                         <div class="customer_section">
                             <p class="input_level"> Ingrese CI/<?php echo $RUC ?> Para Verificar: <span class="ir_color_red">*</span></p>
-                            <input type="text" class="add_customer_modal_input" id="customer_gst_number_modal" required>
+                            <input type="text" class="add_customer_modal_input" id="customer_gst_number_modal" required autocomplete="off">
+                            <!-- Contenedor para los resultados de la búsqueda -->
+                            <div id="gst_search_results" class="search-results-container"></div>
 
                         </div>
                         <input type="hidden" id="customer_id_modal" value="">
@@ -2197,6 +2229,38 @@ foreach ($notifications as $single_notification){
                             <input type="email" placeholder="<?php echo lang('password'); ?>" class="add_customer_modal_input" id="customer_password_modal">
                         </div>
 
+                        <?php if (tipoFacturacion() == "Py_FE"): ?>
+                            <div class="customer_section">
+                                <label>
+                                    <input type="checkbox" id="customer_es_proveedor_estado_modal" value="1" style="width: 30px;height: 30px;">
+                                    ¿Es Proveedor del Estado?
+                                </label>
+                            </div>
+                            <div class="customer_section">
+                                <p class="input_level">Nombre de Fantasía</p>
+                                <input type="text" class="add_customer_modal_input" id="customer_nombre_fantasia_modal">
+                            </div>
+                            <div class="customer_section">
+                                <p class="input_level">Tipo de Documento</p>
+                                <select id="customer_tipo_documento_modal" class="form-control">
+                                    <option value="1">Cédula paraguaya</option>
+                                    <option value="2">Pasaporte</option>
+                                    <option value="3">Cédula extranjera</option>
+                                    <option value="4">Carnet de residencia</option>
+                                    <option value="5">Innominado</option>
+                                    <option value="6">Tarjeta Diplomática de exoneración fiscal</option>
+                                    <option value="9">Otro</option>
+                                </select>
+                            </div>
+                            
+
+                            <div class="customer_section" style="display:none;">
+                                <p class="input_level">Número de Casa</p>
+                                <input type="number" class="add_customer_modal_input" id="customer_numero_casa_modal" value="0" min="0">
+                            </div>
+                        <?php endif; ?>
+
+
                     </div>
 
                     <div class="right-item b">
@@ -2204,11 +2268,51 @@ foreach ($notifications as $single_notification){
                             
                             <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
                             
-                        <button class="btn btn-default w-10" id="ruc_search"><i class="icon ti-search"></i>Buscar <?php echo $RUC ?></button>
+                        <button class="btn btn-default w-10" id="ruc_search" style="background:#80d9f3;"><i class="icon ti-search"></i>Buscar <?php echo $RUC ?></button>
                         <br>
                         <span id="ruc_message" class="mt-2 text-info">(Ingrese <?php echo $RUC ?> y presione 'Enter')</span> 
                             <br>
                         </div>
+                        <?php if (tipoFacturacion() == "Py_FE"): ?>
+                            
+                            <div class="customer_section">
+                                <label>
+                                    <input type="checkbox" id="customer_es_contribuyente_modal" value="1" style="width: 30px;height: 30px;">
+                                    ¿Es Contribuyente?
+                                </label>
+                            </div>
+
+                            <div class="customer_section">
+                                <p class="input_level">Tipo Contribuyente</p>
+                                <select id="customer_tipo_contribuyente_modal" class="form-control">
+                                    <option value="1">Persona Física</option>
+                                    <option value="2">Persona Jurídica</option>
+                                </select>
+                            </div>
+
+                            <div class="customer_section">
+                                <p class="input_level">País</p>
+                                <select id="codigo_pais" class="form-control">
+                                    <option value="">Seleccione País</option>
+                                </select>
+                            </div>
+
+                            <div class="customer_section">
+                                <p class="input_level">Ciudad <span class="ir_color_red">*</span></p>
+                                <select id="departamento_id" class="form-control">
+                                    <option value="">Seleccione Departamento</option>
+                                </select>
+                                <select id="distrito_id" class="form-control" disabled>
+                                    <option value="">Seleccione Distrito</option>
+                                </select>
+                                <select id="ciudad_id" class="form-control" disabled>
+                                    <option value="">Seleccione Ciudad</option>
+                                </select>
+                            </div>
+
+                        <?php endif; ?>
+
+
                         <?php if (tipoFacturacion() == 'RD_AI'){?>
                             <div class="customer_section">
                                 <label for="customer_tipo_ident">Tipo Documento:*</label>
@@ -2243,7 +2347,7 @@ foreach ($notifications as $single_notification){
                             <input type="datable" class="add_customer_modal_input" autocomplete="off"
                                 id="customer_doa_modal" data-datable="yyyymmdd" data-datable-divider=" - ">
                         </div>
-                        <div class="customer_section" style="display:<?php echo escape_output($online_login_hide)?>">
+                        <div class="customer_section" style="display:<?php echo 'none'; //escape_output($online_login_hide)?>">
                             <p class="input_level"><?php echo lang('default_discount'); ?></p>
                             <input type="text" class="add_customer_modal_input" placeholder="<?php echo lang('default_discount_pl'); ?>" autocomplete="off"
                                    id="customer_default_discount_modal">
@@ -2275,6 +2379,7 @@ foreach ($notifications as $single_notification){
         </div>
 
     </div>
+
     <!-- The Modal -->
     <div id="show_tables_modal2" class="modal display_none">
 
@@ -2393,7 +2498,7 @@ foreach ($notifications as $single_notification){
     
     <!-- PRE-IMPRESA Modal -->
      
-    <div id="pre_impresa_modal" class="modal" style="z-index: 101;">
+    <div id="pre_impresa_modal" class="modal" style="z-index: 2000;">
         <!-- Modal content -->
         <div class="modal-content" id="pre_impresa_modal_content">
             <h1>
@@ -2435,7 +2540,7 @@ foreach ($notifications as $single_notification){
                             
                             <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
                                 
-                            <button class="btn btn-default w-10" id="ruc_search_preimpreso"><i class="icon ti-search"></i>Buscar <?php echo $RUC ?></button>
+                            <button class="btn btn-default w-10" id="ruc_search_preimpreso" style="background:#80d9f3;"><i class="icon ti-search"></i>Buscar <?php echo $RUC ?></button>
                             <br>
                             <span id="ruc_message_preimpreso" class="mt-2 text-info">(Ingrese <?php echo $RUC ?> y presione 'Enter')</span> 
                             <br>
@@ -2794,10 +2899,16 @@ foreach ($notifications as $single_notification){
                                             <button class="no-need-for-waiter"
                                                 id="last_ten_print_preimpreso_button">Factura Pre-impresa</button>
                                         </div>
-                                        <div class="single_button_holder">
+                                        <!-- <div class="single_button_holder">
                                             <button id="last_ten_delete_button"
                                                 class="ir_font_capitalize no-need-for-waiter"><?php echo lang('delete'); ?></button>
+                                        </div> -->
+                                        <?php if (tipoFacturacion() == 'Py_FE') : ?>
+                                        <div class="single_button_holder">
+                                            <button id="last_ten_facturacion_electronica_button"
+                                                class="ir_font_capitalize no-need-for-waiter">Factura Electrónica</button>
                                         </div>
+                                        <?php endif; ?>
                                         <div class="single_button_holder">
                                             <button id="last_ten_sales_close_button"><?php echo lang('cancel'); ?></button>
                                         </div>
@@ -3797,6 +3908,10 @@ foreach ($notifications as $single_notification){
             <h1 id="modal_item_name"><?php echo lang('Finalize'); ?> <?php echo lang('sale'); ?>
                             <span id="order_payment_modal_comanda"></span>
                             <span id="order_payment_modal_name"></span>
+                            <a href="javascript:void(0)" data-title_custom="Editar perfil" data-idcustomer="" data-title="Editar cliente" data-tippy-content="Editar cliente" class="header_menu_icon" 
+                                id="order_payment_modal_edit_customer">
+                                    <i class="far fa-pencil-alt"></i>
+                            </a>
                 <a href="javascript:void(0)" class="alertCloseIcon">
                     <i class="fal fa-times"></i>
                 </a>
@@ -5156,9 +5271,27 @@ foreach ($notifications as $single_notification){
 
         <?php else : ?>
 
+
+            function tipoContribuyente(ruc) {
+                // Normalizar: quitar espacios, puntos y guiones
+                let limpio = ruc.toString().replace(/[\s\.\-]/g, "");
+                let numero = parseInt(limpio, 10);
+
+                if (isNaN(numero)) {
+                    return null; // o lanzar error
+                }
+
+                // Persona Jurídica (serie 80 millones en adelante)
+                if (numero >= 80000000) {
+                    return 2;
+                }
+
+                // Persona Física (paraguaya o extranjera)
+                return 1;
+            }
+
             document.getElementById("ruc_search").addEventListener("click", function() {
                 let rucInput = document.getElementById("customer_gst_number_modal").value;
-                
                 // Eliminar cualquier guion y tomar solo los números antes del guion
                 let ruc = rucInput.split('-')[0];
 
@@ -5171,7 +5304,9 @@ foreach ($notifications as $single_notification){
                 messageContainer.classList.add('text-warning'); // Color de advertencia mientras buscamos
 
                 // Si el RUC tiene más de 4 dígitos y no contiene guion, hacemos la solicitud
-                if (ruc.length > 4 && !rucInput.includes('-')) {
+                if (ruc.length > 4) {
+                    let tipoCont = tipoContribuyente(rucInput);
+                    document.getElementById("customer_es_contribuyente_modal").checked = false;
                     // Crear un objeto FormData y añadir el ruc
                     let formData = new FormData();
                     formData.append("ruc", ruc);
@@ -5189,11 +5324,15 @@ foreach ($notifications as $single_notification){
                             messageContainer.classList.remove('text-warning', 'text-success');
                             messageContainer.classList.add('text-danger'); // Mensaje en rojo
                         } else {
+                            if (tipoCont == '2'){
+                                document.getElementById("customer_tipo_contribuyente_modal").value = "2";
+                            }
                             // Si se encuentra el RUC, completar los campos con los datos
                             document.getElementById("customer_name_modal").value = data.nombre + ' ' + data.apellido || '';
                             // Formatear el RUC con el dígito verificador y actualizar el campo
                             let fullRuc = `${ruc}-${data.dv}`;
                             document.getElementById("customer_gst_number_modal").value = fullRuc;
+                            document.getElementById("customer_es_contribuyente_modal").checked = true;
 
                             // Mostrar el mensaje de éxito
                             messageContainer.textContent = "RUC encontrado!";
@@ -5303,64 +5442,164 @@ foreach ($notifications as $single_notification){
     </script>
 
     
-    <script>
-        //document.getElementById('numeracion').innerHTML
-        var numeraciones_url = "<?php echo base_url() . 'sale/NumeracionesActivasByJson' ?>"; 
+    <?php if (tipoFacturacion() == "RD_AI"): ?>
+        <script>
+            //document.getElementById('numeracion').innerHTML
+            var numeraciones_url = "<?php echo base_url() . 'sale/NumeracionesActivasByJson' ?>"; 
 
-        async function Actualizar_numeraciones(){
-            
-            let respuesta = await fetch(numeraciones_url);
-            //console.log(respuesta);
-            if (respuesta.ok) { 
-                let json = await respuesta.json();
-
-                //console.log(json);
-                if (json.length >= 1){
-                    //console.log('Existen ' + json.length + ' Numeraciones activas');
-                    Agregar_Selected(json);
-                } else {
-                    console.log('No hay numeraciones activas!');
-                    SelectSinNum();
-                }
-            } else {
-                console.log('Error al conectar con el servidor!');
-            }
-        }
-
-        function SelectSinNum(){
-            if (document.getElementById('numeracion')){
-                let select_nuevo = '';
-                select_nuevo += `
-                <option value="0" style="color: #fb5d5d"><span style="color: #fb5d5d">Sin Numeración Disponible! No podrá Facturar!</span></option>
-                `;
+            async function Actualizar_numeraciones(){
                 
-                document.getElementById('numeracion').innerHTML = '';
-                document.getElementById('numeracion').innerHTML += select_nuevo;
-            };
-        }
+                let respuesta = await fetch(numeraciones_url);
+                //console.log(respuesta);
+                if (respuesta.ok) { 
+                    let json = await respuesta.json();
 
-        function Agregar_Selected(json){
-            
-            if (document.getElementById('numeracion')){
-                let select_nuevo = '';
-                for(let i = 0; i < json.length; ++i){
-                    //console.log(json[i]);
-                    
-                    select_nuevo += `
-                        <option value="${json[i].id}"`;
-                    if (json[i].tipo == 2) {
-                        select_nuevo += `selected`;
+                    //console.log(json);
+                    if (json.length >= 1){
+                        //console.log('Existen ' + json.length + ' Numeraciones activas');
+                        Agregar_Selected(json);
+                    } else {
+                        console.log('No hay numeraciones activas!');
+                        SelectSinNum();
                     }
-                        
-                    select_nuevo += `>${json[i].prefijo} - ${json[i].nombre} (Sig. 0${json[i].num_sig})</option>
+                } else {
+                    console.log('Error al conectar con el servidor!');
+                }
+            }
+
+            function SelectSinNum(){
+                if (document.getElementById('numeracion')){
+                    let select_nuevo = '';
+                    select_nuevo += `
+                    <option value="0" style="color: #fb5d5d"><span style="color: #fb5d5d">Sin Numeración Disponible! No podrá Facturar!</span></option>
                     `;
+                    
+                    document.getElementById('numeracion').innerHTML = '';
+                    document.getElementById('numeracion').innerHTML += select_nuevo;
                 };
+            }
+
+            function Agregar_Selected(json){
                 
-                document.getElementById('numeracion').innerHTML = '';
-                document.getElementById('numeracion').innerHTML += select_nuevo;
-            };
-        }
-    </script>
+                if (document.getElementById('numeracion')){
+                    let select_nuevo = '';
+                    for(let i = 0; i < json.length; ++i){
+                        //console.log(json[i]);
+                        
+                        select_nuevo += `
+                            <option value="${json[i].id}"`;
+                        if (json[i].tipo == 2) {
+                            select_nuevo += `selected`;
+                        }
+                            
+                        select_nuevo += `>${json[i].prefijo} - ${json[i].nombre} (Sig. 0${json[i].num_sig})</option>
+                        `;
+                    };
+                    
+                    document.getElementById('numeracion').innerHTML = '';
+                    document.getElementById('numeracion').innerHTML += select_nuevo;
+                };
+            }
+        </script>
+    <?php endif; ?>
+
+    <?php if (tipoFacturacion() != "RD_AI"): ?>
+        <?php  $this->load->config('config'); ?>
+        <script>
+            var base_url = "<?php echo base_url() ?>"; 
+            let default_pais = "PRY";    // Paraguay ISO3
+            let default_departamento = "<?php echo fs_default_departamento() ?>"; // id departamento
+            let default_distrito = "<?php echo fs_default_distrito() ?>";    // id distrito
+            let default_ciudad = "<?php echo fs_default_ciudad() ?>";     // id ciudad
+            // Carga departamentos al iniciar
+            $(document).ready(function(){
+                    fetch_departamentos();
+                    fetch_paises();
+            });
+
+            function fetch_departamentos() {
+                $.getJSON(base_url+"sale/get_departamentos", function(data){
+                    let $dep = $("#departamento_id");
+                    $dep.empty().append('<option value="">Seleccione Departamento</option>');
+                    data.forEach(function(dep){
+                        $dep.append('<option value="'+dep.id+'">'+dep.nombre+'</option>');
+                    });
+                    // Selecciona el departamento por defecto y carga distritos
+                    if(default_departamento){
+                        $dep.val(default_departamento);
+                        fetch_distritos(default_departamento, true);
+                    }
+                });
+            }
+            function fetch_distritos(departamento_id, autoselect = false) {
+                $.getJSON(base_url+"sale/get_distritos/"+departamento_id, function(data){
+                    let $dis = $("#distrito_id");
+                    $dis.empty().append('<option value="">Seleccione Distrito</option>').prop('disabled',false);
+                    data.forEach(function(dis){
+                        $dis.append('<option value="'+dis.id+'">'+dis.nombre+'</option>');
+                    });
+                    // Selecciona distrito por defecto y carga ciudades
+                    if(autoselect && default_distrito){
+                        $dis.val(default_distrito);
+                        fetch_ciudades(default_distrito, true);
+                    } else {
+                        $("#ciudad_id").empty().append('<option value="">Seleccione Ciudad</option>').prop('disabled',true);
+                    }
+                });
+            }
+            function fetch_ciudades(distrito_id, autoselect = false) {
+                $.getJSON(base_url+"sale/get_ciudades/"+distrito_id, function(data){
+                    let $ciu = $("#ciudad_id");
+                    $ciu.empty().append('<option value="">Seleccione Ciudad</option>').prop('disabled',false);
+                    data.forEach(function(ciu){
+                        $ciu.append('<option value="'+ciu.id+'">'+ciu.nombre+'</option>');
+                    });
+                    // Selecciona ciudad por defecto
+                    if(autoselect && default_ciudad){
+                        $ciu.val(default_ciudad);
+                    }
+                });
+            }
+            function fetch_paises() {
+                $.getJSON(base_url+"sale/get_paises", function(data){
+                    let $p = $("#codigo_pais");
+                    $p.empty().append('<option value="">Seleccione País</option>');
+                    data.forEach(function(pa){
+                        $p.append('<option value="'+pa.codigo_iso3+'">'+pa.nombre+'</option>');
+                    });
+                    // Selecciona el país por defecto
+                    if(default_pais){
+                        $p.val(default_pais);
+                    }
+                });
+            }
+
+            function reset_location_selects_to_default() {
+                if (typeof fetch_departamentos === 'function') fetch_departamentos();
+                if (typeof fetch_paises === 'function') fetch_paises();
+            }
+
+            // Eventos encadenados
+            $("#departamento_id").on("change", function(){
+                let id = $(this).val();
+                if(id){
+                    fetch_distritos(id, false); // no autoselect
+                }else{
+                    $("#distrito_id").empty().append('<option value="">Seleccione Distrito</option>').prop('disabled',true);
+                    $("#ciudad_id").empty().append('<option value="">Seleccione Ciudad</option>').prop('disabled',true);
+                }
+            });
+            $("#distrito_id").on("change", function(){
+                let id = $(this).val();
+                if(id){
+                    fetch_ciudades(id, false); // no autoselect
+                }else{
+                    $("#ciudad_id").empty().append('<option value="">Seleccione Ciudad</option>').prop('disabled',true);
+                }
+            });
+
+        </script>
+    <?php endif; ?>
     
     <!--for datatable-->
     <script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js?v=7.5"></script>
