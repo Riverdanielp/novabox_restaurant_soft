@@ -672,7 +672,7 @@ if (!function_exists('fs_build_api_payload')) {
         $payload = [
             // --- Datos del Documento ---
             "tipoDocumento"   => 1,
-            "establecimiento" => $data['punto_expedicion']->sucursal_id,
+            "establecimiento" => $data['punto_expedicion']->codigo_establecimiento,
             "punto"           => $data['punto_expedicion']->codigo_punto,
             "numero"          => $numero_factura,
             "descripcion"     => "Venta de productos/servicios", // Descripción genérica
@@ -838,8 +838,9 @@ if (!function_exists('fs_get_punto_expedicion_activo')) {
         $ci = fs_ci();
         $hoy = date('Y-m-d');
 
-        $query = $ci->db->select('pe.*, t.id as timbrado_id, t.numero_timbrado')
+        $query = $ci->db->select('pe.*, s.codigo_establecimiento, t.id as timbrado_id, t.numero_timbrado')
             ->from('py_sifen_puntos_expedicion pe')
+            ->join('py_sifen_sucursales s', 's.id = pe.sucursal_id', 'left')
             ->join('py_sifen_timbrados_puntos tp', 'tp.punto_expedicion_id = pe.id')
             ->join('py_sifen_timbrados t', 't.id = tp.timbrado_id')
             ->where('pe.sucursal_id', $sucursal_id_sistema)
@@ -914,6 +915,75 @@ if (!function_exists('fs_get_factura_details_by_sale_id')) {
         if (!$query) {
             // Manejo de error si la consulta falla por otra razón
             log_message('error', 'Error en la consulta fs_get_factura_details_by_sale_id: ' . $ci->db->error()['message']);
+            return null;
+        }
+
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        }
+
+        return null;
+    }
+}
+
+/**
+ * Obtiene los detalles completos de la factura electrónica a partir de un SALE_NO dado.
+ * Realiza los JOINs necesarios y formatea el número de factura.
+ *
+ * @param int $sale_no El SALE_NO de la venta desde 'tbl_kitchen_sales'.
+ * @return object|null Un objeto con todos los datos de la factura o null si no se encuentra.
+ */
+
+if (!function_exists('fs_get_factura_details_by_sale_no')) {
+    function fs_get_factura_details_by_sale_no($sale_no)
+    {
+        $ci = fs_ci();
+
+        if (!$sale_no) {
+            return null;
+        }
+
+        // Consulta corregida SIN comentarios SQL dentro del string
+        $ci->db->select("
+            CONCAT_WS(
+                '-',
+                LPAD(suc.codigo_establecimiento, 3, '0'),
+                LPAD(pe.codigo_punto, 3, '0'),
+                LPAD(fe.numero, 7, '0')
+            ) as numero_factura_formateado,
+            
+            t.numero_timbrado,
+            t.fecha_fin as timbrado_vencimiento,
+            t.fecha_inicio as timbrado_vigente,
+            
+            fe.id as factura_py_id,
+            fe.numero as numero_correlativo,
+            fe.cdc,
+            fe.qr,
+            fe.fecha_emision,
+            fe.iva5,
+            fe.iva10,
+            fe.moneda,
+            fe.fecha as fecha_emision,
+            
+            s.id as venta_id,
+            s.sale_date,
+            s.total_payable
+        ");
+
+        $ci->db->from('tbl_kitchen_sales s');
+        $ci->db->join('py_facturas_electronicas fe', 's.py_factura_id = fe.id', 'inner');
+        $ci->db->join('py_sifen_sucursales suc', 'fe.sucursal_id = suc.id', 'left');
+        $ci->db->join('py_sifen_puntos_expedicion pe', 'fe.punto_expedicion_id = pe.id', 'left');
+        $ci->db->join('py_sifen_timbrados t', 'fe.timbrado_id = t.id', 'left');
+        
+        $ci->db->where('s.sale_no', $sale_no);
+        
+        $query = $ci->db->get();
+
+        if (!$query) {
+            // Manejo de error si la consulta falla por otra razón
+            log_message('error', 'Error en la consulta fs_get_factura_details_by_sale_no: ' . $ci->db->error()['message']);
             return null;
         }
 

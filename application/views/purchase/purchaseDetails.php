@@ -49,6 +49,13 @@
                                             <?php echo lang('ingredient'); ?>(<?php echo lang('code'); ?>)</th>
                                         <th class="txt_32"><?php echo lang('unit_price'); ?></th>
                                         <th class="txt_32"><?php echo lang('quantity_amount'); ?></th>
+                                        <th>
+                                            <?php if(tipoFacturacion() != 'RD_AI'): ?>
+                                                IVA
+                                            <?php else :  ?>
+                                                ITBIS
+                                            <?php endif; ?>
+                                        </th>
                                         <th class="txt_33"><?php echo lang('total'); ?></th>
                                     </tr>
                                 </thead>
@@ -58,12 +65,22 @@
                                     if ($purchase_ingredients && !empty($purchase_ingredients)) {
                                         foreach ($purchase_ingredients as $pi) {
                                             $i++;
+                                            $itbis = 0;
+                                            $total = $pi->total;
+                                            if(tipoFacturacion() != 'RD_AI'){
+                                            } else {
+                                                if (isset($pi->iva_tipo)){
+                                                    $itbis = (  $pi->unit_price * $pi->quantity_amount) * ($pi->iva_tipo / 100);
+                                                    $total = $pi->total + $itbis;
+                                                }
+                                            }
                                             echo '<tr id="row_' . $i . '">' .
                                             '<td class="txt_24"><p>' . $i . '</p></td>' .
                                             '<td class="ir_w_20"><span class="txt_18">' . getIngredientNameById($pi->ingredient_id) . ' (' . getIngredientCodeById($pi->ingredient_id) . ')</span></td>' .
                                             '<td class="ir_w_15">' . escape_output(getAmtPCustom($pi->unit_price)) . '</td>' .
                                             '<td class="ir_w_15">' . $pi->quantity_amount . ' ' . unitName(getPurchaseUnitIdByIgId($pi->ingredient_id)) . '</td>' .
-                                            '<td class="ir_w_20">' . escape_output(getAmtPCustom($pi->total)) . '</td>' .
+                                            '<td class="ir_w_20">' .  escape_output(getAmtPCustom($itbis)) . '</td>' .
+                                            '<td class="ir_w_20">' . escape_output(getAmtPCustom($total)) . '</td>' .
                                             '</tr>'
                                             ;
                                         }

@@ -1495,6 +1495,8 @@
      * @param {string|number} customer_id - El nuevo ID del cliente.
      */
     function updateCustomerForSale(sale_no, customer_id, name, phone, gst_number, address) {
+        console.log(sale_no,!sale_no);
+        console.log(customer_id,!customer_id);
         if (!sale_no || !customer_id) {
             toastr.error("No se ha proporcionado la información necesaria (Nº de Venta o Cliente).");
             return;
@@ -3140,259 +3142,278 @@
     }
      
     function print_bill(order_info, sale_no) {
+
         let order = JSON.parse(order_info);
-
-        console.log(order);
-        let order_type = "";
-        let total_item_counter = 0;
-        let order_number = "";
-        // let token_number = (order.token_number != undefined && order.token_number)?`<h4 style="margin-bottom: 0px;">`+inv_token_number+`: `+order.token_number+ `</h4>`: "";
-        if(order !== null) {
-            if (order.order_type == 1) {
-                order_type = inv_dine;
-            } else if (order.order_type == 2) {
-                order_type = inv_take_away;
-            } else if (order.order_type == 3) {
-                order_type = inv_delivery;
+        // 2. Verificamos si hay conexión a internet.
+        if (checkInternetConnection() == 1) {
+            // CASO ONLINE: Hay conexión a internet.
+            // Construimos la URL para el ticket online y la abrimos en una nueva ventana.
+            const sale_no = order.sale_no;
+            const url = base_url + 'Sale/print_bill/' + sale_no;
+            
+            const popup = window.open(url, "popup", "width=600, height=600");
+            if (popup) {
+                popup.focus();
+            } else {
+                // En caso de que el navegador bloquee la ventana emergente
+                alert("Por favor, habilite las ventanas emergentes para imprimir el ticket.");
             }
-        }
-        let text_no_str = '';
-        if(inv_collect_tax=="Yes"){
-            text_no_str =  inv_tax_registration_no+": "+outlet_tax_registration_no;
-        }
+            reset_finalize_modal();
 
-        let server_value = order.counter_name;
-        let inv_p_table = (order.orders_table_text != undefined && order.orders_table_text)?` `+inv_table+`: `+order.orders_table_text+ `<br/>`: "";
-        let inv_p_address = (order.customer_address != undefined && order.customer_address != "undefined"  && order.customer_address)?` <br>`+inv_address+`: <b>`+order.customer_address+`</b>`: "";
+        } else {
+
+            console.log(order);
+            let order_type = "";
+            let total_item_counter = 0;
+            let order_number = "";
+            // let token_number = (order.token_number != undefined && order.token_number)?`<h4 style="margin-bottom: 0px;">`+inv_token_number+`: `+order.token_number+ `</h4>`: "";
+            if(order !== null) {
+                if (order.order_type == 1) {
+                    order_type = inv_dine;
+                } else if (order.order_type == 2) {
+                    order_type = inv_take_away;
+                } else if (order.order_type == 3) {
+                    order_type = inv_delivery;
+                }
+            }
+            let text_no_str = '';
+            if(inv_collect_tax=="Yes"){
+                text_no_str =  inv_tax_registration_no+": "+outlet_tax_registration_no;
+            }
+
+            let server_value = order.counter_name;
+            let inv_p_table = (order.orders_table_text != undefined && order.orders_table_text)?` `+inv_table+`: `+order.orders_table_text+ `<br/>`: "";
+            let inv_p_address = (order.customer_address != undefined && order.customer_address != "undefined"  && order.customer_address)?` <br>`+inv_address+`: <b>`+order.customer_address+`</b>`: "";
+            
+            let sale_date_split = order.date_time.split(' ');
+            let invoice_print =``;
+            invoice_print+= `<!doctype html>
+                    <html>
+                    <head>
+                    
+                        <meta charset="utf-8">
+                        <title>`+inv_invoice_no+` : `+order.sale_no+`</title>
+                        <script src="`+base_url+`assets/bower_components/jquery/dist/jquery.min.js"></script>
+                        <link rel="stylesheet"
+                            href="`+base_url+`assets/bower_components/font-awesome/css/font-awesome.min.css">
+                        <script src="`+base_url+`assets/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+                        ${style_print}
+                    </head>
+                    
+                    <body>
+                        <div id="wrapper">
+                            <div id="receiptData">
+                                <div id="receipt-data">
+                                    <div class="text-center">
+                                    <img alt="`+outlet_name+`" src="`+base_url+`images/`+invoice_logo+`">
+                                    <h3> `+outlet_name+` </h3> 
+                                    `+text_no_str+`
+                                        <p class="p_txt">
+                                            `+inv_address+`: `+outlet_address+`<br>
+                                            `+inv_phone+`: ` +outlet_phone+`<br>
+                                        </p>
+                                    </div>
+                                    <table style="width:100%;margin-top: 10px;">
+                        <tr>
+                            <td style="text-align:left"><h4 style="margin-bottom: 0px;"><b>` +order.sale_no+`</b></h4></td>
+                            <td style="text-align:right"><h4 style="margin-bottom: 0px;"><b>`+order_type+`</b></h4></td>
+                        </tr>   
+                    </table>
+                
+                    <table style="width:100%">
+                    <tr>
+                            <td style="text-align:left">`+inv_server+`: <b>`+associate_user_name+`</b></td>
+                            <td style="text-align:right">` +server_value+`</td>
+                        </tr>   
+                        <tr>
+                            <td style="text-align:left">`+inv_sale_date+`: <b>`+sale_date_split[0]+`</b></td>
+                            <td style="text-align:right">`+sale_date_split[1]+`</td>
+                        </tr> 
+                        <tr>
+                            <td style="text-align:left">`+inv_customer+`: <b>`+order.customer_name+`</b>`+inv_p_address+`</td>
+                            <td style="text-align:right"><h4 style="margin-bottom: 0px;">`+inv_p_table+`</h4></td>
+                        </tr>   
+                    </table>
+                    <p style="margin-top: 4px;">`;
+
+            
+            let inv_p_gst_number = (order.customer_gst_number != undefined && order.customer_gst_number != "undefined" && order.customer_gst_number)?` `+inv_gst_number+`: <b>`+order.customer_gst_number+ `</b><br/>`: "";
+            let inv_p_waiter = (order.waiter_name != undefined && order.waiter_name)?` `+inv_waiter+`: <b>`+order.waiter_name+ `</b><br/>`: "";
         
-        let sale_date_split = order.date_time.split(' ');
-        let invoice_print =``;
-        invoice_print+= `<!doctype html>
-                <html>
-                <head>
-                
-                    <meta charset="utf-8">
-                    <title>`+inv_invoice_no+` : `+order.sale_no+`</title>
-                    <script src="`+base_url+`assets/bower_components/jquery/dist/jquery.min.js"></script>
-                    <link rel="stylesheet"
-                        href="`+base_url+`assets/bower_components/font-awesome/css/font-awesome.min.css">
-                    <script src="`+base_url+`assets/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-                    ${style_print}
-                </head>
-                
-                <body>
-                    <div id="wrapper">
-                        <div id="receiptData">
-                            <div id="receipt-data">
-                                <div class="text-center">
-                                <img alt="`+outlet_name+`" src="`+base_url+`images/`+invoice_logo+`">
-                                <h3> `+outlet_name+` </h3> 
-                                `+text_no_str+`
-                                    <p class="p_txt">
-                                        `+inv_address+`: `+outlet_address+`<br>
-                                        `+inv_phone+`: ` +outlet_phone+`<br>
+            let inv_p_status = (order.status != undefined && order.status)?` `+status_txt+`: <b>`+order.status+ `</b><br/>`: "";
+            if(order_type!="Delivery"){
+                inv_p_status = '';
+            }
+            invoice_print+= ""+inv_p_gst_number+inv_p_waiter+inv_p_status+`
                                     </p>
-                                </div>
-                                <table style="width:100%;margin-top: 10px;">
-                    <tr>
-                        <td style="text-align:left"><h4 style="margin-bottom: 0px;"><b>` +order.sale_no+`</b></h4></td>
-                        <td style="text-align:right"><h4 style="margin-bottom: 0px;"><b>`+order_type+`</b></h4></td>
-                    </tr>   
-                </table>
-              
-                <table style="width:100%">
-                  <tr>
-                        <td style="text-align:left">`+inv_server+`: <b>`+associate_user_name+`</b></td>
-                        <td style="text-align:right">` +server_value+`</td>
-                    </tr>   
-                    <tr>
-                        <td style="text-align:left">`+inv_sale_date+`: <b>`+sale_date_split[0]+`</b></td>
-                        <td style="text-align:right">`+sale_date_split[1]+`</td>
-                    </tr> 
-                      <tr>
-                        <td style="text-align:left">`+inv_customer+`: <b>`+order.customer_name+`</b>`+inv_p_address+`</td>
-                        <td style="text-align:right"><h4 style="margin-bottom: 0px;">`+inv_p_table+`</h4></td>
-                    </tr>   
-                </table>
-                <p style="margin-top: 4px;">`;
+                                    <div class="ir_clear"></div>
+                                    <hr style="border-bottom:1px solid black;margin: 0px;">
+                                    <table class="table table-condensed">
+                                        <tbody>`;
+            let sl=1;
+            for (let key in order.items) {
+                //construct div
+                let this_item = order.items[key];
+                let total_modifier = 0;
+                if(this_item.modifiers_id!='' && this_item.modifiers_id!=undefined ){
+                    total_modifier = (this_item.modifiers_id.split(',')).length;
+                }
+                let modifier_ids_custom = [];
+                let modifier_names_custom = [];
+                let modifier_prices_custom = [];
+                if(total_modifier){
+                    modifier_ids_custom = this_item.modifiers_id.split(',');
+                    modifier_names_custom = this_item.modifiers_name.split(',');
+                    modifier_prices_custom = this_item.modifiers_price.split(',');
+                }
 
-        
-        let inv_p_gst_number = (order.customer_gst_number != undefined && order.customer_gst_number != "undefined" && order.customer_gst_number)?` `+inv_gst_number+`: <b>`+order.customer_gst_number+ `</b><br/>`: "";
-        let inv_p_waiter = (order.waiter_name != undefined && order.waiter_name)?` `+inv_waiter+`: <b>`+order.waiter_name+ `</b><br/>`: "";
-       
-        let inv_p_status = (order.status != undefined && order.status)?` `+status_txt+`: <b>`+order.status+ `</b><br/>`: "";
-        if(order_type!="Delivery"){
-            inv_p_status = '';
-        }
-        invoice_print+= ""+inv_p_gst_number+inv_p_waiter+inv_p_status+`
-                                </p>
-                                <div class="ir_clear"></div>
-                                <hr style="border-bottom:1px solid black;margin: 0px;">
-                                <table class="table table-condensed">
-                                    <tbody>`;
-        let sl=1;
-        for (let key in order.items) {
-            //construct div
-            let this_item = order.items[key];
-            let total_modifier = 0;
-            if(this_item.modifiers_id!='' && this_item.modifiers_id!=undefined ){
-                total_modifier = (this_item.modifiers_id.split(',')).length;
-            }
-            let modifier_ids_custom = [];
-            let modifier_names_custom = [];
-            let modifier_prices_custom = [];
-            if(total_modifier){
-                modifier_ids_custom = this_item.modifiers_id.split(',');
-                modifier_names_custom = this_item.modifiers_name.split(',');
-                modifier_prices_custom = this_item.modifiers_price.split(',');
-            }
+                let i = 1;
+                total_item_counter+=Number(this_item.qty);
+                let discount_value = Number(this_item.item_discount_amount) ? "(-"+getAmount(this_item.item_discount_amount)+")": '';
+                let alternative_name = '';//getAlternativeNameById(this_item.food_menu_id, window.items);
 
-            let i = 1;
-            total_item_counter+=Number(this_item.qty);
-            let discount_value = Number(this_item.item_discount_amount) ? "(-"+getAmount(this_item.item_discount_amount)+")": '';
-            let alternative_name = '';//getAlternativeNameById(this_item.food_menu_id, window.items);
-
-            invoice_print+=`<tr>`;
-            invoice_print+=`<td class="no-border border-bottom ir_wid_90"># `+sl+`:`+this_item.menu_name+alternative_name;
-            invoice_print+=`<small></small> &nbsp;&nbsp;`+ this_item.qty + `&nbsp;X&nbsp;`+getAmount(this_item.menu_unit_price)+discount_value ;
-            if (this_item.menu_combo_items != "" && this_item.menu_combo_items!=undefined  && this_item.menu_combo_items!=null && this_item.menu_combo_items!="undefined") {
-                invoice_print+= `<br><span  style="padding-left: 30px;">`+combo_txt+this_item.menu_combo_items+`</span>`;
-            }
-            invoice_print+=`</td>`;
-            invoice_print+=`<td class="no-border border-bottom text-right">`;
-            invoice_print+=  getAmount(this_item.menu_price_with_discount);
-            invoice_print+=`</td>`;
-            invoice_print+=`</tr>`;
-            for (let mod_key in modifier_names_custom) {
-                let tmp_mod_name_m_n = modifier_names_custom[mod_key];
-                let tmp_mod_name_m_p = getAmount(modifier_prices_custom[mod_key]);
                 invoice_print+=`<tr>`;
-                invoice_print+=`<td class="no-border border-bottom" style="padding-left: 38px;">`;
-                invoice_print+=`<small></small>`;
-                invoice_print += tmp_mod_name_m_n;
+                invoice_print+=`<td class="no-border border-bottom ir_wid_90"># `+sl+`:`+this_item.menu_name+alternative_name;
+                invoice_print+=`<small></small> &nbsp;&nbsp;`+ this_item.qty + `&nbsp;X&nbsp;`+getAmount(this_item.menu_unit_price)+discount_value ;
+                if (this_item.menu_combo_items != "" && this_item.menu_combo_items!=undefined  && this_item.menu_combo_items!=null && this_item.menu_combo_items!="undefined") {
+                    invoice_print+= `<br><span  style="padding-left: 30px;">`+combo_txt+this_item.menu_combo_items+`</span>`;
+                }
                 invoice_print+=`</td>`;
                 invoice_print+=`<td class="no-border border-bottom text-right">`;
-                invoice_print += tmp_mod_name_m_p;
+                invoice_print+=  getAmount(this_item.menu_price_with_discount);
+                invoice_print+=`</td>`;
                 invoice_print+=`</tr>`;
+                for (let mod_key in modifier_names_custom) {
+                    let tmp_mod_name_m_n = modifier_names_custom[mod_key];
+                    let tmp_mod_name_m_p = getAmount(modifier_prices_custom[mod_key]);
+                    invoice_print+=`<tr>`;
+                    invoice_print+=`<td class="no-border border-bottom" style="padding-left: 38px;">`;
+                    invoice_print+=`<small></small>`;
+                    invoice_print += tmp_mod_name_m_n;
+                    invoice_print+=`</td>`;
+                    invoice_print+=`<td class="no-border border-bottom text-right">`;
+                    invoice_print += tmp_mod_name_m_p;
+                    invoice_print+=`</tr>`;
+                }
+                sl++;
             }
-            sl++;
-        }
-        invoice_print+=` </tbody>
-                    </table>
-                    <hr style="border-bottom:1px solid black;margin: 0px;">
-                    <table class="table table-condensed">`;
+            invoice_print+=` </tbody>
+                        </table>
+                        <hr style="border-bottom:1px solid black;margin: 0px;">
+                        <table class="table table-condensed">`;
 
-                    if(Number(order.sub_total)){
-                        invoice_print+=`<tr>
-                                                    <th  class="text_left">`+inv_sub_total+`
-                                                       
+                        if(Number(order.sub_total)){
+                            invoice_print+=`<tr>
+                                                        <th  class="text_left">`+inv_sub_total+`
+                                                        
+                                                        </th>
+                                                        <th class="text-right">
+                                                            `+getAmount(order.sub_total)+`
+                                                        </th>
+                                                        </tr>`;
+                        }
+            
+                        if(Number(order.total_discount_amount)){
+                invoice_print+=`<tr>
+                                            <th  class="text_left">`+inv_discount+`
+                                            
+                                            </th>
+                                            <th class="text-right">
+                                                `+getAmount(order.total_discount_amount)+`
+                                            </th>
+                                            </tr>`;
+            }
+            
+            if(Number(order.delivery_charge_actual_charge)){
+                invoice_print+=`<tr>
+                                                    <th  class="text_left">`+(order.charge_type=="service"?inv_service_charge:inv_delivery_charge)+`
+                                                    
                                                     </th>
                                                     <th class="text-right">
-                                                        `+getAmount(order.sub_total)+`
+                                                        `+getAmount(order.delivery_charge_actual_charge)+`
                                                     </th>
                                                     </tr>`;
-                    }
-        
-                    if(Number(order.total_discount_amount)){
-            invoice_print+=`<tr>
-                                        <th  class="text_left">`+inv_discount+`
-                                           
-                                        </th>
-                                        <th class="text-right">
-                                            `+getAmount(order.total_discount_amount)+`
-                                        </th>
-                                        </tr>`;
-        }
-        
-        if(Number(order.delivery_charge_actual_charge)){
-            invoice_print+=`<tr>
-                                                <th  class="text_left">`+(order.charge_type=="service"?inv_service_charge:inv_delivery_charge)+`
-                                                  
-                                                </th>
-                                                <th class="text-right">
-                                                    `+getAmount(order.delivery_charge_actual_charge)+`
-                                                </th>
-                                                </tr>`;
-        }
-        if(Number(order.tips_amount_actual_charge)){
-            invoice_print+=`<tr>
-                                                <th  class="text_left">`+inv_tips+`
-                                                  
-                                                </th>
-                                                <th class="text-right">
-                                                    `+getAmount(order.tips_amount_actual_charge)+`
-                                                </th>
-                                                </tr>`;
-        }
-
-        let total_vat_section_to_show =``;
-        $.each(order.sale_vat_objects, function (key, value) {
-            if(Number(value.tax_field_amount)){
-                total_vat_section_to_show +=`<tr>
-                                                                        <th class="text_left">
-                                                                            `+value.tax_field_type +`
-                                                                        </th>
-                                                                        <th class="text-right">
-                                                                            `+getAmount(value.tax_field_amount) +`
-                                                                        </th>
-                                                                    </tr>`;
             }
-        });
- invoice_print+= ` </table>
-               
-                <table class="table table-striped table-condensed">
-                    <tbody>
-                        <tr>`;
-        invoice_print+= total_vat_section_to_show;
-        invoice_print+= ` <tr>
-                                        <th style="border-top: 2px solid;"  class="text_left"><h3><b>Total</b></h3>
-                                        
-                                        </th>
-                                            <th style="border-top: 2px solid;" class="text-right"><h3><b>
-                                                `+getAmount(order.total_payable)+`</b></h3>
+            if(Number(order.tips_amount_actual_charge)){
+                invoice_print+=`<tr>
+                                                    <th  class="text_left">`+inv_tips+`
+                                                    
+                                                    </th>
+                                                    <th class="text-right">
+                                                        `+getAmount(order.tips_amount_actual_charge)+`
+                                                    </th>
+                                                    </tr>`;
+            }
+
+            let total_vat_section_to_show =``;
+            $.each(order.sale_vat_objects, function (key, value) {
+                if(Number(value.tax_field_amount)){
+                    total_vat_section_to_show +=`<tr>
+                                                                            <th class="text_left">
+                                                                                `+value.tax_field_type +`
+                                                                            </th>
+                                                                            <th class="text-right">
+                                                                                `+getAmount(value.tax_field_amount) +`
+                                                                            </th>
+                                                                        </tr>`;
+                }
+            });
+    invoice_print+= ` </table>
+                
+                    <table class="table table-striped table-condensed">
+                        <tbody>
+                            <tr>`;
+            invoice_print+= total_vat_section_to_show;
+            invoice_print+= ` <tr>
+                                            <th style="border-top: 2px solid;"  class="text_left"><h3><b>Total</b></h3>
+                                            
                                             </th>
-                                        </tr></tbody></table>`;
-     
+                                                <th style="border-top: 2px solid;" class="text-right"><h3><b>
+                                                    `+getAmount(order.total_payable)+`</b></h3>
+                                                </th>
+                                            </tr></tbody></table>`;
         
+            
 
-        invoice_print+= `
-                                    </tfoot>
-                                </table>
-                                 `;
+            invoice_print+= `
+                                        </tfoot>
+                                    </table>
+                                    `;
 
-        invoice_print+= ` 
-                            <div class="ir_clear"></div>
-                        </div>
-                
-                        <div id="buttons"  class="no-print ir_pt_tr">
-                            <hr>
-                            <span class="col-xs-12">
-                                <a class="btn btn-block btn-primary" href="javascript:eval('window.print()')"/>Print</a> </span>
-                            <div class="ir_clear"></div>
-                            <div class="col-xs-12 ir_bg_p_c_red">
-                                <p class="ir_font_txt_transform_none">
-                                    Please follow these steps before you print for first time:
-                                </p>
-                                <p class="ir_font_capitalize">
-                                    1. Disable Header and Footer in browser's print setting<br>
-                                    For Firefox: File &gt; Page Setup &gt; Margins &amp; Header/Footer &gt; Headers & Footers &gt; Make
-                                    all --blank--<br>
-                                    For Chrome: Menu &gt; Print &gt; Uncheck Header/Footer in More Options
-                                </p>
+            invoice_print+= ` 
+                                <div class="ir_clear"></div>
                             </div>
-                            <div class="ir_clear"></div>
+                    
+                            <div id="buttons"  class="no-print ir_pt_tr">
+                                <hr>
+                                <span class="col-xs-12">
+                                    <a class="btn btn-block btn-primary" href="javascript:eval('window.print()')"/>Print</a> </span>
+                                <div class="ir_clear"></div>
+                                <div class="col-xs-12 ir_bg_p_c_red">
+                                    <p class="ir_font_txt_transform_none">
+                                        Please follow these steps before you print for first time:
+                                    </p>
+                                    <p class="ir_font_capitalize">
+                                        1. Disable Header and Footer in browser's print setting<br>
+                                        For Firefox: File &gt; Page Setup &gt; Margins &amp; Header/Footer &gt; Headers & Footers &gt; Make
+                                        all --blank--<br>
+                                        For Chrome: Menu &gt; Print &gt; Uncheck Header/Footer in More Options
+                                    </p>
+                                </div>
+                                <div class="ir_clear"></div>
+                            </div>
                         </div>
-                    </div>
-                    <script src="`+base_url+`assets/dist/js/print/jquery-2.0.3.min.js"></script>
-                    <script src="`+base_url+`assets/dist/js/print/custom.js"></script>
-                </body>
-                
-                </html>`;
-        reset_finalize_modal();
-        var popup = window.open("", "popup","width=100","height=600");
-        popup.document.write(invoice_print);
-        popup.document.close();
-        popup.focus();
+                        <script src="`+base_url+`assets/dist/js/print/jquery-2.0.3.min.js"></script>
+                        <script src="`+base_url+`assets/dist/js/print/custom.js"></script>
+                    </body>
+                    
+                    </html>`;
+            reset_finalize_modal();
+            var popup = window.open("", "popup","width=100","height=600");
+            popup.document.write(invoice_print);
+            popup.document.close();
+            popup.focus();
+        }
     }
   
       $(document).on("click", ".edit_customer", function (e) {
@@ -5133,67 +5154,7 @@
 
                   let sale_no = $(".holder .order_details .single_order[data-selected=selected]").attr("data-sale_no");
                 //   const userDesignation = $("#user_designation").val();
-                  let res = getSelectedOrderDetails(sale_no).then(function(data){
-                      // var response = jQuery.parseJSON(data);
-                      if(data !== null) {
-                          if(checkInternetConnection()){
-                              let print_type_bill = $(".print_type_bill").val();
-                              if (print_type_bill == "web_browser_popup") {
-                                  print_bill(data,sale_no);
-                                } else if (print_type_bill == "printer_app") {
-                                    $.ajax({
-                                        url: base_url + "Sale/printer_app_bill/" + sale_no,
-                                        method: "GET",
-                                        success: function(base64) {
-                                            console.log(base64);
-                                            window.location.href = 'print://' + base64;
-                                        },
-                                        error: function() {
-                                            alert("Error al generar el ticket para la impresora.");
-                                        }
-                                    });
-                              }else if (print_type_bill == "direct_print"){
-                                // if(print_kitchen == "Yes") {
-                                  $.ajax({
-                                      url: base_url + "Authentication/printSaleBillByAjax",
-                                      method: "post",
-                                      dataType: "json",
-                                      data: {
-                                        sale_no: sale_no,
-                                          data_order: data,
-                                      },
-                                      success: function (data) {
-                                        // if(print_kitchen == "Yes") {
-                                          if (data.printer_server_url) {
-                                              $.ajax({
-                                                  url:
-                                                  data.printer_server_url +
-                                                  "print_server/novabox_printer_server.php",
-                                                  method: "post",
-                                                  dataType: "json",
-                                                  data: {
-                                                      content_data: JSON.stringify(data.content_data),print_type:data.print_type,
-                                                  },
-                                                  success: function (data) {},
-                                                  error: function () {},
-                                              });
-                                          }
-                                        // }
-                                      },
-                                      error: function () {},
-                                  });
-                                // }
-                              }
-                          }else{
-                              print_bill(data,sale_no)
-                          }
-                          $("#finalize_order_modal").removeClass("active");
-                          $(".pos__modal__overlay").fadeOut(300);
-  
-                      } else {
-                          console.log(sale_no + " => This id not found into the Database, Please reload your page");
-                      }
-                  });
+                    create_bill_and_close(sale_no);
               } else {
                   swal({
                       title: warning + "!",
@@ -5207,6 +5168,71 @@
           }
   
       });
+
+      function create_bill_and_close(sale_no){
+        let res = getSelectedOrderDetails(sale_no).then(function(data){
+            // var response = jQuery.parseJSON(data);
+            if(data !== null) {
+                if(checkInternetConnection()){
+                    let print_type_bill = $(".print_type_bill").val();
+                    if (print_type_bill == "web_browser_popup") {
+                        print_bill(data,sale_no);
+                    } else if (print_type_bill == "printer_app") {
+                        $.ajax({
+                            url: base_url + "Sale/printer_app_bill/" + sale_no,
+                            method: "GET",
+                            success: function(base64) {
+                                console.log(base64);
+                                window.location.href = 'print://' + base64;
+                            },
+                            error: function() {
+                                alert("Error al generar el ticket para la impresora.");
+                            }
+                        });
+                    }else if (print_type_bill == "direct_print"){
+                    // if(print_kitchen == "Yes") {
+                        $.ajax({
+                            url: base_url + "Authentication/printSaleBillByAjax",
+                            method: "post",
+                            dataType: "json",
+                            data: {
+                            sale_no: sale_no,
+                                data_order: data,
+                            },
+                            success: function (data) {
+                            // if(print_kitchen == "Yes") {
+                                if (data.printer_server_url) {
+                                    $.ajax({
+                                        url:
+                                        data.printer_server_url +
+                                        "print_server/novabox_printer_server.php",
+                                        method: "post",
+                                        dataType: "json",
+                                        data: {
+                                            content_data: JSON.stringify(data.content_data),print_type:data.print_type,
+                                        },
+                                        success: function (data) {},
+                                        error: function () {},
+                                    });
+                                }
+                            // }
+                            },
+                            error: function () {},
+                        });
+                    // }
+                    }
+                }else{
+                    print_bill(data,sale_no)
+                }
+                $("#finalize_order_modal").removeClass("active");
+                $(".pos__modal__overlay").fadeOut(300);
+
+            } else {
+                console.log(sale_no + " => This id not found into the Database, Please reload your page");
+            }
+        });
+      }
+
       $(document).on(
           "click",
           "#create_invoice_and_close_old,#order_details_create_invoice_close_order_button",
@@ -6030,7 +6056,7 @@ function getSafePrice(priceAttr) {
                 //         /*end_added_new_zakir*/
                 //     }
                 // }
-  
+
               if(status_continue==true){
                   if(is_variation=="Yes") {
                       $("#is_variation_product").html(100);
@@ -6158,23 +6184,30 @@ function getSafePrice(priceAttr) {
                       let item_total_price_without_discount =
                           parseFloat(item_price).toFixed(ir_precision);
   
-                      tax_information = IsJsonString(tax_information)
-                          ? JSON.parse(tax_information)
-                          : "";
-                      if (tax_information.length > 0) {
-                          for (let k in tax_information) {
-                              tax_information[k].item_vat_amount_for_unit_item = (
-                                  (parseFloat(item_price) *
-                                      parseFloat(tax_information[k].tax_field_percentage)) /
-                                  parseFloat(100)
-                              ).toFixed(ir_precision);
-                              tax_information[k].item_vat_amount_for_all_quantity = (
-                                  parseFloat(tax_information[k].item_vat_amount_for_unit_item) *
-                                  parseFloat(1)
-                              ).toFixed(ir_precision);
-                          }
-                      }
-  
+
+                        if (typeof tax_information === 'object') {
+                        } else if (IsJsonString(tax_information)) {
+                            tax_information = JSON.parse(tax_information);
+                        } else if (tax_information === undefined || tax_information === null || tax_information === "" || tax_information === "null") {
+                            tax_information = "";
+                        } else {
+                            tax_information = "";
+                        }
+                        if (tax_information.length > 0) {
+                            for (let k in tax_information) {
+                                tax_information[k].tax_field_name = tax_information[k].tax_field_name + ` (${tax_information[k].tax_field_percentage}%)`;
+                                tax_information[k].item_vat_amount_for_unit_item = (
+                                    (parseFloat(item_price) *
+                                        parseFloat(tax_information[k].tax_field_percentage)) /
+                                    parseFloat(100)
+                                ).toFixed(ir_precision);
+                                tax_information[k].item_vat_amount_for_all_quantity = (
+                                    parseFloat(tax_information[k].item_vat_amount_for_unit_item) *
+                                    parseFloat(1)
+                                ).toFixed(ir_precision);
+                            }
+                        }
+
                       //get vat amount for specific item/menu
                       let item_vat_amount_for_unit_item = (
                           (parseFloat(item_price) * parseFloat(item_vat_percentage)) /
@@ -8029,6 +8062,7 @@ function getSafePrice(priceAttr) {
   
                     if (tax_information.length > 0) {
                         for (let k in tax_information) {
+                            tax_information[k].tax_field_name = tax_information[k].tax_field_name + ` (${tax_information[k].tax_field_percentage}%)`;
                             tax_information[k].item_vat_amount_for_unit_item = (
                                 (parseFloat($(this).attr("data-price")) *
                                     parseFloat(tax_information[k].tax_field_percentage)) /
@@ -10610,8 +10644,8 @@ function getPaymentArrayWithChangeAndDue() {
         // --- ¡MODIFICACIÓN #1: CAPTURA EL CONTEXTO ANTES DEL AJAX! ---
         // Justo antes de la llamada a $.ajax, obtenemos el valor de nuestra "marca".
         const sale_no_to_update = $("#add_customer_modal").attr('data-update-context');
-
         const sale_last_no_to_update = $("#add_customer_modal").attr('data-update-last-context');
+        const sale_no_pre_to_update = $("#add_customer_modal").attr('data-update-pre-context');
 
         let this_action = $(this);
         $.ajax({
@@ -10665,24 +10699,21 @@ function getPaymentArrayWithChangeAndDue() {
                 
                 // --- INICIO DE LA LÓGICA DE ACTUALIZACIÓN DE ORDEN ---
                 // Comprobamos si nuestra variable de contexto tiene un sale_no.
-                if (sale_no_to_update) {
-                    // console.log(`Contexto detectado: Actualizando cliente para la orden ${sale_no_to_update}`);
-
+                if (sale_no_to_update || sale_no_pre_to_update) {
+                    let $sale_no = sale_no_to_update ? sale_no_to_update : sale_no_pre_to_update;
                     // 2. Actualizamos el selector principal del POS para que refleje el cambio inmediatamente.
                     // Tu función `selectCustomerById` parece perfecta para esto.
                     selectCustomerById(c.id, c.name, c.phone, c);
 
-
                     // 1. Llamamos a la función para actualizar la orden en el backend y en IndexedDB.
                     updateCustomerForSale(
-                        sale_no_to_update,
+                        $sale_no,
                         c.id,
                         c.name,
                         c.phone,
                         c.gst_number,
                         c.address
                     );
-
 
                 } else {
                     // Si no hay contexto, ejecutamos la lógica que tenías para un cliente nuevo/editado normal.
@@ -10694,11 +10725,11 @@ function getPaymentArrayWithChangeAndDue() {
 
                 // Opcional: actualizar la variable global si la usas
                 window.customers.push({
-                customer_id: c.id,
-                customer_name: c.name,
-                customer_address: c.address,
-                customer_gst_number: c.gst_number,
-                default_discount: c.default_discount,
+                    customer_id: c.id,
+                    customer_name: c.name,
+                    customer_address: c.address,
+                    customer_gst_number: c.gst_number,
+                    default_discount: c.default_discount,
                 });
                 
                 if (sale_last_no_to_update) {
@@ -10710,6 +10741,9 @@ function getPaymentArrayWithChangeAndDue() {
                         c.gst_number,
                         c.address
                     );
+                }
+                if (sale_no_pre_to_update) {
+                    generar_factura_pre_venta(sale_no_pre_to_update)
                 }
 
               reset_on_modal_close_or_add_customer();
@@ -12547,7 +12581,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
             }
         }
         } else {
-        tax_information = [];
+            tax_information = [];
         }
 
         if (tax_information.length > 0) {
@@ -12908,8 +12942,9 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
     }
     
     function reset_on_modal_close_or_add_customer() {
-        $("#add_customer_modal").attr('data-update-context', ''); // Limpia el contexto
+        $("#add_customer_modal").attr('data-update-context', ''); // Limpia el contexto 
         $("#add_customer_modal").attr('data-update-last-context', '');
+        $("#add_customer_modal").attr('data-update-pre-context', '');
         let ids = [
             "#customer_id_modal",
             "#customer_name_modal",
@@ -14440,6 +14475,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
             $('#editar_orden_button').data('sale_no', sale_no);
             $('#print_bill_orden_button').data('sale_no', sale_no);
             $('#pre_impresa_orden_button').data('sale_no', sale_no);
+            $('#pre_factura_electronica_orden_button').data('sale_no', sale_no);
             $('#pagar_orden_button').data('sale_no', sale_no);
         
           let res = getSelectedOrderDetails(sale_no).then(function(data){
@@ -19368,6 +19404,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
                     // 2. Abrimos el modal y lo llenamos con los datos del cliente.
                     $(".add_customer_title").text('Editar Cliente del Pedido'); // Título personalizado
                     get_customer_for_edit(customer_id);
+                    $("#add_customer_modal").attr('data-update-context', sale_no);
                 } else {
                     $('.plus_button').click();
                     $("#add_customer_modal").attr('data-update-context', sale_no);
@@ -19396,6 +19433,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
                         // 2. Abrimos el modal y lo llenamos con los datos del cliente.
                         $(".add_customer_title").text('Editar Cliente del Pedido'); // Título personalizado
                         get_customer_for_edit(customer_id);
+                        $("#add_customer_modal").attr('data-update-last-context', sale_no);
                     } else {
                         $('.plus_button').click();
                         $("#add_customer_modal").attr('data-update-last-context', sale_no);
@@ -22195,6 +22233,82 @@ $(document).on('click', '#pre_impresa_orden_button', function() {
     }
 });
 
+function generar_factura_pre_venta(sale_no) {
+    if (sale_no) {
+        $.ajax({
+            url: base_url + 'Sale/generar_factura_desde_cocina', // ¡Ajusta esta URL si es necesario!
+            method: 'POST',
+            dataType: 'json',
+            data: {
+                sale_no: sale_no,
+                // CodeIgniter CSRF protection
+                // [csrf_name]: csrf_hash 
+            },
+            success: function(response) {
+                // Actualizar el token CSRF si es necesario
+                // if (typeof(response.csrf_hash) !== "undefined") {
+                //     csrf_hash = response.csrf_hash;
+                // }
+
+                if (response.status === 'success') {
+                    toastr['success'](response.message, '¡Éxito!');
+                    setTimeout(() => {
+                        create_bill_and_close(sale_no)
+                    }, 1000);
+                } else if (response.status === 'info') {
+                    toastr['info'](response.message, 'Información');
+                } else {
+                    // Si hay un error, mostrarlo y volver a habilitar el botón
+                    toastr['error'](response.message, 'Error de Facturación');
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                // Error de conexión o del servidor (500, 404, etc.)
+                toastr['error']('Error de comunicación con el servidor. Intente de nuevo.', 'Error');
+                console.error("Error AJAX:", textStatus, errorThrown);
+            }
+        });
+    }
+}
+     
+$(document).on("click", "#pre_factura_electronica_orden_button", function (e) {
+    let default_customer_id = $("#default_customer_hidden").val();
+    const sale_no = $(this).data('sale_no');
+    const this_button = $(this); // Guardar referencia al botón
+    this_button.prop('disabled', true).html('Generando...');
+    setTimeout(() => { 
+        this_button.prop('disabled', false).html('Generar Factura');
+    }, 3000);
+    // console.log('sale_no', sale_no);
+    if (sale_no) {            
+        // $('#preimpresa_imprimir_button').data('sale_no', sale_no);
+        getSelectedOrderDetails(sale_no).then(function(data){
+            // console.log(data);
+            let order_info = jQuery.parseJSON(data);
+            let customer_id = order_info.customer_id;
+            
+            if (Number(customer_id) > 0){
+                if (customer_id != default_customer_id){
+                    // 2. Abrimos el modal y lo llenamos con los datos del cliente.
+                    $(".add_customer_title").text('Editar Cliente del Pedido'); // Título personalizado
+                    get_customer_for_edit(customer_id);
+                    $("#add_customer_modal").attr('data-update-pre-context', sale_no);
+                } else {
+                    $('.plus_button').click();
+                    $("#add_customer_modal").attr('data-update-pre-context', sale_no);
+
+                }
+            } else {
+                $('.plus_button').click();
+                $("#add_customer_modal").attr('data-update-pre-context', sale_no);
+
+            }
+        });
+    } else {
+        toastr['error']((please_select_an_order), '');
+    }
+});
+
 $('#walk_in_customer, #walk_in_customer1').select2({
     placeholder: "Seleccione o Agregue un Cliente",
     allowClear: true,
@@ -22432,6 +22546,7 @@ window.selectDefaultOrPlaceholderCustomer = selectDefaultOrPlaceholderCustomer;
 window.getDataCustomerSelect2 = getDataCustomerSelect2;
 window.agregarClienteSelect2 = agregarClienteSelect2;
 window.getSelectedCustomerData = getSelectedCustomerData;
+window.create_bill_and_close = create_bill_and_close;
 
   })(jQuery);
   

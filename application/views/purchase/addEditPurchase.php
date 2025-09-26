@@ -232,6 +232,8 @@
                                         <th>
                                             <?php if(tipoFacturacion() != 'RD_AI'): ?>
                                                 IVA
+                                            <?php else :  ?>
+                                                ITBIS
                                             <?php endif; ?>
                                         </th>
                                         <th><?php echo lang('total'); ?></th>
@@ -951,37 +953,42 @@ function calculateAll() {
         i++;
 
         let total = unit_price * quantity_amount;
-        $row.find('.edit-total').val(total.toFixed(2));
+        $row.find('.edit-total').val(total);
         subtotal += total;
 
         <?php if(tipoFacturacion() == 'RD_AI'): ?>
-        let iva_tipo = parseFloat($row.find('.edit-iva-tipo').val()) || 0;
-        if (iva_tipo > 0) {
-            let base_imponible = total / (1 + iva_tipo / 100);
-            total_itbis += base_imponible * (iva_tipo / 100);
-        }
+            let iva_tipo = parseFloat($row.find('.edit-iva-tipo').val()) || 0;
+            if (iva_tipo > 0) {
+                // let base_imponible = total / (1 + iva_tipo / 100);
+                // total_itbis += base_imponible * (iva_tipo / 100);
+                total_itbis += total * (iva_tipo / 100);
+            }
         <?php endif; ?>
     });
 
     if (isNaN(subtotal)) subtotal = 0;
-    $("#subtotal").val(subtotal.toFixed(2));
+    $("#subtotal").val(subtotal);
 
     <?php if(tipoFacturacion() == 'RD_AI'): ?>
-    $("#itbis").val(total_itbis.toFixed(2));
+        $("#itbis").val(total_itbis);
     <?php endif; ?>
 
     let other = parseFloat($.trim($("#other").val()));
     if ($.trim(other) == "" || $.isNumeric(other) == false) other = 0;
 
     let grand_total = parseFloat(subtotal) + parseFloat(other);
-    grand_total = grand_total;
-    $("#grand_total").val(grand_total.toFixed(2));
+    <?php if(tipoFacturacion() == 'RD_AI'): ?>
+        grand_total = grand_total + total_itbis;
+    <?php else : ?>
+        grand_total = grand_total;
+    <?php endif; ?>
+    $("#grand_total").val(grand_total);
 
     let paid = $("#paid").val();
     if ($.trim(paid) == "" || $.isNumeric(paid) == false) paid = 0;
 
     let due = parseFloat(grand_total) - parseFloat(paid);
-    $("#due").val(due.toFixed(2));
+    $("#due").val(due);
 }
 
 </script>

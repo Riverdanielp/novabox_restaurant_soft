@@ -165,7 +165,13 @@ class Facturacion_py extends Cl_Controller {
 
         // 2. Obtener el punto de expedición
         $punto_exp_codigo = $post_data['punto'];
-        $punto_expedicion = $this->db->where('codigo_punto', $punto_exp_codigo)->where('activo', 1)->get('py_sifen_puntos_expedicion')->row();
+        $punto_expedicion = $this->db->select('pe.*, s.codigo_establecimiento')
+            ->from('py_sifen_puntos_expedicion pe')
+            ->join('py_sifen_sucursales s', 's.id = pe.sucursal_id', 'left')
+            ->where('pe.codigo_punto', $punto_exp_codigo)
+            ->where('pe.activo', 1)
+            ->get()
+            ->row();
         
         if (!$punto_expedicion) {
             $this->session->set_flashdata('error_custom', "Punto de expedición '{$punto_exp_codigo}' no es válido o está inactivo.");

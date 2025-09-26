@@ -3,7 +3,11 @@
 $datos_fe = null;
 if (tipoFacturacion() == 'Py_FE') {
     $this->load->helper('factura_send');
-    $datos_fe = fs_get_factura_details_by_sale_id($sale_object->id);
+    if (isset($bill) && $bill) {
+        $datos_fe = fs_get_factura_details_by_sale_no($sale_object->sale_no);
+    } else {
+        $datos_fe = fs_get_factura_details_by_sale_id($sale_object->id);
+    }
 }
 $customer = getCustomerData($sale_object->customer_id);
 $identImpuestoName = (tipoConsultaRuc() == 'RNC') ? 'RNC' : 'RUC' ; 
@@ -298,6 +302,7 @@ $download_url = "";
                         <?php
                         if ($this->session->userdata('collect_tax')=='Yes' && $sale_object->sale_vat_objects!=NULL):
                             ?>
+
                         <?php foreach(json_decode($sale_object->sale_vat_objects) as $single_tax){ ?>
                             <?php
                             if($single_tax->tax_field_amount && $single_tax->tax_field_amount!="0.00"):
@@ -332,7 +337,7 @@ $download_url = "";
                     </tbody>
                 </table>
 
-                <?php if(tipoFacturacion() == 'RD_AI'): ?>
+                <?php if(tipoFacturacion() == 'RD_AI_OLD'): ?>
                     <?php
                     $total_itbis_18 = 0;
                     $total_itbis_16 = 0;
@@ -527,7 +532,9 @@ $download_url = "";
 
                 <?php else: // Footer para ticket normal ?>
                     <p class="text-center"> <?php echo ($this->session->userdata('invoice_footer')) ?></p>
-                    <div class="text-center"><img src="<?php echo base_url()?>qr_code/<?php echo escape_output($sale_object->id)?>.png"></div>
+                    <?php if(!(isset($qr) || $qr == true)): ?>
+                        <div class="text-center"><img src="<?php echo base_url()?>qr_code/<?php echo escape_output($sale_object->id)?>.png"></div>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
             <div class="ir_clear"></div>

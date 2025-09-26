@@ -3,13 +3,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 // $config['tipo_consulta_ruc'] = 'RNC';
 
-//tipo_facturacion: 'No','RD_AI','RD_FE','Py_FE'
-// $config['tipo_facturacion'] = 'RD_AI';
-$config['tipo_facturacion'] = 'Py_FE';
+// //tipo_facturacion: 'No','RD_AI','RD_FE','Py_FE'
+$config['tipo_facturacion'] = 'RD_AI';
 
-$config['sifen_default_departamento'] = '11';
-$config['sifen_default_distrito'] = '145';
-$config['sifen_default_ciudad'] = '3383';
+// $config['tipo_facturacion'] = 'Py_FE';
+
+// $config['sifen_default_departamento'] = '11';
+// $config['sifen_default_distrito'] = '145';
+// $config['sifen_default_ciudad'] = '3383';
 
 // Configuración de Redis
 $config['redis_prefix'] = 'restora_';       // Prefijo para las claves de Redis de cada proyecto
@@ -23,10 +24,13 @@ $base_url=(isset($_SERVER["HTTPS"]) ? "https://" : "http://").$_SERVER["HTTP_HOS
 $base_url.=(str_replace(basename($_SERVER["SCRIPT_NAME"]), "", $_SERVER["SCRIPT_NAME"]));
 $config["base_url"] = $base_url;
 
-// $config['facturasend_url'] = 'https://api.facturasend.com.py';
-// $config['facturasend_tenant_id'] = 'empresaficticia'; // Reemplaza con tu Tenant ID real
-// $config['facturasend_api_key'] = '785BF8B7-01DA-41C2-807F-2B9F1B27B772'; // Reemplaza con tu API_KEY real
+$config['facturasend_url'] = 'https://api.facturasend.com.py';
+$config['facturasend_tenant_id'] = 'empresaficticia'; // Reemplaza con tu Tenant ID real
+$config['facturasend_api_key'] = '785BF8B7-01DA-41C2-807F-2B9F1B27B772'; // Reemplaza con tu API_KEY real
 
+// $config['facturasend_url'] = 'https://fs-api.novabox.net.py';
+// $config['facturasend_tenant_id'] = 'miabuelaeas'; // Reemplaza con tu Tenant ID real
+// $config['facturasend_api_key'] = '09408306-92AB-4CBB-A18B-7B9D08B9C469'; // Reemplaza con tu API_KEY real
 
 /*
 |--------------------------------------------------------------------------
