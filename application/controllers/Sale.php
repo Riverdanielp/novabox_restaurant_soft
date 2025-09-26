@@ -6256,11 +6256,11 @@ class Sale extends Cl_Controller {
 
         // ✅ Bloque final para Factura Electrónica (QR y textos)
         if ($datos_fe) {
-            $content[] = [
-                "type" => "qr",
-                "qrUrl" => $datos_fe->qr, // URL dinámica del QR
-                "align" => "center"
-            ];
+            // $content[] = [
+            //     "type" => "qr",
+            //     "qrUrl" => $datos_fe->qr, // URL dinámica del QR
+            //     "align" => "center"
+            // ];
             // $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
             $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Consulte la validez de este documento'];
             $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'con el número de CDC:'];
@@ -6474,11 +6474,11 @@ class Sale extends Cl_Controller {
         
         // ✅ Bloque final para Factura Electrónica (QR y textos)
         if ($datos_fe) {
-            $content[] = [
-                "type" => "qr",
-                "qrUrl" => $datos_fe->qr, // URL dinámica del QR
-                "align" => "center"
-            ];
+            // $content[] = [
+            //     "type" => "qr",
+            //     "qrUrl" => $datos_fe->qr, // URL dinámica del QR
+            //     "align" => "center"
+            // ];
             // $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
             $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Consulte la validez de este documento'];
             $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'con el número de CDC:'];

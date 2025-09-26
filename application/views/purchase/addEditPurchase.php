@@ -953,17 +953,18 @@ function calculateAll() {
         i++;
 
         let total = unit_price * quantity_amount;
-        $row.find('.edit-total').val(total);
-        subtotal += total;
-
         <?php if(tipoFacturacion() == 'RD_AI'): ?>
             let iva_tipo = parseFloat($row.find('.edit-iva-tipo').val()) || 0;
             if (iva_tipo > 0) {
                 // let base_imponible = total / (1 + iva_tipo / 100);
                 // total_itbis += base_imponible * (iva_tipo / 100);
                 total_itbis += total * (iva_tipo / 100);
+                total += (total * (iva_tipo / 100));
             }
         <?php endif; ?>
+        $row.find('.edit-total').val(total);
+        subtotal += total;
+
     });
 
     if (isNaN(subtotal)) subtotal = 0;
@@ -978,9 +979,9 @@ function calculateAll() {
 
     let grand_total = parseFloat(subtotal) + parseFloat(other);
     <?php if(tipoFacturacion() == 'RD_AI'): ?>
-        grand_total = grand_total + total_itbis;
+        // grand_total = grand_total + total_itbis;
     <?php else : ?>
-        grand_total = grand_total;
+        // grand_total = grand_total;
     <?php endif; ?>
     $("#grand_total").val(grand_total);
 
