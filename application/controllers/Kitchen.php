@@ -1000,11 +1000,11 @@ class Kitchen extends Cl_Controller {
         $this->db->join('tbl_kitchens', 'tbl_kitchens.id = tbl_kitchen_categories.kitchen_id AND tbl_kitchens.outlet_id = ' . intval($outlet_id), 'left');
         $this->db->where('tbl_kitchen_sales_details.sales_id', $sale_id);
         $this->db->where('tbl_kitchens.id', $kitchen_id);
+        $this->db->where('tbl_kitchen_sales_details.del_status', 'Live');
         // $this->db->where('tbl_kitchen_categories.del_status', 'Live');
         // Solo items no terminados, si lo deseas:
         // $this->db->where('tbl_kitchen_sales_details.cooking_status !=', 'Done');
         $sale_items = $this->db->get()->result();
-    
         
 
         // Traer los modificadores para cada item

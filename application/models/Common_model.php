@@ -2022,6 +2022,22 @@ class Common_model extends CI_Model {
         return isset($_POST['draw']) ? $_POST['draw'] : 1;
     }
 
+    // En tu modelo (p. ej. Common_model.php)
+    public function get_customer_due_receive_details($id) {
+        $this->db->select("cdr.*, c.name as customer_name, u.full_name as user_name, pm.name as payment_method_name");
+        $this->db->from("tbl_customer_due_receives cdr");
+        $this->db->join('tbl_customers c', 'c.id = cdr.customer_id', 'left');
+        $this->db->join('tbl_users u', 'u.id = cdr.user_id', 'left');
+        $this->db->join('tbl_payment_methods pm', 'pm.id = cdr.payment_id', 'left');
+        $this->db->where("cdr.id", $id);
+        $query = $this->db->get();
+        return $query->row();
+    }
+
+    public function insertInformationAndGetId($data, $table_name) {
+        $this->db->insert($table_name, $data);
+        return $this->db->insert_id();
+    }
 
 }
 

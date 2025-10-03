@@ -132,7 +132,8 @@
                         <th><?php echo lang('sale_no'); ?></th>
                         <th><?php echo lang('total_items'); ?></th>
                         <th><?php echo lang('subtotal'); ?></th>
-                        <th><?php echo lang('delivery'); ?> <?php echo lang('delivery_charge'); ?></th>
+                        <th><?php echo 'Total Devuelto'; ?></th>
+                        <!-- <th><?php echo lang('delivery'); ?> <?php echo lang('delivery_charge'); ?></th> -->
                         <th><?php echo lang('service_charge'); ?></th>
                         <th><?php echo lang('discount'); ?></th>
                         <th><?php echo lang('vat'); ?></th>
@@ -160,6 +161,9 @@
                             $vatGrandTotal+=$value->vat;
                             $service_row_total = 0;
                             $delivery_row_total = 0;
+                            $id_sale_kitchen = getIdSaleKitchenBySaleNo($value->sale_no);
+                            $total_devuelto = 0;
+                            $total_devuelto = getTotalDevuelto($id_sale_kitchen);
                             if($value->charge_type=="service"){
                                 $service_row_total = getPercentageValue($value->delivery_charge,$value->sub_total);
                                 $serviceTotal+=$service_row_total;
@@ -177,7 +181,8 @@
                                 <td><?php echo escape_output($value->sale_no) ?></td>
                                 <td><?php echo escape_output($total_qty) ?></td>
                                 <td><?php echo escape_output(getAmt($value->sub_total)) ?></td>
-                                <td><?php echo escape_output(getAmt($delivery_row_total)) ?></td>
+                                <!-- <td><?php echo escape_output(getAmt($delivery_row_total)) ?></td> -->
+                                <td><?php echo escape_output(getAmt($total_devuelto)) ?></td>
                                 <td><?php echo escape_output(getAmt($service_row_total)) ?></td>
                                 <td><?php echo escape_output(getAmt($value->total_discount_amount)) ?></td>
                                 <td><?php echo escape_output(getAmt($value->vat)) ?></td>

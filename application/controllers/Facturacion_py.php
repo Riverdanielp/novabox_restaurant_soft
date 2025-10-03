@@ -61,8 +61,14 @@ class Facturacion_py extends Cl_Controller {
     public function formulario($id = null) {
         $data = [];
         if ($id) {
-            $data['factura'] = $this->Facturacion_py_model->get_factura_completa($id);
-            $data['form_title'] = 'Detalles de la Factura Electrónica';
+            // Se asume que get_factura_completa devuelve un objeto con toda la data necesaria
+            $factura_data = $this->Facturacion_py_model->get_factura_completa($id);
+            if(!$factura_data){
+                $this->session->set_flashdata('error_custom', "No se encontró la factura con ID: $id");
+                redirect('Facturacion_py/listado');
+            }
+            $data['factura'] = $factura_data;
+            $data['form_title'] = 'Editar Factura Electrónica N° ' . $factura_data->numero;
             $data['is_edit'] = true;
         } else {
             $data['factura'] = null;
@@ -101,13 +107,9 @@ class Facturacion_py extends Cl_Controller {
      */
     public function procesar_formulario($id = null)
     {
-        // La lógica para diferenciar edición y creación
-        if ($id) {
-            $this->session->set_flashdata('error_custom', "La funcionalidad de edición para la factura ID: $id aún no está implementada.");
-            redirect('Facturacion_py/listado');
-            return;
-        }
-
+        // Determinar la acción del usuario (crear, reenviar, duplicar)
+        $action = $this->input->post('submit'); // 'submit', 'resend', 'duplicate'
+    
         // Recolectar datos del POST
         $post_data = $this->input->post();
         
@@ -122,7 +124,7 @@ class Facturacion_py extends Cl_Controller {
         // Validaciones básicas
         if (empty($post_data['punto']) || empty($post_data['fecha']) || empty($post_data['moneda'])) {
             $this->session->set_flashdata('error_custom', "Faltan campos obligatorios básicos: punto de expedición, fecha o moneda");
-            redirect('Facturacion_py/formulario');
+            redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
             return;
         }
 
@@ -133,49 +135,50 @@ class Facturacion_py extends Cl_Controller {
             case 5: // Nota de Crédito
                 if (empty($post_data['documento_referencia']) || empty($post_data['documento_referencia']['cdc'])) {
                     $this->session->set_flashdata('error_custom', "Para notas de crédito debe especificar el CDC del documento asociado");
-                    redirect('Facturacion_py/formulario');
+                    redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
                     return;
                 }
                 break;
             case 6: // Nota de Débito
                 if (empty($post_data['documento_referencia']) || empty($post_data['documento_referencia']['cdc'])) {
                     $this->session->set_flashdata('error_custom', "Para notas de débito debe especificar el CDC del documento asociado");
-                    redirect('Facturacion_py/formulario');
+                    redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
                     return;
                 }
                 break;
             case 7: // Nota de Remisión
                 if (empty($post_data['remision']) || empty($post_data['remision']['motivo_traslado'])) {
                     $this->session->set_flashdata('error_custom', "Para notas de remisión debe especificar el motivo de traslado");
-                    redirect('Facturacion_py/formulario');
+                    redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
                     return;
                 }
                 if (empty($post_data['remision']['vehiculo_matricula'])) {
                     $this->session->set_flashdata('error_custom', "Debe especificar la matrícula del vehículo para la nota de remisión");
-                    redirect('Facturacion_py/formulario');
+                    redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
                     return;
                 }
                 if (empty($post_data['remision']['fecha_inicio']) || empty($post_data['remision']['fecha_fin'])) {
                     $this->session->set_flashdata('error_custom', "Debe especificar las fechas de inicio y fin de traslado");
-                    redirect('Facturacion_py/formulario');
+                    redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
                     return;
                 }
                 break;
         }
 
         // 2. Obtener el punto de expedición
-        $punto_exp_codigo = $post_data['punto'];
+        $punto_exp_id = $post_data['punto'];
         $punto_expedicion = $this->db->select('pe.*, s.codigo_establecimiento')
-            ->from('py_sifen_puntos_expedicion pe')
-            ->join('py_sifen_sucursales s', 's.id = pe.sucursal_id', 'left')
-            ->where('pe.codigo_punto', $punto_exp_codigo)
-            ->where('pe.activo', 1)
-            ->get()
-            ->row();
+        ->from('py_sifen_puntos_expedicion pe')
+        ->join('py_sifen_sucursales s', 's.id = pe.sucursal_id', 'left')
+        ->where('pe.id', $punto_exp_id) // <-- Cambiado de 'pe.codigo_punto' a 'pe.id'
+        ->where('pe.activo', 1)
+        ->get()
+        ->row();
         
         if (!$punto_expedicion) {
-            $this->session->set_flashdata('error_custom', "Punto de expedición '{$punto_exp_codigo}' no es válido o está inactivo.");
-            redirect('Facturacion_py/formulario');
+            // El mensaje de error también podría ser más claro
+            $this->session->set_flashdata('error_custom', "El punto de expedición seleccionado no es válido o está inactivo.");
+            redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
             return;
         }
         
@@ -189,8 +192,8 @@ class Facturacion_py extends Cl_Controller {
             ->get()->row();
 
         if (!$timbrado_info) {
-            $this->session->set_flashdata('error_custom', "El punto de expedición '{$punto_exp_codigo}' no tiene un timbrado activo y vigente.");
-            redirect('Facturacion_py/formulario');
+            $this->session->set_flashdata('error_custom', "El punto de expedición '{$punto_exp_id}' no tiene un timbrado activo y vigente.");
+            redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
             return;
         }
         
@@ -254,7 +257,7 @@ class Facturacion_py extends Cl_Controller {
         
         if (empty($items_normalizados)) {
             $this->session->set_flashdata('error_custom', "La factura debe contener al menos un ítem válido.");
-            redirect('Facturacion_py/formulario');
+            redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
             return;
         }
 
@@ -384,11 +387,29 @@ class Facturacion_py extends Cl_Controller {
                 break;
         }
 
+        // <<<<<<< INICIO: Lógica para número de factura personalizado >>>>>>>
+        $numero_factura_tipo = $post_data['numero_factura_tipo'] ?? 'correlativo';
+        $numero_factura_personalizado = null;
+
+        if ($numero_factura_tipo === 'personalizado') {
+            if (empty($post_data['numero_factura_personalizado']) || !is_numeric($post_data['numero_factura_personalizado'])) {
+                $this->session->set_flashdata('error_custom', "Debe ingresar un número de factura válido para la opción 'Número Personalizado'.");
+                redirect($id ? 'Facturacion_py/formulario/' . $id : 'Facturacion_py/formulario');
+                return;
+            }
+            $numero_factura_personalizado = (int)$post_data['numero_factura_personalizado'];
+        }
+        // <<<<<<< FIN: Lógica para número de factura personalizado >>>>>>>
+
         // 7. Construir estructura final para el helper
         $invoice_data = [
             'venta_id_sistema'  => null, // No aplica para factura manual
             'fecha'             => $post_data['fecha'],
             'moneda'            => $post_data['moneda'],
+            // <<<<<<< INICIO: Añadir los nuevos datos al array >>>>>>>
+            'numero_factura_tipo' => $numero_factura_tipo,
+            'numero_factura_personalizado' => $numero_factura_personalizado,
+            // <<<<<<< FIN: Añadir los nuevos datos al array >>>>>>>
             'punto_expedicion'  => $punto_expedicion,
             'cliente'           => $cliente_normalizado,
             'usuario'           => $usuario_normalizado,
@@ -408,6 +429,13 @@ class Facturacion_py extends Cl_Controller {
             $invoice_data = array_merge($invoice_data, $doc_adicional);
         }
 
+        // Determinar si es una operación de reenvío o duplicado
+        if ($action === 'resend' && $id) {
+            $invoice_data['factura_py_id_existente'] = $id;
+        } elseif ($action === 'duplicate' && $id) {
+            // No se necesita nada especial, el helper lo tratará como nuevo
+        }
+
         // 8. Llamar al helper para procesar la factura
         $resultado_helper = fs_create_and_send_invoice($invoice_data);
 
@@ -419,7 +447,7 @@ class Facturacion_py extends Cl_Controller {
                          ->update('tbl_sales', ['py_factura_id' => $resultado_helper['factura_py_id']]);
             }
             
-            $this->session->set_flashdata('exception', "Factura generada y enviada correctamente. CDC: " . ($resultado_helper['cdc'] ?? 'N/A'));
+            $this->session->set_flashdata('exception', "Factura procesada y enviada correctamente. CDC: " . ($resultado_helper['cdc'] ?? 'N/A'));
         } else {
             $error_message = $resultado_helper['message'] ?? 'Error desconocido al procesar la factura.';
             if (isset($resultado_helper['api_response'])) {

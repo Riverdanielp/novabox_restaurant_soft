@@ -59,6 +59,7 @@ class Facturacion_py_model extends CI_Model {
             $factura->cliente = $this->db->get_where('py_factura_cliente', ['id' => $factura->cliente_id])->row();
             $factura->items = $this->db->get_where('py_factura_items', ['factura_id' => $id])->result();
             $factura->condicion = $this->db->get_where('py_factura_condiciones', ['factura_id' => $id])->row();
+            $factura->usuario = $this->db->get_where('py_factura_usuario', ['id' => $factura->usuario_id])->row();
             if ($factura->condicion) {
                 $factura->condicion->entregas = $this->db->get_where('py_factura_condicion_entregas', ['condicion_id' => $factura->condicion->id])->result();
             }

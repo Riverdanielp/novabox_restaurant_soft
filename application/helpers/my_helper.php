@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420662';
+    return '?v=7.5420664';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -160,6 +160,34 @@ function getTotalItem($sale_id) {
     $row = $query_result->row();
     if($row){
         return $row->totalQty;
+    }else{
+        return 0;
+    }
+}
+function getIdSaleKitchenBySaleNo($sale_no) {
+    $CI = & get_instance();
+    $CI->db->select('id');
+    $CI->db->from('tbl_kitchen_sales');
+    $CI->db->where('sale_no', $sale_no);
+    $CI->db->where('del_status', 'Live');
+    $query_result = $CI->db->get();
+    $row = $query_result->row();
+    if($row){
+        return $row->id;
+    }else{
+        return 0;
+    }
+}
+function getTotalDevuelto($sale_id) {
+    $CI = & get_instance();
+    $CI->db->select('sum(qty) as totalQty, sum(qty*menu_price_without_discount) as totalPrice');
+    $CI->db->from('tbl_kitchen_sales_details');
+    $CI->db->where('sales_id', $sale_id);
+    $CI->db->where('del_status', 'Deleted');
+    $query_result = $CI->db->get();
+    $row = $query_result->row();
+    if($row){
+        return $row->totalPrice;
     }else{
         return 0;
     }

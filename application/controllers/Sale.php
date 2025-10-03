@@ -13,6 +13,7 @@ class Sale extends Cl_Controller {
         $this->load->model('Waiter_model');
         $this->load->model('Master_model');
         $this->load->model('Inventory_model');
+        $this->load->model('Customer_due_receive_model');
         $this->load->library('form_validation');
 
         $this->load->library('facturasend');
@@ -1258,7 +1259,7 @@ class Sale extends Cl_Controller {
         }
         exit;
     }
-     /**
+    /**
      * add customer by ajax
      * @access public
      * @return int
@@ -1311,30 +1312,26 @@ class Sale extends Cl_Controller {
         // ==== FIN NUEVOS CAMPOS ====
 
         $id_return = 0;
-        if($customer_id>0 && $customer_id!=""){
-            $this->db->where('id', $customer_id);
+        $gst_number = isset($data['gst_number']) ? $data['gst_number'] : '';
+        $customer_name = isset($data['name']) ? $data['name'] : ''; // MODIFICACIÓN: Obtener el nombre para la búsqueda
+        $existing_customer = null;
+
+        // Prioriza la búsqueda por gst_number si se proporciona
+        if ($gst_number != '') {
+            $existing_customer = $this->db->select('id')->from('tbl_customers')->where('gst_number', $gst_number)->where('company_id', $data['company_id'])->get()->row();
+        } else if ($customer_name != '') { // MODIFICACIÓN: Si gst_number está vacío, busca por nombre
+            $existing_customer = $this->db->select('id')->from('tbl_customers')->where('name', $customer_name)->where('company_id', $data['company_id'])->get()->row();
+        }
+
+        if ($existing_customer) {
+            // Si se encontró un cliente (por gst_number o por nombre), se actualiza
+            $this->db->where('id', $existing_customer->id);
             $this->db->update('tbl_customers', $data);
-            $id_return =  $customer_id;
-        }else{
-            $gst_number = $data['gst_number'];
-            if($gst_number != ''){
-                $this->db->select('id');
-                $this->db->from('tbl_customers');
-                $this->db->where('gst_number', $gst_number);
-                $query = $this->db->get();
-                if($query->num_rows() > 0){
-                    $row = $query->row();
-                    $id_return = $row->id;
-                    $this->db->where('id', $id_return);
-                    $this->db->update('tbl_customers', $data);
-                } else {
-                    $this->db->insert('tbl_customers', $data);
-                    $id_return = $this->db->insert_id();
-                }
-            } else {
-                $this->db->insert('tbl_customers', $data);
-                $id_return = $this->db->insert_id();
-            }
+            $id_return = $existing_customer->id;
+        } else {
+            // Si no se encontró ningún cliente, se crea uno nuevo
+            $this->db->insert('tbl_customers', $data);
+            $id_return = $this->db->insert_id();
         }
         $customer_delivery_address_modal_id = trim_checker($this->input->post($this->security->xss_clean('customer_delivery_address_modal_id')));
         if($is_new_address=="Yes"){
@@ -1372,7 +1369,6 @@ class Sale extends Cl_Controller {
         $customer_return['customer_data'] = $customer_data;
         echo json_encode($customer_return) ;
     }
-
 
     public function search_customers() {
         $term = $this->input->get('q');
@@ -6246,9 +6242,14 @@ class Sale extends Cl_Controller {
                 }
                 $content[] = ['type' => 'extremos', 'textLeft' => $payment->payment_name . $txt_point, 'textRight' => getAmtPCustom($payment->amount)];
             }
-            $content[] = ['type' => 'text', 'align' => 'right', 'text' => '----------' ];
+        }
+        if($sale->due_amount && $sale->due_amount!="0.00"){
+            $content[] = ['type' => 'extremos', 'textLeft' => lang('due_amount'), 'textRight' => getAmtCustom($sale->due_amount)];
         }
         
+        if ($payments && !empty($payments)) {
+            $content[] = ['type' => 'text', 'align' => 'right', 'text' => '----------' ];
+        }
         // Pie del ticket
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['footer']];
 
@@ -6289,6 +6290,10 @@ class Sale extends Cl_Controller {
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
         $content[] = ['type' => 'cut'];
     
+        // echo '<pre>';
+        // var_dump($content); 
+        // echo '<pre>';
+        
         // Obtener la configuración de la impresora
         $company_id = $this->session->userdata('company_id');
         $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
@@ -7559,6 +7564,7 @@ class Sale extends Cl_Controller {
         $user_id = $this->session->userdata('user_id');
         $user_txt = $this->session->userdata('full_name');
         $data_base64 = $this->input->post('data_base64');
+        // $data_base64 = 'eyJwcmVpbXByZXNvX21vZGUiOiIxIiwiZmVjaGEiOiIyMDI1LTA5LTI5IiwicnVjIjoiNDE2MTQxNS0xIiwibm9tYnJlIjoiQ0xBVURJTyBEQU5JRUwgUElOVE8gTlXDkUVaIiwiZGlyZWNjaW9uIjoiIiwidG90YWwiOiI5NTAwMCIsInRpcG8iOiJ0b2RvcyIsImVzcGVjaWZpY28iOiIiLCJzYWxlX25vIjoiVFdUMjUwOTI5LTAwMSIsIml0ZW1zX2RhdGEiOlt7ImZvb2RfbWVudV9pZCI6IjIzMCIsImlzX3ByaW50IjoiMSIsImlzX2tvdF9wcmludCI6IjEiLCJtZW51X25hbWUiOiJQSVpaQSBNRURJQU5BIC0gQ09OIEJPUkRFIiwia2l0Y2hlbl9pZCI6IiIsImtpdGNoZW5fbmFtZSI6IiIsImlzX2ZyZWUiOiIwIiwicm91bmRpbmdfYW1vdW50X2hpZGRlbiI6MCwiaXRlbV92YXQiOiIiLCJtZW51X2Rpc2NvdW50X3ZhbHVlIjoiMCIsImRpc2NvdW50X3R5cGUiOiJmaXhlZCIsIm1lbnVfcHJpY2Vfd2l0aG91dF9kaXNjb3VudCI6NTUwMDAsIml2YV90aXBvIjoiMTAiLCJtZW51X3VuaXRfcHJpY2UiOjU1MDAwLCJxdHkiOjEsInRtcF9xdHkiOjAsInBfcXR5IjowLCJpdGVtX3ByZXZpb3VzX2lkIjoiIiwiaXRlbV9jb29raW5nX2RvbmVfdGltZSI6IiIsIml0ZW1fY29va2luZ19zdGFydF90aW1lIjoiIiwiaXRlbV9jb29raW5nX3N0YXR1cyI6IiIsIml0ZW1fdHlwZSI6IiIsIm1lbnVfcHJpY2Vfd2l0aF9kaXNjb3VudCI6NTUwMDAsIml0ZW1fZGlzY291bnRfYW1vdW50IjoiMCIsIm1vZGlmaWVyc19pZCI6IjUsNyIsIm1vZGlmaWVyc19uYW1lIjoiRnVnYXp6YSwgTG9tYm8iLCJtb2RpZmllcnNfcHJpY2UiOiIwLDAiLCJtb2RpZmllcl92YXQiOiJbXXx8fFtdIiwiaXRlbV9ub3RlIjoiIiwibWVudV9jb21ib19pdGVtcyI6IiJ9LHsiZm9vZF9tZW51X2lkIjoiMjMyIiwiaXNfcHJpbnQiOiIxIiwiaXNfa290X3ByaW50IjoiMSIsIm1lbnVfbmFtZSI6IlBJWlpBIFBFUlNPTkFMIC0gQ09OIEJPUkRFIiwia2l0Y2hlbl9pZCI6IiIsImtpdGNoZW5fbmFtZSI6IiIsImlzX2ZyZWUiOiIwIiwicm91bmRpbmdfYW1vdW50X2hpZGRlbiI6MCwiaXRlbV92YXQiOltdLCJtZW51X2Rpc2NvdW50X3ZhbHVlIjoiMCIsImRpc2NvdW50X3R5cGUiOiJmaXhlZCIsIm1lbnVfcHJpY2Vfd2l0aG91dF9kaXNjb3VudCI6NDAwMDAsIml2YV90aXBvIjoiMTAiLCJtZW51X3VuaXRfcHJpY2UiOjQwMDAwLCJxdHkiOjEsInRtcF9xdHkiOjAsInBfcXR5IjoxLCJpdGVtX3ByZXZpb3VzX2lkIjoiIiwiaXRlbV9jb29raW5nX2RvbmVfdGltZSI6IiIsIml0ZW1fY29va2luZ19zdGFydF90aW1lIjoiIiwiaXRlbV9jb29raW5nX3N0YXR1cyI6IiIsIml0ZW1fdHlwZSI6IiIsIm1lbnVfcHJpY2Vfd2l0aF9kaXNjb3VudCI6NDAwMDAsIml0ZW1fZGlzY291bnRfYW1vdW50IjoiMCIsIm1vZGlmaWVyc19pZCI6IjgsMTciLCJtb2RpZmllcnNfbmFtZSI6IkNhbGFicmVzYSwgSXRhbGlhbmEiLCJtb2RpZmllcnNfcHJpY2UiOiIwLDAiLCJtb2RpZmllcl92YXQiOiJbXXx8fFtdIiwiaXRlbV9ub3RlIjoiIiwibWVudV9jb21ib19pdGVtcyI6IiJ9XSwiaXRlbXMiOlt7InF1YW50aXR5X3B1cmNoYXNlZCI6MSwiUHJvZHVjdG8iOiJ0b2RvcyIsIml0ZW1fdW5pdF9wcmljZSI6Ijk1MDAwIiwidG90YWwiOiI5NTAwMCJ9XX0=';
         $data_base64 = urldecode($data_base64);
         $data_json = urldecode(base64_decode($data_base64));
         $data = json_decode($data_json);
@@ -7665,8 +7671,13 @@ class Sale extends Cl_Controller {
                 'user_name' => $user_txt,
             ]);
         }
-    
-        $this->load->view("preimpreso_1", $data);
+
+        // $this->load->config('config');
+        if ( $this->config->item('plantilla_pre_impreso') == '2'){
+            $this->load->view("preimpreso_2", $data);
+        } else {
+            $this->load->view("preimpreso_1", $data);
+        }
     }
 
     // public function preimpreso() {
@@ -8949,6 +8960,7 @@ class Sale extends Cl_Controller {
             'venta_id_sistema'  => $sale->id,
             'fecha'             => date('Y-m-d\TH:i:s'),
             'moneda'            => 'PYG',
+            'tipo_documento'    => 1, // 1 = Factura Electrónica
             'punto_expedicion'  => $punto_expedicion_valido, // Objeto del propio helper, es seguro pasarlo.
             'cliente'           => $cliente_normalizado,
             'usuario'           => $usuario_normalizado,
@@ -9090,6 +9102,7 @@ class Sale extends Cl_Controller {
             'venta_id_sistema'  => $sale->id,
             'fecha'             => date('Y-m-d\TH:i:s'),
             'moneda'            => 'PYG',
+            'tipo_documento'    => 1, // 1 = Factura Electrónica
             'punto_expedicion'  => $punto_expedicion_valido,
             'cliente'           => $cliente_normalizado,
             'usuario'           => $usuario_normalizado,
@@ -9180,6 +9193,11 @@ class Sale extends Cl_Controller {
         $user = $this->db->where('id', $sale->user_id)->get('tbl_users')->row();
         $payment_methods = json_decode('[{"payment_id":"1","amount":"'.$sale->total_payable.'"}]', true);
 
+        if (!((int)$customer->departamento_id > 0 && (int)$customer->distrito_id > 0 && (int)$customer->ciudad_id > 0)) {
+            $customer->departamento_id = $this->config->item('sifen_default_departamento');
+            $customer->distrito_id = $this->config->item('sifen_default_distrito');
+            $customer->ciudad_id = $this->config->item('sifen_default_ciudad');
+        }
         // Normalización (tu código existente es correcto)
         $cliente_normalizado = [
             'id_sistema'        => $customer->id, 'es_contribuyente'  => (bool)$customer->es_contribuyente,
@@ -9212,7 +9230,8 @@ class Sale extends Cl_Controller {
 
         $invoice_data = [
             'venta_id_sistema'  => $sale_id, 'fecha' => date('Y-m-d\TH:i:s'),
-            'moneda' => 'PYG', 'punto_expedicion' => $punto_expedicion_valido,
+            'moneda' => 'PYG', 'tipo_documento' => 1, // 1 = Factura Electrónica
+            'punto_expedicion' => $punto_expedicion_valido,
             'cliente' => $cliente_normalizado, 'usuario' => $usuario_normalizado,
             'items' => $items_normalizados, 'condicion_venta' => $condicion_normalizada
         ];
@@ -9274,16 +9293,16 @@ class Sale extends Cl_Controller {
             return;
         }
 
-        // 2. Verificar si ya tiene una factura exitosa
-        if ($kitchen_sale->fe_estado === 'EXITO' && !empty($kitchen_sale->fe_cdc)) {
-            $this->db->trans_rollback();
-            $this->output->set_output(json_encode([
-                'status' => 'info', 
-                'message' => 'Esta orden ya tiene una factura generada.', 
-                'cdc' => $kitchen_sale->fe_cdc
-            ]));
-            return;
-        }
+        // // 2. Verificar si ya tiene una factura exitosa
+        // if ($kitchen_sale->fe_estado === 'EXITO' && !empty($kitchen_sale->fe_cdc)) {
+        //     $this->db->trans_rollback();
+        //     $this->output->set_output(json_encode([
+        //         'status' => 'info', 
+        //         'message' => 'Esta orden ya tiene una factura generada.', 
+        //         'cdc' => $kitchen_sale->fe_cdc
+        //     ]));
+        //     return;
+        // }
 
         // 3. Obtener los detalles de la orden usando el ID de la orden encontrada
         $kitchen_sale_details = $this->db->where('sales_id', $kitchen_sale->id)->get('tbl_kitchen_sales_details')->result();
@@ -9304,6 +9323,310 @@ class Sale extends Cl_Controller {
 
         // 5. Devolver el resultado de la facturación
         $this->output->set_output(json_encode($fe_result));
+    }
+
+    public function getCustomerDue() {
+        $customer_id = $_GET['customer_id']; 
+
+        $customer = $this->db->get_where('tbl_customers', [
+            'id' => $customer_id,
+            'company_id' => '1',
+            'del_status' => 'Live'
+        ])->row();
+
+        $remaining_due = $this->Customer_due_receive_model->getCustomerDue($customer_id);
+        if ($remaining_due === null) {
+            $remaining_due = 0;
+        }
+        $formatted_due = (isset($remaining_due) && $remaining_due ? getAmtP($remaining_due) : getAmtP(0));
+
+
+        $response = [
+            'customer' => $customer,
+            'remaining_due' => $remaining_due,
+            'formatted_due' => $formatted_due
+        ];
+        header('Content-Type: application/json');
+        echo json_encode($response);
+    }
+
+    
+    /**
+     * Procesa el pago de una deuda de cliente a través de AJAX desde la vista POS.
+     */
+    public function addCustomerDueReceiveAjax() {
+        // Establecer el tipo de contenido de la respuesta a JSON
+        header('Content-Type: application/json');
+
+        // Función para enviar respuestas JSON y terminar la ejecución
+        $json_response = function($status, $msg, $data = []) {
+            echo json_encode(['status' => $status, 'msg' => $msg, 'data' => $data]);
+            exit;
+        };
+
+        // 1. Verificación de seguridad y estado del registro (casi idéntico al original)
+        $is_waiter = $this->session->userdata('is_waiter');
+        $designation = $this->session->userdata('designation');
+        if ($designation != "Waiter" && $this->session->has_userdata('is_online_order') != "Yes" && !isFoodCourt()) {
+            $user_id = $this->session->userdata('user_id');
+            $outlet_id = $this->session->userdata('outlet_id');
+            if ($this->Common_model->isOpenRegister($user_id, $outlet_id) == 0) {
+                $json_response('error', lang('register_open_msg'));
+            }
+        }
+
+        // 2. Reglas de validación del formulario
+        $this->form_validation->set_rules('date', lang('date'), 'required');
+        $this->form_validation->set_rules('amount', lang('amount'), 'required|numeric');
+        $this->form_validation->set_rules('customer_id', lang('customer'), 'required|integer');
+        $this->form_validation->set_rules('payment_id', lang('payment_method'), 'required|integer');
+        $this->form_validation->set_rules('note', lang('note'), 'max_length[200]');
+        
+        // Asignar mensajes de error personalizados si lo deseas
+        $this->form_validation->set_error_delimiters('', ''); // Para limpiar los delimitadores por defecto
+
+        if ($this->form_validation->run() == TRUE) {// Asumiendo que las reglas ya están seteadas
+            try {
+                $outlet_id = $this->session->userdata('outlet_id');
+
+                $due_receive_info = [
+                    'date' => date("Y-m-d H:i:s"),
+                    'only_date' => date("Y-m-d", strtotime($this->input->post('date'))),
+                    'amount' => $this->input->post('amount'),
+                    'reference_no' => $this->Customer_due_receive_model->generateReferenceNo($outlet_id),
+                    'customer_id' => $this->input->post('customer_id'),
+                    'payment_id' => $this->input->post('payment_id'),
+                    'note' => $this->input->post('note'),
+                    'counter_id' => $this->session->userdata('counter_id'),
+                    'user_id' => $this->session->userdata('user_id'),
+                    'outlet_id' => $outlet_id,
+                    'company_id' => $this->session->userdata('company_id')
+                ];
+
+                $due_receive_info = $this->security->xss_clean($due_receive_info);
+                
+                // Usamos insertInformationAndGetId para obtener el ID del nuevo registro
+                $payment_id = $this->Common_model->insertInformationAndGetId($due_receive_info, "tbl_customer_due_receives");
+
+                if ($payment_id) {
+                    // --- ¡NUEVO! CALCULAR EL SALDO RESTANTE ---
+                    $new_remaining_due = getCustomerDue($this->input->post('customer_id'));
+
+                    // Preparamos los datos para la impresión y los devolvemos
+                    $customer_info = $this->Common_model->getDataById($due_receive_info['customer_id'], 'tbl_customers');
+                    $payment_method_info = $this->Common_model->getDataById($due_receive_info['payment_id'], 'tbl_payment_methods');
+                    
+                    $print_data = [
+                        'payment_id' => $payment_id,
+                        'ref_no' => $due_receive_info['reference_no'],
+                        'date' => date($this->session->userdata('date_format'), strtotime($due_receive_info['only_date'])),
+                        'customer' => $customer_info->name,
+                        'payment_method' => $payment_method_info->name,
+                        'amount' => getAmtP($due_receive_info['amount']),
+                        'note' => $due_receive_info['note'],
+                        // --- ¡NUEVO! AÑADIMOS EL SALDO FORMATEADO A LA RESPUESTA ---
+                        'new_balance' => getAmtP($new_remaining_due)
+                    ];
+                    $json_response('ok', lang('insertion_success'), $print_data);
+                } else {
+                    $json_response('error', 'No se pudo guardar el pago.');
+                }
+
+            } catch (Exception $e) {
+                $json_response('error', $e->getMessage());
+            }
+
+        } else {
+            // 6. Si la validación falla, enviar los errores
+            $errors = [
+                'date' => form_error('date'),
+                'amount' => form_error('amount'),
+                'customer_id' => form_error('customer_id'),
+                'payment_id' => form_error('payment_id'),
+                'note' => form_error('note')
+            ];
+            $json_response('validation_error', 'Por favor, corrige los errores.', $errors);
+        }
+    }
+    // En tu controlador: Customer_due_receive.php
+
+    /**
+     * Genera el hash para la app de impresión para un recibo de pago específico.
+     * @param int $payment_id El ID del pago desde tbl_customer_due_receives
+     */
+    public function printer_app_due_receive($payment_id) {
+        // 1. OBTENER LOS DATOS DEL PAGO
+        // Llama a la función del modelo para obtener todos los detalles necesarios.
+        $payment = $this->Common_model->get_customer_due_receive_details($payment_id);
+
+        // Validar si el pago existe
+        if (!$payment) {
+            // Puedes manejar el error como prefieras.
+            // Por ahora, simplemente detenemos la ejecución.
+            echo "Error: Pago no encontrado.";
+            return;
+        }
+
+        // 2. OBTENER LA INFORMACIÓN DE LA EMPRESA DESDE LA SESIÓN
+        $company = [
+            'name' => $this->session->userdata('outlet_name'),
+            'address' => $this->session->userdata('address'),
+            'phone' => $this->session->userdata('phone'),
+            'footer' => $this->session->userdata('invoice_footer'),
+        ];
+
+        // --- ¡NUEVO! CALCULAR EL SALDO RESTANTE ---
+        $new_remaining_due = $this->Customer_due_receive_model->getCustomerDue($payment->customer_id);
+
+        // 3. CONSTRUIR EL ARRAY DE CONTENIDO (réplica de la lógica de printer_app_bill)
+        $content = [];
+
+        // Encabezado de la empresa
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['name']];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => $company['address']];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'Tel: ' . $company['phone']];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => '']; // Espacio
+
+        // Título del documento
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => '--------------------------------'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'RECIBO DE PAGO'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => '--------------------------------'];
+
+        // Información del recibo
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Fecha: ' . date($this->session->userdata('date_format'), strtotime($payment->only_date))];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Ref. No: 0' . escape_output($payment_id)];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Cliente: ' . escape_output($payment->customer_name)];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Recibido por: ' . escape_output($payment->user_name)];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => '']; // Espacio
+
+        // Detalles del pago
+        $content[] = ['type' => 'extremos', 'textLeft' => 'Método de Pago', 'textRight' => escape_output($payment->payment_method_name)];
+
+        // Nota (si existe)
+        if ($payment->note) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => '----------'];
+            $content[] = ['type' => 'text', 'align' => 'left', 'text' => 'Nota: ' . escape_output($payment->note)];
+        }
+
+        // Total
+        $content[] = ['type' => 'text', 'align' => 'right', 'text' => '----------'];
+        $content[] = ['type' => 'extremos', 'textLeft' => 'TOTAL PAGADO:', 'textRight' => getAmtPCustom($payment->amount)];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => '']; // Espacio
+
+        // Pie del ticket
+        // --- SECCIÓN DE SALDO AÑADIDA ---
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => '--------------------------------'];
+        $content[] = ['type' => 'extremos', 
+            'textLeft' => 'Saldo actual:', 
+            'textRight' => getAmtPCustom($new_remaining_due)
+        ];
+        $content[] = ['type' => 'text', 'align' => 'left', 'text' => '('.date($this->session->userdata('date_format')." H:i").')'];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => '']; // Espacio
+        
+
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
+        $content[] = ['type' => 'text', 'align' => 'center', 'text' => "\n"];
+        $content[] = ['type' => 'cut'];
+
+        // 4. OBTENER CONFIGURACIÓN DE LA IMPRESORA (lógica idéntica a printer_app_bill)
+        $company_id = $this->session->userdata('company_id');
+        $company_data = $this->Common_model->getDataById($company_id, "tbl_companies");
+
+        $counter_details = $this->Common_model->getPrinterIdByCounterId($this->session->userdata('counter_id'));
+        $printer = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
+        $path = @$printer->path;
+
+        $print_format = $company_data->print_format_bill;
+        $width = ($print_format == "80mm") ? 80 : 58;
+
+        // 5. CREAR EL OBJETO DE SOLICITUD DE IMPRESIÓN
+        $printRequest = [
+            'printer' => $path,
+            'width' => $width,
+            'content' => filterArrayRecursivelyEscPos($content) // Usamos la misma función de filtrado
+        ];
+        
+        // 6. CONVERTIR A JSON, COMPRIMIR Y CODIFICAR EN BASE64
+        $data = json_encode($printRequest);
+        $compressed = gzdeflate($data, 9);
+        $base64 = base64_encode($compressed);
+
+        // 7. DEVOLVER EL HASH FINAL
+        echo $base64;
+    }
+
+    
+    /**
+     * OBTIENE LOS ÚLTIMOS 10 PAGOS DE DEUDA DE LA SUCURSAL ACTUAL
+     * Devuelve una lista en formato JSON para ser usada por AJAX.
+     */
+    public function getLastTenDueReceives() {
+        header('Content-Type: application/json');
+        $outlet_id = $this->session->userdata('outlet_id');
+        
+        $this->db->select('r.*, c.name as customer_name, u.full_name as user_name, pm.name as payment_method_name');
+        $this->db->from('tbl_customer_due_receives r');
+        $this->db->join('tbl_customers c', 'c.id = r.customer_id', 'left');
+        $this->db->join('tbl_users u', 'u.id = r.user_id', 'left');
+        $this->db->join('tbl_payment_methods pm', 'pm.id = r.payment_id', 'left');
+        $this->db->where('r.outlet_id', $outlet_id);
+        $this->db->where('r.del_status', 'Live');
+        $this->db->order_by('r.id', 'DESC');
+        $this->db->limit(10);
+        
+        $query = $this->db->get();
+        $result = $query->result();
+
+        // Limpiar datos para el cliente
+        foreach ($result as $row) {
+            $row->only_date = date($this->session->userdata('date_format'), strtotime($row->only_date));
+            $row->amount = getAmtP($row->amount);
+        }
+
+        echo json_encode($result);
+        exit;
+    }
+
+    /**
+     * NUEVO: Obtiene los detalles de un pago de deuda específico para reimpresión.
+     * @param int $payment_id El ID del pago a buscar.
+     */
+    public function getDueReceiveDetailsForPrint($payment_id) {
+        header('Content-Type: application/json');
+
+        // 1. Obtener los detalles del pago (usando un join similar al de la lista)
+        $this->db->select('r.*, c.name as customer_name, pm.name as payment_method_name');
+        $this->db->from('tbl_customer_due_receives r');
+        $this->db->join('tbl_customers c', 'c.id = r.customer_id', 'left');
+        $this->db->join('tbl_payment_methods pm', 'pm.id = r.payment_id', 'left');
+        $this->db->where('r.id', $payment_id);
+        $this->db->where('r.del_status', 'Live');
+        $payment = $this->db->get()->row();
+
+        if (!$payment) {
+            echo json_encode(['status' => 'error', 'msg' => 'Pago no encontrado.']);
+            exit;
+        }
+
+        // 2. Calcular el saldo ACTUAL del cliente
+        $current_balance = $this->Customer_due_receive_model->getCustomerDue($payment->customer_id);
+
+        // 3. Construir el objeto de datos para la impresión (misma estructura que antes)
+        $print_data = [
+            'payment_id'      => (int)$payment->id,
+            'customer_id'     => (int)$payment->customer_id,
+            'ref_no'          => $payment->reference_no,
+            'date'            => date($this->session->userdata('date_format'), strtotime($payment->only_date)),
+            'customer'        => $payment->customer_name,
+            'payment_method'  => $payment->payment_method_name,
+            'amount'          => getAmtP($payment->amount),
+            'note'            => $payment->note,
+            'new_balance'     => getAmtP($current_balance)
+        ];
+
+        // 4. Devolver los datos en un formato JSON consistente
+        echo json_encode(['status' => 'ok', 'data' => $print_data]);
+        exit;
     }
 
 }

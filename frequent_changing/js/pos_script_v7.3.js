@@ -4888,7 +4888,7 @@
 
     $(document).on("click", "#preimpresa_imprimir_button", function() {
         const sale_no = $(this).data('sale_no');
-        console.log('Sale No:', sale_no);
+        // console.log('Sale No:', sale_no);
         // Obtener los datos del formulario
 
         const fecha = removeHtmlTags($("#preimpresa_fecha").val());
@@ -4990,7 +4990,7 @@
 
             // Imprimir usando un iframe oculto
             function imprimirEnIframe(data) {
-                console.log(data);
+                // console.log(data);
                 const dataJson = JSON.stringify(data);
                 const dataBase64 = btoa(unescape(encodeURIComponent(dataJson)));
                 $.ajax({
@@ -9967,6 +9967,9 @@ function getSafePrice(priceAttr) {
   
                 $("#finalize_update_type").html("1"); //when 1 just update payment method and order status to 2 invoice order
                 calculate_create_invoice_modal();
+                setTimeout(() => {
+                    updateFinalizeDueVisual();
+                }, 500);
               },
               error: function () {
                 alert(a_error);
@@ -10018,58 +10021,96 @@ function getPaymentArrayWithChangeAndDue() {
     }
     return payments;
 }
-        function updateFinalizeDueVisual() {
-            // let totalPayable = parseCurrencyToNumber($("#finalize_total_payable").text());
-            // let totalPaid = 0;
-            // $(".payment_list_counter").each(function () {
-            //     totalPaid += Number($(this).attr('data-amount'));
-            // });
+
+        // $(document).on("click", "#set_due_payment_btn", function(e) {
+        //     e.preventDefault();
+        //     // Dejar el faltante como deuda solo si hay diferencia negativa
+        //     let totalPayable = parseCurrencyToNumber($("#finalize_total_payable").text());
+        //     let totalPaid = 0;
+        //     $(".payment_list_counter").each(function () {
+        //         totalPaid += Number($(this).attr('data-amount'));
+        //     });
+        //     let diff = totalPaid - totalPayable;
         
-            // let diff = totalPaid - totalPayable;
-            // $("#finalize_total_due").text(Math.abs(diff).toFixed(ir_precision));
-        
-            let diff = parseCurrencyToNumber($("#finalize_total_due").text());
-            // console.log(diff);
-            if (diff < 0) {
-                // Hay vuelto
-                $("#finalize_total_due_title").text("Vuelto");
-                $("#set_due_payment_btn").hide();
-                $("#finalize_order_button").prop("disabled", false); // Habilita finalizar
-            } else if (diff > 0) {
-                // Falta dinero
-                $("#finalize_total_due_title").text("Falta");
-                $("#set_due_payment_btn").show();
-                $("#finalize_order_button").prop("disabled", true); // Deshabilita finalizar
-            } else {
-                // Exacto
-                $("#finalize_total_due_title").text("Falta");
-                $("#set_due_payment_btn").hide();
-                $("#finalize_order_button").prop("disabled", false); // Habilita finalizar
-            }
-        }
+        //     if (diff < 0) {
+        //         // Agrega un pago de tipo "Deuda"
+        //         let html = '<li class="payment_list_counter" data-payment_name="Deuda Cliente" data-payment_id="999" data-amount="'+ (Math.abs(diff)).toFixed(ir_precision) +'">' +
+        //             '<span class="payment-type-name">Deuda Cliente</span>' +
+        //             '<div>'+currency+'<span class="payment_list_amount">'+formatNumberToCurrency(Math.abs(diff))+'</span>' +
+        //             '<i class="fas fa-times-circle remove_paid_item"></i>' +
+        //             '</div></li>';
+        //         $("#payment_list_div").append(html);
+        //         updateFinalizeDueVisual();
+        //     }
+        // });
+
 
         $(document).on("click", "#set_due_payment_btn", function(e) {
             e.preventDefault();
-            // Dejar el faltante como deuda solo si hay diferencia negativa
+
+            // 1. Validar que no se haya agregado ya un pago de tipo "Deuda Cliente"
+            let check_exist = false;
+            $(".payment_list_counter").each(function () {
+                if (Number($(this).attr('data-payment_id')) === 999) {
+                    check_exist = true;
+                }
+            });
+
+            if (check_exist) {
+                // Usamos la variable global 'toastr' que ya estás usando en tu código
+                // Si no tienes una variable para este texto, puedes escribirlo directamente.
+                let already_added = $("#already_added").val() || 'Este método de pago ya fue agregado.';
+                toastr['error'](already_added);
+                return; // Detenemos la ejecución
+            }
+
+            // 2. Calcular el monto faltante (deuda)
             let totalPayable = parseCurrencyToNumber($("#finalize_total_payable").text());
             let totalPaid = 0;
             $(".payment_list_counter").each(function () {
                 totalPaid += Number($(this).attr('data-amount'));
             });
-            let diff = totalPaid - totalPayable;
-        
-            if (diff < 0) {
-                // Agrega un pago de tipo "Deuda"
-                let html = '<li class="payment_list_counter" data-payment_name="Deuda Cliente" data-payment_id="999" data-amount="'+ (Math.abs(diff)).toFixed(ir_precision) +'">' +
-                    '<span class="payment-type-name">Deuda Cliente</span>' +
-                    '<div>'+currency+'<span class="payment_list_amount">'+formatNumberToCurrency(Math.abs(diff))+'</span>' +
+
+            // La deuda es la diferencia, asegurándonos de que sea un valor positivo.
+            let dueAmount = totalPayable - totalPaid;
+
+            // 3. Solo agregar el pago si realmente hay una deuda pendiente.
+            if (dueAmount > 0.009) { // Usamos un umbral pequeño para evitar errores de punto flotante
+                
+                // El ID y nombre para la deuda son fijos.
+                const payment_id = 999;
+                const payment_name = 'Deuda Cliente';
+                const usage_point = 0; // No aplica para deudas
+
+                // 4. Construir el elemento HTML para la lista de pagos (similar a #add_payment)
+                let html = '<li class="payment_list_counter" data-usage_point="'+usage_point+'" data-payment_name="'+payment_name+'" data-payment_id="'+payment_id+'" data-amount="'+ dueAmount.toFixed(ir_precision)+'">' +
+                    '<span class="payment-type-name">' + payment_name + '</span>' +
+                    '<div>' +
+                    currency + '<span class="payment_list_amount">' + formatNumberToCurrency(dueAmount) + '</span>' +
                     '<i class="fas fa-times-circle remove_paid_item"></i>' +
-                    '</div></li>';
+                    '</div>' +
+                    '</li>';
+
+                // 5. Agregar el HTML y actualizar la UI usando las funciones existentes
+                $(".empty_title").hide();
                 $("#payment_list_div").append(html);
-                updateFinalizeDueVisual();
+                
+                // Limpiamos los campos de entrada por si había algo escrito
+                $("#finalize_amount_input").val('');
+                $("#finalize_given_amount_input").val('');
+                $("#finalize_change_amount_input").val('');
+
+                // 6. Llamar a las funciones de actualización que usa el botón #add_payment
+                setAnimation(); // Para la animación de la lista
+                cal_finalize_modal(''); // Función clave para recalcular todos los totales
+                set_default_payment(); // Restablece la selección de pago por defecto
+                updateFinalizeDueVisual(); // Actualiza la apariencia visual de la deuda
+
+            } else {
+                // Informar al usuario que no hay deuda que agregar
+                toastr['info']('No hay monto pendiente para agregar como crédito.');
             }
         });
-
       let isProcessingPayment = false; // Variable global
 
       $(document).on("click", "#finalize_order_button", function (e) {
@@ -10625,13 +10666,59 @@ function getPaymentArrayWithChangeAndDue() {
           error++;
         }
   
-        if(tax_is_gst=="Yes"){
-            if (!same_or_diff_state) {
-                let op1 = $(".same_or_diff_state_modal").data("select2");
-                op1.open();
-              error++;
+        // --- INICIO DE LA MODIFICACIÓN ---
+
+        // 1. Definimos la lista de campos que serán obligatorios si el cliente es contribuyente.
+        const contribuyenteFields = [
+            'customer_gst_number_modal', 
+            'customer_tipo_contribuyente_modal', 
+            'codigo_pais', 
+            'distrito_id', 
+            'departamento_id', 
+            'ciudad_id', 
+            'customer_tipo_documento_modal'
+        ];
+
+        // 2. Reseteamos los bordes de todos los campos (los que ya tenías y los nuevos)
+        // para limpiar errores de validaciones anteriores.
+        $("#customer_name_modal, #customer_phone_modal, #customer_password_modal").css("border", "1px solid #B5D6F6");
+        contribuyenteFields.forEach(id => {
+            const $field = $(`#${id}`);
+            if ($field.length) {
+                $field.css("border", "1px solid #B5D6F6");
             }
+        });
+
+        // 3. Validación principal del nombre
+        if (customer_name == "") {
+        $("#customer_name_modal").css("border", "1px solid red");
+        error++;
         }
+
+        // 4. Lógica de validación para contribuyentes
+        const isContribuyenteChecked = $("#customer_es_contribuyente_modal").is(":checked");
+
+        if (isContribuyenteChecked) {
+            contribuyenteFields.forEach(id => {
+                const $field = $(`#${id}`);
+                // Solo validamos el campo si existe en el DOM.
+                if ($field.length) {
+                    if ($field.val() === "" || $field.val() === null) {
+                        $field.css("border", "1px solid red");
+                        error++;
+                    }
+                }
+            });
+        }
+
+        // --- FIN DE LA MODIFICACIÓN ---
+        // if(tax_is_gst=="Yes"){
+        //     if (!same_or_diff_state) {
+        //         let op1 = $(".same_or_diff_state_modal").data("select2");
+        //         op1.open();
+        //       error++;
+        //     }
+        // }
   
         if (customer_id == "" && customer_password=='' && is_online_order=="Yes") {
           $("#customer_password_modal").css("border", "1px solid red");
@@ -13835,12 +13922,14 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
         let payment_name = $(this).attr("data-payment_name");
         let usage_point = $(this).attr("data-usage_point") || "";
         let amount = parseFloat($(this).attr("data-amount")) || 0;
-        payments.push({
-            payment_id: payment_id,
-            payment_name: payment_name,
-            usage_point: usage_point,
-            amount: amount
-        });
+        if (payment_id != "999") {
+            payments.push({
+                payment_id: payment_id,
+                payment_name: payment_name,
+                usage_point: usage_point,
+                amount: amount
+            });
+        }
         totalPaid += amount;
     });
 
@@ -13888,7 +13977,28 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
 
         paid_amount = parseCurrencyToNumber($("#finalize_total_paid").html());
         // due_amount = parseCurrencyToNumber($("#finalize_total_due").html());
-        due_amount = 0; // Asumiendo que al cerrar la orden no debería haber deuda
+        // due_amount = 100000; // Asumiendo que al cerrar la orden no debería haber deuda
+            // --- INICIO DE LA MODIFICACIÓN ---
+    
+        // 1. Inicializamos la deuda del cliente en 0.
+        let customer_due_amount = 0;
+
+        // 2. Iteramos sobre la lista de pagos que el usuario ha agregado en el modal.
+        //    Buscamos específicamente el pago con el ID 999 (Deuda Cliente).
+        $("#payment_list_div .payment_list_counter").each(function() {
+            const paymentId = Number($(this).data('payment_id'));
+            if (paymentId === 999) {
+                // Si encontramos el pago de deuda, obtenemos su monto.
+                customer_due_amount = Number($(this).data('amount'));
+                // No es necesario seguir buscando, así que podemos salir del bucle.
+                return false; 
+            }
+        });
+
+        // 3. Asignamos el valor encontrado a la variable que se enviará al backend.
+        //    Si no se encontró un pago de tipo deuda, su valor será 0.
+        due_amount = customer_due_amount;
+
         let change_amount = parseCurrencyToNumber($("#finalize_total_due").html());
   
         let is_multi_currency = $("#is_multi_currency").val();
@@ -20134,6 +20244,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
           $("#finalize_amount_input").val('');
           remove_paid_list_title();
           cal_finalize_modal('');
+          updateFinalizeDueVisual();
       });
   
   
@@ -22088,7 +22199,6 @@ function openPaymentModalForNumber(saleNo) {
     let $order = $(`.single_order[data-sale_no="${saleNo}"]`);
     if ($order.length) {
         $order.attr('data-selected', 'selected');
-        updateFinalizeDueVisual();
         
         // Pequeña pausa para asegurar la selección
         setTimeout(() => {
@@ -22111,11 +22221,15 @@ function openPaymentModalForNumber(saleNo) {
                 // Hacer clic en el botón real de pago
                 $("#create_invoice_and_close").click();
             }
+            updateFinalizeDueVisual();
         }, 100);
     } else {
         toastr['error']('No se encontró la orden correspondiente', 'Error');
         console.log('No se encontró la orden correspondiente','openPaymentModalForNumber');
     }
+        setTimeout(() => {
+            updateFinalizeDueVisual();
+        }, 500);
 }
 
 // Función para emular el botón de modificar orden
@@ -22337,6 +22451,7 @@ $('#walk_in_customer, #walk_in_customer1').on('change', function() {
     var newVal = $(this).val();
     // Actualiza el otro select (sin provocar loop infinito)
     $('#walk_in_customer, #walk_in_customer1').not(this).val(newVal).trigger('change.select2');
+    fetch_customer_due(newVal);
 });
 
 function selectDefaultOrPlaceholderCustomer() {
@@ -22547,6 +22662,7 @@ window.getDataCustomerSelect2 = getDataCustomerSelect2;
 window.agregarClienteSelect2 = agregarClienteSelect2;
 window.getSelectedCustomerData = getSelectedCustomerData;
 window.create_bill_and_close = create_bill_and_close;
+// window.updateFinalizeDueVisual = updateFinalizeDueVisual;
 
   })(jQuery);
   

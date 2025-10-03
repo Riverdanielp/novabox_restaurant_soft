@@ -971,4 +971,441 @@ $(function () {
             }
         );
     });
+
+    let print_type = $(".print_type_bill").val(); 
+
+    
+    // Abrir modal, limpiar y cargar pagos recientes
+    $(document).on('click', '#remaining_due', function() {
+        let customerId = $("#walk_in_customer").val();
+        let customerName = $("#walk_in_customer option:selected").text();
+
+        if (!customerId) {
+            toastr['error']('Por favor, selecciona un cliente primero.', '');
+            return;
+        }
+
+        $("#pay_due_modal_customer_id").val(customerId);
+        $("#pay_due_modal_customer_name").text(customerName);
+
+        // $('#pay_due_modal_amount').val('');
+        // $('#pay_due_modal_note').val('');
+        // $('#pay_due_modal_payment_id').val('').trigger('change');
+
+        $("#pay_due_modal_registro").addClass("active");
+        
+        // Cargar la lista de pagos recientes
+        loadRecentDuePayments();
+    });
+    
+    // Cerrar modal de gasto
+    $(document).on('click', '.close_pay_due_modal', function() {
+        $("#pay_due_modal_registro").removeClass("active");
+    });
+
+
+    // // Enviar el formulario de pago de deuda
+    // $(document).on('click', '#pay_due_modal_submit', function() {
+    //     let $btn = $(this);
+    //     $btn.prop('disabled', true);
+    //     let base_url = $("#base_url_customer").val();
+    
+    //     // Obteniendo todos los valores del modal
+    //     let customerIdVal = $('#pay_due_modal_customer_id').val();
+    //     let dateVal = $('#pay_due_modal_date').val();
+    //     let amountVal = $('#pay_due_modal_amount').val();
+    //     let paymentVal = $('#pay_due_modal_payment_id').val();
+    //     let noteVal = $('#pay_due_modal_note').val();
+    //     let csrf_value_ = $("#csrf_value_").val();
+    //     // let csrfName = "<?php echo $this->security->get_csrf_token_name(); ?>";
+    //     // let csrfHash = "<?php echo $this->security->get_csrf_hash(); ?>";
+
+    //     // Validación local rápida
+    //     let error = false;
+    //     if (!amountVal || parseFloat(amountVal) <= 0) {
+    //         toastr['error']('El campo Monto es requerido y debe ser mayor a cero.', '');
+    //         error = true;
+    //     }
+    //     if (!paymentVal) {
+    //         toastr['error']('El campo Método de Pago es requerido.', '');
+    //         error = true;
+    //     }
+    //     if (error) {
+    //         $btn.prop('disabled', false);
+    //         return;
+    //     }
+
+    //     // Preparar datos del formulario para enviar
+    //     let formData = {
+    //         customer_id: customerIdVal,
+    //         date: dateVal,
+    //         amount: amountVal,
+    //         payment_id: paymentVal,
+    //         note: noteVal
+    //     };
+    //     // formData[csrfName] = csrfHash;
+    
+    //     $.ajax({
+    //         url: base_url + "Sale/addCustomerDueReceiveAjax",
+    //         method: "POST",
+    //         data: formData,
+    //         dataType: "json",
+    //         success: function(resp) {
+    //             if (resp.status == "ok") {
+    //                 toastr['success'](resp.msg, 'Éxito');
+    //                 $("#pay_due_modal_registro").removeClass("active");
+                    
+    //                 let print_type_bill = $(".print_type_bill").val();
+    //                 if (print_type_bill == "printer_app") {
+                        
+    //                     $.ajax({
+    //                         url: base_url + "Sale/printer_app_bill/" + sale_no,
+    //                         method: "GET",
+    //                         success: function(base64) {
+    //                             // console.log(base64);
+    //                             window.location.href = 'print://' + base64;
+    //                         },
+    //                         error: function() {
+    //                             alert("Error al generar el ticket para la impresora.");
+    //                         }
+    //                     });
+
+    //                 } else {
+    //                     print_pay_due_receipt(data);
+    //                 }
+    //                 // Opcional: Actualizar la información de la deuda del cliente en la UI del TPV
+    //                 // Esto es importante para que el usuario vea el cambio reflejado.
+    //                 // Podrías necesitar otra llamada AJAX para obtener la nueva deuda.
+    //                 fetch_customer_due(customerIdVal);
+    //             } else {
+    //                 toastr['error'](resp.msg, 'Error');
+    //                 // Si hay errores de validación específicos, podrías mostrarlos
+    //                 if(resp.errors){
+    //                     // Ejemplo: $('#error-amount').text(resp.errors.amount);
+    //                 }
+    //             }
+    //         },
+    //         error: function(jqXHR, textStatus, errorThrown){
+    //             toastr['error']('Error de comunicación con el servidor: ' + textStatus, 'Error');
+    //             console.error("AJAX Error: ", textStatus, errorThrown, jqXHR.responseText);
+    //         },
+    //         complete: function(){
+    //             $btn.prop('disabled', false);
+    //         }
+    //     });
+    // });
+
+    // --- LÓGICA DE PAGOS Y IMPRESIÓN ---
+
+    // Enviar formulario de pago
+    $(document).on('click', '#pay_due_modal_submit', function() {
+        let $btn = $(this);
+        $btn.prop('disabled', true);
+    
+        let amountVal = $('#pay_due_modal_amount').val();
+        let paymentVal = $('#pay_due_modal_payment_id').val();
+        let base_url = $("#base_url_customer").val();
+        // let csrf_name = "<?php //echo $this->security->get_csrf_token_name(); ?>";
+        // let csrf_value = "<?php //echo $this->security->get_csrf_hash(); ?>";
+        let formData = {
+            customer_id: $('#pay_due_modal_customer_id').val(),
+            date: $('#pay_due_modal_date').val(),
+            amount: $('#pay_due_modal_amount').val(),
+            payment_id: $('#pay_due_modal_payment_id').val(),
+            note: $('#pay_due_modal_note').val(),
+            // [csrf_name]: csrf_value // Añadir CSRF
+        };
+
+        // Validación local...
+        
+        // Validación local rápida
+        let error = false;
+        if (!amountVal || parseFloat(amountVal) <= 0) {
+            toastr['error']('El campo Monto es requerido y debe ser mayor a cero.', '');
+            error = true;
+        }
+        if (!paymentVal) {
+            toastr['error']('El campo Método de Pago es requerido.', '');
+            error = true;
+        }
+        if (error) {
+            $btn.prop('disabled', false);
+            return;
+        }
+
+        $.ajax({
+            url: base_url + "Sale/addCustomerDueReceiveAjax",
+            method: "POST",
+            data: formData,
+            dataType: "json",
+            success: function(resp) {
+                if (resp.status == "ok") {
+                    toastr['success'](resp.msg, 'Éxito');
+                    
+                    // Disparar impresión con los datos recibidos del servidor
+                    trigger_due_receipt_print(resp.data);
+                    
+                    // Actualizar UI
+                    fetch_customer_due(formData.customer_id); // Actualiza la deuda del cliente
+                    loadRecentDuePayments(); // Recarga la lista de pagos en el modal
+
+                    // Limpiar formulario para el siguiente pago
+                    $('#pay_due_modal_amount').val('');
+                    $('#pay_due_modal_note').val('');
+
+                } else {
+                    toastr['error'](resp.msg, 'Error');
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown){
+                toastr['error']('Error de comunicación con el servidor.', 'Error');
+            },
+            complete: function(){
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+
+    // --- FUNCIONES AUXILIARES ---
+
+    // Carga los últimos 10 pagos en la tabla del modal
+    function loadRecentDuePayments() {
+        let listContainer = $('#recent_due_payments_list');
+        listContainer.html('<tr><td colspan="5" class="text-center">Cargando...</td></tr>');
+
+        $.ajax({
+            url: base_url + "Sale/getLastTenDueReceives",
+            method: "GET",
+            dataType: "json",
+            success: function(payments) {
+                listContainer.empty();
+                if (payments && payments.length > 0) {
+                    payments.forEach(function(p) {
+                        let row = `
+                            <tr>
+                                <td>${p.reference_no}</td>
+                                <td>${p.only_date}</td>
+                                <td>${p.customer_name}</td>
+                                <td>${formatNumberToCurrency(p.amount)}</td>
+                                <td>
+                                    <button class="btn btn-xs btn-primary reprint-due-receipt" data-payment-id="${p.id}">
+                                        <i class="fa fa-print"></i> Reimprimir
+                                    </button>
+                                </td>
+                            </tr>`;
+                        listContainer.append(row);
+                    });
+                    
+                    // DataTable para tablas detalle
+                    $('.DataTables_recent_due_payments_list').DataTable({
+                        'autoWidth': false,
+                        'ordering': false,
+                        'paging': false,
+                        'bFilter': false,
+                        'info': false,
+                        'responsive': true,
+                        'language': { 'emptyTable': 'Sin datos de ventas' }
+                    });
+                } else {
+                    listContainer.html('<tr><td colspan="5" class="text-center">No hay pagos recientes.</td></tr>');
+                }
+            }
+        });
+    }
+
+    // Evento para el botón de reimprimir
+    $(document).on('click', '.reprint-due-receipt', function() {
+        let $btn = $(this);
+        let payment_id = $btn.data('payment-id');
+
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>'); // Muestra un loader
+
+        // 1. Llamada AJAX para obtener los datos completos del recibo
+        $.ajax({
+            url: base_url + "Sale/getDueReceiveDetailsForPrint/" + payment_id,
+            method: "GET",
+            dataType: "json",
+            success: function(resp) {
+                if (resp.status == "ok") {
+                    // 2. Si tenemos los datos, llamamos a la función de impresión central
+                    // resp.data ahora contiene todo lo que necesitamos (fecha, monto, cliente, saldo, etc.)
+                    trigger_due_receipt_print(resp.data);
+                } else {
+                    toastr['error'](resp.msg, 'Error');
+                }
+            },
+            error: function() {
+                toastr['error']('No se pudieron obtener los detalles para la reimpresión.', 'Error');
+            },
+            complete: function() {
+                // Restaura el botón
+                $btn.prop('disabled', false).html('<i class="fa fa-print"></i> Reimprimir');
+            }
+        });
+    });
+
+
+    // Función central para decidir qué método de impresión usar
+    function trigger_due_receipt_print(data) {
+        if (print_type == "printer_app") {
+            $.ajax({
+                url: base_url + "Sale/printer_app_due_receive/" + data.payment_id,
+                method: "GET",
+                success: function(base64) {
+                    if (base64.startsWith('Error:')) {
+                         toastr['error'](base64, 'Error de Impresión');
+                    } else {
+                         window.location.href = 'print://' + base64;
+                    }
+                },
+                error: function() {
+                    alert("Error al generar el ticket para la impresora.");
+                }
+            });
+        } else {
+            // Si es impresión web, necesitamos todos los datos del recibo.
+            // Si `data` no los tiene (ej. en reimpresión), tendríamos que hacer un AJAX aquí.
+            // Pero como `addCustomerDueReceiveAjax` ya los devuelve, esto funciona para el pago nuevo.
+            // Para reimpresión, necesitamos mejorarla.
+            print_pay_due_receipt(data);
+        }
+    }
+
+    function print_pay_due_receipt(data) {
+        
+      let outlet_address = $("#outlet_address").val();
+      let outlet_phone = $("#outlet_phone").val();
+      let outlet_name = $("#outlet_name").val();
+      let inv_tax_registration_no = $("#inv_tax_registration_no").val();
+      let outlet_tax_registration_no = $("#outlet_tax_registration_no").val();
+      let invoice_logo = base_url+`images/`+$("#invoice_logo").val();
+        // --- Datos del Outlet (simulados desde PHP a JS) ---
+        const outlet = {
+            name: outlet_name,
+            address: outlet_address,
+            phone: outlet_phone,
+            tax_reg_no: outlet_tax_registration_no,
+            invoice_logo: invoice_logo,
+            tax_name: inv_tax_registration_no
+        };
+
+        // --- HTML del Ticket ---
+                        // width: 300px;
+        let ticketHTML = `
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <title>Recibo de Pago</title>
+                <style>
+                    body {
+                        font-family: 'Courier New', Courier, monospace;
+                        margin: 0 auto;
+                        font-size: 12px;
+                    }
+                    .ticket-header, .ticket-footer {
+                        text-align: center;
+                    }
+                    .ticket-header img {
+                        max-width: 150px;
+                        margin-bottom: 10px;
+                    }
+                    .ticket-header h3 {
+                        margin: 5px 0;
+                    }
+                    .ticket-body {
+                        margin-top: 20px;
+                    }
+                    .ticket-body table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+                    .ticket-body td {
+                        padding: 2px 0;
+                    }
+                    .ticket-body .label {
+                        font-weight: bold;
+                    }
+                    .total {
+                        font-size: 16px;
+                        font-weight: bold;
+                        margin-top: 10px;
+                    }
+                    .divider {
+                        border-top: 1px dashed #000;
+                        margin: 10px 0;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="ticket">
+                    <header class="ticket-header">
+                        ${outlet.invoice_logo ? `<img src="${outlet.invoice_logo}" alt="Logo">` : ''}
+                        <h3>${outlet.name}</h3>
+                        <p>
+                            ${outlet.address}<br>
+                            ${outlet.phone}<br>
+                            ${outlet.tax_reg_no ? `${outlet.tax_name}: ${outlet.tax_reg_no}` : ''}
+                        </p>
+                    </header>
+
+                    <div class="divider"></div>
+
+                    <section class="ticket-body">
+                        <h4 style="text-align:center;">RECIBO DE PAGO</h4>
+                        <table class="table_register_details table_sale_details top_margin_15 dataTable no-footer" id="DataTables_Table_0" role="grid">
+                            <tr>
+                                <td class="label">Fecha:</td>
+                                <td>${data.date}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Ref No:</td>
+                                <td>${data.ref_no}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Cliente:</td>
+                                <td>${data.customer}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Método:</td>
+                                <td>${data.payment_method}</td>
+                            </tr>
+                        </table>
+
+                        <div class="divider"></div>
+
+                        <table>
+                            <tr>
+                                <td class="label total">TOTAL PAGO:</td>
+                                <td class="total" style="text-align:right;">${formatNumberToCurrency(data.amount)}</td>
+                            </tr>
+                        </table>
+
+                        ${data.note ? `<div class="divider"></div><p><b>Nota:</b> ${data.note}</p>` : ''}
+                    </section>
+
+                    <div class="divider"></div>
+
+                    <footer class="ticket-footer">
+                        <p>¡Gracias por su pago!</p>
+                    </footer>
+                </div>
+            </body>
+            </html>
+        `;
+
+        // --- Lógica para abrir la ventana emergente e imprimir ---
+        const printWindow = window.open('', 'PRINT', 'height=600,width=400');
+        printWindow.document.write(ticketHTML);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Esperar a que el contenido se cargue completamente (especialmente imágenes)
+        printWindow.onload = function() {
+            printWindow.print();
+            // printWindow.close();
+        };
+
+    }
+
 });

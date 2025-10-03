@@ -504,9 +504,10 @@ $download_url = "";
                     endif;
                    
                 ?>
+                <?php if (isset($sale_object->paid_date_time)) : ?>
                 <h3 style="text-align:center">**<?php echo lang('paid_ticket'); ?>*//*</h3>
-                <p style="text-align:center"><?php echo escape_output(($sale_object->paid_date_time)); ?></p>
-
+                <p style="text-align:center"><?php echo ($sale_object->paid_date_time) ?? escape_output(($sale_object->paid_date_time)); ?></p>
+                <?php endif; ?>
                 <!-- ====================================================================== -->
                 <!-- SECCIÓN FINAL: QR Y TEXTOS (Solo para Factura Electrónica)              -->
                 <!-- ====================================================================== -->

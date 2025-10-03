@@ -4,13 +4,15 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 // $config['tipo_consulta_ruc'] = 'RNC';
 
 // //tipo_facturacion: 'No','RD_AI','RD_FE','Py_FE'
-$config['tipo_facturacion'] = 'RD_AI';
+// $config['tipo_facturacion'] = 'RD_AI';
 
-// $config['tipo_facturacion'] = 'Py_FE';
+$config['tipo_facturacion'] = 'Py_FE';
 
-// $config['sifen_default_departamento'] = '11';
-// $config['sifen_default_distrito'] = '145';
-// $config['sifen_default_ciudad'] = '3383';
+$config['sifen_default_departamento'] = '11';
+$config['sifen_default_distrito'] = '145';
+$config['sifen_default_ciudad'] = '3383';
+
+$config['plantilla_pre_impreso'] = '2';
 
 // Configuración de Redis
 $config['redis_prefix'] = 'restora_';       // Prefijo para las claves de Redis de cada proyecto

@@ -314,44 +314,46 @@ class Customer extends Cl_Controller {
                             $dob = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(3, $i)->getValue()));
                             $doa = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(4, $i)->getValue()));
                             $delivery_address = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(5, $i)->getValue()));
+                            $documento = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(7, $i)->getValue()));
+                            $deuda = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(8, $i)->getValue()));
 
                             if ($name == '') {
                                 if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column A required";
+                                    $arrayerror.="En la linea $i columna A es requerido";
                                 } else {
-                                    $arrayerror.="<br>Row Number $i column A required";
+                                    $arrayerror.="<br>En la linea $i columna A es requerido";
                                 }
                             }
 
-                            if ($phone == '') {
-                                if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column B required";
-                                } else {
-                                    $arrayerror.="<br>Row Number $i column B required";
-                                }
-                            }
+                            // if ($phone == '') {
+                            //     if ($arrayerror == '') {
+                            //         $arrayerror.="En la linea $i columna B es requerido";
+                            //     } else {
+                            //         $arrayerror.="<br>En la linea $i columna B es requerido";
+                            //     }
+                            // }
 
                             if ($email != '' && $this->validateEmail($email)==false) {
                                 if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column C should be valid email";
+                                    $arrayerror.="En la linea $i columna C debe ser un correo electrónico válido.";
                                 } else {
-                                    $arrayerror.="<br>Row Number $i column C should be valid email";
+                                    $arrayerror.="<br>En la linea $i columna C debe ser un correo electrónico válido.";
                                 }
                             }
 
                             if ($dob != '' && $this->isValidDate($dob)==false) {
                                 if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column D should be in YYYY-MM-DD format";
+                                    $arrayerror.="En la linea $i columna D debe estar en el formato YYYY-MM-DD";
                                 } else {
-                                    $arrayerror.="<br>Row Number $i column D should be in YYYY-MM-DD format";
+                                    $arrayerror.="<br>En la linea $i columna D debe estar en el formato YYYY-MM-DD";
                                 }
                             }
 
                             if ($doa != '' && $this->isValidDate($doa)==false) {
                                 if ($arrayerror == '') {
-                                    $arrayerror.="Row Number $i column E should be in YYYY-MM-DD format";
+                                    $arrayerror.="En la linea $i columna E debe estar en el formato YYYY-MM-DD";
                                 } else {
-                                    $arrayerror.="<br>Row Number $i column E should be in YYYY-MM-DD format";
+                                    $arrayerror.="<br>En la linea $i columna E debe estar en el formato YYYY-MM-DD";
                                 }
                             }
                         }
@@ -366,6 +368,8 @@ class Customer extends Cl_Controller {
                                 $delivery_address = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(5, $i)->getValue()));
                                 $default_discount = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(6, $i)->getValue()));
 
+                                $documento = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(7, $i)->getValue()));
+                                $deuda = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(8, $i)->getValue()));
 
                                 $customer_info = array();
                                 $customer_info['name'] = $name;
@@ -375,9 +379,36 @@ class Customer extends Cl_Controller {
                                 $customer_info['date_of_anniversary'] = $doa;
                                 $customer_info['address'] = $delivery_address;
                                 $customer_info['default_discount'] = $default_discount;
+                                $customer_info['gst_number'] = $documento;
                                 $customer_info['user_id'] = $this->session->userdata('user_id');
                                 $customer_info['company_id'] = $this->session->userdata('company_id');
-                                $this->Common_model->insertInformation($customer_info, "tbl_customers");
+
+                                $id_customer = $this->Common_model->insertInformation($customer_info, "tbl_customers");
+                                if ($id_customer && floatval($deuda) > 0) {
+                                    $outlet_id = $this->session->userdata('outlet_id');
+                                    $due = 0 - floatval($deuda);
+                                    $due_receive_info = [
+                                        'date' => date("Y-m-d H:i:s"),
+                                        'only_date' => date("Y-m-d"),
+                                        'amount' => $due,
+                                        'reference_no' => 0,
+                                        'customer_id' => $id_customer,
+                                        'payment_id' => 1,
+                                        'note' => 'Deuda inicial al importar cliente',
+                                        'counter_id' => null,
+                                        'user_id' => $this->session->userdata('user_id'),
+                                        'outlet_id' => $outlet_id,
+                                        'company_id' => $this->session->userdata('company_id')
+                                    ];
+
+                                    $due_receive_info = $this->security->xss_clean($due_receive_info);
+                                    
+                                    // Usamos insertInformationAndGetId para obtener el ID del nuevo registro
+                                    $payment_id = $this->Common_model->insertInformationAndGetId($due_receive_info, "tbl_customer_due_receives");
+                                }
+                                
+  
+
                             }
                             unlink(FCPATH . 'asset/excel/' . $file_name); //File Deleted After uploading in database .
                             $this->session->set_flashdata('exception', 'Imported successfully!');

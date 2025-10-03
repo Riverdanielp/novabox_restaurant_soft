@@ -418,42 +418,123 @@ if (!function_exists('fs_create_and_send_invoice')) {
         $ci = fs_ci();
         $ci->load->library('facturasend');
         
-        $factura_py_id = null; // Inicializar para tener acceso en todo el flujo
+        $factura_py_id = $data['factura_py_id_existente'] ?? null;
+        $is_resend = ($factura_py_id !== null);
 
-        // --- PASO 1: Crear un registro PRELIMINAR de la factura ---
-        // Esto se hace FUERA de la transacción principal para que persista incluso si hay un rollback posterior.
-        // O, mejor aún, lo manejamos dentro de una única transacción pero con lógica condicional.
+        // <<<<<<< INICIO: Variables para el tipo de numeración >>>>>>>
+        $numero_factura_tipo = $data['numero_factura_tipo'] ?? 'correlativo';
+        $es_numero_personalizado = ($numero_factura_tipo === 'personalizado');
+        // <<<<<<< FIN: Variables para el tipo de numeración >>>>>>>
+
+        // Asegurar que tipo_documento tenga un valor por defecto
+        if (!isset($data['tipo_documento']) || $data['tipo_documento'] === null) {
+            $data['tipo_documento'] = 1; // 1 = Factura Electrónica (valor por defecto)
+        }
+
+        // Validaciones adicionales de datos críticos
+        if (empty($data['fecha'])) {
+            return [
+                'status' => 'error',
+                'message' => 'La fecha es requerida para crear la factura'
+            ];
+        }
+
+        if (empty($data['moneda'])) {
+            $data['moneda'] = 'PYG'; // Valor por defecto
+        }
+
+        if (empty($data['punto_expedicion']) || !isset($data['punto_expedicion']->id)) {
+            return [
+                'status' => 'error',
+                'message' => 'El punto de expedición es requerido para crear la factura'
+            ];
+        }
 
         $ci->db->trans_begin();
 
         try {
-            // Sincronizar Cliente y Usuario primero.
             $cliente_py_id = fs_save_or_update_cliente($data['cliente']);
             $usuario_py_id = fs_save_or_update_usuario($data['usuario']);
-
-            // Obtener el próximo número de factura de forma optimista.
             $punto_exp = $data['punto_expedicion'];
-            $numero_factura = $punto_exp->numerador + 1;
 
-            // Crear el registro de la factura. En este punto, es solo un "candidato".
-            $factura_db = [
-                'tipo_documento'      => 1,
-                'sucursal_id'         => $punto_exp->sucursal_id,
-                'punto_expedicion_id' => $punto_exp->id,
-                'numero'              => $numero_factura, // Asignamos el número tentativo
-                'timbrado_id'         => $punto_exp->timbrado_id,
-                'fecha'               => $data['fecha'],
-                'moneda'              => $data['moneda'],
-                'cliente_id'          => $cliente_py_id,
-                'usuario_id'          => $usuario_py_id,
-                'estado'              => 0, // 0 = Generado
-                'id_sale'             => $data['venta_id_sistema'],
-                'json_original'       => json_encode($data)
-            ];
-            $ci->db->insert('py_facturas_electronicas', $factura_db);
-            $factura_py_id = $ci->db->insert_id();
+            // Verificar que se obtuvieron IDs válidos
+            if (!$cliente_py_id || $cliente_py_id == 0) {
+                throw new Exception("Error al guardar o actualizar el cliente: No se obtuvo un ID válido");
+            }
+            
+            if (!$usuario_py_id || $usuario_py_id == 0) {
+                throw new Exception("Error al guardar o actualizar el usuario: No se obtuvo un ID válido");
+            }
 
-            // Guardar items y condición. Estos dependen de la factura, así que están dentro de la transacción.
+            if ($is_resend) {
+                // REENVÍO: Usar el número de factura existente.
+                $existing_invoice = $ci->db->get_where('py_facturas_electronicas', ['id' => $factura_py_id])->row();
+                if (!$existing_invoice) {
+                    throw new Exception("No se encontró la factura a reenviar con ID: $factura_py_id");
+                }
+                $numero_factura = $existing_invoice->numero;
+
+                // Actualizar el registro existente
+                $factura_db = [
+                    'tipo_documento'      => $data['tipo_documento'],
+                    'sucursal_id'         => $punto_exp->sucursal_id,
+                    'punto_expedicion_id' => $punto_exp->id,
+                    'timbrado_id'         => $punto_exp->timbrado_id,
+                    'fecha'               => $data['fecha'],
+                    'moneda'              => $data['moneda'],
+                    'cliente_id'          => $cliente_py_id,
+                    'usuario_id'          => $usuario_py_id,
+                    'estado'              => 0, // Volver a estado "Generado"
+                    'id_sale'             => $data['venta_id_sistema'] ?? $existing_invoice->id_sale,
+                    'json_original'       => json_encode($data),
+                    'cdc'                 => null, // Limpiar datos de envío anterior
+                    'lote_id'             => null,
+                    'qr'                  => null
+                ];
+                $ci->db->where('id', $factura_py_id)->update('py_facturas_electronicas', $factura_db);
+
+            } else {
+                // CREACIÓN: Obtener un nuevo número de factura.
+                // <<<<<<< INICIO: Lógica para determinar el número de factura >>>>>>>
+                if ($es_numero_personalizado) {
+                    $numero_factura = $data['numero_factura_personalizado'];
+                } else {
+                    $numero_factura = $punto_exp->numerador + 1;
+                }
+                // <<<<<<< FIN: Lógica para determinar el número de factura >>>>>>>
+
+                $factura_db = [
+                    'tipo_documento'      => $data['tipo_documento'],
+                    'sucursal_id'         => $punto_exp->sucursal_id,
+                    'punto_expedicion_id' => $punto_exp->id,
+                    'numero'              => $numero_factura,
+                    'timbrado_id'         => $punto_exp->timbrado_id,
+                    'fecha'               => $data['fecha'],
+                    'moneda'              => $data['moneda'],
+                    'cliente_id'          => $cliente_py_id,
+                    'usuario_id'          => $usuario_py_id,
+                    'estado'              => 0, // 0 = Generado
+                    'id_sale'             => $data['venta_id_sistema'],
+                    'json_original'       => json_encode($data)
+                ];
+                $ci->db->insert('py_facturas_electronicas', $factura_db);
+                
+                // Verificar si hubo errores en la inserción
+                if ($ci->db->error()['code'] != 0) {
+                    throw new Exception("Error de base de datos al insertar factura: " . $ci->db->error()['message']);
+                }
+                
+                $factura_py_id = $ci->db->insert_id();
+                
+                // Verificar que se obtuvo un ID válido
+                if (!$factura_py_id || $factura_py_id == 0) {
+                    throw new Exception("Error al insertar la factura electrónica: No se obtuvo un ID válido");
+                }
+            }
+
+            // Limpiar y guardar items y condición.
+            $ci->db->where('factura_id', $factura_py_id)->delete('py_factura_items');
+            $ci->db->where('factura_id', $factura_py_id)->delete('py_factura_condiciones');
             $items_api = fs_save_invoice_items($factura_py_id, $data['items']);
             fs_save_invoice_condition($factura_py_id, $data['condicion_venta']);
             
@@ -461,13 +542,7 @@ if (!function_exists('fs_create_and_send_invoice')) {
             $lote_para_api = fs_build_api_payload($data, $numero_factura, $cliente_py_id, $items_api);
             $response = $ci->facturasend->crear_lote_documentos($lote_para_api);
             
-            // --- PASO 2: Decidir el destino de la transacción basado en la respuesta ---
             if (isset($response['status']) && $response['status'] == 200 && ($response['body']['success'] ?? false)) {
-                // --- ÉXITO: Confirmar todo y consumir el número ---
-                $cdc = $response['body']['result']['deList'][0]['cdc'];
-                $loteId = $response['body']['result']['loteId'];
-
-                // a. Extraer datos clave de la respuesta
                 $cdc = $response['body']['result']['deList'][0]['cdc'];
                 $loteId = $response['body']['result']['loteId'];
                 $qr = $response['body']['result']['deList'][0]['qr'];
@@ -475,7 +550,6 @@ if (!function_exists('fs_create_and_send_invoice')) {
                 $dIVA5 = $response['body']['result']['deList'][0]['dIVA5'];
                 $dIVA10 = $response['body']['result']['deList'][0]['dIVA10'];
 
-                // b. Actualizar la factura en la BD con el CDC y cambiar estado a "Enviado"
                 $update_data = [
                     'cdc' => $cdc, 
                     'estado' => 1,
@@ -484,19 +558,22 @@ if (!function_exists('fs_create_and_send_invoice')) {
                     'fecha_emision' => $fechaEmision,
                     'iva5' => $dIVA5,
                     'iva10' => $dIVA10
-                ]; // 1 = Enviado en Lote
+                ];
                 
-                // Actualizar la factura a estado "Enviado" con su CDC
                 $ci->db->where('id', $factura_py_id)->update('py_facturas_electronicas', $update_data);
 
-                // ¡CRÍTICO! Incrementar el numerador SÓLO en caso de éxito.
-                $ci->db->set('numerador', 'numerador + 1', FALSE)
-                       ->where('id', $punto_exp->id)
-                       ->update('py_sifen_puntos_expedicion');
+                // <<<<<<< INICIO: Lógica CRÍTICA para incrementar el numerador >>>>>>>
+                // Incrementar el numerador SÓLO si es una NUEVA factura Y NO es un número personalizado.
+                if (!$is_resend && !$es_numero_personalizado) {
+                    $ci->db->set('numerador', 'numerador + 1', FALSE)
+                           ->where('id', $punto_exp->id)
+                           ->update('py_sifen_puntos_expedicion');
+                }
+                // <<<<<<< FIN: Lógica CRÍTICA para incrementar el numerador >>>>>>>
                 
-                fs_log_auditoria($factura_py_id, $usuario_py_id, 'API_EXITO', $response['body']);
                 
-                // Confirmar la transacción completa.
+                fs_log_auditoria($factura_py_id, $usuario_py_id, $is_resend ? 'API_REENVIO_EXITO' : 'API_EXITO', $response['body']);
+                
                 $ci->db->trans_commit();
 
                 return [
@@ -511,15 +588,11 @@ if (!function_exists('fs_create_and_send_invoice')) {
                 ];
 
             } else {
-                // --- ERROR: Actualizar el estado a "Rechazado" y NO consumir el número ---
-                
-                // Actualizar la factura a estado "Rechazado" (ID 4 en tu tabla de estados)
+                // ERROR: Actualizar estado a "Rechazado" y NO consumir el número.
                 $ci->db->where('id', $factura_py_id)->update('py_facturas_electronicas', ['estado' => 4]);
+                fs_log_auditoria($factura_py_id, $usuario_py_id, $is_resend ? 'API_REENVIO_ERROR' : 'API_ERROR', $response);
                 
-                fs_log_auditoria($factura_py_id, $usuario_py_id, 'API_ERROR', $response);
-
-                // Confirmamos la transacción, pero ¡OJO! Solo se guardó la factura con estado de error.
-                // El `numerador` NUNCA se actualizó.
+                // Confirmamos la transacción (guardando el estado de error), pero el numerador no se tocó.
                 $ci->db->trans_commit();
 
                 return [
@@ -531,7 +604,6 @@ if (!function_exists('fs_create_and_send_invoice')) {
             }
 
         } catch (Exception $e) {
-            // Si hay una excepción grave, ahora sí revertimos todo porque el estado es incierto.
             $ci->db->trans_rollback();
             return [
                 'status'        => 'error', 
@@ -671,7 +743,7 @@ if (!function_exists('fs_build_api_payload')) {
         // --- Payload Principal ---
         $payload = [
             // --- Datos del Documento ---
-            "tipoDocumento"   => 1,
+            "tipoDocumento"   => $data['tipo_documento'], // Usar el tipo de documento desde los datos
             "establecimiento" => $data['punto_expedicion']->codigo_establecimiento,
             "punto"           => $data['punto_expedicion']->codigo_punto,
             "numero"          => $numero_factura,
@@ -812,17 +884,29 @@ if (!function_exists('fs_map_payment_method')) {
 if (!function_exists('fs_save_invoice_condition')) {
     function fs_save_invoice_condition($factura_py_id, $condicion_venta) {
         $ci = fs_ci();
+        
+        // Limpiar condiciones anteriores para esta factura
+        $existing_cond = $ci->db->get_where('py_factura_condiciones', ['factura_id' => $factura_py_id])->result();
+        foreach ($existing_cond as $ec) {
+            $ci->db->where('condicion_id', $ec->id)->delete('py_factura_condicion_entregas');
+            $ci->db->where('condicion_id', $ec->id)->delete('py_factura_condicion_credito');
+        }
+        $ci->db->where('factura_id', $factura_py_id)->delete('py_factura_condiciones');
+
+        // Insertar nueva condición
         $cond_db = ['factura_id' => $factura_py_id, 'tipo' => $condicion_venta['tipo']];
         $ci->db->insert('py_factura_condiciones', $cond_db);
         $condicion_id = $ci->db->insert_id();
 
-        if (isset($condicion_venta['entregas'])) {
+        if ($condicion_venta['tipo'] == 1 && isset($condicion_venta['entregas'])) { // Contado
             foreach ($condicion_venta['entregas'] as $entrega) {
                 $entrega['condicion_id'] = $condicion_id;
+                // Aquí se debería guardar info de tarjeta/cheque si existe
                 $ci->db->insert('py_factura_condicion_entregas', $entrega);
             }
+        } elseif ($condicion_venta['tipo'] == 2 && isset($condicion_venta['credito'])) { // Crédito
+            fs_process_credit_condition($condicion_id, $condicion_venta['credito']);
         }
-        // Aquí iría la lógica para guardar 'credito' si existiera
     }
 }
 
@@ -1298,11 +1382,11 @@ if (!function_exists('fs_calculate_invoice_totals')) {
  * Procesa los datos de condición de crédito
  */
 if (!function_exists('fs_process_credit_condition')) {
-    function fs_process_credit_condition($factura_py_id, $condicion_credito) {
+    function fs_process_credit_condition($condicion_id, $condicion_credito) {
         $ci = fs_ci();
         
         $credito_db = [
-            'condicion_id' => $factura_py_id,
+            'condicion_id' => $condicion_id,
             'tipo' => $condicion_credito['tipo'],
             'plazo' => $condicion_credito['plazo'] ?? null,
             'cuotas' => $condicion_credito['cuotas'] ?? null,
@@ -1435,6 +1519,10 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
 
             // 3) Llamar a la API
             $response = $ci->facturasend->consultar_estados_documentos($cdcList);
+            // echo '<pre>';
+            // var_dump($response); 
+            // echo '</pre>';
+
             $procesados += count($cdcList);
 
             if (!isset($response['status']) || $response['status'] != 200 || !($response['body']['success'] ?? false)) {

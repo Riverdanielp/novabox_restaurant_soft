@@ -46,6 +46,39 @@ foreach ($waiters as $waiter){
 
 ?>
 
+<style>
+    .callout-info {
+        color: #eee !important;
+        background-color: #00c0ef !important;
+        font-size: 14px;
+        font-weight: 700;
+        align-items: center;
+        vertical-align: middle;
+        padding: 5px 5px;
+        width: 100%;
+    }
+    
+    .callout-danger {
+        color: #eee !important;
+        background-color: #e52222 !important;
+        font-size: 11px;
+        font-weight: 700;
+        align-items: center;
+        vertical-align: middle;
+        padding: 0px;
+    }
+
+    /* .callout {
+        border-radius: 4px;
+        margin: 0 0 20px 0;
+        padding: 10px 15px;
+        border-left: 5px solid #eee;
+    }
+    .my-2 {
+        margin-top: .5rem !important;
+        margin-bottom: .5rem !important;
+    } */
+</style>
 
 <input type="hidden" id="product_label" value="<?php echo isset($inv_label->product_label) && $inv_label->product_label ? $inv_label->product_label : '' ?>">
 <input type="hidden" id="quantity_label" value="<?php echo isset($inv_label->quantity_label) && $inv_label->quantity_label ? $inv_label->quantity_label : '' ?>">

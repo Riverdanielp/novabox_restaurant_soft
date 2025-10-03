@@ -6,7 +6,7 @@
     .autocomplete-item { padding: 8px 12px; cursor: pointer; }
     .autocomplete-item:hover { background-color: #f0f0f0; }
     .position-relative { position: relative; }
-    .item-detalles-avanzados, .pago-detalles-avanzados { display: flex; background-color: #f7f7f7; padding: 15px; margin-top: 10px; border-radius: 4px; }
+    .item-detalles-avanzados, .pago-detalles-avanzados { display: none; background-color: #f7f7f7; padding: 15px; margin-top: 10px; border-radius: 4px; }
     .seccion-documento-referencia { display: none; }
     .seccion-campos-especiales { display: none; }
     .tipo-documento-alerta { display: none; padding: 10px; margin: 10px 0; border-radius: 4px; }
@@ -120,6 +120,9 @@
             
         echo form_open($action_url, ['id' => 'form-factura']); 
     ?>
+        <?php if($is_edit): ?>
+            <input type="hidden" name="factura_id" value="<?php echo $factura->id; ?>">
+        <?php endif; ?>
         
         <!-- SECCIÓN 1: DATOS DEL DOCUMENTO -->
         <div class="seccion-factura">
@@ -129,7 +132,7 @@
                 <div class="col-md-3">
                     <label>Tipo Documento (*)</label>
                     <select name="tipoDocumento" id="tipoDocumento" class="form-control" required>
-                        <?php foreach($tipos_documento as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?>
+                        <?php foreach($tipos_documento as $k => $v) echo "<option value='{$k}' ".($is_edit && $factura->tipo_documento == $k ? 'selected' : '').">{$v}</option>"; ?>
                     </select>
                 </div>
                 
@@ -164,26 +167,46 @@
                         <?php foreach($sucursales_con_puntos as $sucursal): ?>
                             <optgroup label="<?php echo html_escape($sucursal->nombre); ?>">
                                 <?php foreach($sucursal->puntos as $punto): ?>
-                                    <option value="<?php echo $punto->codigo_punto; ?>"><?php echo "Punto {$punto->codigo_punto} - {$punto->nombre}"; ?></option>
+                                   
+                                    <option value="<?php echo $punto->id; ?>" <?php echo ($is_edit && $factura->punto_expedicion_id == $punto->id) ? 'selected' : ''; ?>>
+                                        <?php echo "Punto {$punto->codigo_punto} - {$punto->nombre}"; ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </optgroup>
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="col-md-3">
+                    <!-- Nuevo Bloque para Selección de Tipo de Número -->
+                    <div class="form-group">
+                        <label for="tipo_numero">Tipo de Numeración <span class="required">*</span></label>
+                        <select class="form-control" id="tipo_numero" name="numero_factura_tipo" required>
+                            <option value="correlativo">Número Correlativo (Automático)</option>
+                            <option value="personalizado">Número Personalizado (Manual)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="campo_numero_personalizado" style="display: none;">
+                        <label for="numero_factura_personalizado">Número de Factura Personalizado <span class="required">*</span></label>
+                        <input type="number" id="numero_factura_personalizado" name="numero_factura_personalizado" class="form-control" placeholder="Ingrese el número de factura a utilizar"
+                        value="<?php echo $is_edit ? ($factura->numero ?? '') : '' ?>">
+                    </div>
+                </div>
+
 
                 <div class="col-md-3">
                     <label>Fecha Emisión (*)</label>
                     <input type="datetime-local" name="fecha" class="form-control" 
-                        value="<?php echo date('Y-m-d\TH:i:s'); ?>" 
+                        value="<?php echo $is_edit ? date('Y-m-d\TH:i:s', strtotime($factura->fecha)) : date('Y-m-d\TH:i:s'); ?>" 
                         step="1" required>
                 </div>
                 <div class="col-md-3"><label>Moneda (*)</label><select name="moneda" class="form-control" required><option value="PYG">PYG - Guaraní</option></select></div>
-                <div class="col-md-3"><label>Tipo Emisión (*)</label><select name="tipoEmision" class="form-control" required><?php foreach($tipos_emision as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?></select></div>
-                <div class="col-md-3"><label>Tipo Transacción (*)</label><select name="tipoTransaccion" class="form-control" required><?php foreach($tipos_transaccion as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?></select></div>
-                <div class="col-md-3"><label>Tipo Impuesto (*)</label><select name="tipoImpuesto" class="form-control" required><?php foreach($tipos_impuesto as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?></select></div>
-                <div class="col-md-3" id="seccion-presencia"><label>Indicador Presencia (*)</label><select name="factura[presencia]" class="form-control" required><?php foreach($tipos_presencia as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?></select></div>
-                <div class="col-md-6"><label>Descripción (Opcional)</label><input type="text" name="descripcion" class="form-control" placeholder="Ej: Venta de productos varios"></div>
-                <div class="col-md-6"><label>Observación (Opcional)</label><input type="text" name="observacion" class="form-control" placeholder="Ej: Promociones, marketing, etc."></div>
+                <div class="col-md-3"><label>Tipo Emisión (*)</label><select name="tipoEmision" class="form-control" required><?php foreach($tipos_emision as $k => $v) echo "<option value='{$k}' ".($is_edit && ($factura->json_original->tipo_emision ?? 1) == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
+                <div class="col-md-3"><label>Tipo Transacción (*)</label><select name="tipoTransaccion" class="form-control" required><?php foreach($tipos_transaccion as $k => $v) echo "<option value='{$k}' ".($is_edit && ($factura->json_original->tipo_transaccion ?? 1) == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
+                <div class="col-md-3"><label>Tipo Impuesto (*)</label><select name="tipoImpuesto" class="form-control" required><?php foreach($tipos_impuesto as $k => $v) echo "<option value='{$k}' ".($is_edit && ($factura->json_original->tipo_impuesto ?? 1) == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
+                <div class="col-md-3" id="seccion-presencia"><label>Indicador Presencia (*)</label><select name="factura[presencia]" class="form-control" required><?php foreach($tipos_presencia as $k => $v) echo "<option value='{$k}' ".($is_edit && ($factura->json_original->factura->presencia ?? 1) == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
+                <div class="col-md-6"><label>Descripción (Opcional)</label><input type="text" name="descripcion" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->descripcion ?? '') : '' ?>" placeholder="Ej: Venta de productos varios"></div>
+                <div class="col-md-6"><label>Observación (Opcional)</label><input type="text" name="observacion" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->observacion ?? '') : '' ?>" placeholder="Ej: Promociones, marketing, etc."></div>
             </div>
         </div>
 
@@ -193,26 +216,26 @@
             <div class="row g-3">
                 <div class="col-md-4">
                     <label>CDC del Documento (*)</label>
-                    <input type="text" name="documento_referencia[cdc]" id="documento_referencia_cdc" class="form-control" placeholder="Código CDC del documento a referenciar">
+                    <input type="text" name="documento_referencia[cdc]" id="documento_referencia_cdc" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->documentoAsociado->cdc ?? '') : '' ?>" placeholder="Código CDC del documento a referenciar">
                     <small class="form-text text-muted">CDC de la factura o documento que se está modificando</small>
                 </div>
                 <div class="col-md-4">
                     <label>Fecha Emisión Doc. Original (*)</label>
-                    <input type="date" name="documento_referencia[fecha]" id="documento_referencia_fecha" class="form-control">
+                    <input type="date" name="documento_referencia[fecha]" id="documento_referencia_fecha" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->documentoAsociado->fecha ?? '') : '' ?>">
                 </div>
                 <div class="col-md-4">
                     <label>Motivo (*)</label>
                     <select name="documento_referencia[motivo]" id="documento_referencia_motivo" class="form-control">
-                        <option value="1">Devolución/Anulación de productos</option>
-                        <option value="2">Descuento posterior a la emisión</option>
-                        <option value="3">Bonificación</option>
-                        <option value="4">Corrección de datos</option>
-                        <option value="5">Otro</option>
+                        <option value="1" <?php echo ($is_edit && ($factura->json_original->documentoAsociado->motivo ?? 0) == 1) ? 'selected' : '' ?>>Devolución/Anulación de productos</option>
+                        <option value="2" <?php echo ($is_edit && ($factura->json_original->documentoAsociado->motivo ?? 0) == 2) ? 'selected' : '' ?>>Descuento posterior a la emisión</option>
+                        <option value="3" <?php echo ($is_edit && ($factura->json_original->documentoAsociado->motivo ?? 0) == 3) ? 'selected' : '' ?>>Bonificación</option>
+                        <option value="4" <?php echo ($is_edit && ($factura->json_original->documentoAsociado->motivo ?? 0) == 4) ? 'selected' : '' ?>>Corrección de datos</option>
+                        <option value="5" <?php echo ($is_edit && ($factura->json_original->documentoAsociado->motivo ?? 0) == 5) ? 'selected' : '' ?>>Otro</option>
                     </select>
                 </div>
                 <div class="col-12" id="motivo_adicional" style="display:none;">
                     <label>Descripción del Motivo (*)</label>
-                    <input type="text" name="documento_referencia[motivo_descripcion]" class="form-control" placeholder="Detalles específicos del motivo">
+                    <input type="text" name="documento_referencia[motivo_descripcion]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->documentoAsociado->observacion ?? '') : '' ?>" placeholder="Detalles específicos del motivo">
                 </div>
             </div>
         </div>
@@ -224,17 +247,17 @@
                 <div class="col-md-4">
                     <label>Tipo de Vendedor (*)</label>
                     <select name="autofactura[tipo_vendedor]" class="form-control">
-                        <option value="1">Persona Física</option>
-                        <option value="2">Comunidad Indígena</option>
+                        <option value="1" <?php echo ($is_edit && ($factura->json_original->autoFactura->tipoVendedor ?? 0) == 1) ? 'selected' : '' ?>>Persona Física</option>
+                        <option value="2" <?php echo ($is_edit && ($factura->json_original->autoFactura->tipoVendedor ?? 0) == 2) ? 'selected' : '' ?>>Comunidad Indígena</option>
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label>Ubicación del Vendedor (*)</label>
-                    <input type="text" name="autofactura[ubicacion]" class="form-control" placeholder="Dirección completa del vendedor">
+                    <input type="text" name="autofactura[ubicacion]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->autoFactura->ubicacion ?? '') : '' ?>" placeholder="Dirección completa del vendedor">
                 </div>
                 <div class="col-md-4">
                     <label>Registro INDERT/INDI</label>
-                    <input type="text" name="autofactura[registro]" class="form-control" placeholder="Número de registro (si aplica)">
+                    <input type="text" name="autofactura[registro]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->autoFactura->registroIndert ?? '') : '' ?>" placeholder="Número de registro (si aplica)">
                 </div>
             </div>
         </div>
@@ -246,24 +269,24 @@
                 <div class="col-md-4">
                     <label>Motivo de Traslado (*)</label>
                     <select name="remision[motivo_traslado]" class="form-control">
-                        <option value="1">Traslado por venta</option>
-                        <option value="2">Traslado por consignación</option>
-                        <option value="3">Exportación</option>
-                        <option value="4">Traslado por compra</option>
-                        <option value="5">Importación</option>
-                        <option value="6">Traslado entre establecimientos</option>
-                        <option value="7">Traslado para reparación</option>
-                        <option value="8">Traslado por emisor móvil</option>
-                        <option value="9">Traslado a depósito</option>
+                        <option value="1" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 1) ? 'selected' : '' ?>>Traslado por venta</option>
+                        <option value="2" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 2) ? 'selected' : '' ?>>Traslado por consignación</option>
+                        <option value="3" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 3) ? 'selected' : '' ?>>Exportación</option>
+                        <option value="4" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 4) ? 'selected' : '' ?>>Traslado por compra</option>
+                        <option value="5" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 5) ? 'selected' : '' ?>>Importación</option>
+                        <option value="6" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 6) ? 'selected' : '' ?>>Traslado entre establecimientos</option>
+                        <option value="7" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 7) ? 'selected' : '' ?>>Traslado para reparación</option>
+                        <option value="8" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 8) ? 'selected' : '' ?>>Traslado por emisor móvil</option>
+                        <option value="9" <?php echo ($is_edit && ($factura->json_original->remision->motivoTraslado ?? 0) == 9) ? 'selected' : '' ?>>Traslado a depósito</option>
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label>Fecha Inicio Traslado (*)</label>
-                    <input type="datetime-local" name="remision[fecha_inicio]" class="form-control">
+                    <input type="datetime-local" name="remision[fecha_inicio]" value="<?php echo $is_edit ? date('Y-m-d\TH:i:s', strtotime($factura->json_original->remision->fechaInicioTraslado ?? 'now')) : '' ?>" class="form-control">
                 </div>
                 <div class="col-md-4">
                     <label>Fecha Fin Traslado (*)</label>
-                    <input type="datetime-local" name="remision[fecha_fin]" class="form-control">
+                    <input type="datetime-local" name="remision[fecha_fin]" value="<?php echo $is_edit ? date('Y-m-d\TH:i:s', strtotime($factura->json_original->remision->fechaFinTraslado ?? 'now')) : '' ?>" class="form-control">
                 </div>
                 
                 <div class="col-md-12 mt-3">
@@ -272,21 +295,21 @@
                 <div class="col-md-3">
                     <label>Tipo Vehículo (*)</label>
                     <select name="remision[vehiculo_tipo]" class="form-control">
-                        <option value="1">Transporte propio</option>
-                        <option value="2">Transporte tercero</option>
+                        <option value="1" <?php echo ($is_edit && ($factura->json_original->transporte->tipo ?? 0) == 1) ? 'selected' : '' ?>>Transporte propio</option>
+                        <option value="2" <?php echo ($is_edit && ($factura->json_original->transporte->tipo ?? 0) == 2) ? 'selected' : '' ?>>Transporte tercero</option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label>Marca</label>
-                    <input type="text" name="remision[vehiculo_marca]" class="form-control">
+                    <input type="text" name="remision[vehiculo_marca]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->transporte->vehiculo->marca ?? '') : '' ?>">
                 </div>
                 <div class="col-md-3">
                     <label>Número de Chasis</label>
-                    <input type="text" name="remision[vehiculo_chasis]" class="form-control">
+                    <input type="text" name="remision[vehiculo_chasis]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->transporte->vehiculo->chasis ?? '') : '' ?>">
                 </div>
                 <div class="col-md-3">
                     <label>Número de Matrícula (*)</label>
-                    <input type="text" name="remision[vehiculo_matricula]" class="form-control" placeholder="Ej: ABC123">
+                    <input type="text" name="remision[vehiculo_matricula]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->transporte->vehiculo->matricula ?? '') : '' ?>" placeholder="Ej: ABC123">
                 </div>
                 
                 <div class="col-md-12 mt-3">
@@ -294,15 +317,15 @@
                 </div>
                 <div class="col-md-4">
                     <label>Nombre del Conductor (*)</label>
-                    <input type="text" name="remision[conductor_nombre]" class="form-control">
+                    <input type="text" name="remision[conductor_nombre]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->transporte->conductor->nombre ?? '') : '' ?>">
                 </div>
                 <div class="col-md-4">
                     <label>RUC/C.I. del Conductor (*)</label>
-                    <input type="text" name="remision[conductor_documento]" class="form-control" placeholder="Documento sin guión">
+                    <input type="text" name="remision[conductor_documento]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->transporte->conductor->documento ?? '') : '' ?>" placeholder="Documento sin guión">
                 </div>
                 <div class="col-md-4">
                     <label>Dirección del Conductor</label>
-                    <input type="text" name="remision[conductor_direccion]" class="form-control">
+                    <input type="text" name="remision[conductor_direccion]" class="form-control" value="<?php echo $is_edit ? ($factura->json_original->transporte->conductor->direccion ?? '') : '' ?>">
                 </div>
             </div>
         </div>
@@ -312,20 +335,20 @@
             <h4><i data-feather="user"></i> Datos del Cliente</h4>
             <div class="row g-3">
                 <div class="col-md-3 position-relative"><label>Buscar (RUC/Nombre)</label><input type="text" id="cliente_search_input" class="form-control" placeholder="Escriba para buscar..."><div id="cliente_results" class="autocomplete-results"></div></div>
-                <div class="col-md-3"><label>RUC / C.I. (*)</label><div class="input-group"><input type="text" name="cliente[ruc]" id="cliente_ruc" class="form-control" required><button class="btn btn-outline-secondary" type="button" id="ruc_search_btn">API</button></div><small id="ruc_message" class="form-text"></small></div>
-                <div class="col-md-3"><label>Razón Social (*)</label><input type="text" name="cliente[razonSocial]" id="cliente_razonSocial" class="form-control" required></div>
-                <div class="col-md-3"><label>Nombre Fantasía</label><input type="text" name="cliente[nombreFantasia]" id="cliente_nombreFantasia" class="form-control"></div>
+                <div class="col-md-3"><label>RUC / C.I. (*)</label><div class="input-group"><input type="text" name="cliente[ruc]" id="cliente_ruc" class="form-control" value="<?php echo $is_edit ? $factura->cliente->ruc : '' ?>" required><button class="btn btn-outline-secondary" type="button" id="ruc_search_btn">API</button></div><small id="ruc_message" class="form-text"></small></div>
+                <div class="col-md-3"><label>Razón Social (*)</label><input type="text" name="cliente[razonSocial]" id="cliente_razonSocial" class="form-control" value="<?php echo $is_edit ? $factura->cliente->razon_social : '' ?>" required></div>
+                <div class="col-md-3"><label>Nombre Fantasía</label><input type="text" name="cliente[nombreFantasia]" id="cliente_nombreFantasia" class="form-control" value="<?php echo $is_edit ? $factura->cliente->nombre_fantasia : '' ?>"></div>
                 <div class="col-md-2"><label>Tipo Operación (*)</label><select name="cliente[tipoOperacion]" class="form-control" required><?php foreach($tipos_operacion_cliente as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?></select></div>
                 <div class="col-md-2"><label>Tipo Contribuyente (*)</label><select name="cliente[tipoContribuyente]" id="cliente_tipoContribuyente" class="form-control" required><option value="1">Persona Física</option><option value="2">Persona Jurídica</option></select></div>
-                <div class="col-md-2"><label>Tipo Documento (*)</label><select name="cliente[documentoTipo]" class="form-control" required><?php foreach($tipos_doc_cliente as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?></select></div>
-                <div class="col-md-3"><label>Email</label><input type="email" name="cliente[email]" id="cliente_email" class="form-control"></div>
-                <div class="col-md-3"><label>Teléfono/Celular</label><input type="text" name="cliente[telefono]" id="cliente_telefono" class="form-control"></div>
-                <div class="col-md-4"><label>Dirección</label><input type="text" name="cliente[direccion]" id="cliente_direccion" class="form-control"></div>
-                <div class="col-md-1"><label>N° Casa (*)</label><input type="text" name="cliente[numeroCasa]" id="cliente_numeroCasa" class="form-control" value="0" required></div>
-                <div class="col-md-2"><label>Departamento</label><select name="cliente[departamento]" id="cliente_departamento" class="form-control"><?php foreach($departamentos as $d) echo "<option value='{$d->id}'>{$d->nombre}</option>"; ?></select></div>
+                <div class="col-md-2"><label>Tipo Documento (*)</label><select name="cliente[documentoTipo]" class="form-control" required><?php foreach($tipos_doc_cliente as $k => $v) echo "<option value='{$k}' ".($is_edit && $factura->cliente->documento_tipo == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
+                <div class="col-md-3"><label>Email</label><input type="email" name="cliente[email]" id="cliente_email" class="form-control" value="<?php echo $is_edit ? $factura->cliente->email : '' ?>"></div>
+                <div class="col-md-3"><label>Teléfono/Celular</label><input type="text" name="cliente[telefono]" id="cliente_telefono" class="form-control" value="<?php echo $is_edit ? ($factura->cliente->telefono ?? '') : '' ?>"></div>
+                <div class="col-md-4"><label>Dirección</label><input type="text" name="cliente[direccion]" id="cliente_direccion" class="form-control" value="<?php echo $is_edit ? $factura->cliente->direccion : '' ?>"></div>
+                <div class="col-md-1"><label>N° Casa (*)</label><input type="text" name="cliente[numeroCasa]" id="cliente_numeroCasa" class="form-control" value="<?php echo $is_edit ? ($factura->cliente->numero_casa ?? '0') : '0' ?>" required></div>
+                <div class="col-md-2"><label>Departamento</label><select name="cliente[departamento]" id="cliente_departamento" class="form-control"><?php foreach($departamentos as $d) echo "<option value='{$d->id}' ".($is_edit && $factura->cliente->departamento == $d->id ? 'selected' : '').">{$d->nombre}</option>"; ?></select></div>
                 <div class="col-md-2"><label>Distrito</label><select name="cliente[distrito]" id="cliente_distrito" class="form-control" disabled></select></div>
                 <div class="col-md-2"><label>Ciudad</label><select name="cliente[ciudad]" id="cliente_ciudad" class="form-control" disabled></select></div>
-                <input type="hidden" name="cliente[codigo]" id="cliente_codigo">
+                <input type="hidden" name="cliente[codigo]" id="cliente_codigo" value="<?php echo $is_edit ? $factura->cliente->codigo : '' ?>">
             </div>
         </div>
 
@@ -334,16 +357,45 @@
             <h4><i data-feather="briefcase"></i> <span id="usuario-seccion-titulo">Datos del Usuario (Vendedor)</span></h4>
             <div class="row g-3">
                 <div class="col-md-4 position-relative"><label>Buscar Usuario</label><input type="text" id="usuario_search_input" class="form-control" placeholder="Buscar por Nombre o Documento..."><div id="usuario_results" class="autocomplete-results"></div></div>
-                <div class="col-md-2"><label>Documento N° (*)</label><input type="text" name="usuario[documentoNumero]" id="usuario_documentoNumero" class="form-control" required></div>
-                <div class="col-md-3"><label>Nombre (*)</label><input type="text" name="usuario[nombre]" id="usuario_nombre" class="form-control" required></div>
-                <div class="col-md-3"><label>Cargo (*)</label><input type="text" name="usuario[cargo]" id="usuario_cargo" class="form-control" value="Vendedor" required></div>
+                <div class="col-md-2"><label>Documento N° (*)</label><input type="text" name="usuario[documentoNumero]" id="usuario_documentoNumero" class="form-control" value="<?php echo $is_edit ? $factura->usuario->documento_numero : '' ?>" required></div>
+                <div class="col-md-3"><label>Nombre (*)</label><input type="text" name="usuario[nombre]" id="usuario_nombre" class="form-control" value="<?php echo $is_edit ? $factura->usuario->nombre : '' ?>" required></div>
+                <div class="col-md-3"><label>Cargo (*)</label><input type="text" name="usuario[cargo]" id="usuario_cargo" class="form-control" value="<?php echo $is_edit ? $factura->usuario->cargo : 'Vendedor' ?>" required></div>
             </div>
         </div>
 
         <!-- SECCIÓN 4: ITEMS -->
         <div class="seccion-factura" id="seccion-items">
             <h4><i data-feather="shopping-cart"></i> Items de la Factura</h4>
-            <div id="items-container"></div>
+            <div id="items-container">
+            <?php if ($is_edit && !empty($factura->items)): ?>
+                <?php foreach($factura->items as $index => $item): ?>
+                <div class="item-row-wrapper mb-3 border p-3 rounded">
+                    <div class="row item-row align-items-center">
+                        <div class="col-md-3 position-relative"><label>Descripción (*)</label><input type="text" name="items[<?php echo $index ?>][descripcion]" class="form-control item-description-input" value="<?php echo $item->descripcion ?>" required><div class="autocomplete-results item-results"></div></div>
+                        <div class="col-md-2"><label>Codigo (*)</label><input type="text" name="items[<?php echo $index ?>][codigo]" placeholder="Al menos 3 digitos" class="form-control item-codigo" value="<?php echo $item->codigo ?>" step="any" required></div>
+                        <div class="col-md-1"><label>Cant. (*)</label><input type="number" name="items[<?php echo $index ?>][cantidad]" class="form-control item-qty" value="<?php echo $item->cantidad ?>" step="any" required></div>
+                        <div class="col-md-2"><label>P. Unit. (*)</label><input type="number" name="items[<?php echo $index ?>][precioUnitario]" class="form-control item-price" value="<?php echo $item->precio_unitario ?>" step="any" required></div>
+                        <div class="col-md-2"><label>Subtotal</label><p class="form-control-static item-subtotal fw-bold">0.00</p></div>
+                        <div class="col-auto ms-auto"><label>&nbsp;</label>
+                        <div>
+                            <button type="button" class="btn btn-secondary btn-sm btn-toggle-advanced" title="Más Opciones"><i data-feather="more-horizontal"></i></button>
+                            <button type="button" class="btn btn-danger btn-sm btn-remove-item" title="Eliminar Item"><i data-feather="trash"></i></button>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="item-detalles-avanzados row g-3">
+                        <div class="col-md-2"><label>Tipo IVA (*)</label><select name="items[<?php echo $index ?>][ivaTipo]" class="form-control item-iva-tipo" required><?php foreach($tipos_iva_item as $k => $v) echo "<option value='{$k}' ".($item->iva_tipo == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
+                        <div class="col-md-2"><label>% IVA (*)</label><select name="items[<?php echo $index ?>][iva]" class="form-control item-iva" required><option value="10" <?php echo ($item->iva == 10 ? 'selected' : '') ?>>10%</option><option value="5" <?php echo ($item->iva == 5 ? 'selected' : '') ?>>5%</option><option value="0" <?php echo ($item->iva == 0 ? 'selected' : '') ?>>Exenta (0%)</option></select></div>
+                        <div class="col-md-2"><label>Base Imponible % (*)</label><input type="number" name="items[<?php echo $index ?>][ivaBase]" class="form-control item-iva-base" value="<?php echo $item->iva_base ?>" min="1" max="100" required></div>
+                        <div class="col-md-2"><label>NCM</label><input type="text" name="items[<?php echo $index ?>][ncm]" class="form-control"></div>
+                        <div class="col-md-2"><label>Lote</label><input type="text" name="items[<?php echo $index ?>][lote]" class="form-control"></div>
+                        <div class="col-md-2"><label>Vencimiento</label><input type="date" name="items[<?php echo $index ?>][vencimiento]" class="form-control"></div>
+                        <div class="col-md-3"><label>Observación Item</label><input type="text" name="items[<?php echo $index ?>][observacion]" class="form-control"></div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+            </div>
             <button type="button" class="btn btn-default mt-2" id="add-item-btn"><i data-feather="plus"></i> Añadir Item</button>
             <h3 class="text-end mt-3">Total Factura: <span id="total_general">0.00</span> Gs.</h3>
         </div>
@@ -355,15 +407,26 @@
                 <div class="col-md-4">
                     <label>Condición (*)</label>
                     <select name="condicion[tipo]" id="condicion_tipo" class="form-control" required>
-                        <option value="1">Contado</option>
-                        <option value="2">Crédito</option>
+                        <option value="1" <?php echo ($is_edit && $factura->condicion->tipo == 1) ? 'selected' : '' ?>>Contado</option>
+                        <option value="2" <?php echo ($is_edit && $factura->condicion->tipo == 2) ? 'selected' : '' ?>>Crédito</option>
                     </select>
                 </div>
             </div>
             <div id="contado-fields">
                 <hr>
                 <h5>Pagos Recibidos (Entregas)</h5>
-                <div id="pagos-container"></div>
+                <div id="pagos-container">
+                <?php if ($is_edit && $factura->condicion->tipo == 1 && !empty($factura->condicion->entregas)): ?>
+                    <?php foreach($factura->condicion->entregas as $index => $entrega): ?>
+                    <div class="row pago-row align-items-end g-3 mb-2">
+                        <div class="col-md-3"><label>Forma de Pago</label><select name="condicion[entregas][<?php echo $index ?>][tipo]" class="form-control pago-tipo"><?php foreach($tipos_pago as $k => $v) echo "<option value='{$k}' ".($entrega->tipo == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
+                        <div class="col-md-3"><label>Monto (*)</label><input type="number" name="condicion[entregas][<?php echo $index ?>][monto]" class="form-control pago-monto" value="<?php echo $entrega->monto ?>" step="any" required></div>
+                        <div class="col-md-5 pago-detalles-avanzados"></div>
+                        <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm btn-remove-pago w-100"><i data-feather="trash"></i></button></div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </div>
                 <button type="button" class="btn btn-default btn-sm mt-2" id="add-pago-btn">
                     <i data-feather="plus"></i> Añadir Forma de Pago
                 </button>
@@ -375,40 +438,48 @@
                 <hr>
                 <h5>Detalles del Crédito</h5>
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <label>Tipo Crédito (*)</label>
-                        <select name="credito[tipo]" class="form-control">
-                            <option value="1">Plazo</option>
-                            <option value="2">Cuotas</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label>Plazo</label>
-                        <input type="text" name="credito[plazo]" class="form-control" placeholder="Ej: 30 días, 60 días">
-                    </div>
-                    <div class="col-md-3">
-                        <label>N° Cuotas</label>
-                        <input type="number" name="credito[cuotas]" id="credito_nro_cuotas" class="form-control" value="1">
-                    </div>
-                    <div class="col-md-3">
-                        <label>Monto Entrega Inicial</label>
-                        <input type="number" name="credito[montoEntrega]" class="form-control" value="0">
-                    </div>
+                    <div class="col-md-3"><label>Tipo Crédito (*)</label><select name="credito[tipo]" class="form-control"><option value="1">Plazo</option><option value="2">Cuotas</option></select></div>
+                    <div class="col-md-3"><label>Plazo</label><input type="text" name="credito[plazo]" class="form-control" placeholder="Ej: 30 días, 60 días" value="<?php echo $is_edit && $factura->condicion->tipo == 2 ? ($factura->condicion->credito->plazo ?? '') : '' ?>"></div>
+                    <div class="col-md-3"><label>N° Cuotas</label><input type="number" name="credito[cuotas]" id="credito_nro_cuotas" class="form-control" value="<?php echo $is_edit && $factura->condicion->tipo == 2 ? ($factura->condicion->credito->cuotas ?? 1) : 1 ?>"></div>
+                    <div class="col-md-3"><label>Monto Entrega Inicial</label><input type="number" name="credito[montoEntrega]" class="form-control" value="<?php echo $is_edit && $factura->condicion->tipo == 2 ? ($factura->condicion->credito->monto_entrega ?? 0) : 0 ?>"></div>
                 </div>
-                <div id="cuotas-container" class="mt-3"></div>
+                <div id="cuotas-container" class="mt-3">
+                <?php if ($is_edit && $factura->condicion->tipo == 2 && !empty($factura->condicion->credito->cuotas_detalle)): ?>
+                    <?php foreach($factura->condicion->credito->cuotas_detalle as $index => $cuota): ?>
+                    <div class="row cuota-row align-items-end g-3 mb-2">
+                        <div class="col-md-4"><label>Vencimiento (*)</label><input type="date" name="credito[infoCuotas][<?php echo $index ?>][vencimiento]" class="form-control" value="<?php echo $cuota->vencimiento ?>" required></div>
+                        <div class="col-md-4"><label>Monto (*)</label><input type="number" name="credito[infoCuotas][<?php echo $index ?>][monto]" class="form-control" value="<?php echo $cuota->monto ?>" step="any" required></div>
+                        <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm btn-remove-cuota w-100"><i data-feather="trash"></i></button></div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </div>
                 <button type="button" class="btn btn-default btn-sm mt-2" id="add-cuota-btn">
                     <i data-feather="plus"></i> Añadir Cuota
                 </button>
             </div>
         </div>
 
-        <div class="box-footer">
-            <button type="submit" name="submit" value="submit" class="btn bg-blue-btn me-2">
-                <i data-feather="save"></i> <span id="btn-generar-texto">Generar Factura</span>
-            </button>
-            <a class="btn bg-blue-btn" href="<?php echo base_url('Facturacion_py/listado'); ?>">
-                <i data-feather="corner-up-left"></i> Volver
-            </a>
+        <div class="box-footer d-flex justify-content-between">
+            <div>
+                <a class="btn bg-blue-btn" href="<?php echo base_url('Facturacion_py/listado'); ?>">
+                    <i data-feather="corner-up-left"></i> Volver
+                </a>
+            </div>
+            <div>
+                <?php if ($is_edit): ?>
+                    <button type="submit" name="submit" value="resend" class="btn btn-warning me-2" onclick="return confirm('¿Está seguro de que desea reenviar esta factura con el MISMO número? Esto es para corregir facturas rechazadas.')">
+                        <i data-feather="send"></i> Reenviar Factura
+                    </button>
+                    <button type="submit" name="submit" value="duplicate" class="btn btn-info me-2" onclick="return confirm('¿Está seguro de que desea duplicar esta factura? Se generará un NUEVO número de factura.')">
+                        <i data-feather="copy"></i> Enviar como Nuevo
+                    </button>
+                <?php else: ?>
+                    <button type="submit" name="submit" value="submit" class="btn bg-blue-btn">
+                        <i data-feather="save"></i> <span id="btn-generar-texto">Generar Factura</span>
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
     <?php echo form_close(); ?>
     </div>
@@ -514,6 +585,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrf_token_name = '<?php echo $this->security->get_csrf_token_name(); ?>';
     const csrf_hash = '<?php echo $this->security->get_csrf_hash(); ?>';
     let searchTimeout;
+    const isEdit = <?php echo $is_edit ? 'true' : 'false'; ?>;
+    const facturaData = <?php echo $is_edit ? json_encode($factura) : 'null'; ?>;
 
     // --- LÓGICA DE TIPO DE DOCUMENTO Y SECCIONES VISIBLES ---
     function actualizarInterfazSegunTipoDocumento() {
@@ -536,7 +609,7 @@ document.addEventListener('DOMContentLoaded', function() {
             case 1: // Factura Electrónica
                 document.getElementById('alerta-factura').style.display = 'block';
                 document.getElementById('usuario-seccion-titulo').textContent = 'Datos del Usuario (Vendedor)';
-                document.getElementById('btn-generar-texto').textContent = 'Generar Factura';
+                if (document.getElementById('btn-generar-texto')) document.getElementById('btn-generar-texto').textContent = 'Generar Factura';
                 document.getElementById('alerta-desarrollo').style.display = 'none';
                 break;
                 
@@ -544,21 +617,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('alerta-autofactura').style.display = 'block';
                 document.getElementById('campos-autofactura').style.display = 'block';
                 document.getElementById('usuario-seccion-titulo').textContent = 'Datos del Usuario (Comprador)';
-                document.getElementById('btn-generar-texto').textContent = 'Generar Autofactura';
+                if (document.getElementById('btn-generar-texto')) document.getElementById('btn-generar-texto').textContent = 'Generar Autofactura';
                 document.getElementById('alerta-desarrollo').style.display = 'block';
                 break;
                 
             case 5: // Nota de Crédito
                 document.getElementById('alerta-nota-credito').style.display = 'block';
                 document.querySelector('.seccion-documento-referencia').style.display = 'block';
-                document.getElementById('btn-generar-texto').textContent = 'Generar Nota de Crédito';
+                if (document.getElementById('btn-generar-texto')) document.getElementById('btn-generar-texto').textContent = 'Generar Nota de Crédito';
                 document.getElementById('alerta-desarrollo').style.display = 'block';
                 break;
                 
             case 6: // Nota de Débito
                 document.getElementById('alerta-nota-debito').style.display = 'block';
                 document.querySelector('.seccion-documento-referencia').style.display = 'block';
-                document.getElementById('btn-generar-texto').textContent = 'Generar Nota de Débito';
+                if (document.getElementById('btn-generar-texto')) document.getElementById('btn-generar-texto').textContent = 'Generar Nota de Débito';
                 document.getElementById('alerta-desarrollo').style.display = 'block';
                 break;
                 
@@ -567,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('campos-remision').style.display = 'block';
                 document.getElementById('seccion-condicion').classList.add('seccion-oculta'); // No requiere condición de venta
                 document.getElementById('seccion-presencia').style.display = 'none'; // No requiere indicador de presencia
-                document.getElementById('btn-generar-texto').textContent = 'Generar Nota de Remisión';
+                if (document.getElementById('btn-generar-texto')) document.getElementById('btn-generar-texto').textContent = 'Generar Nota de Remisión';
                 document.getElementById('alerta-desarrollo').style.display = 'block';
                 break;
         }
@@ -637,6 +710,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('cliente_search_input').value = item.razon_social;
             document.getElementById('cliente_ruc').value = item.ruc;
             document.getElementById('cliente_razonSocial').value = item.razon_social;
+            document.getElementById('cliente_nombreFantasia').value = item.nombre_fantasia;
             document.getElementById('cliente_tipoContribuyente').value = tipoContribuyente(item.ruc);
             document.getElementById('cliente_direccion').value = item.direccion;
             document.getElementById('cliente_numeroCasa').value = item.numero_casa || '0';
@@ -644,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('cliente_telefono').value = item.telefono || item.celular;
             document.getElementById('cliente_codigo').value = item.codigo;
             document.getElementById('cliente_departamento').value = item.departamento;
-            fetchDistritos(item.departamento, item.distrito);
+            fetchDistritos(item.departamento, item.distrito, item.ciudad);
         }
     );
 
@@ -669,8 +743,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 msg.className = 'form-text text-danger';
             } else {
                 rucInput.value = `${data.ruc}-${data.dv}`;
-                document.getElementById('cliente_razonSocial').value = data.nombre + ' ' + data.apellido || '';
-                document.getElementById('cliente_search_input').value = data.nombre + ' ' + data.apellido || '';
+                document.getElementById('cliente_razonSocial').value = data.razon_social || (data.nombre + ' ' + data.apellido);
+                document.getElementById('cliente_search_input').value = data.razon_social || (data.nombre + ' ' + data.apellido);
                 document.getElementById('cliente_tipoContribuyente').value = tipoContribuyente(rucInput.value);
                 msg.textContent = 'RUC encontrado!';
                 msg.className = 'form-text text-success';
@@ -681,14 +755,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('cliente_departamento').addEventListener('change', function() { fetchDistritos(this.value); });
     document.getElementById('cliente_distrito').addEventListener('change', function() { fetchCiudades(this.value); });
 
-    function fetchDistritos(deptoId, selectedId = null) {
+    function fetchDistritos(deptoId, selectedDistritoId = null, selectedCiudadId = null) {
         const distSelect = document.getElementById('cliente_distrito');
         const ciuSelect = document.getElementById('cliente_ciudad');
         if (!deptoId) {
-            distSelect.innerHTML = '';
-            distSelect.disabled = true;
-            ciuSelect.innerHTML = '';
-            ciuSelect.disabled = true;
+            distSelect.innerHTML = ''; distSelect.disabled = true;
+            ciuSelect.innerHTML = ''; ciuSelect.disabled = true;
             return;
         }
         fetch(`<?php echo base_url('Facturacion_py/ajax_get_distritos'); ?>?departamento_id=${deptoId}`)
@@ -696,13 +768,9 @@ document.addEventListener('DOMContentLoaded', function() {
             distSelect.innerHTML = '<option value="">Seleccione Distrito</option>';
             data.forEach(d => distSelect.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
             distSelect.disabled = false;
-            if (selectedId) {
-                distSelect.value = selectedId;
-                // Almacenar el ID de la ciudad para usarlo después de que los distritos carguen
-                document.getElementById('cliente_ciudad').dataset.selected = ''; // Limpiar
-                if (document.querySelector(`option[value='${selectedId}']`)) {
-                    fetchCiudades(selectedId, null); // Pasar el ID de ciudad guardado si existe
-                }
+            if (selectedDistritoId) {
+                distSelect.value = selectedDistritoId;
+                fetchCiudades(selectedDistritoId, selectedCiudadId);
             }
         });
     }
@@ -710,8 +778,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function fetchCiudades(distId, selectedId = null) {
         const ciuSelect = document.getElementById('cliente_ciudad');
         if (!distId) {
-            ciuSelect.innerHTML = '';
-            ciuSelect.disabled = true;
+            ciuSelect.innerHTML = ''; ciuSelect.disabled = true;
             return;
         }
         fetch(`<?php echo base_url('Facturacion_py/ajax_get_ciudades'); ?>?distrito_id=${distId}`)
@@ -719,13 +786,12 @@ document.addEventListener('DOMContentLoaded', function() {
             ciuSelect.innerHTML = '<option value="">Seleccione Ciudad</option>';
             data.forEach(c => ciuSelect.innerHTML += `<option value="${c.id}">${c.nombre}</option>`);
             ciuSelect.disabled = false;
-            if (selectedId) {
-                ciuSelect.value = selectedId;
-            }
+            if (selectedId) ciuSelect.value = selectedId;
         });
     }
 
     function tipoContribuyente(ruc) {
+        if (!ruc) return 1;
         let limpio = ruc.toString().replace(/[\s\.\-]/g, "");
         let numero = parseInt(limpio, 10);
         return (isNaN(numero) || numero < 80000000) ? 1 : 2;
@@ -743,14 +809,16 @@ document.addEventListener('DOMContentLoaded', function() {
     );
 
     // --- SECCIÓN: ITEMS ---
-    let itemIndex = 0;
+    let itemIndex = isEdit ? facturaData.items.length : 0;
     document.getElementById('add-item-btn').addEventListener('click', addNewItem);
     function addNewItem() {
         let template = document.getElementById('item-row-template').innerHTML.replace(/{index}/g, itemIndex++);
         document.getElementById('items-container').insertAdjacentHTML('beforeend', template);
         feather.replace();
     }
-    addNewItem();
+    if (!isEdit) {
+        addNewItem();
+    }
 
     document.getElementById('items-container').addEventListener('click', function(e){
         const advancedBtn = e.target.closest('.btn-toggle-advanced');
@@ -783,7 +851,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         div.className = 'autocomplete-item';
                         div.innerHTML = `(${item.codigo}) ${item.descripcion}`;
                         div.addEventListener('click', () => {
-                            console.log(item);
                             input.value = item.descripcion;
                             row.querySelector('.item-codigo').value = item.codigo;
                             row.querySelector('.item-price').value = parseFloat(item.precio_unitario).toFixed(2);
@@ -801,203 +868,90 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // --- SECCIÓN: PAGOS Y CUOTAS ---
-    let pagoIndex = 0;
+    let pagoIndex = isEdit && facturaData.condicion.tipo == 1 ? (facturaData.condicion.entregas ? facturaData.condicion.entregas.length : 0) : 0;
     document.getElementById('add-pago-btn').addEventListener('click', addNewPago);
 
-    // Agregar esta función para obtener el total pendiente de pago
     function getTotalPendiente() {
         const totalGeneral = parseFloat(document.getElementById('total_general').textContent) || 0;
         let totalPagado = 0;
         document.querySelectorAll('.pago-monto').forEach(pago => {
-            if (pago === document.activeElement) return; // Ignorar el campo actual si está en foco
+            if (pago === document.activeElement) return;
             totalPagado += parseFloat(pago.value) || 0;
         });
         return Math.max(0, totalGeneral - totalPagado);
     }
 
-    // Modificar la función addNewPago para autocompletar con el total pendiente
     function addNewPago() {
         let template = document.getElementById('pago-row-template').innerHTML.replace(/{index}/g, pagoIndex++);
         document.getElementById('pagos-container').insertAdjacentHTML('beforeend', template);
         
-        // Auto-completar con el total pendiente
         const newPagoInput = document.querySelector('.pago-row:last-child .pago-monto');
         if (newPagoInput) {
             newPagoInput.value = getTotalPendiente().toFixed(2);
-            updateTotals(); // Actualizar totales después de añadir
+            updateTotals();
         }
-        
         feather.replace();
     }
 
-    // Agregar validación al formulario antes de enviar
     document.getElementById('form-factura').addEventListener('submit', function(e) {
         const tipoDocumento = parseInt(document.getElementById('tipoDocumento').value);
         
-        // 1. Verificar que hay al menos un item
         if (document.querySelectorAll('.item-row-wrapper').length === 0) {
             e.preventDefault();
             alert('Debe agregar al menos un ítem a la factura.');
             return false;
         }
         
-        // 2. Si es nota de crédito/débito, validar campos de documento referencia
         if (tipoDocumento === 5 || tipoDocumento === 6) {
             const cdc = document.getElementById('documento_referencia_cdc').value;
             const fecha = document.getElementById('documento_referencia_fecha').value;
-            
-            if (!cdc || cdc.length !== 44) {
-                e.preventDefault();
-                alert('El CDC debe tener 44 caracteres.');
-                return false;
-            }
-            
-            if (!fecha) {
-                e.preventDefault();
-                alert('Debe especificar la fecha del documento de referencia.');
-                return false;
-            }
+            if (!cdc || cdc.length !== 44) { e.preventDefault(); alert('El CDC debe tener 44 caracteres.'); return false; }
+            if (!fecha) { e.preventDefault(); alert('Debe especificar la fecha del documento de referencia.'); return false; }
         }
         
-        // 3. Si es nota de remisión, validar campos específicos
         if (tipoDocumento === 7) {
             const fechaInicio = document.querySelector('input[name="remision[fecha_inicio]"]').value;
             const fechaFin = document.querySelector('input[name="remision[fecha_fin]"]').value;
             const matricula = document.querySelector('input[name="remision[vehiculo_matricula]"]').value;
-            
-            if (!fechaInicio || !fechaFin) {
-                e.preventDefault();
-                alert('Debe especificar fechas de inicio y fin del traslado.');
-                return false;
-            }
-            
-            if (!matricula) {
-                e.preventDefault();
-                alert('La matrícula del vehículo es obligatoria.');
-                return false;
-            }
+            if (!fechaInicio || !fechaFin) { e.preventDefault(); alert('Debe especificar fechas de inicio y fin del traslado.'); return false; }
+            if (!matricula) { e.preventDefault(); alert('La matrícula del vehículo es obligatoria.'); return false; }
         }
         
-        // 4. Si es autofactura, validar campos específicos
         if (tipoDocumento === 4) {
             const ubicacion = document.querySelector('input[name="autofactura[ubicacion]"]').value;
-            
-            if (!ubicacion) {
-                e.preventDefault();
-                alert('Debe especificar la ubicación del vendedor.');
-                return false;
-            }
+            if (!ubicacion) { e.preventDefault(); alert('Debe especificar la ubicación del vendedor.'); return false; }
         }
         
-        // 5. Verificar condición de venta para facturas y notas de débito/crédito
         if ((tipoDocumento === 1 || tipoDocumento === 5 || tipoDocumento === 6) && 
             !document.getElementById('seccion-condicion').classList.contains('seccion-oculta')) {
-            
             const condicionTipo = document.getElementById('condicion_tipo').value;
-            
-            if (condicionTipo == 1) { // Si es contado
+            if (condicionTipo == 1) {
                 const totalGeneral = parseFloat(document.getElementById('total_general').textContent) || 0;
                 const totalPagado = parseFloat(document.getElementById('total_pagado').textContent) || 0;
-                
-                if (totalPagado < totalGeneral) {
-                    e.preventDefault();
-                    alert(`El total pagado (${totalPagado.toFixed(2)}) debe ser igual o mayor al total de la factura (${totalGeneral.toFixed(2)})`);
-                    return false;
-                }
-                
-                // Verificar que hay al menos una forma de pago
-                if (document.querySelectorAll('.pago-row').length === 0) {
-                    e.preventDefault();
-                    alert('Debe agregar al menos una forma de pago.');
-                    return false;
-                }
+                if (totalPagado < totalGeneral) { e.preventDefault(); alert(`El total pagado (${totalPagado.toFixed(2)}) debe ser igual o mayor al total de la factura (${totalGeneral.toFixed(2)})`); return false; }
+                if (document.querySelectorAll('.pago-row').length === 0) { e.preventDefault(); alert('Debe agregar al menos una forma de pago.'); return false; }
             }
-            
-            // Si es crédito, verificar que hay al menos una cuota
-            if (condicionTipo == 2 && document.querySelectorAll('.cuota-row').length === 0) {
-                e.preventDefault();
-                alert('Debe agregar al menos una cuota para la condición de crédito.');
-                return false;
-            }
+            if (condicionTipo == 2 && document.querySelectorAll('.cuota-row').length === 0) { e.preventDefault(); alert('Debe agregar al menos una cuota para la condición de crédito.'); return false; }
         }
         
-        // Todo está correcto, permitir envío
         return true;
     });
 
-    // Función para cerrar alertas manualmente
     document.querySelectorAll('.btn-close').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const alert = this.closest('.alert');
-            if (alert) {
-                alert.style.display = 'none';
-            }
-        });
+        button.addEventListener('click', function() { this.closest('.alert').style.display = 'none'; });
     });
 
-    // Auto-cerrar alertas después de 10 segundos
     document.querySelectorAll('.alert').forEach(function(alert) {
         setTimeout(function() {
             if (alert.style.display !== 'none') {
                 alert.style.opacity = '0';
-                setTimeout(function() {
-                    alert.style.display = 'none';
-                }, 300);
+                setTimeout(() => { alert.style.display = 'none'; }, 300);
             }
         }, 10000);
     });
 
-    // Activar feather icons en las alertas
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
+    if (typeof feather !== 'undefined') { feather.replace(); }
 
-    // Alternativamente, mostrar errores con SweetAlert
-    <?php if ($this->session->flashdata('error_custom')): ?>
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: '<?php echo addslashes($this->session->flashdata('error_custom')); ?>',
-                confirmButtonText: 'Entendido'
-            });
-        }
-    <?php endif; ?>
-
-    <?php if ($this->session->flashdata('success')): ?>
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Éxito',
-                text: '<?php echo addslashes($this->session->flashdata('success')); ?>',
-                confirmButtonText: 'Perfecto'
-            });
-        }
-    <?php endif; ?>
-
-    <?php if ($this->session->flashdata('warning')): ?>
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Advertencia',
-                text: '<?php echo addslashes($this->session->flashdata('warning')); ?>',
-                confirmButtonText: 'Entendido'
-            });
-        }
-    <?php endif; ?>
-
-    <?php if ($this->session->flashdata('info')): ?>
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'info',
-                title: 'Información',
-                text: '<?php echo addslashes($this->session->flashdata('info')); ?>',
-                confirmButtonText: 'Entendido'
-            });
-        }
-    <?php endif; ?>
-
-    // Mejorar la función updateTotals para mostrar mensajes de validación en tiempo real
     function updateTotals() {
         let totalGeneral = 0;
         document.querySelectorAll('.item-row-wrapper').forEach(row => {
@@ -1009,28 +963,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         document.getElementById('total_general').textContent = totalGeneral.toFixed(2);
 
-        // Solo actualizar totales de pago si la sección de condición está visible
         if (!document.getElementById('seccion-condicion').classList.contains('seccion-oculta')) {
             let totalPagado = 0;
-            document.querySelectorAll('.pago-monto').forEach(pago => {
-                totalPagado += parseFloat(pago.value) || 0;
-            });
+            document.querySelectorAll('.pago-monto').forEach(pago => { totalPagado += parseFloat(pago.value) || 0; });
             document.getElementById('total_pagado').textContent = totalPagado.toFixed(2);
             
-            const vueltoElement = document.getElementById('vuelto');
             const vuelto = totalPagado - totalGeneral;
-            vueltoElement.textContent = (vuelto > 0) ? vuelto.toFixed(2) : '0.00';
+            document.getElementById('vuelto').textContent = (vuelto > 0) ? vuelto.toFixed(2) : '0.00';
             
-            // Mostrar advertencia si el pago es insuficiente
             const mensajeValidacion = document.getElementById('mensaje-validacion-pago');
             if (mensajeValidacion) {
-                if (totalPagado < totalGeneral) {
-                    mensajeValidacion.textContent = `Faltan ${(totalGeneral - totalPagado).toFixed(2)} Gs. por pagar`;
-                    mensajeValidacion.className = 'text-danger';
-                } else {
-                    mensajeValidacion.textContent = 'Pago completo';
-                    mensajeValidacion.className = 'text-success';
-                }
+                mensajeValidacion.textContent = (totalPagado < totalGeneral) ? `Faltan ${(totalGeneral - totalPagado).toFixed(2)} Gs.` : 'Pago completo';
+                mensajeValidacion.className = (totalPagado < totalGeneral) ? 'text-danger' : 'text-success';
             }
         }
     }
@@ -1042,10 +986,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const index = e.target.name.match(/\[(\d+)\]/)[1];
             const tipoPago = e.target.value;
 
-            if (tipoPago == 3 || tipoPago == 4) { // Tarjeta C/D
+            if (tipoPago == 3 || tipoPago == 4) {
                 detailsContainer.style.display = 'block';
                 detailsContainer.innerHTML = `<div class="row g-3"><div class="col-md-4"><label>Procesadora</label><select name="condicion[entregas][${index}][infoTarjeta][tipo]" class="form-control"><?php foreach($tipos_tarjeta_procesadora as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?></select></div><div class="col-md-4"><label>RUC Procesadora</label><input type="text" name="condicion[entregas][${index}][infoTarjeta][ruc]" class="form-control"></div><div class="col-md-4"><label>Cód. Autorización</label><input type="text" name="condicion[entregas][${index}][infoTarjeta][codigoAutorizacion]" class="form-control"></div></div>`;
-            } else if (tipoPago == 2) { // Cheque
+            } else if (tipoPago == 2) {
                 detailsContainer.style.display = 'block';
                 detailsContainer.innerHTML = `<div class="row g-3"><div class="col-md-6"><label>N° Cheque</label><input type="text" name="condicion[entregas][${index}][infoCheque][numeroCheque]" class="form-control"></div><div class="col-md-6"><label>Banco</label><input type="text" name="condicion[entregas][${index}][infoCheque][banco]" class="form-control"></div></div>`;
             } else {
@@ -1054,7 +998,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    let cuotaIndex = 0;
+    let cuotaIndex = isEdit && facturaData.condicion.tipo == 2 ? (facturaData.condicion.credito.cuotas_detalle ? facturaData.condicion.credito.cuotas_detalle.length : 0) : 0;
     document.getElementById('add-cuota-btn').addEventListener('click', addNewCuota);
     function addNewCuota() {
         let template = document.getElementById('cuota-row-template').innerHTML.replace(/{index}/g, cuotaIndex++);
@@ -1082,16 +1026,45 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- SECCIÓN: LÓGICA CONDICIONAL DE VISTA ---
     document.getElementById('condicion_tipo').addEventListener('change', function() {
-        if (this.value == 2) { // Crédito
-            document.getElementById('credito-fields').style.display = 'block';
-            document.getElementById('contado-fields').style.display = 'none';
-        } else { // Contado
-            document.getElementById('credito-fields').style.display = 'none';
-            document.getElementById('contado-fields').style.display = 'block';
+        document.getElementById('credito-fields').style.display = (this.value == 2) ? 'block' : 'none';
+        document.getElementById('contado-fields').style.display = (this.value == 1) ? 'block' : 'none';
+    });
+    
+    // Ejecutar al cargar la página para inicializar todo
+    function initializeForm() {
+        if(isEdit){
+            fetchDistritos(facturaData.cliente.departamento, facturaData.cliente.distrito, facturaData.cliente.ciudad);
+        }
+        document.getElementById('condicion_tipo').dispatchEvent(new Event('change'));
+        updateTotals();
+        feather.replace();
+    }
+    
+    initializeForm();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoNumeroSelect = document.getElementById('tipo_numero');
+    const campoPersonalizado = document.getElementById('campo_numero_personalizado');
+    const inputPersonalizado = document.getElementById('numero_factura_personalizado');
+
+    tipoNumeroSelect.addEventListener('change', function() {
+        console.log('change event fired');
+        if (this.value === 'personalizado') {
+            console.log('Seleccionado personalizado');
+            campoPersonalizado.style.display = 'block';
+            inputPersonalizado.setAttribute('required', 'required');
+        } else {
+            console.log('Seleccionado automático');
+            campoPersonalizado.style.display = 'none';
+            inputPersonalizado.removeAttribute('required');
+            // inputPersonalizado.value = ''; // Limpiar el campo
         }
     });
-    document.getElementById('condicion_tipo').dispatchEvent(new Event('change'));
+
+    // Disparar el evento change al cargar por si el formulario se recarga con un valor previo
+    tipoNumeroSelect.dispatchEvent(new Event('change'));
 });
+
 </script>

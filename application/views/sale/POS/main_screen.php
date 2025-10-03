@@ -1445,6 +1445,7 @@ foreach ($notifications as $single_notification){
                                     <!--This variable could not be escaped because this is html content-->
                                     <?php echo ($customers_option); ?>
                                 </select>
+                                <button class=" callout-danger txt_11" id="remaining_due"></button>
                         </div>
 
                         <div class="separator <?php echo escape_output($is_self_order_class) ?>">
@@ -3183,6 +3184,104 @@ foreach ($notifications as $single_notification){
         </div>
     </div>
 
+    <div class="cus_pos_modal" id="pay_due_modal_registro">
+        <header class="pos__modal__header">
+            <h3 class="pos__modal__title">Abonar Deuda de: <span id="pay_due_modal_customer_name">*</span></h3>
+            <a href="javascript:void(0)" class="pos__modal__close close_pay_due_modal"><i class="fal fa-times"></i></a>
+        </header>
+        <div class="pos__modal__body scrollbar-macosx">
+            <!-- <div class="pay_due_form_content"></div> -->
+                <div class="row">
+                    <input type="hidden" name="pay_due_modal_reference_no" value="">
+                    <input type="hidden" id="pay_due_modal_customer_id" value="">
+                    <div class="col-md-4">
+
+                        <div class="form-group">
+                            <label><?php echo lang('date'); ?> <span class="required_star">*</span></label>
+                            <input tabindex="1" type="text" id="pay_due_modal_date" readonly name="date" class="form-control"
+                                placeholder="<?php echo lang('date'); ?>" value="<?php echo date("Y-m-d",strtotime('today')); ?>">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label><?php echo lang('payment_method'); ?> <span class="required_star">*</span></label>
+                            <select tabindex="3" class="form-control select2 ir_w_100" id="pay_due_modal_payment_id"
+                                    name="payment_id">
+                                <option value=""><?php echo lang('select'); ?></option>
+                                <?php foreach (getAllPaymentMethods(5) as $value) {
+                                    ?>
+                                    <option value="<?php echo escape_output($value->id) ?>"
+                                        <?php echo set_select('payment_id', $value->id); ?>>
+                                        <?php echo escape_output($value->name)?></option>
+                                    <?php
+                                } ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label><?php echo lang('amount'); ?> <span class="required_star">*</span></label>
+                            <input tabindex="2" type="text" id="pay_due_modal_amount"
+                                class="form-control integerchk ir_w_100" placeholder="<?php echo lang('amount'); ?>"
+                                value="<?php echo set_value('amount'); ?>">
+                        </div>
+
+
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label><?php echo lang('note'); ?></label>
+                            <textarea tabindex="5" class="form-control" rows="4" id="pay_due_modal_note"
+                                placeholder="<?php echo lang('enter'); ?> ..."><?php echo escape_output($this->input->post('note')); ?></textarea>
+                        </div>
+                    </div>
+
+                    
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label><br></label>
+                            
+                            <button type="submit" id="pay_due_modal_submit" class="btn callout-info">Realizar Pago</button>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                    
+            <!-- === NUEVA SECCIÓN: PAGOS RECIENTES === -->
+            <hr style="margin-top: 20px; margin-bottom: 20px;">
+            
+            <div class="recent-payments-section">
+                <h4 class="pos__modal__title">Últimos 10 Pagos Realizados</h4>
+                <div class="table-responsive">
+                    
+                        <table class="table_register_details table_sale_details top_margin_15 dataTable no-footer" id="DataTables_recent_due_payments_list" role="grid">
+                        <thead>
+                            <tr>
+                                <th>Ref.</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Monto</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent_due_payments_list">
+                            <!-- El contenido se cargará aquí por AJAX -->
+                            <tr>
+                                <td colspan="5" class="text-center">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
     <div class="cus_pos_modal" id="statement_modal_registro">
         <header class="pos__modal__header">
             <h3 class="pos__modal__title">Declaración de cierre</h3>
@@ -3960,8 +4059,8 @@ foreach ($notifications as $single_notification){
                         <?php endforeach;?>
                         <li class="">
                             <!--  -->
-                            <a id="set_due_payment_btn" class="set_due_payment_btn" href="#" style="display:none;" >
-                                <?php echo 'Crédito a Cliente' // lang('leave_as_due'); ?>
+                            <a id="set_due_payment_btn" class="set_due_payment_btn" href="#" >
+                                <?php echo 'Crédito a Cliente' // lang('leave_as_due'); style="display:none;"  ?>
                             </a>
                         </li>
                         <li class=""> <a  id="change_currency_btn" class="change_currency_btn" href="#"><?php echo lang('change_currency'); ?></a> </li>
@@ -5310,7 +5409,10 @@ foreach ($notifications as $single_notification){
                 // Si el RUC tiene más de 4 dígitos y no contiene guion, hacemos la solicitud
                 if (ruc.length > 4) {
                     let tipoCont = tipoContribuyente(rucInput);
-                    document.getElementById("customer_es_contribuyente_modal").checked = false;
+                    let contribuyente = document.getElementById("customer_es_contribuyente_modal");
+                    if (contribuyente) {
+                        contribuyente.checked = false;
+                    }
                     // Crear un objeto FormData y añadir el ruc
                     let formData = new FormData();
                     formData.append("ruc", ruc);
@@ -5329,16 +5431,28 @@ foreach ($notifications as $single_notification){
                             messageContainer.classList.add('text-danger'); // Mensaje en rojo
                         } else {
                             if (tipoCont == '2'){
-                                document.getElementById("customer_tipo_contribuyente_modal").value = "2";
+                                if(document.getElementById("customer_tipo_contribuyente_modal")){
+                                    document.getElementById("customer_tipo_contribuyente_modal").value = "2";
+                                }
                             }
                             // Si se encuentra el RUC, completar los campos con los datos
-                            document.getElementById("customer_name_modal").value = data.nombre + ' ' + data.apellido || '';
-                            // Formatear el RUC con el dígito verificador y actualizar el campo
                             let fullRuc = `${ruc}-${data.dv}`;
                             document.getElementById("customer_gst_number_modal").value = fullRuc;
-                            document.getElementById("customer_es_contribuyente_modal").checked = true;
+                            document.getElementById("customer_name_modal").value = data.nombre + ' ' + data.apellido || '';
+                            // Formatear el RUC con el dígito verificador y actualizar el campo
+                            let contribuyente = document.getElementById("customer_es_contribuyente_modal");
+
+                            if (contribuyente) {
+                                contribuyente.checked = true;
+                                let tipoDocumento = document.getElementById("customer_tipo_documento_modal");
+                                if (tipoDocumento) tipoDocumento.value = "1";
+                                
+                                if (typeof fetch_departamentos === "function") fetch_departamentos();
+                                if (typeof fetch_paises === "function") fetch_paises();
+                            }
 
                             // Mostrar el mensaje de éxito
+                            
                             messageContainer.textContent = "RUC encontrado!";
                             messageContainer.classList.remove('text-warning', 'text-danger');
                             messageContainer.classList.add('text-success'); // Mensaje en verde
@@ -5604,7 +5718,89 @@ foreach ($notifications as $single_notification){
 
         </script>
     <?php endif; ?>
-    
+    <script>
+
+        function hide_customer_due(){
+            $("#remaining_due").hide();
+            $("#pay_due_modal_customer_id").val('');
+            $("#remaining_due").text('');
+            $("#pay_due_modal_customer_name").text('');
+            $("#pay_due_modal_amount").val('');
+        }
+        function fetch_customer_due(customer_id){
+            // let customer_id = $('#customer_id').val();
+            let csrf_name_= $("#csrf_name_").val();
+            let csrf_value_= $("#csrf_value_").val();
+            let texto_due = 'Deuda';//$("#current_due").val();
+            hide_customer_due();
+            $.ajax({
+                type: "GET",
+                url: base_url+'Sale/getCustomerDue',
+                dataType: "json", 
+                data: {
+                    customer_id: customer_id,
+                    csrf_name_: csrf_value_
+                },
+                success: function(response) {
+                    // console.log(response);
+                    let due_format = formatNumberToCurrency(response.remaining_due);
+                    let remaining_due = response.remaining_due ?? 0;
+                    console.log(remaining_due);
+                    if (Number(remaining_due) > 0) {
+                        console.log('Tiene deuda de: ' + Number(remaining_due));
+                        let customer_name = response.customer.name;
+                        $("#pay_due_modal_customer_id").val(customer_id);
+                        $("#remaining_due").show();
+                        $("#remaining_due").text(texto_due+": " + due_format );
+                        $("#pay_due_modal_customer_name").text(customer_name + " (" + due_format + ")");
+                        $("#pay_due_modal_amount").val(remaining_due);
+                    }
+                }
+            });
+        };
+
+        function updateFinalizeDueVisual() {
+            // let totalPayable = parseCurrencyToNumber($("#finalize_total_payable").text());
+            // let totalPaid = 0;
+            // $(".payment_list_counter").each(function () {
+            //     totalPaid += Number($(this).attr('data-amount'));
+            // });
+        
+            // let diff = totalPaid - totalPayable;
+            // $("#finalize_total_due").text(Math.abs(diff).toFixed(ir_precision));
+        
+            let diff = 0;
+            let dueText = $("#finalize_total_due").text() || "0";
+            console.log('dueText original:', dueText);
+            
+            // Intentar convertir usando parseCurrencyToNumber
+            diff = parseCurrencyToNumber(dueText);
+            console.log('diff después de parseCurrencyToNumber:', diff);
+            
+            // Verificar si la conversión resultó en NaN
+            if (isNaN(diff)) {
+                console.log('NaN detected después de parseCurrencyToNumber');
+                diff = 0; // Valor por defecto
+            }
+            // console.log(diff);
+            if (diff < 0) {
+                // Hay vuelto
+                $("#finalize_total_due_title").text("Vuelto");
+                $("#set_due_payment_btn").hide();
+                $("#finalize_order_button").prop("disabled", false); // Habilita finalizar
+            } else if (diff > 0) {
+                // Falta dinero
+                $("#finalize_total_due_title").text("Falta");
+                $("#set_due_payment_btn").show();
+                $("#finalize_order_button").prop("disabled", true); // Deshabilita finalizar
+            } else {
+                // Exacto
+                $("#finalize_total_due_title").text("Falta");
+                $("#set_due_payment_btn").hide();
+                $("#finalize_order_button").prop("disabled", false); // Habilita finalizar
+            }
+        }
+    </script>
     <!--for datatable-->
     <script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jquery.dataTables.min.js?v=7.5"></script>
