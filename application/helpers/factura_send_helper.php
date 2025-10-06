@@ -1528,6 +1528,21 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                     'error' => 'Respuesta inválida de la API',
                     'response' => $response
                 ];
+                
+                // Registrar error en auditoría
+                $audit_data = [
+                    'factura_id' => null, // No está asociado a una factura específica
+                    'fecha_modificacion' => date('Y-m-d H:i:s'),
+                    'usuario_id' => $ci->session->userdata('user_id') ?? 0,
+                    'tipo_accion' => 'CONSULTA_CDC_ERROR',
+                    'json_backup' => json_encode([
+                        'lote' => [$i + 1, min($i + count($cdcList), $total)],
+                        'cdcs' => array_column($cdcList, 'cdc'),
+                        'response' => $response
+                    ])
+                ];
+                $ci->db->insert('py_facturas_auditoria', $audit_data);
+                
                 continue;
             }
 
@@ -1553,6 +1568,21 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                         'cdc' => $row->cdc,
                         'warning' => 'CDC no retornado por la API en este lote'
                     ];
+                    
+                    // Registrar warning en auditoría
+                    $audit_data = [
+                        'factura_id' => $row->id,
+                        'fecha_modificacion' => date('Y-m-d H:i:s'),
+                        'usuario_id' => $ci->session->userdata('user_id') ?? 0,
+                        'tipo_accion' => 'CONSULTA_CDC_WARNING',
+                        'json_backup' => json_encode([
+                            'cdc' => $row->cdc,
+                            'warning' => 'CDC no retornado por la API en este lote',
+                            'response_deList' => $deList
+                        ])
+                    ];
+                    $ci->db->insert('py_facturas_auditoria', $audit_data);
+                    
                     continue;
                 }
 
@@ -1572,6 +1602,22 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                         'warning' => 'Campo situacion no válido en respuesta API',
                         'situacion_recibida' => $situacion_api
                     ];
+                    
+                    // Registrar warning en auditoría
+                    $audit_data = [
+                        'factura_id' => $row->id,
+                        'fecha_modificacion' => date('Y-m-d H:i:s'),
+                        'usuario_id' => $ci->session->userdata('user_id') ?? 0,
+                        'tipo_accion' => 'CONSULTA_CDC_WARNING',
+                        'json_backup' => json_encode([
+                            'cdc' => $row->cdc,
+                            'warning' => 'Campo situacion no válido en respuesta API',
+                            'situacion_recibida' => $situacion_api,
+                            'response_completa' => $de
+                        ])
+                    ];
+                    $ci->db->insert('py_facturas_auditoria', $audit_data);
+                    
                     continue;
                 }
 
@@ -1584,9 +1630,28 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                 // Realizar la actualización
                 $ci->db->where('cdc', $row->cdc)->update('py_facturas_electronicas', $update);
                 
+                $fue_actualizado = false;
                 if ($ci->db->affected_rows() > 0) {
                     $actualizados++;
+                    $fue_actualizado = true;
                 }
+
+                // Registrar en auditoría
+                $audit_data = [
+                    'factura_id' => $row->id,
+                    'fecha_modificacion' => date('Y-m-d H:i:s'),
+                    'usuario_id' => $ci->session->userdata('user_id') ?? 0,
+                    'tipo_accion' => 'CONSULTA_CDC_EXITO',
+                    'json_backup' => json_encode([
+                        'cdc' => $row->cdc,
+                        'situacion_api' => $situacion_api,
+                        'estado_anterior' => $row->estado,
+                        'estado_nuevo' => $estado_local,
+                        'actualizado' => $fue_actualizado,
+                        'response_completa' => $de
+                    ])
+                ];
+                $ci->db->insert('py_facturas_auditoria', $audit_data);
 
                 $detalles[] = [
                     'id' => $row->id,
@@ -1594,7 +1659,7 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                     'situacion_api' => $situacion_api,
                     'estado_anterior' => $row->estado,
                     'estado_nuevo' => $estado_local,
-                    'actualizado' => true
+                    'actualizado' => $fue_actualizado
                 ];
             }
         }

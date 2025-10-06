@@ -71,7 +71,13 @@ class Facturacion_py_model extends CI_Model {
     }
     
     public function get_auditoria_logs($factura_id){
-        return $this->db->where('factura_id', $factura_id)->order_by('fecha_modificacion', 'DESC')->get('py_facturas_auditoria')->result();
+        $this->db->select('pa.*, u.full_name as usuario_nombre');
+        $this->db->from('py_facturas_auditoria pa');
+        $this->db->join('tbl_users u', 'pa.usuario_id = u.id', 'left');
+        $this->db->where('pa.factura_id', $factura_id);
+        $this->db->order_by('pa.fecha_modificacion', 'DESC');
+        $this->db->order_by('pa.id', 'DESC');
+        return $this->db->get()->result();
     }
 
     

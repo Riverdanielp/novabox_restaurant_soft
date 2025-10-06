@@ -339,9 +339,58 @@ function formatJsonForDisplay(jsonData, tipoAccion, isFromCdc = false) {
         html += '<div class="alert alert-danger">' + jsonData.body.error + '</div>';
     }
     
+    html += '</div></div></div>';
+    
     // Para consultas CDC, mostrar información específica de SIFEN
-    if (isFromCdc && jsonData.body) {
+    if (isFromCdc && jsonData.body && jsonData.body.deList && jsonData.body.deList.length > 0) {
+        html += '<div class="col-md-6">';
+        html += '<div class="card">';
+        html += '<div class="card-header"><strong>Información del Documento SIFEN</strong></div>';
+        html += '<div class="card-body">';
+        
+        var doc = jsonData.body.deList[0]; // Tomar el primer documento
+        
+        if (doc.cdc) {
+            html += '<p><strong>CDC:</strong> <code>' + doc.cdc + '</code></p>';
+        }
+        if (doc.numero) {
+            html += '<p><strong>Número:</strong> <span class="badge bg-primary">' + doc.numero + '</span></p>';
+        }
+        if (doc.situacion !== undefined) {
+            var situacionClass = '';
+            var situacionText = '';
+            switch(parseInt(doc.situacion)) {
+                case 0: situacionClass = 'bg-secondary'; situacionText = 'Generado'; break;
+                case 1: situacionClass = 'bg-info'; situacionText = 'Enviado en Lote'; break;
+                case 2: situacionClass = 'bg-success'; situacionText = 'Aprobado'; break;
+                case 3: situacionClass = 'bg-warning'; situacionText = 'Aprobado con Observación'; break;
+                case 4: situacionClass = 'bg-danger'; situacionText = 'Rechazado'; break;
+                case 98: situacionClass = 'bg-dark'; situacionText = 'Inexistente'; break;
+                case 99: situacionClass = 'bg-secondary'; situacionText = 'Cancelado'; break;
+                default: situacionClass = 'bg-secondary'; situacionText = 'Estado ' + doc.situacion;
+            }
+            html += '<p><strong>Estado/Situación:</strong> <span class="badge ' + situacionClass + '">' + situacionText + ' (' + doc.situacion + ')</span></p>';
+        }
+        if (doc.fecha) {
+            html += '<p><strong>Fecha:</strong> ' + doc.fecha + '</p>';
+        }
+        if (doc.respuesta_codigo) {
+            html += '<p><strong>Código de Respuesta:</strong> <span class="badge bg-warning">' + doc.respuesta_codigo + '</span></p>';
+        }
+        if (doc.respuesta_mensaje) {
+            html += '<p><strong>Mensaje de Respuesta:</strong></p>';
+            var mensajeClass = doc.respuesta_codigo && doc.respuesta_codigo !== '0000' ? 'alert-danger' : 'alert-info';
+            html += '<div class="alert ' + mensajeClass + '">' + doc.respuesta_mensaje + '</div>';
+        }
+        
+        html += '</div></div></div>';
+    } else if (isFromCdc && jsonData.body) {
+        // Fallback para el formato anterior de respuesta SIFEN
         var body = jsonData.body;
+        html += '<div class="col-md-6">';
+        html += '<div class="card">';
+        html += '<div class="card-header"><strong>Información SIFEN (Formato Anterior)</strong></div>';
+        html += '<div class="card-body">';
         
         if (body.dEstado) {
             html += '<p><strong>Estado SIFEN:</strong> <span class="badge bg-primary">' + body.dEstado + '</span></p>';
@@ -364,9 +413,9 @@ function formatJsonForDisplay(jsonData, tipoAccion, isFromCdc = false) {
         if (body.xContRec && body.xContRec.dNumDoc) {
             html += '<p><strong>Número Documento:</strong> ' + body.xContRec.dNumDoc + '</p>';
         }
+        
+        html += '</div></div></div>';
     }
-    
-    html += '</div></div></div>';
     
     // Errores detallados
     if (jsonData.body && jsonData.body.errores && jsonData.body.errores.length > 0) {
@@ -499,7 +548,13 @@ $(document).ready(function() {
                             logsHtml += '</div>';
                             logsHtml += '<div class="col-md-6 text-end">';
                             logsHtml += '<span class="badge bg-info me-2">' + (log.tipo_accion || 'N/A') + '</span>';
-                            logsHtml += '<small class="text-muted">Usuario ID: ' + (log.usuario_id || 'N/A') + '</small>';
+                            var usuarioInfo = 'N/A';
+                            if (log.usuario_nombre) {
+                                usuarioInfo = log.usuario_nombre + ' (ID: ' + (log.usuario_id || 'N/A') + ')';
+                            } else if (log.usuario_id) {
+                                usuarioInfo = 'Usuario ID: ' + log.usuario_id;
+                            }
+                            logsHtml += '<small class="text-muted">' + usuarioInfo + '</small>';
                             logsHtml += '</div>';
                             logsHtml += '</div>';
                             logsHtml += '</div>';

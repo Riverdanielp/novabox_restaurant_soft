@@ -746,7 +746,48 @@ class Facturacion_py extends Cl_Controller {
             return;
         }
         
+        // Obtener logs tanto de la factura específica como los logs generales que puedan estar relacionados
         $logs = $this->Facturacion_py_model->get_auditoria_logs($factura_id);
+        
+        // También obtener logs que puedan estar relacionados por CDC
+        $factura = $this->db->get_where('py_facturas_electronicas', ['id' => $factura_id])->row();
+        
+        if ($factura && !empty($factura->cdc)) {
+            // Buscar logs adicionales que contengan este CDC en el json_backup
+            $this->db->select('pa.*, u.full_name as usuario_nombre');
+            $this->db->from('py_facturas_auditoria pa');
+            $this->db->join('tbl_users u', 'pa.usuario_id = u.id', 'left');
+            $this->db->group_start();
+            $this->db->where('pa.factura_id IS NULL');
+            $this->db->or_where('pa.factura_id !=', $factura_id);
+            $this->db->group_end();
+            $this->db->like('pa.json_backup', $factura->cdc);
+            $this->db->order_by('pa.fecha_modificacion', 'DESC');
+            $this->db->order_by('pa.id', 'DESC');
+            
+            $query_adicionales = $this->db->get();
+            
+            if ($query_adicionales) {
+                $logs_adicionales = $query_adicionales->result();
+                
+                // Combinar los logs
+                if (!empty($logs_adicionales)) {
+                    $logs = array_merge($logs, $logs_adicionales);
+                    
+                    // Ordenar por fecha de modificación descendente
+                    usort($logs, function($a, $b) {
+                        $timestamp_a = strtotime($a->fecha_modificacion);
+                        $timestamp_b = strtotime($b->fecha_modificacion);
+                        
+                        if ($timestamp_a == $timestamp_b) {
+                            return $b->id - $a->id; // Si las fechas son iguales, ordenar por ID descendente
+                        }
+                        
+                        return $timestamp_b - $timestamp_a;
+                    });
+                }
+            }
+        }
         
         if ($logs) {
             echo json_encode(['success' => true, 'logs' => $logs]);
@@ -772,39 +813,66 @@ class Facturacion_py extends Cl_Controller {
             return;
         }
         
+        // Buscar la factura por CDC en la base de datos
+        $factura = $this->db->get_where('py_facturas_electronicas', ['cdc' => $cdc])->row();
+        $factura_id = $factura ? $factura->id : null;
+        
         $this->load->library('facturasend');
         
         try {
             // Realizar consulta del CDC usando el método correcto de la librería
-            // $resultado = $this->facturasend->sifen_consulta_cdc($cdc);
             $cdcs = [['cdc' => $cdc]];
             $resultado = $this->facturasend->consultar_estados_documentos($cdcs);
 
-            // // Registrar en auditoría
-            // $audit_data = [
-            //     'factura_id' => null, // No está asociado a una factura específica
-            //     'fecha_modificacion' => date('Y-m-d H:i:s'),
-            //     'usuario_id' => $this->session->userdata('user_id'),
-            //     'tipo_accion' => 'CONSULTA_CDC',
-            //     'json_backup' => json_encode($resultado)
-            // ];
-            // $this->db->insert('py_facturas_auditoria', $audit_data);
+            // Registrar en auditoría con el factura_id encontrado
+            $audit_data = [
+                'factura_id' => $factura_id,
+                'fecha_modificacion' => date('Y-m-d H:i:s'),
+                'usuario_id' => $this->session->userdata('user_id'),
+                'tipo_accion' => 'CONSULTA_CDC_MANUAL',
+                'json_backup' => json_encode([
+                    'cdc_consultado' => $cdc,
+                    'factura_encontrada' => $factura_id ? true : false,
+                    'resultado_api' => $resultado
+                ])
+            ];
+            $this->db->insert('py_facturas_auditoria', $audit_data);
             
-            echo json_encode(['success' => true, 'data' => $resultado]);
+            // Si encontramos la factura y la API devolvió un resultado válido, actualizar el estado
+            if ($factura_id && isset($resultado['status']) && $resultado['status'] == 200 && ($resultado['body']['success'] ?? false)) {
+                $deList = $resultado['body']['deList'] ?? $resultado['body']['result']['deList'] ?? [];
+                
+                if (!empty($deList) && is_array($deList)) {
+                    foreach ($deList as $de) {
+                        if (isset($de['cdc']) && $de['cdc'] === $cdc && isset($de['situacion'])) {
+                            // Actualizar el estado de la factura
+                            $update_data = [
+                                'estado' => $de['situacion'],
+                                'fecha_modificacion' => date('Y-m-d H:i:s')
+                            ];
+                            $this->db->where('id', $factura_id)->update('py_facturas_electronicas', $update_data);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            echo json_encode(['success' => true, 'data' => $resultado, 'factura_id' => $factura_id]);
             
         } catch (Exception $e) {
-            // // Registrar error en auditoría
-            // $error_data = [
-            //     'factura_id' => null,
-            //     'fecha_modificacion' => date('Y-m-d H:i:s'),
-            //     'usuario_id' => $this->session->userdata('user_id'),
-            //     'tipo_accion' => 'CONSULTA_CDC_ERROR',
-            //     'json_backup' => json_encode([
-            //         'error' => $e->getMessage(),
-            //         'cdc' => $cdc
-            //     ])
-            // ];
-            // $this->db->insert('py_facturas_auditoria', $error_data);
+            // Registrar el error en auditoría también
+            $audit_data = [
+                'factura_id' => $factura_id,
+                'fecha_modificacion' => date('Y-m-d H:i:s'),
+                'usuario_id' => $this->session->userdata('user_id'),
+                'tipo_accion' => 'CONSULTA_CDC_ERROR',
+                'json_backup' => json_encode([
+                    'cdc_consultado' => $cdc,
+                    'factura_encontrada' => $factura_id ? true : false,
+                    'error' => $e->getMessage()
+                ])
+            ];
+            $this->db->insert('py_facturas_auditoria', $audit_data);
             
             echo json_encode(['success' => false, 'message' => 'Error al consultar CDC: ' . $e->getMessage()]);
         }
