@@ -22,6 +22,9 @@ class Facturacion_py extends Cl_Controller {
 
     /**
      * Muestra el listado paginado y filtrado de facturas electrónicas.
+     * Estados disponibles:
+     * (-1, 'Borrador'), (0, 'Generado'), (1, 'Enviado en Lote'), (2, 'Aprobado'),
+     * (3, 'Aprobado con Observación'), (4, 'Rechazado'), (98, 'Inexistente'), (99, 'Cancelado')
      */
     public function listado() {
         $filters = [
@@ -30,6 +33,7 @@ class Facturacion_py extends Cl_Controller {
             'sucursal_id' => $this->input->get('sucursal_id'),
             'punto_id' => $this->input->get('punto_id'),
             'usuario_id' => $this->input->get('usuario_id'),
+            'estado_id' => $this->input->get('estado_id'),
         ];
 
         $config = [];
@@ -49,6 +53,7 @@ class Facturacion_py extends Cl_Controller {
         $data['sifen_sucursales'] = fs_get_sucursales();
         $data['puntos_expedicion'] = fs_get_puntos_expedicion();
         $data['usuarios'] = fs_get_usuarios();
+        $data['estados_documentos'] = fs_get_documentos_estados();
         $data['filters'] = $filters;
 
         $data['main_content'] = $this->load->view('facturacion_py/listado', $data, TRUE);
@@ -728,6 +733,81 @@ class Facturacion_py extends Cl_Controller {
         $term = $this->input->post('term');
         $results = $this->Facturacion_py_model->buscar_py_usuarios($term);
         echo json_encode($results);
+    }
+
+    /**
+     * Método AJAX para obtener los logs de una factura
+     */
+    public function ajax_get_logs() {
+        $factura_id = $this->input->post('factura_id');
+        
+        if (!$factura_id) {
+            echo json_encode(['success' => false, 'message' => 'ID de factura requerido']);
+            return;
+        }
+        
+        $logs = $this->Facturacion_py_model->get_auditoria_logs($factura_id);
+        
+        if ($logs) {
+            echo json_encode(['success' => true, 'logs' => $logs]);
+        } else {
+            echo json_encode(['success' => true, 'logs' => [], 'message' => 'No se encontraron logs para esta factura']);
+        }
+    }
+
+    /**
+     * Método AJAX para consultar el estado de un CDC específico
+     */
+    public function ajax_consultar_cdc() {
+        $cdc = $this->input->post('cdc');
+        
+        if (!$cdc) {
+            echo json_encode(['success' => false, 'message' => 'CDC requerido']);
+            return;
+        }
+        
+        // Validar formato del CDC
+        if (strlen($cdc) !== 44 || !ctype_digit($cdc)) {
+            echo json_encode(['success' => false, 'message' => 'El CDC debe tener exactamente 44 dígitos numéricos']);
+            return;
+        }
+        
+        $this->load->library('facturasend');
+        
+        try {
+            // Realizar consulta del CDC usando el método correcto de la librería
+            // $resultado = $this->facturasend->sifen_consulta_cdc($cdc);
+            $cdcs = [['cdc' => $cdc]];
+            $resultado = $this->facturasend->consultar_estados_documentos($cdcs);
+
+            // // Registrar en auditoría
+            // $audit_data = [
+            //     'factura_id' => null, // No está asociado a una factura específica
+            //     'fecha_modificacion' => date('Y-m-d H:i:s'),
+            //     'usuario_id' => $this->session->userdata('user_id'),
+            //     'tipo_accion' => 'CONSULTA_CDC',
+            //     'json_backup' => json_encode($resultado)
+            // ];
+            // $this->db->insert('py_facturas_auditoria', $audit_data);
+            
+            echo json_encode(['success' => true, 'data' => $resultado]);
+            
+        } catch (Exception $e) {
+            // // Registrar error en auditoría
+            // $error_data = [
+            //     'factura_id' => null,
+            //     'fecha_modificacion' => date('Y-m-d H:i:s'),
+            //     'usuario_id' => $this->session->userdata('user_id'),
+            //     'tipo_accion' => 'CONSULTA_CDC_ERROR',
+            //     'json_backup' => json_encode([
+            //         'error' => $e->getMessage(),
+            //         'cdc' => $cdc
+            //     ])
+            // ];
+            // $this->db->insert('py_facturas_auditoria', $error_data);
+            
+            echo json_encode(['success' => false, 'message' => 'Error al consultar CDC: ' . $e->getMessage()]);
+        }
     }
 
     public function ajax_get_distritos() {

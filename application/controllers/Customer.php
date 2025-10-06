@@ -8,6 +8,7 @@ class Customer extends Cl_Controller {
         parent::__construct();
         $this->load->library('excel'); //load PHPExcel library
         $this->load->model('Common_model');
+        $this->load->model('Customer_due_receive_model'); // Cargar el modelo
         $this->load->library('form_validation');
         $this->Common_model->setDefaultTimezone();
 

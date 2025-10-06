@@ -1498,10 +1498,9 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
         }
 
         // Comprobar columnas opcionales una sola vez
-        $has_situacion = $ci->db->field_exists('situacion', 'py_facturas_electronicas');
-        $has_resp_cod  = $ci->db->field_exists('respuesta_codigo', 'py_facturas_electronicas');
-        $has_resp_msg  = $ci->db->field_exists('respuesta_mensaje', 'py_facturas_electronicas');
-        $has_fecha_est = $ci->db->field_exists('fecha_estado', 'py_facturas_electronicas');
+        // Según la estructura de tabla proporcionada, estas columnas NO existen:
+        // $has_situacion, $has_resp_cod, $has_resp_msg, $has_fecha_est
+        // Solo trabajaremos con las columnas que existen: estado, fecha_modificacion
 
         $procesados = 0;
         $actualizados = 0;
@@ -1519,9 +1518,6 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
 
             // 3) Llamar a la API
             $response = $ci->facturasend->consultar_estados_documentos($cdcList);
-            // echo '<pre>';
-            // var_dump($response); 
-            // echo '</pre>';
 
             $procesados += count($cdcList);
 
@@ -1561,25 +1557,33 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                 }
 
                 $de = $por_cdc[$row->cdc];
-                $estado_api = $de['estado'] ?? '';
-                $estado_local = fs_map_estado_api_to_local($estado_api);
+                
+                // El estado viene en el campo 'situacion' como número
+                $situacion_api = $de['situacion'] ?? null;
+                
+                // Mapear la situación API a nuestro estado local
+                $estado_local = $situacion_api;
+                
+                // Si la situación API no es válida, mantener el estado actual
+                if ($situacion_api === null || !is_numeric($situacion_api)) {
+                    $detalles[] = [
+                        'id' => $row->id,
+                        'cdc' => $row->cdc,
+                        'warning' => 'Campo situacion no válido en respuesta API',
+                        'situacion_recibida' => $situacion_api
+                    ];
+                    continue;
+                }
 
-                $update = ['estado' => $estado_local];
-                if ($has_situacion && isset($de['situacion'])) {
-                    $update['situacion'] = $de['situacion'];
-                }
-                if ($has_resp_cod && isset($de['respuesta_codigo'])) {
-                    $update['respuesta_codigo'] = $de['respuesta_codigo'];
-                }
-                if ($has_resp_msg && isset($de['respuesta_mensaje'])) {
-                    $update['respuesta_mensaje'] = $de['respuesta_mensaje'];
-                }
-                if ($has_fecha_est && isset($de['fecha'])) {
-                    // Guardamos la fecha de estado si existe esa columna
-                    $update['fecha_estado'] = date('Y-m-d H:i:s', strtotime($de['fecha']));
-                }
+                // Preparar datos para actualizar (solo columnas que existen en la tabla)
+                $update = [
+                    'estado' => $estado_local,
+                    'fecha_modificacion' => date('Y-m-d H:i:s')
+                ];
 
+                // Realizar la actualización
                 $ci->db->where('cdc', $row->cdc)->update('py_facturas_electronicas', $update);
+                
                 if ($ci->db->affected_rows() > 0) {
                     $actualizados++;
                 }
@@ -1587,8 +1591,10 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                 $detalles[] = [
                     'id' => $row->id,
                     'cdc' => $row->cdc,
-                    'estado_api' => $estado_api,
-                    'estado_local' => $estado_local
+                    'situacion_api' => $situacion_api,
+                    'estado_anterior' => $row->estado,
+                    'estado_nuevo' => $estado_local,
+                    'actualizado' => true
                 ];
             }
         }

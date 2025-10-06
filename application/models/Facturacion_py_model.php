@@ -39,6 +39,9 @@ class Facturacion_py_model extends CI_Model {
         if (!empty($filters['usuario_id'])) {
             $this->db->where('fe.usuario_id', $filters['usuario_id']);
         }
+        if (!empty($filters['estado_id'])) {
+            $this->db->where('fe.estado', $filters['estado_id']);
+        }
     }
 
     public function get_facturas_list($limit, $offset, $filters = []) {
