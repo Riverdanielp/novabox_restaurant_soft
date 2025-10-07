@@ -17,6 +17,41 @@
         background: #dc3545; color: white; border: none;
     }
     .check-col { width: 30px; text-align: center; }
+    
+    /* Estilos para los botones de formato */
+    .btn-formato {
+        font-size: 11px;
+        padding: 8px 12px;
+        margin: 2px;
+        min-width: 120px;
+        text-align: center;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-formato small {
+        font-size: 9px;
+        opacity: 0.8;
+    }
+    
+    .btn-formato:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    .btn-formato.active {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 12px rgba(0,123,255,0.3);
+    }
+    
+    .iframe-container {
+        background: #f8f9fa;
+        padding: 10px;
+    }
+    
+    #ticket_iframe {
+        transition: all 0.3s ease;
+    }
 </style>
 <section class="main-content-wrapper">
     <?php
@@ -154,6 +189,66 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn bg-blue-btn" data-bs-dismiss="modal"><?php echo lang('cancel'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para mostrar ticket -->
+<div class="modal fade" id="ticket_modal" aria-hidden="true" aria-labelledby="ticketModalLabel">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="ticketModalLabel">Ticket del Producto</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <i data-feather="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Botones de selección de formato -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <h6>Seleccionar formato de ticket:</h6>
+                        <div class="btn-group-wrap d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-primary btn-formato" data-formato="32x19">
+                                32mm x 19mm<br><small>(Muy Pequeño)</small>
+                            </button>
+                            <button class="btn btn-outline-primary btn-formato" data-formato="50x25">
+                                50mm x 25mm<br><small>(Compacto)</small>
+                            </button>
+                            <button class="btn btn-primary btn-formato active" data-formato="58x22">
+                                58mm x 22mm<br><small>(Pequeño)</small>
+                            </button>
+                            <button class="btn btn-outline-primary btn-formato" data-formato="58x40">
+                                58mm x 40mm<br><small>(Alto)</small>
+                            </button>
+                            <button class="btn btn-outline-primary btn-formato" data-formato="80x28">
+                                80mm x 28mm<br><small>(Mediano)</small>
+                            </button>
+                            <button class="btn btn-outline-primary btn-formato" data-formato="100x35">
+                                100mm x 35mm<br><small>(Grande)</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contenedor del iframe -->
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <div class="iframe-container" style="border: 1px solid #ddd; border-radius: 5px; overflow: hidden;">
+                            <iframe id="ticket_iframe" src="" frameborder="0" style="width: 100%; height: 600px; background: white;"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="print_ticket_btn">
+                    <i class="fa fa-print"></i> Imprimir Ticket
+                </button>
+                <button type="button" class="btn btn-info" id="download_ticket_btn">
+                    <i class="fa fa-download"></i> Descargar PDF
+                </button>
+                <button type="button" class="btn bg-blue-btn" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
@@ -359,5 +454,100 @@
                 }
             });
         });
+
+        // Variables globales para el ticket
+        var currentProductId = null;
+        var currentFormato = '58x22';
+
+        // Cargar preferencia del usuario al inicializar
+        function loadUserPreference() {
+            // Puedes hacer una llamada AJAX aquí para obtener la preferencia guardada
+            // Por ahora usaremos localStorage como alternativa
+            var savedFormat = localStorage.getItem('ticket_formato_preference');
+            if (savedFormat) {
+                currentFormato = savedFormat;
+                updateFormatButtons(currentFormato);
+            }
+        }
+
+        // Actualizar botones de formato
+        function updateFormatButtons(formato) {
+            jqry('.btn-formato').removeClass('active btn-primary').addClass('btn-outline-primary');
+            jqry('.btn-formato[data-formato="' + formato + '"]').removeClass('btn-outline-primary').addClass('active btn-primary');
+        }
+
+        // Manejar clic en botón de ticket
+        jqry(document).on('click', '.btn-ticket', function(e) {
+            e.preventDefault();
+            currentProductId = jqry(this).data('id');
+            
+            // Cargar el ticket con el formato actual
+            loadTicket(currentProductId, currentFormato);
+            
+            // Mostrar el modal
+            jqry('#ticket_modal').modal('show');
+        });
+
+        // Manejar cambio de formato
+        jqry(document).on('click', '.btn-formato', function(e) {
+            e.preventDefault();
+            
+            // Obtener el nuevo formato
+            var nuevoFormato = jqry(this).data('formato');
+            
+            // Actualizar botones
+            updateFormatButtons(nuevoFormato);
+            
+            // Actualizar formato actual
+            currentFormato = nuevoFormato;
+            
+            // Guardar preferencia
+            saveUserPreference(nuevoFormato);
+            
+            // Recargar el ticket con el nuevo formato
+            if (currentProductId) {
+                loadTicket(currentProductId, currentFormato);
+            }
+        });
+
+        // Función para guardar preferencia del usuario
+        function saveUserPreference(formato) {
+            // Guardar en localStorage
+            localStorage.setItem('ticket_formato_preference', formato);
+            
+            // Opcional: Guardar en servidor
+            jqry.post(base_url + 'foodMenu/saveTicketPreference', {
+                formato: formato
+            })
+            .done(function(response) {
+                console.log('Preferencia guardada:', formato);
+            })
+            .fail(function() {
+                console.log('Error al guardar preferencia en servidor');
+            });
+        }
+
+        // Función para cargar el ticket
+        function loadTicket(productId, formato) {
+            var ticketUrl = base_url + 'foodMenu/printTicket/' + productId + '?formato=' + formato;
+            jqry('#ticket_iframe').attr('src', ticketUrl);
+        }
+
+        // Manejar clic en botón de imprimir
+        jqry('#print_ticket_btn').on('click', function() {
+            var iframe = document.getElementById('ticket_iframe');
+            iframe.contentWindow.print();
+        });
+
+        // Manejar clic en botón de descargar PDF
+        jqry('#download_ticket_btn').on('click', function() {
+            if (currentProductId && currentFormato) {
+                var downloadUrl = base_url + 'foodMenu/printTicket/' + currentProductId + '?formato=' + currentFormato + '&download=pdf';
+                window.open(downloadUrl, '_blank');
+            }
+        });
+
+        // Cargar preferencia al inicializar
+        loadUserPreference();
     });
 </script>

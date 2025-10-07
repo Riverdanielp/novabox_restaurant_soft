@@ -4748,3 +4748,85 @@ function tipoConsultaRuc(){
 function URL_consulta_rnc(){
     return 'https://consultas-rnc.visuallytecnologic.com/consultas/db_rnc_dgii/';
 }
+
+/**
+ * Genera un número de código de barras UPC a partir de un código
+ * @param string $codigo
+ * @return string
+ */
+function numerogenerado($codigo) {
+    // Si el código ya tiene 12 dígitos, retornarlo tal como está
+    if (strlen($codigo) == 12) {
+        return $codigo;
+    }
+    
+    // Si es menor a 12 dígitos, rellenar con ceros a la izquierda
+    if (strlen($codigo) < 12) {
+        return str_pad($codigo, 11, '0', STR_PAD_LEFT) . calculateUPCCheckDigit(str_pad($codigo, 11, '0', STR_PAD_LEFT));
+    }
+    
+    // Si es mayor a 12 dígitos, tomar los primeros 11 y calcular el dígito de verificación
+    $base = substr($codigo, 0, 11);
+    return $base . calculateUPCCheckDigit($base);
+}
+
+/**
+ * Calcula el dígito de verificación para código UPC
+ * @param string $code11digits
+ * @return string
+ */
+function calculateUPCCheckDigit($code11digits) {
+    $sum = 0;
+    for ($i = 0; $i < 11; $i++) {
+        $digit = (int)$code11digits[$i];
+        if ($i % 2 == 0) {
+            $sum += $digit * 3;
+        } else {
+            $sum += $digit;
+        }
+    }
+    $checkDigit = (10 - ($sum % 10)) % 10;
+    return (string)$checkDigit;
+}
+
+/**
+ * Formatea un precio en guaraníes
+ * @param float $amount
+ * @return string
+ */
+function asGs($amount) {
+    $ci = &get_instance();
+    return escape_output($ci->session->userdata('currency')) . ' ' . getAmtPCustom($amount);
+}
+
+/**
+ * Formatea un precio en reales
+ * @param float $amount
+ * @return string
+ */
+function asRs($amount) {
+    $ci = &get_instance();
+    return escape_output($ci->session->userdata('currency')) .' ' . getAmtPCustom($amount);
+}
+
+/**
+ * Verifica si el sistema maneja múltiples monedas
+ * @return int
+ */
+function MONEDAS() {
+    $ci = &get_instance();
+    $company_id = $ci->session->userdata('company_id');
+    
+    // Verificar si existe configuración de múltiples monedas
+    $ci->db->select('*');
+    $ci->db->from('tbl_companies');
+    $ci->db->where('id', $company_id);
+    $company = $ci->db->get()->row();
+    
+    // Si existe campo multiple_currency en la tabla companies
+    if (isset($company->multiple_currency) && $company->multiple_currency == 1) {
+        return 2;
+    }
+    
+    return 1;
+}

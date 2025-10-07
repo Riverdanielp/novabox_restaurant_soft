@@ -1,0 +1,72 @@
+/* Estilos para código de barras */
+.centrado {
+    text-align: center;
+    display: block;
+    margin: 5px 0;
+}
+
+.codigo {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+}
+
+.ticket {
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background: white;
+    font-family: 'Roboto Mono', monospace;
+}
+
+body {
+    font-family: 'Roboto Mono', monospace;
+    margin: 0;
+    padding: 20px;
+    background: white;
+    text-align: center;
+}
+
+h3 {
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.price {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 8px 0;
+}
+
+.product-name {
+    font-size: 12px;
+    font-weight: bold;
+    margin: 8px 0;
+}
+
+/* Estilos para impresión */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .ticket {
+        border: none;
+        box-shadow: none;
+        max-width: none;
+        width: 100%;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Estilos para el modal */
+.modal-body iframe {
+    border: none;
+    width: 100%;
+    min-height: 400px;
+}

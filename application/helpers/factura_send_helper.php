@@ -834,12 +834,12 @@ if (!function_exists('fs_save_or_update_usuario')) {
     function fs_save_or_update_usuario($usuario_normalizado) {
         $ci = fs_ci();
         $data = [
-            'documento_numero' => $usuario_normalizado['id_sistema'],
+            'documento_numero' => $usuario_normalizado['documento'],
             'nombre'           => $usuario_normalizado['nombre'],
             'cargo'            => $usuario_normalizado['cargo']
         ];
 
-        $existing = $ci->db->where('documento_numero', $usuario_normalizado['id_sistema'])->get('py_factura_usuario')->row();
+        $existing = $ci->db->where('documento_numero', $usuario_normalizado['documento'])->get('py_factura_usuario')->row();
         if ($existing) {
             return $existing->id;
         } else {

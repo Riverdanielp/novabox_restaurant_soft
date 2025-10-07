@@ -30,7 +30,9 @@ class FoodMenu extends Cl_Controller {
             $segment_2=="get_categories_ajax" ||
             $segment_2=="update_field_ajax" ||
             $segment_2=="batch_update_field_ajax" ||
-            $segment_2=="export_balanza_txt" 
+            $segment_2=="export_balanza_txt" ||
+            $segment_2=="printTicket" ||
+            $segment_2=="saveTicketPreference"
          ){
             $function = "view";
         }elseif($segment_2=="addEditFoodMenu" && $segment_3){
@@ -194,6 +196,9 @@ class FoodMenu extends Cl_Controller {
                     <a class="btn btn-info" href="'.base_url().'foodMenu/assignFoodMenuModifier/'.escape_output($this->custom->encrypt_decrypt($row->id, "encrypt")).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="'.lang('assign_modifier').'">
                         <i class="far fa-plus"></i>
                     </a>
+                    <button class="btn btn-success btn-ticket" data-id="'.escape_output($this->custom->encrypt_decrypt($row->id, "encrypt")).'" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="Ver Ticket">
+                        <i class="fa fa-qrcode"></i>
+                    </button>
                 </div>'
             ];
         }
@@ -205,6 +210,162 @@ class FoodMenu extends Cl_Controller {
             "data" => $data
         ]);
         exit;
+    }
+
+    /**
+     * Print Ticket for Food Menu Item
+     * @access public
+     * @return void
+     * @param string
+     */
+    public function printTicket($encrypted_id) {
+        $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
+        $company_id = $this->session->userdata('company_id');
+        
+        // Obtener el formato del ticket desde GET o POST
+        $formato = $this->input->get('formato') ? $this->input->get('formato') : $this->input->post('formato');
+        if (!$formato) {
+            $formato = $this->getTicketPreference(); // usar preferencia del usuario
+        }
+        
+        // Verificar si se solicita descarga en PDF
+        $download_pdf = $this->input->get('download');
+        
+        // Obtener información del producto
+        $this->db->select('*');
+        $this->db->from('tbl_food_menus');
+        $this->db->where('id', $id);
+        $this->db->where('company_id', $company_id);
+        $this->db->where('del_status', 'Live');
+        $producto = $this->db->get()->row();
+        
+        if (!$producto) {
+            show_404();
+            return;
+        }
+        
+        $data['producto'] = $producto;
+        $data['formato'] = $formato;
+        $data['formatos_disponibles'] = $this->getFormatosTicket();
+        
+        // Si se solicita PDF, generar y descargar
+        if ($download_pdf == 'pdf') {
+            $this->generateTicketPDF($data);
+            return;
+        }
+        $this->load->view('master/foodMenu/ticket_print', $data);
+    }
+
+    /**
+     * Get available ticket formats
+     * @return array
+     */
+    private function getFormatosTicket() {
+        return [
+            '32x19' => [
+                'nombre' => '32mm x 19mm (Muy Pequeño)',
+                'width' => '32mm',
+                'height' => '22mm',
+                'font_size' => '8px',
+                'barcode_height' => 30,
+                'barcode_width' => 1
+            ],
+            '50x25' => [
+                'nombre' => '50mm x 25mm (Compacto)',
+                'width' => '50mm',
+                'height' => '28mm',
+                'font_size' => '10px',
+                'barcode_height' => 40,
+                'barcode_width' => 1.5
+            ],
+            '58x22' => [
+                'nombre' => '58mm x 22mm (Pequeño)',
+                'width' => '58mm',
+                'height' => '25mm',
+                'font_size' => '11px',
+                'barcode_height' => 30,
+                'barcode_width' => 1.8
+            ],
+            '58x40' => [
+                'nombre' => '58mm x 40mm (Alto)',
+                'width' => '58mm',
+                'height' => '40mm',
+                'font_size' => '12px',
+                'barcode_height' => 40,
+                'barcode_width' => 2
+            ],
+            '80x28' => [
+                'nombre' => '80mm x 28mm (Mediano)',
+                'width' => '80mm',
+                'height' => '28mm',
+                'font_size' => '13px',
+                'barcode_height' => 40,
+                'barcode_width' => 2.2
+            ],
+            '100x35' => [
+                'nombre' => '100mm x 35mm (Grande)',
+                'width' => '100mm',
+                'height' => '35mm',
+                'font_size' => '14px',
+                'barcode_height' => 50,
+                'barcode_width' => 2.5
+            ]
+        ];
+    }
+
+    /**
+     * Generate PDF ticket
+     * @param array $data
+     */
+    private function generateTicketPDF($data) {
+        // Generar HTML del ticket
+        $html = $this->load->view('master/foodMenu/ticket_print', $data, TRUE);
+        
+        // Configuración básica para PDF (opcional - requiere librería PDF)
+        // Si no tienes librería PDF, simplemente redirigir a la vista HTML
+        header('Content-Type: text/html; charset=utf-8');
+        header('Content-Disposition: inline; filename="ticket_' . $data['producto']->code . '.html"');
+        echo $html;
+        exit;
+    }
+
+    /**
+     * Save user ticket format preference
+     */
+    public function saveTicketPreference() {
+        $user_id = $this->session->userdata('user_id');
+        $formato = $this->input->post('formato');
+        
+        if ($formato && $user_id) {
+            // Guardar en sesión
+            $this->session->set_userdata('ticket_formato_preference', $formato);
+            
+            // Opcional: Guardar en base de datos para persistencia
+            // $this->db->where('user_id', $user_id);
+            // $this->db->update('user_preferences', array('ticket_formato' => $formato));
+            
+            echo json_encode(['status' => 'success', 'message' => 'Preferencia guardada']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Error al guardar preferencia']);
+        }
+        exit;
+    }
+
+    /**
+     * Get user ticket format preference
+     */
+    private function getTicketPreference() {
+        $user_id = $this->session->userdata('user_id');
+        
+        // Primero intentar desde sesión
+        $formato = $this->session->userdata('ticket_formato_preference');
+        
+        if (!$formato) {
+            // Si no hay en sesión, usar formato por defecto
+            $formato = '58x22';
+        }
+        
+        return $formato;
     }
 
      /**
