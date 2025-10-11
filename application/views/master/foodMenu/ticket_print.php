@@ -49,7 +49,7 @@
         }
         
         .product-name {
-            font-weight: bold;
+            font-weight: 900;
             margin: 1px 0;
             font-size: calc(<?php echo $config_formato['font_size']; ?> - 1px);
             line-height: 1;
@@ -61,9 +61,9 @@
         }
         
         .price {
-            font-weight: bold;
+            font-weight: 900;
             margin: 1px 0;
-            font-size: 18px;
+            font-size: 20px;
             line-height: 1;
         }
         

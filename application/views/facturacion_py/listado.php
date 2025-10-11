@@ -40,6 +40,10 @@
         .cdc-validation {
             font-size: 0.875rem;
         }
+        .btn-descargar-pdf:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
     <section class="content-header" style="height: 80px;">
         <h3 class="top-left-header">Listado de Facturas Electrónicas</h3>
@@ -57,7 +61,6 @@
     <!-- Filtros -->
     <div class="box-wrapper">
         <div class="table-box">
-                    
             <!-- Manejo de mensajes de error -->
             <?php if ($this->session->flashdata('error_custom')): ?>
                 <div class="alert alert-danger  fade show" role="alert">
@@ -212,6 +215,14 @@
                                 <button type="button" class="btn btn-sm btn-secondary btn-logs" data-factura-id="<?php echo $factura->id; ?>" data-factura-numero="<?php echo $factura->numero_formateado; ?>">
                                     <i data-feather="terminal"></i> Logs
                                 </button>
+                                <?php if (!empty($factura->cdc) && in_array($factura->estado, [0, 1, 2, 3])): // Solo para facturas aprobadas ?>
+                                <button type="button" class="btn btn-sm btn-success btn-descargar-pdf" 
+                                        data-cdc="<?php echo $factura->cdc; ?>" 
+                                        data-factura-numero="<?php echo $factura->numero_formateado; ?>"
+                                        id="btn-pdf-<?php echo $factura->id; ?>">
+                                    <i data-feather="download"></i> PDF
+                                </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -604,6 +615,15 @@ $(document).ready(function() {
         });
     });
     
+    // Manejar descarga de PDF
+    $('.btn-descargar-pdf').on('click', function() {
+        var cdc = $(this).data('cdc');
+        var facturaNumero = $(this).data('factura-numero');
+        var buttonId = $(this).attr('id');
+        
+        descargarPDFFactura(cdc, facturaNumero, buttonId);
+    });
+    
     // Manejar formulario CDC
     $('#cdcForm').on('submit', function(e) {
         e.preventDefault();
@@ -701,5 +721,169 @@ $(document).ready(function() {
             input.removeClass('is-valid').addClass('is-invalid');
         }
     }
+
+    
+/**
+ * Descarga el PDF de una factura usando el CDC
+ * @param {string} cdc - Código de Control del documento
+ * @param {string} facturaNumero - Número de factura para mostrar en mensajes
+ * @param {string} buttonId - ID del botón que disparó la acción
+ */
+function descargarPDFFactura(cdc, facturaNumero, buttonId) {
+    // Validar CDC
+    if (!cdc || cdc.trim() === '') {
+        mostrarError('CDC no disponible para esta factura');
+        return;
+    }
+
+    // Obtener el botón
+    const button = document.getElementById(buttonId);
+    if (!button) {
+        mostrarError('Error interno: botón no encontrado');
+        return;
+    }
+
+    // Deshabilitar botón y mostrar estado de carga
+    button.disabled = true;
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i data-feather="loader" class="spinner"></i> Descargando...';
+
+    // Realizar petición AJAX
+    $.ajax({
+        url: '<?php echo base_url("Facturacion_py/descargar_pdf_factura"); ?>',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            cdc: cdc
+        },
+        success: function(response) {
+            if (response.success) {
+                // Descargar el PDF
+                descargarArchivoBase64(response.pdf_base64, response.filename, 'application/pdf');
+                mostrarExito('PDF de factura ' + facturaNumero + ' descargado correctamente');
+            } else {
+                mostrarError('Error al descargar PDF de factura ' + facturaNumero + ': ' + (response.message || 'Error desconocido'));
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error AJAX al descargar PDF:', error);
+            let errorMessage = 'Error de conexión al servidor';
+            
+            // Intentar obtener mensaje de error del servidor
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.status === 404) {
+                errorMessage = 'Servicio no encontrado';
+            } else if (xhr.status === 500) {
+                errorMessage = 'Error interno del servidor';
+            }
+            
+            mostrarError('Error al descargar PDF de factura ' + facturaNumero + ': ' + errorMessage);
+        },
+        complete: function() {
+            // Rehabilitar botón
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+                // Reactivar iconos de feather
+                if (typeof feather !== 'undefined') {
+                    feather.replace();
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Descarga un archivo desde base64
+ * @param {string} base64Data - Datos en base64
+ * @param {string} filename - Nombre del archivo
+ * @param {string} mimeType - Tipo MIME del archivo
+ */
+function descargarArchivoBase64(base64Data, filename, mimeType) {
+    try {
+        // Limpiar el base64 si tiene prefijo
+        const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, '');
+        
+        // Convertir base64 a bytes
+        const byteCharacters = atob(cleanBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+        
+        // Crear enlace de descarga
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        
+        // Disparar descarga
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Limpiar URL
+        URL.revokeObjectURL(link.href);
+        
+    } catch (error) {
+        console.error('Error al procesar el archivo:', error);
+        mostrarError('Error al procesar el archivo para descarga');
+    }
+}
+
+/**
+ * Muestra mensaje de error
+ * @param {string} mensaje 
+ */
+function mostrarError(mensaje) {
+    // Crear alert de Bootstrap si no existe SweetAlert2
+    var alertHtml = '<div class="alert alert-danger alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999; max-width: 400px;" role="alert">' +
+                    '<i data-feather="alert-circle"></i> ' +
+                    '<strong>Error:</strong> ' + mensaje +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>';
+    
+    $('body').append(alertHtml);
+    
+    // Reactivar iconos de feather
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 5000);
+}
+
+/**
+ * Muestra mensaje de éxito
+ * @param {string} mensaje 
+ */
+function mostrarExito(mensaje) {
+    // Crear alert de Bootstrap si no existe SweetAlert2
+    var alertHtml = '<div class="alert alert-success alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999; max-width: 400px;" role="alert">' +
+                    '<i data-feather="check-circle"></i> ' +
+                    '<strong>Éxito:</strong> ' + mensaje +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>';
+    
+    $('body').append(alertHtml);
+    
+    // Reactivar iconos de feather
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+    
+    // Auto-remover después de 3 segundos
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 3000);
+}
+
 });
 </script>

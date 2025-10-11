@@ -825,10 +825,13 @@ class Facturacion_py extends Cl_Controller {
             $resultado = $this->facturasend->consultar_estados_documentos($cdcs);
 
             // Registrar en auditoría con el factura_id encontrado
+            $system_user_id = $this->session->userdata('user_id');
+            $py_usuario_id = $this->get_or_create_py_usuario($system_user_id);
+            
             $audit_data = [
                 'factura_id' => $factura_id,
                 'fecha_modificacion' => date('Y-m-d H:i:s'),
-                'usuario_id' => $this->session->userdata('user_id'),
+                'usuario_id' => $py_usuario_id,
                 'tipo_accion' => 'CONSULTA_CDC_MANUAL',
                 'json_backup' => json_encode([
                     'cdc_consultado' => $cdc,
@@ -861,10 +864,13 @@ class Facturacion_py extends Cl_Controller {
             
         } catch (Exception $e) {
             // Registrar el error en auditoría también
+            $system_user_id = $this->session->userdata('user_id');
+            $py_usuario_id = $this->get_or_create_py_usuario($system_user_id);
+            
             $audit_data = [
                 'factura_id' => $factura_id,
                 'fecha_modificacion' => date('Y-m-d H:i:s'),
-                'usuario_id' => $this->session->userdata('user_id'),
+                'usuario_id' => $py_usuario_id,
                 'tipo_accion' => 'CONSULTA_CDC_ERROR',
                 'json_backup' => json_encode([
                     'cdc_consultado' => $cdc,
@@ -994,4 +1000,288 @@ class Facturacion_py extends Cl_Controller {
 
         redirect('Facturacion_py/listado');
     }
+
+        
+    /**
+     * Descargar PDF de factura electrónica
+     */
+    public function descargar_pdf_factura()
+    {
+        // Verificar que sea una petición AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+            return;
+        }
+
+        // Configurar header para JSON
+        header('Content-Type: application/json');
+
+        $cdc = $this->input->post('cdc');
+        
+        if (empty($cdc)) {
+            $response = [
+                'success' => false,
+                'message' => 'CDC es requerido'
+            ];
+            echo json_encode($response);
+            return;
+        }
+
+        // Validar formato del CDC (44 dígitos numéricos)
+        if (!preg_match('/^\d{44}$/', $cdc)) {
+            $response = [
+                'success' => false,
+                'message' => 'El CDC debe tener exactamente 44 dígitos numéricos'
+            ];
+            echo json_encode($response);
+            return;
+        }
+
+        try {
+            // Cargar la librería FacturaSend
+            $this->load->library('facturasend');
+            
+            // Obtener el PDF en base64
+            $result = $this->facturasend->get_invoice_pdf_base64($cdc);
+            
+            if ($result['status'] == 200 && isset($result['body'])) {
+                // Verificar diferentes estructuras de respuesta de la API
+                $pdf_base64 = null;
+                
+                // Estructura 1: response.body.data
+                if (isset($result['body']['data'])) {
+                    $pdf_base64 = $result['body']['data'];
+                }
+                // Estructura 2: response.body[0].pdf
+                elseif (isset($result['body'][0]['pdf'])) {
+                    $pdf_base64 = $result['body'][0]['pdf'];
+                }
+                // Estructura 3: response.body directamente es el base64
+                elseif (is_string($result['body']) && !empty($result['body'])) {
+                    $pdf_base64 = $result['body'];
+                }
+                // Estructura 4: buscar en cualquier nivel que contenga 'pdf' o 'base64'
+                elseif (is_array($result['body'])) {
+                    $pdf_base64 = $this->_extract_pdf_from_response($result['body']);
+                }
+                
+                if (!empty($pdf_base64)) {
+                    // Limpiar el base64 de posibles caracteres no válidos
+                    $pdf_base64 = preg_replace('/[^A-Za-z0-9+\/=]/', '', $pdf_base64);
+                    
+                    // Validar que sea base64 válido
+                    if (base64_decode($pdf_base64, true) !== false) {
+                        $response = [
+                            'success' => true,
+                            'pdf_base64' => $pdf_base64,
+                            'filename' => 'factura_' . $cdc . '.pdf'
+                        ];
+                    } else {
+                        $response = [
+                            'success' => false,
+                            'message' => 'El PDF recibido no tiene un formato base64 válido'
+                        ];
+                    }
+                } else {
+                    $response = [
+                        'success' => false,
+                        'message' => 'No se pudo obtener el PDF de la respuesta de la API. Verifique que el CDC sea válido y el documento esté aprobado.'
+                    ];
+                }
+            } else {
+                // Manejar diferentes códigos de error
+                $error_message = 'Error al obtener el PDF';
+                
+                if (isset($result['body']['error'])) {
+                    $error_message = $result['body']['error'];
+                } elseif (isset($result['body']['message'])) {
+                    $error_message = $result['body']['message'];
+                }
+                
+                switch ($result['status']) {
+                    case 404:
+                        $error_message = 'Documento no encontrado con el CDC proporcionado';
+                        break;
+                    case 401:
+                        $error_message = 'Error de autenticación con la API';
+                        break;
+                    case 403:
+                        $error_message = 'No tiene permisos para acceder a este documento';
+                        break;
+                    case 500:
+                        $error_message = 'Error interno del servidor de FacturaSend';
+                        break;
+                    case 503:
+                        $error_message = 'Servicio de FacturaSend no disponible';
+                        break;
+                    default:
+                        $error_message .= ' (Código: ' . $result['status'] . ')';
+                }
+                
+                $response = [
+                    'success' => false,
+                    'message' => $error_message
+                ];
+            }
+        } catch (Exception $e) {
+            $response = [
+                'success' => false,
+                'message' => 'Error interno: ' . $e->getMessage()
+            ];
+            
+            // Log del error para depuración
+            log_message('error', 'Error al descargar PDF factura: ' . $e->getMessage());
+        }
+        
+        echo json_encode($response);
+    }
+
+    /**
+     * Función auxiliar para extraer PDF de respuesta anidada
+     * @param array $data
+     * @return string|null
+     */
+    private function _extract_pdf_from_response($data)
+    {
+        if (is_array($data)) {
+            foreach ($data as $key => $value) {
+                if (is_string($value) && (strpos($key, 'pdf') !== false || strpos($key, 'base64') !== false)) {
+                    return $value;
+                } elseif (is_array($value)) {
+                    $result = $this->_extract_pdf_from_response($value);
+                    if ($result !== null) {
+                        return $result;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Obtiene o crea un usuario en py_factura_usuario basado en el usuario del sistema
+     * @param int $system_user_id ID del usuario en tbl_users
+     * @return int ID del usuario en py_factura_usuario
+     */
+    private function get_or_create_py_usuario($system_user_id) {
+        // Buscar si ya existe el usuario en py_factura_usuario
+        $existing_user = $this->db->get_where('py_factura_usuario', ['sistema_user_id' => $system_user_id])->row();
+        
+        if ($existing_user) {
+            return $existing_user->id;
+        }
+        
+        // Si no existe, obtener datos del usuario del sistema
+        $system_user = $this->db->get_where('tbl_users', ['id' => $system_user_id])->row();
+        
+        if (!$system_user) {
+            // Si no existe el usuario del sistema, usar un usuario por defecto o crear uno
+            return $this->create_default_py_usuario();
+        }
+        
+        // Crear nuevo usuario en py_factura_usuario
+        $py_user_data = [
+            'sistema_user_id' => $system_user_id,
+            'nombre' => $system_user->full_name ?? 'Usuario Sistema',
+            'documento' => $system_user->phone ?? '0000000',
+            'cargo' => 'Operador Sistema',
+            'activo' => 1,
+            'fecha_creacion' => date('Y-m-d H:i:s')
+        ];
+        
+        $this->db->insert('py_factura_usuario', $py_user_data);
+        return $this->db->insert_id();
+    }
+    
+    /**
+     * Crea un usuario por defecto en py_factura_usuario
+     * @return int ID del usuario creado
+     */
+    private function create_default_py_usuario() {
+        // Verificar si ya existe un usuario por defecto
+        $default_user = $this->db->get_where('py_factura_usuario', ['documento' => 'SISTEMA_DEFAULT'])->row();
+        
+        if ($default_user) {
+            return $default_user->id;
+        }
+        
+        // Crear usuario por defecto
+        $default_data = [
+            'sistema_user_id' => null,
+            'nombre' => 'Usuario Sistema Por Defecto',
+            'documento' => 'SISTEMA_DEFAULT',
+            'cargo' => 'Sistema',
+            'activo' => 1,
+            'fecha_creacion' => date('Y-m-d H:i:s')
+        ];
+        
+        $this->db->insert('py_factura_usuario', $default_data);
+        return $this->db->insert_id();
+    }
+
+    /**
+     * Inicializa la tabla py_factura_usuario con usuarios necesarios
+     * Método para resolver problemas de foreign key constraints
+     */
+    public function inicializar_usuarios_py() {
+        // Solo permitir acceso a administradores
+        if (!$this->session->userdata('user_id')) {
+            show_404();
+            return;
+        }
+        
+        $resultado = [
+            'usuarios_creados' => 0,
+            'usuario_defecto_id' => null,
+            'errores' => []
+        ];
+        
+        try {
+            // 1. Verificar si la tabla tiene la columna sistema_user_id
+            $columns = $this->db->list_fields('py_factura_usuario');
+            if (!in_array('sistema_user_id', $columns)) {
+                // Añadir la columna si no existe
+                $this->db->query('ALTER TABLE py_factura_usuario ADD COLUMN sistema_user_id INT DEFAULT NULL');
+                $resultado['columna_agregada'] = true;
+            }
+            
+            // 2. Crear usuario por defecto
+            $resultado['usuario_defecto_id'] = $this->create_default_py_usuario();
+            
+            // 3. Mapear usuarios existentes del sistema
+            $system_users = $this->db->limit(10)->get('users')->result();
+            foreach ($system_users as $user) {
+                $existing = $this->db->get_where('py_factura_usuario', ['sistema_user_id' => $user->id])->row();
+                if (!$existing) {
+                    $py_user_data = [
+                        'sistema_user_id' => $user->id,
+                        'documento_numero' => isset($user->document) ? $user->document : '' . $user->id,
+                        'nombre' => isset($user->full_name) ? $user->full_name : (isset($user->name) ? $user->name : 'Usuario Sistema'),
+                        'cargo' => 'Usuario Sistema'
+                    ];
+                    
+                    $this->db->insert('py_factura_usuario', $py_user_data);
+                    $resultado['usuarios_creados']++;
+                }
+            }
+            
+            // 4. Verificar estado de foreign keys
+            $audit_count = $this->db->count_all('py_facturas_auditoria');
+            $invalid_fks = $this->db->query('
+                SELECT COUNT(*) as invalid_count 
+                FROM py_facturas_auditoria pa 
+                WHERE pa.usuario_id NOT IN (SELECT id FROM py_factura_usuario)
+            ')->row();
+            
+            $resultado['total_audit_records'] = $audit_count;
+            $resultado['invalid_foreign_keys'] = $invalid_fks->invalid_count;
+            
+            echo json_encode(['success' => true, 'data' => $resultado]);
+            
+        } catch (Exception $e) {
+            $resultado['errores'][] = $e->getMessage();
+            echo json_encode(['success' => false, 'error' => $e->getMessage(), 'data' => $resultado]);
+        }
+    }
+
 }

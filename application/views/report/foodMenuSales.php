@@ -25,6 +25,7 @@
     <div class="box-wrapper">
         <div class="table-box">
             <div class="row">
+                <!-- 1. Fechas -->
                 <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
                     <?php echo form_open(base_url() . 'Report/foodMenuSales', array('id' => 'foodMenuSales', 'method' => 'get')) ?>
                     <div class="form-group">
@@ -32,7 +33,6 @@
                             class="form-control"
                             placeholder="<?php echo lang('start_date'); ?>"
                             value="<?php
-                                // Si hay valor y tiene espacio, formatear a datetime-local
                                 if (isset($start_date) && $start_date) {
                                     echo str_replace(' ', 'T', substr($start_date, 0, 16));
                                 }
@@ -51,28 +51,13 @@
                             ?>">
                     </div>
                 </div>
-                <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
-                    <div class="form-group">
-                        <select tabindex="2" class="form-control select2 ir_w_100" id="top_less" name="top_less">
-                            <option value="DESC" <?php echo (isset($top_less) && $top_less == "DESC") ? "selected" : ""; ?>><?php echo lang('Less'); ?></option>
-                            <option value="ASC" <?php echo (isset($top_less) && $top_less == "ASC") ? "selected" : ""; ?>><?php echo lang('Top'); ?></option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
-                    <div class="form-group">
-                        <select tabindex="2" class="form-control select2 ir_w_100" id="product_type" name="product_type">
-                            <option value=""><?php echo lang('select_product_type'); ?></option>
-                            <option value="1" <?php echo (isset($product_type) && $product_type == "1") ? "selected" : ""; ?>><?php echo lang('Regular'); ?></option>
-                            <option value="2" <?php echo (isset($product_type) && $product_type == "2") ? "selected" : ""; ?>><?php echo lang('Combo'); ?></option>
-                            <option value="3" <?php echo (isset($product_type) && $product_type == "3") ? "selected" : ""; ?>><?php echo lang('Product'); ?></option>
-                        </select>
-                    </div>
-                </div>
+                
+                <!-- 2. Sucursales -->
                 <?php if(isLMni()): ?>
                 <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
                     <div class="form-group">
-                        <select tabindex="2" class="form-control select2 ir_w_100" id="outlet_id" name="outlet_id">
+                        <select tabindex="3" class="form-control select2 ir_w_100" id="outlet_id" name="outlet_id" onchange="loadKitchensByOutlet()">
+                            <option value="">Todas las sucursales</option>
                             <?php
                                 $outlets = getAllOutlestByAssign();
                                 foreach ($outlets as $value):
@@ -85,6 +70,38 @@
                     </div>
                 </div>
                 <?php endif; ?>
+                
+                <!-- 3. Cocinas (dinámicas según sucursal) -->
+                <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
+                    <div class="form-group">
+                        <select tabindex="4" class="form-control select2 ir_w_100" id="kitchen_filter" name="kitchen_filter">
+                            <option value="">Todos los productos</option>
+                            <option value="all_kitchens" <?php echo (isset($kitchen_filter) && $kitchen_filter == 'all_kitchens') ? "selected" : ""; ?>>Todas las cocinas</option>
+                            <option value="no_kitchen" <?php echo (isset($kitchen_filter) && $kitchen_filter == 'no_kitchen') ? "selected" : ""; ?>>Productos sin cocina</option>
+                            <!-- Las cocinas específicas se cargarán dinámicamente -->
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 4. Métodos de pago -->
+                <div class="mb-3 col-md-4 col-lg-2 col-sm-12">
+                    <div class="form-group">
+                        <select tabindex="5" class="form-control select2 ir_w_100" id="payment_method_id" name="payment_method_id">
+                            <option value="">Todos los métodos de pago</option>
+                            <?php
+                                if (isset($payment_methods) && $payment_methods):
+                                    foreach ($payment_methods as $value):
+                            ?>
+                                <option value="<?php echo escape_output($value->id) ?>" <?php echo (isset($payment_method_id) && $payment_method_id == $value->id) ? "selected" : ""; ?>>
+                                    <?php echo escape_output($value->name) ?>
+                                </option>
+                            <?php 
+                                    endforeach; 
+                                endif;
+                            ?>
+                        </select>
+                    </div>
+                </div>
                 <div class="col-sm-12 col-md-4 col-lg-2">
                     <div class="form-group">
                         <button type="submit" name="submit" value="submit"
@@ -102,10 +119,11 @@
                         <thead>
                             <tr>
                                 <th class="ir_w2_txt_center"><?php echo lang('sn'); ?></th>
-                                <th><?php echo lang('code'); ?></th>
+                                <!-- <th><?php echo lang('code'); ?></th> -->
                                 <th><?php echo lang('food_menu'); ?>(<?php echo lang('code'); ?>)</th>
                                 <th><?php echo lang('category'); ?></th>
-                                <th><?php echo lang('quantity'); ?></th>
+                                <th class="sorting"><?php echo lang('quantity'); ?></th>
+                                <th><?php echo lang('code'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -116,10 +134,11 @@
                                     ?>
                             <tr>
                                 <td class="ir_txt_center"><?php echo escape_output($key); ?></td>
-                                <td><?php echo escape_output($value->code) ?></td>
+                                <!-- <td><?php echo escape_output($value->code) ?></td> -->
                                 <td><?php echo escape_output($value->menu_name) ?></td>
                                 <td><?php echo escape_output($value->category_name) ?></td>
-                                <td><?php echo escape_output($value->totalQty) ?></td>
+                                <td data-order="<?php echo str_pad(intval($value->totalQty), 10, '0', STR_PAD_LEFT); ?>" style="text-align: right;"><?php echo escape_output($value->totalQty) ?></td>
+                                <td><?php echo escape_output($value->code) ?></td>
                             </tr>
                             <?php
                                 }
@@ -150,4 +169,168 @@
 <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
 
-<script src="<?php echo base_url(); ?>frequent_changing/js/custom_report_full.js<?php echo VERS() ?>"></script>
+<script>
+// Función para cargar cocinas según la sucursal seleccionada
+function loadKitchensByOutlet() {
+    var outlet_id = $('#outlet_id').val();
+    var kitchen_filter = $('#kitchen_filter');
+    var selected_kitchen = kitchen_filter.val(); // Guardar selección actual
+    
+    // Limpiar opciones específicas de cocinas pero mantener las opciones globales
+    kitchen_filter.find('option').each(function() {
+        if ($(this).val() != '' && $(this).val() != 'all_kitchens' && $(this).val() != 'no_kitchen') {
+            $(this).remove();
+        }
+    });
+    
+    if (outlet_id) {
+        // Cargar cocinas de la sucursal específica
+        $.ajax({
+            url: '<?php echo base_url(); ?>Report/getKitchensByOutlet',
+            type: 'POST',
+            data: { outlet_id: outlet_id },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.kitchens) {
+                    $.each(response.kitchens, function(index, kitchen) {
+                        var selected = (selected_kitchen == kitchen.id) ? 'selected' : '';
+                        kitchen_filter.append('<option value="' + kitchen.id + '" ' + selected + '>' + kitchen.name + '</option>');
+                    });
+                } else {
+                    console.error('Error en respuesta del servidor:', response.message || 'Sin mensaje de error');
+                    alert('Error al cargar cocinas: ' + (response.message || 'Error desconocido'));
+                }
+                // Refrescar select2 si está siendo usado
+                if (kitchen_filter.hasClass('select2')) {
+                    kitchen_filter.trigger('change');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error AJAX al cargar cocinas:', error);
+                console.error('Status:', status);
+                console.error('Response:', xhr.responseText);
+                alert('Error de conexión al cargar cocinas. Revisa la consola para más detalles.');
+            }
+        });
+    }
+    // Si no hay sucursal seleccionada (todas las sucursales), no agregamos cocinas específicas
+}
+
+// Configuración específica para foodMenuSales con reinicialización forzada
+$(document).ready(function() {
+    // Cargar cocinas inicial si ya hay una sucursal seleccionada
+    if ($('#outlet_id').val()) {
+        loadKitchensByOutlet();
+    }
+    
+    // Esperar un poco para que otros scripts se ejecuten primero
+    setTimeout(function() {
+        // Destruir cualquier DataTable existente
+        if ($.fn.DataTable.isDataTable('#datatable')) {
+            $('#datatable').DataTable().destroy();
+        }
+        
+        let startDate = $('#startDate').val();
+        let endDate = $('#endDate').val();
+        let rango = '';
+        
+        function formatDatetimeLocalForTitle(dt) {
+            if (!dt) return '';
+            let [date, time] = dt.split('T');
+            if (!date || !time) return dt;
+            return date + ' ' + time;
+        }
+        
+        if (startDate && endDate) {
+            rango = ' | ' + formatDatetimeLocalForTitle(startDate) + ' - ' + formatDatetimeLocalForTitle(endDate);
+        } else if (startDate && !endDate) {
+            rango = ' | ' + formatDatetimeLocalForTitle(startDate);
+        } else if (endDate && !startDate) {
+            rango = ' | ' + formatDatetimeLocalForTitle(endDate);
+        }
+        
+        let title = "<?php echo lang('food_sales_report'); ?>";
+        let TITLE = title + rango;
+        
+        // Recrear DataTable con configuración específica
+        $('#datatable').DataTable({
+            order: [[4, "desc"]], // Columna 4 = Cantidad (SN=0, Código=1, Menú=2, Categoría=3, Cantidad=4)
+            ordering: true, // Forzar que el ordenamiento esté habilitado
+            columnDefs: [
+                {
+                    targets: 4, // Columna Cantidad
+                    type: 'string', // Usar string para que respete el data-order
+                    orderable: true, // Forzar que sea ordenable
+                    orderSequence: ['desc', 'asc'] // Permitir desc y asc
+                },
+                {
+                    targets: '_all', // Todas las demás columnas
+                    orderable: true // Asegurar que todas sean ordenables
+                }
+            ],
+            dom: '<"top-left-item col-sm-12 col-md-6"lf> <"top-right-item col-sm-12 col-md-6"B> t <"bottom-left-item col-sm-12 col-md-6 "i><"bottom-right-item col-sm-12 col-md-6 "p>',
+            buttons: [
+                {
+                    extend: "print",
+                    title: TITLE,
+                    text: '<i class="fa-solid fa-print"></i> Print',
+                    titleAttr: "print",
+                },
+                {
+                    extend: "copyHtml5",
+                    title: TITLE,
+                    text: '<i class="fa-solid fa-copy"></i> Copy',
+                    titleAttr: "Copy",
+                },
+                {
+                    extend: "excelHtml5",
+                    title: TITLE,
+                    text: '<i class="fa-solid fa-file-excel"></i> Excel',
+                    titleAttr: "Excel",
+                },
+                {
+                    extend: "csvHtml5",
+                    title: TITLE,
+                    text: '<i class="fa-solid fa-file-csv"></i> CSV',
+                    titleAttr: "CSV",
+                },
+                {
+                    extend: "pdfHtml5",
+                    title: TITLE,
+                    text: '<i class="fa-solid fa-file-pdf"></i> PDF',
+                    titleAttr: "PDF",
+                },
+            ],
+            language: {
+                paginate: {
+                    previous: "Previous",
+                    next: "Next",
+                },
+            },
+        });
+        
+        // Debug: Verificar que los clicks van a la columna correcta
+        $('#datatable thead th').each(function(index) {
+            console.log('Columna ' + index + ': ' + $(this).text());
+        });
+        
+        // Forzar que la columna 4 sea clickeable
+        $('#datatable thead th:eq(4)').removeClass('sorting_disabled').addClass('sorting');
+        
+        // Agregar event listener manual si es necesario
+        $('#datatable thead th:eq(4)').off('click').on('click', function() {
+            var table = $('#datatable').DataTable();
+            var currentOrder = table.order()[0];
+            if (currentOrder[0] == 4) {
+                // Si ya está ordenando por esta columna, cambiar dirección
+                var newDirection = currentOrder[1] === 'desc' ? 'asc' : 'desc';
+                table.order([4, newDirection]).draw();
+            } else {
+                // Si no, ordenar por esta columna descendente
+                table.order([4, 'desc']).draw();
+            }
+        });
+        
+    }, 500); // Esperar 500ms
+});
+</script>

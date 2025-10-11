@@ -32,7 +32,7 @@ class Report extends Cl_Controller {
             }elseif($segment_2=="dailySummaryReport" || $segment_2=="printDailySummaryReport"){
                 $controller = "161";
                 $function = "view";
-            }elseif($segment_2=="foodMenuSales"){
+            }elseif($segment_2=="foodMenuSales" || $segment_2=="getKitchensByOutlet"){
                 $controller = "163";
                 $function = "view";
             }elseif($segment_2=="saleReportByDate"){
@@ -97,6 +97,9 @@ class Report extends Cl_Controller {
                 $function = "view";
             }elseif($segment_2=="transferReport"){
                 $controller = "307";
+                $function = "view";
+            }elseif($segment_2=="transferConsolidatedReport"){
+                $controller = "308";
                 $function = "view";
             }elseif($segment_2=="zReport"){
                 $controller = "314";
@@ -761,32 +764,69 @@ class Report extends Cl_Controller {
     public function foodMenuSales() {
         $data = array();
         $company_id = $this->session->userdata('company_id');
+        
+        // Cargar métodos de pago para el dropdown
+        $data['payment_methods'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_payment_methods");
+        
+        // Cargar cocinas para el dropdown
+        $data['kitchens'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_kitchens");
+        
         if (htmlspecialcharscustom($this->input->get('submit'))) {
             $outlet_id  = isset($_GET['outlet_id']) && $_GET['outlet_id']?$_GET['outlet_id']:'';
-            if(!$outlet_id){
+            // Si no se selecciona outlet específico, usar "todas las sucursales" (valor vacío)
+            // Si está vacío y no es enviado explícitamente, usar el outlet de la sesión solo como fallback para mostrar
+            if(!$outlet_id && !isset($_GET['outlet_id'])){
                 $outlet_id = $this->session->userdata('outlet_id');
             }
             $data['outlet_id'] = $outlet_id;
             $start_date =htmlspecialcharscustom($this->input->get($this->security->xss_clean('startDate')));
             $end_date =htmlspecialcharscustom($this->input->get($this->security->xss_clean('endDate')));
+            $payment_method_id = htmlspecialcharscustom($this->input->get($this->security->xss_clean('payment_method_id')));
+            $kitchen_filter = htmlspecialcharscustom($this->input->get($this->security->xss_clean('kitchen_filter')));
             
-            // NUEVO: Convertir formato T a espacio
-            if ($start_date) $start_date = str_replace('T', ' ', $start_date);
-            if ($end_date) $end_date = str_replace('T', ' ', $end_date);
-            
-            $top_less =htmlspecialcharscustom($this->input->get($this->security->xss_clean('top_less')));
-            $product_type =htmlspecialcharscustom($this->input->get($this->security->xss_clean('product_type')));
-            $data['product_type'] = $product_type;
             $data['start_date'] = $start_date;
             $data['end_date'] = $end_date;
             $data['outlet_id'] = $outlet_id;
-            $data['top_less'] = $top_less;
-            $data['foodMenuSales'] = $this->Report_model->foodMenuSales($start_date, $end_date,$outlet_id,$top_less,$product_type);
+            $data['payment_method_id'] = $payment_method_id;
+            $data['kitchen_filter'] = $kitchen_filter;
+            $data['foodMenuSales'] = $this->Report_model->foodMenuSales($start_date, $end_date,$outlet_id,$payment_method_id,$kitchen_filter);
 
         }
         $data['main_content'] = $this->load->view('report/foodMenuSales', $data, TRUE);
         $this->load->view('userHome', $data);
     }
+    
+    /**
+     * Get kitchens by outlet for AJAX
+     * @access public
+     * @return json
+     */
+    public function getKitchensByOutlet() {
+        try {
+            $outlet_id = $this->input->post('outlet_id');
+            
+            // Log para debugging
+            log_message('debug', 'getKitchensByOutlet called with outlet_id: ' . $outlet_id);
+            
+            if ($outlet_id) {
+                $kitchens = $this->Report_model->getKitchensByOutlet($outlet_id);
+                
+                log_message('debug', 'Kitchens result: ' . print_r($kitchens, true));
+                
+                if ($kitchens !== false) {
+                    echo json_encode(['success' => true, 'kitchens' => $kitchens]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Error querying kitchens']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No outlet selected']);
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Error in getKitchensByOutlet: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        }
+    }
+    
     /**
      * food Menu Sales
      * @access public
@@ -1292,6 +1332,42 @@ class Report extends Cl_Controller {
         $data['main_content'] = $this->load->view('report/transferReport', $data, TRUE);
         $this->load->view('userHome', $data);
     }
+
+    /**
+     * transfer consolidated report
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function transferConsolidatedReport() {
+        $data = array();
+        $company_id = $this->session->userdata('company_id');
+        
+        if (htmlspecialcharscustom($this->input->post('submit'))) {
+            $from_outlet_id  = isset($_POST['from_outlet_id']) && $_POST['from_outlet_id']?$_POST['from_outlet_id']:'';
+            $to_outlet_id  = isset($_POST['to_outlet_id']) && $_POST['to_outlet_id']?$_POST['to_outlet_id']:'';
+            $category_id  = isset($_POST['category_id']) && $_POST['category_id']?$_POST['category_id']:'';
+
+            $start_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('startDate')));
+            $end_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('endDate')));
+            $data['start_date'] = $start_date;
+            $data['end_date'] = $end_date;
+            $data['from_outlet_id'] = $from_outlet_id;
+            $data['to_outlet_id'] = $to_outlet_id;
+            $data['category_id'] = $category_id;
+            $data['transferConsolidatedReport'] = $this->Report_model->transferConsolidatedReport($start_date, $end_date, $from_outlet_id, $to_outlet_id, $category_id);
+        }
+        
+        // Combinar sucursales locales y de otras bases de datos
+        $outlets1 = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+        $outlets2 = get_all_outlets_multi();
+        $data['outlets'] = array_merge($outlets1, $outlets2);
+        
+        $data['ingredient_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_ingredient_categories");
+        $data['main_content'] = $this->load->view('report/transferConsolidatedReport', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+
     public function productionReport() {
         $data = array();
         if (htmlspecialcharscustom($this->input->post('submit'))) {

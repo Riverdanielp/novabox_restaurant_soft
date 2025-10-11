@@ -594,8 +594,8 @@ $(function () {
             html += `<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
                 <thead>
                     <tr>
-                        <th style="width:22%;">Cod</th>
-                        <th style="width:48%;">Prod</th>
+                        <th style="width:20%;">Cod</th>
+                        <th style="width:50%;">Prod</th>
                         <th style="width:20%;">Cant</th>
                         <th style="width:10%;">...</th>
                     </tr>
@@ -607,8 +607,8 @@ $(function () {
                     <tr>
                         <td style="">${item.code}</td>
                         <td style="">${item.name}</td>
-                        <td style="">${cantidad}</td>
-                        <td style="font-size:10px;letter-spacing:2px;color:#ccc;text-align:center;">.............</td>
+                        <td style="text-align: right;">${cantidad}</td>
+                        <td class="dots">......</td>
                     </tr>
                 `;
             });
@@ -677,7 +677,7 @@ $(function () {
         if (!items.length) return '<div>No hay productos en esta categoría.</div>';
 
         let html = `
-            <div style="width:${ticketWidth}mm; margin:auto; font-size:8px; font-family:Arial, sans-serif;">
+            <div style="width:${ticketWidth}mm; margin:auto; font-size:10px; font-family:Arial, sans-serif;">
                 <div class="center" style="text-align:center;">
                     <h3 style="margin:5px 0;font-size:14px;">Reporte de inventario</h3>
                     <h3>${_outletName}</h3>
@@ -688,8 +688,8 @@ $(function () {
                 <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
                     <thead>
                         <tr>
-                            <th style="width:22%;">Cod</th>
-                            <th style="width:48%;">Prod</th>
+                            <th style="width:20%;">Cod</th>
+                            <th style="width:50%;">Prod</th>
                             <th style="width:20%;">Cant</th>
                             <th style="width:10%;">...</th>
                         </tr>
@@ -702,8 +702,8 @@ $(function () {
                 <tr>
                     <td>${item.code}</td>
                     <td>${item.name}</td>
-                    <td>${cantidad}</td>
-                    <td class="dots">.............</td>
+                    <td style="text-align: right;">${cantidad}</td>
+                    <td class="dots">......</td>
                 </tr>
             `;
         });
@@ -735,8 +735,8 @@ $(function () {
             html += `<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
                 <thead>
                     <tr>
-                        <th style="width:22%;">Cod</th>
-                        <th style="width:48%;">Prod</th>
+                        <th style="width:20%;">Cod</th>
+                        <th style="width:50%;">Prod</th>
                         <th style="width:20%;">Cant</th>
                         <th style="width:10%;">...</th>
                     </tr>
@@ -748,8 +748,8 @@ $(function () {
                     <tr>
                         <td>${item.code}</td>
                         <td>${item.name}</td>
-                        <td>${cantidad}</td>
-                        <td class="dots">.............</td>
+                        <td style="text-align: right;">${cantidad}</td>
+                        <td class="dots">......</td>
                     </tr>
                 `;
             });

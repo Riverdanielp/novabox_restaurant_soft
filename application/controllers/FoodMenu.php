@@ -266,49 +266,49 @@ class FoodMenu extends Cl_Controller {
                 'nombre' => '32mm x 19mm (Muy Pequeño)',
                 'width' => '32mm',
                 'height' => '22mm',
-                'font_size' => '8px',
-                'barcode_height' => 30,
-                'barcode_width' => 1
+                'font_size' => '14px',
+                'barcode_height' => 15,
+                'barcode_width' => 0.8
             ],
             '50x25' => [
                 'nombre' => '50mm x 25mm (Compacto)',
                 'width' => '50mm',
                 'height' => '28mm',
-                'font_size' => '10px',
-                'barcode_height' => 40,
-                'barcode_width' => 1.5
+                'font_size' => '14px',
+                'barcode_height' => 20,
+                'barcode_width' => 1
             ],
             '58x22' => [
                 'nombre' => '58mm x 22mm (Pequeño)',
                 'width' => '58mm',
                 'height' => '25mm',
-                'font_size' => '11px',
-                'barcode_height' => 30,
-                'barcode_width' => 1.8
+                'font_size' => '14px',
+                'barcode_height' => 20,
+                'barcode_width' => 1
             ],
             '58x40' => [
                 'nombre' => '58mm x 40mm (Alto)',
                 'width' => '58mm',
                 'height' => '40mm',
-                'font_size' => '12px',
-                'barcode_height' => 40,
-                'barcode_width' => 2
+                'font_size' => '14px',
+                'barcode_height' => 20,
+                'barcode_width' => 1
             ],
             '80x28' => [
                 'nombre' => '80mm x 28mm (Mediano)',
-                'width' => '80mm',
-                'height' => '28mm',
-                'font_size' => '13px',
-                'barcode_height' => 40,
-                'barcode_width' => 2.2
+                'width' => '76mm',
+                'height' => '27mm',
+                'font_size' => '14px',
+                'barcode_height' => 20,
+                'barcode_width' => 1.2
             ],
             '100x35' => [
                 'nombre' => '100mm x 35mm (Grande)',
                 'width' => '100mm',
                 'height' => '35mm',
-                'font_size' => '14px',
-                'barcode_height' => 50,
-                'barcode_width' => 2.5
+                'font_size' => '16px',
+                'barcode_height' => 20,
+                'barcode_width' => 21
             ]
         ];
     }

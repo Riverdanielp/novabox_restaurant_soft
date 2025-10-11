@@ -1180,6 +1180,7 @@
                                 <li data-access="view-203" class="menu_assign_class" data-menu__cid="irp_15"><a class="child-menu" href="<?php echo base_url()?>Report/usageLoyaltyPointReport"><?php echo lang('usage_loyalty_point_report'); ?></a></li>
                                 <?php if(str_rot13($data_c[0]) == "eriutoeri"):?>
                                 <li data-access="view-307" class="menu_assign_class" data-menu__cid="irp_15"><a class="child-menu" href="<?php echo base_url()?>Report/transferReport"><?php echo lang('transferReport'); ?></a></li>
+                                <li data-access="view-307" class="menu_assign_class" data-menu__cid="irp_15"><a class="child-menu" href="<?php echo base_url()?>Report/transferConsolidatedReport"><?php echo lang('transferReport'); ?> - Consolidado</a></li>
                                 <?php endif;?>
                                 <li data-access="view-337" class="menu_assign_class" data-menu__cid="irp_15"><a class="child-menu" href="<?php echo base_url()?>Report/productionReport"><?php echo lang('productionReport'); ?></a></li>
                             </ul>

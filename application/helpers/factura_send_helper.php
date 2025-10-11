@@ -684,12 +684,76 @@ if (!function_exists('fs_log_auditoria')) {
         $ci = fs_ci();
         $log_data = [
             'factura_id'  => $factura_id,
-            'usuario_id'  => $usuario_id,
+            'usuario_id'  => fs_get_or_create_py_usuario($usuario_id),
             'tipo_accion' => $accion,
             'json_backup' => json_encode($data_json)
         ];
         // Se ejecuta fuera de la transacción principal si es necesario, pero aquí está bien
         $ci->db->insert('py_facturas_auditoria', $log_data);
+    }
+}
+
+/**
+ * Obtiene o crea un usuario en py_factura_usuario basado en el usuario del sistema
+ * @param int $system_user_id ID del usuario del sistema
+ * @return int ID del usuario en py_factura_usuario
+ */
+if (!function_exists('fs_get_or_create_py_usuario')) {
+    function fs_get_or_create_py_usuario($system_user_id = null) {
+        $ci = fs_ci();
+        
+        if (!$system_user_id) {
+            $system_user_id = $ci->session->userdata('user_id') ?? 0;
+        }
+        
+        if (!$system_user_id) {
+            return fs_create_default_py_usuario();
+        }
+        
+        // Buscar si ya existe el usuario en py_factura_usuario
+        $existing_user = $ci->db->get_where('py_factura_usuario', ['id' => $system_user_id])->row();
+        if ($existing_user) {
+            return $existing_user->id;
+        }
+        
+        // Buscar datos del usuario en el sistema principal
+        $system_user = $ci->db->get_where('tbl_users', ['id' => $system_user_id])->row();
+        
+        $py_user_data = [
+            'id' => $system_user_id,
+            'documento_numero' => $system_user ? ($system_user->documento ?? '' . $system_user_id) : '' . $system_user_id,
+            'nombre' => $system_user ? ($system_user->full_name ?? $system_user->name ?? 'Usuario Sistema') : 'Usuario Sistema',
+            'cargo' => 'Usuario Sistema'
+        ];
+        
+        // Crear nuevo usuario en py_factura_usuario
+        $ci->db->insert('py_factura_usuario', $py_user_data);
+        return $ci->db->insert_id();
+    }
+}
+
+/**
+ * Crea un usuario por defecto en py_factura_usuario
+ * @return int ID del usuario creado
+ */
+if (!function_exists('fs_create_default_py_usuario')) {
+    function fs_create_default_py_usuario() {
+        $ci = fs_ci();
+        
+        $default_user = $ci->db->get_where('py_factura_usuario', ['documento_numero' => 'SISTEMA_DEFAULT'])->row();
+        if ($default_user) {
+            return $default_user->id;
+        }
+        
+        $default_data = [
+            'sistema_user_id' => null,
+            'documento_numero' => 'SISTEMA_DEFAULT',
+            'nombre' => 'Sistema por Defecto',
+            'cargo' => 'Sistema'
+        ];
+        
+        $ci->db->insert('py_factura_usuario', $default_data);
+        return $ci->db->insert_id();
     }
 }
 
@@ -1533,7 +1597,7 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                 $audit_data = [
                     'factura_id' => null, // No está asociado a una factura específica
                     'fecha_modificacion' => date('Y-m-d H:i:s'),
-                    'usuario_id' => $ci->session->userdata('user_id') ?? 0,
+                    'usuario_id' => fs_get_or_create_py_usuario(),
                     'tipo_accion' => 'CONSULTA_CDC_ERROR',
                     'json_backup' => json_encode([
                         'lote' => [$i + 1, min($i + count($cdcList), $total)],
@@ -1573,7 +1637,7 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                     $audit_data = [
                         'factura_id' => $row->id,
                         'fecha_modificacion' => date('Y-m-d H:i:s'),
-                        'usuario_id' => $ci->session->userdata('user_id') ?? 0,
+                        'usuario_id' => fs_get_or_create_py_usuario(),
                         'tipo_accion' => 'CONSULTA_CDC_WARNING',
                         'json_backup' => json_encode([
                             'cdc' => $row->cdc,
@@ -1640,7 +1704,7 @@ if (!function_exists('fs_facturasend_actualizar_estados_pendientes')) {
                 $audit_data = [
                     'factura_id' => $row->id,
                     'fecha_modificacion' => date('Y-m-d H:i:s'),
-                    'usuario_id' => $ci->session->userdata('user_id') ?? 0,
+                    'usuario_id' => fs_get_or_create_py_usuario(),
                     'tipo_accion' => 'CONSULTA_CDC_EXITO',
                     'json_backup' => json_encode([
                         'cdc' => $row->cdc,

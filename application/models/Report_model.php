@@ -1226,7 +1226,7 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
      * @param string
      * @param int
      */
-    public function foodMenuSales($startMonth = '', $endMonth = '',$outlet_id='',$top_less='',$is_direct_food='') {
+    public function foodMenuSales($startMonth = '', $endMonth = '',$outlet_id='',$payment_method_id='',$kitchen_filter='') {
         if ($startMonth || $endMonth):
             if ($startMonth && strlen($startMonth) == 16) {
                 $startMonth .= ':00';
@@ -1234,35 +1234,173 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
             if ($endMonth && strlen($endMonth) == 16) {
                 $endMonth .= ':59';
             }
-            $this->db->select('sum(qty) as totalQty,food_menu_id,menu_name,code,sale_date,date_time,tbl_kitchen_sales.sale_no,tbl_kitchen_sales.id as sale_id,tbl_food_menu_categories.category_name');
+            
+            // Estrategia simplificada: consulta base sin JOINs de cocinas problemáticos
+            $this->db->select('
+                sum(tbl_kitchen_sales_details.qty) as totalQty,
+                tbl_kitchen_sales_details.food_menu_id,
+                tbl_kitchen_sales_details.menu_name,
+                tbl_food_menus.code,
+                tbl_kitchen_sales.sale_date,
+                tbl_kitchen_sales.date_time,
+                tbl_kitchen_sales.sale_no,
+                tbl_kitchen_sales.id as sale_id,
+                tbl_food_menu_categories.category_name
+            ');
+            
             $this->db->from('tbl_kitchen_sales_details');
-            $this->db->join('tbl_kitchen_sales', 'tbl_kitchen_sales.id = tbl_kitchen_sales_details.sales_id', 'left');
+            $this->db->join('tbl_kitchen_sales', 'tbl_kitchen_sales.id = tbl_kitchen_sales_details.sales_id', 'inner');
             $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id', 'left');
             $this->db->join('tbl_food_menu_categories', 'tbl_food_menu_categories.id = tbl_food_menus.category_id', 'left');
-
+            
+            // Filtros de fechas
             if ($startMonth != '' && $endMonth != '') {
-                $this->db->where('date_time>=', $startMonth);
-                $this->db->where('date_time <=', $endMonth);
+                $this->db->where('tbl_kitchen_sales.date_time>=', $startMonth);
+                $this->db->where('tbl_kitchen_sales.date_time <=', $endMonth);
             }
             if ($startMonth != '' && $endMonth == '') {
-                $this->db->where('date_time', $startMonth);
+                $this->db->where('tbl_kitchen_sales.date_time', $startMonth);
             }
             if ($startMonth == '' && $endMonth != '') {
-                $this->db->where('date_time', $endMonth);
+                $this->db->where('tbl_kitchen_sales.date_time', $endMonth);
             }
-            if ($is_direct_food != '') {
-                $this->db->where('tbl_food_menus.product_type', $is_direct_food);
+            
+            // Solo filtrar por outlet si se especifica uno (no vacío)
+            if ($outlet_id != '') {
+                $this->db->where('tbl_kitchen_sales_details.outlet_id', $outlet_id);
             }
-            $this->db->where('tbl_kitchen_sales_details.outlet_id', $outlet_id);
+            
+            // Filtros de estado - CRÍTICO para evitar duplicaciones
             $this->db->where('tbl_kitchen_sales_details.del_status', 'Live');
-            // $this->db->where('tbl_kitchen_sales.order_status', '3');
+            $this->db->where('tbl_kitchen_sales.del_status', 'Live');
+            $this->db->where('tbl_food_menus.del_status', 'Live');
+            
+            // Filtro por método de pago usando EXISTS - SIN JOINs adicionales
+            if ($payment_method_id != '') {
+                $this->db->where("EXISTS (
+                    SELECT 1 FROM tbl_sales s 
+                    INNER JOIN tbl_sale_payments sp ON sp.sale_id = s.id 
+                    WHERE s.sale_no = tbl_kitchen_sales.sale_no 
+                    AND sp.payment_id = " . (int)$payment_method_id . "
+                    AND s.del_status = 'Live'
+                    AND sp.del_status = 'Live'
+                )");
+            }
+            
+            // Filtros de cocina usando SOLO subconsultas EXISTS - NO JOINs
+            if ($kitchen_filter != '' && $kitchen_filter != 'all_kitchens') {
+                if ($kitchen_filter == 'no_kitchen') {
+                    // Productos sin cocina: categorías que NO están en kitchen_categories
+                    $this->db->where("NOT EXISTS (
+                        SELECT 1 FROM tbl_kitchen_categories kc
+                        INNER JOIN tbl_kitchens k ON k.id = kc.kitchen_id
+                        WHERE kc.cat_id = tbl_food_menus.category_id 
+                        AND k.del_status = 'Live'
+                        AND kc.del_status = 'Live'
+                    )");
+                } else {
+                    // Cocina específica: verificar que la categoría esté asignada a esa cocina
+                    $this->db->where("EXISTS (
+                        SELECT 1 FROM tbl_kitchen_categories kc 
+                        INNER JOIN tbl_kitchens k ON k.id = kc.kitchen_id 
+                        WHERE kc.cat_id = tbl_food_menus.category_id 
+                        AND k.id = " . (int)$kitchen_filter . " 
+                        AND k.del_status = 'Live'
+                        AND kc.del_status = 'Live'
+                    )");
+                }
+            } elseif ($kitchen_filter == 'all_kitchens') {
+                // Todas las cocinas: solo productos que TIENEN cocina asignada
+                $this->db->where("EXISTS (
+                    SELECT 1 FROM tbl_kitchen_categories kc 
+                    INNER JOIN tbl_kitchens k ON k.id = kc.kitchen_id 
+                    WHERE kc.cat_id = tbl_food_menus.category_id 
+                    AND k.del_status = 'Live'
+                    AND kc.del_status = 'Live'
+                )");
+            }
+            // Si kitchen_filter está vacío, no aplicamos filtro (todos los productos)
+            
+            // GROUP BY simple - solo por food_menu_id
             $this->db->group_by('tbl_kitchen_sales_details.food_menu_id');
-            $this->db->order_by('totalQty', $top_less);
+            $this->db->order_by('totalQty', 'DESC');
+            
             $query_result = $this->db->get();
             $result = $query_result->result();
+            
+            // Agregar nombres de cocinas en una segunda consulta para evitar JOINs problemáticos
+            foreach ($result as $row) {
+                $kitchen_names = $this->getKitchenNamesByCategory($row->food_menu_id);
+                $row->kitchen_name = $kitchen_names;
+            }
+            
             return $result;
         endif;
     }
+    
+    /**
+     * Obtener nombres de cocinas por food_menu_id
+     * @param int $food_menu_id
+     * @return string
+     */
+    private function getKitchenNamesByCategory($food_menu_id) {
+        $this->db->select('GROUP_CONCAT(DISTINCT k.name SEPARATOR ", ") as kitchen_names');
+        $this->db->from('tbl_food_menus fm');
+        $this->db->join('tbl_kitchen_categories kc', 'kc.cat_id = fm.category_id', 'left');
+        $this->db->join('tbl_kitchens k', 'k.id = kc.kitchen_id', 'left');
+        $this->db->where('fm.id', $food_menu_id);
+        $this->db->where('fm.del_status', 'Live');
+        // Filtrar solo conexiones y cocinas activas
+        $this->db->group_start();
+            $this->db->where('kc.del_status', 'Live');
+            $this->db->where('k.del_status', 'Live');
+        $this->db->group_end();
+        $this->db->or_group_start();
+            $this->db->where('kc.id IS NULL'); // Para productos sin conexiones de cocina
+        $this->db->group_end();
+        
+        $query = $this->db->get();
+        $result = $query->row();
+        
+        return $result ? ($result->kitchen_names ?: 'Sin cocina') : 'Sin cocina';
+    }
+    
+    /**
+     * Get kitchens by outlet
+     * @access public
+     * @return array
+     * @param int $outlet_id
+     */
+    public function getKitchensByOutlet($outlet_id) {
+        try {
+            // Log para debugging
+            log_message('debug', 'Report_model getKitchensByOutlet called with: ' . $outlet_id);
+            
+            $this->db->select('tbl_kitchens.id, tbl_kitchens.name');
+            $this->db->from('tbl_kitchens');
+            $this->db->where('tbl_kitchens.outlet_id', $outlet_id);
+            $this->db->where('tbl_kitchens.del_status', 'Live');
+            $this->db->group_by('tbl_kitchens.id'); // Usar GROUP BY en lugar de DISTINCT
+            $this->db->order_by('tbl_kitchens.name', 'ASC');
+            
+            $query_result = $this->db->get();
+            
+            log_message('debug', 'SQL Query: ' . $this->db->last_query());
+            
+            if ($query_result) {
+                $result = $query_result->result_array();
+                log_message('debug', 'Query successful. Number of rows: ' . count($result));
+                return $result;
+            } else {
+                log_message('error', 'Query failed in getKitchensByOutlet');
+                return array();
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Exception in getKitchensByOutlet: ' . $e->getMessage());
+            return array();
+        }
+    }
+    
     public function foodMenuSalesOld($startMonth = '', $endMonth = '',$outlet_id='',$top_less='',$is_direct_food='') {
         if ($startMonth || $endMonth):
             $this->db->select('sum(qty) as totalQty,food_menu_id,menu_name,code,sale_date,tbl_sales.sale_no,tbl_sales.id as sale_id,tbl_food_menu_categories.category_name');
@@ -2444,6 +2582,111 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
         $result = $query_result->result();
         return $result;
     }
+
+    public function transferConsolidatedReport($startMonth = '', $endMonth = '', $from_outlet_id = '', $to_outlet_id = '', $category_id = '') {
+        $this->db->select('
+            i.id as ingredient_id,
+            i.name as ingredient_name,
+            i.code as ingredient_code,
+            ic.category_name,
+            u.unit_name,
+            SUM(ti.quantity_amount) as total_quantity,
+            COUNT(DISTINCT t.id) as transfer_count
+        ');
+        $this->db->from('tbl_transfer_ingredients ti');
+        $this->db->join('tbl_transfer t', 't.id = ti.transfer_id', 'inner');
+        $this->db->join('tbl_ingredients i', 'i.id = ti.ingredient_id', 'inner');
+        $this->db->join('tbl_ingredient_categories ic', 'ic.id = i.category_id', 'left');
+        $this->db->join('tbl_units u', 'u.id = i.unit_id', 'left');
+        
+        // Filtros de fecha - usar received_date si existe, sino usar date
+        if ($startMonth != '' && $endMonth != '') {
+            $this->db->group_start();
+            $this->db->where('t.received_date >=', $startMonth);
+            $this->db->where('t.received_date <=', $endMonth);
+            $this->db->or_group_start();
+            $this->db->where('t.received_date IS NULL', NULL, FALSE);
+            $this->db->where('t.date >=', $startMonth);
+            $this->db->where('t.date <=', $endMonth);
+            $this->db->group_end();
+            $this->db->group_end();
+        }
+        if ($startMonth != '' && $endMonth == '') {
+            $this->db->group_start();
+            $this->db->where('t.received_date', $startMonth);
+            $this->db->or_group_start();
+            $this->db->where('t.received_date IS NULL', NULL, FALSE);
+            $this->db->where('t.date', $startMonth);
+            $this->db->group_end();
+            $this->db->group_end();
+        }
+        if ($startMonth == '' && $endMonth != '') {
+            $this->db->group_start();
+            $this->db->where('t.received_date', $endMonth);
+            $this->db->or_group_start();
+            $this->db->where('t.received_date IS NULL', NULL, FALSE);
+            $this->db->where('t.date', $endMonth);
+            $this->db->group_end();
+            $this->db->group_end();
+        }
+        
+        // Filtros de sucursales - manejar múltiples bases de datos
+        if ($from_outlet_id != '') {
+            // Detectar si es sucursal local o remota
+            if (strpos($from_outlet_id, '|') !== false) {
+                // Sucursal remota seleccionada como origen
+                $id_parts = explode('|', $from_outlet_id);
+                $remote_outlet_id = $id_parts[0];
+                $db_key = $id_parts[1];
+                
+                // Buscar transferencias que vienen DESDE esta sucursal remota
+                // Esto significa transferencias donde from_db_key = db_key y remote_outlet_id = id
+                $this->db->where('t.from_db_key', $db_key);
+                $this->db->where('t.remote_outlet_id', $remote_outlet_id);
+            } else {
+                // Sucursal local seleccionada como origen
+                // Buscar transferencias que salen desde esta sucursal local
+                $this->db->where('t.from_outlet_id', $from_outlet_id);
+            }
+        }
+        
+        if ($to_outlet_id != '') {
+            // Detectar si es sucursal local o remota
+            if (strpos($to_outlet_id, '|') !== false) {
+                // Sucursal remota seleccionada como destino
+                $id_parts = explode('|', $to_outlet_id);
+                $remote_outlet_id = $id_parts[0];
+                $db_key = $id_parts[1];
+                
+                // Buscar transferencias que van HACIA esta sucursal remota
+                // Esto significa transferencias donde to_db_key = db_key y remote_outlet_id = id
+                $this->db->where('t.to_db_key', $db_key);
+                $this->db->where('t.remote_outlet_id', $remote_outlet_id);
+            } else {
+                // Sucursal local seleccionada como destino
+                // Buscar transferencias que llegan a esta sucursal local
+                $this->db->where('t.to_outlet_id', $to_outlet_id);
+            }
+        }
+        
+        // Filtro de categoría
+        if ($category_id != '') {
+            $this->db->where('i.category_id', $category_id);
+        }
+        
+        $this->db->where('t.status', '1');
+        $this->db->where('ti.del_status', 'Live');
+        $this->db->where('t.del_status', 'Live');
+        $this->db->where('i.del_status', 'Live');
+        
+        $this->db->group_by('i.id, i.name, i.code, ic.category_name, u.unit_name');
+        $this->db->order_by('ic.category_name ASC, i.name ASC');
+        
+        $query_result = $this->db->get();
+        $result = $query_result->result();
+        return $result;
+    }
+
     public function getTotalTransaction($start_date, $end_date,$outlet_id='') {
         if ($start_date || $end_date):
             $this->db->select('count(id) as total_transaction');

@@ -335,7 +335,7 @@
             <h4><i data-feather="user"></i> Datos del Cliente</h4>
             <div class="row g-3">
                 <div class="col-md-3 position-relative"><label>Buscar (RUC/Nombre)</label><input type="text" id="cliente_search_input" class="form-control" placeholder="Escriba para buscar..."><div id="cliente_results" class="autocomplete-results"></div></div>
-                <div class="col-md-3"><label>RUC / C.I. (*)</label><div class="input-group"><input type="text" name="cliente[ruc]" id="cliente_ruc" class="form-control" value="<?php echo $is_edit ? $factura->cliente->ruc : '' ?>" required><button class="btn btn-outline-secondary" type="button" id="ruc_search_btn">API</button></div><small id="ruc_message" class="form-text"></small></div>
+                <div class="col-md-3"><label>RUC / C.I. (*)</label><div class="input-group"><input type="text" name="cliente[ruc]" id="cliente_ruc" class="form-control" value="<?php echo $is_edit ? $factura->cliente->ruc : '' ?>" ><button class="btn btn-outline-secondary" type="button" id="ruc_search_btn">API</button></div><small id="ruc_message" class="form-text"></small></div>
                 <div class="col-md-3"><label>Razón Social (*)</label><input type="text" name="cliente[razonSocial]" id="cliente_razonSocial" class="form-control" value="<?php echo $is_edit ? $factura->cliente->razon_social : '' ?>" required></div>
                 <div class="col-md-3"><label>Nombre Fantasía</label><input type="text" name="cliente[nombreFantasia]" id="cliente_nombreFantasia" class="form-control" value="<?php echo $is_edit ? $factura->cliente->nombre_fantasia : '' ?>"></div>
                 <div class="col-md-2"><label>Tipo Operación (*)</label><select name="cliente[tipoOperacion]" class="form-control" required><?php foreach($tipos_operacion_cliente as $k => $v) echo "<option value='{$k}'>{$v}</option>"; ?></select></div>
@@ -344,10 +344,10 @@
                 <div class="col-md-3"><label>Email</label><input type="email" name="cliente[email]" id="cliente_email" class="form-control" value="<?php echo $is_edit ? $factura->cliente->email : '' ?>"></div>
                 <div class="col-md-3"><label>Teléfono/Celular</label><input type="text" name="cliente[telefono]" id="cliente_telefono" class="form-control" value="<?php echo $is_edit ? ($factura->cliente->telefono ?? '') : '' ?>"></div>
                 <div class="col-md-4"><label>Dirección</label><input type="text" name="cliente[direccion]" id="cliente_direccion" class="form-control" value="<?php echo $is_edit ? $factura->cliente->direccion : '' ?>"></div>
-                <div class="col-md-1"><label>N° Casa (*)</label><input type="text" name="cliente[numeroCasa]" id="cliente_numeroCasa" class="form-control" value="<?php echo $is_edit ? ($factura->cliente->numero_casa ?? '0') : '0' ?>" required></div>
-                <div class="col-md-2"><label>Departamento</label><select name="cliente[departamento]" id="cliente_departamento" class="form-control"><?php foreach($departamentos as $d) echo "<option value='{$d->id}' ".($is_edit && $factura->cliente->departamento == $d->id ? 'selected' : '').">{$d->nombre}</option>"; ?></select></div>
-                <div class="col-md-2"><label>Distrito</label><select name="cliente[distrito]" id="cliente_distrito" class="form-control" disabled></select></div>
-                <div class="col-md-2"><label>Ciudad</label><select name="cliente[ciudad]" id="cliente_ciudad" class="form-control" disabled></select></div>
+                <div class="col-md-1"><label>N° Casa (*)</label><input type="text" name="cliente[numeroCasa]" id="cliente_numeroCasa" class="form-control" required value="<?php echo $is_edit ? ($factura->cliente->numero_casa ?? '0') : '0' ?>" required></div>
+                <div class="col-md-2"><label>Departamento</label><select name="cliente[departamento]" id="cliente_departamento" class="form-control" required><?php foreach($departamentos as $d) echo "<option value='{$d->id}' ".($is_edit && $factura->cliente->departamento == $d->id ? 'selected' : '').">{$d->nombre}</option>"; ?></select></div>
+                <div class="col-md-2"><label>Distrito</label><select name="cliente[distrito]" id="cliente_distrito" class="form-control" readonly required></select></div>
+                <div class="col-md-2"><label>Ciudad</label><select name="cliente[ciudad]" id="cliente_ciudad" class="form-control" readonly required></select></div>
                 <input type="hidden" name="cliente[codigo]" id="cliente_codigo" value="<?php echo $is_edit ? $factura->cliente->codigo : '' ?>">
             </div>
         </div>
