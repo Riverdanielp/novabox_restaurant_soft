@@ -42,13 +42,15 @@
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
                 <?php echo form_open(base_url() . 'Report/detailedSaleReport', array('method' => 'get')) ?>
                 <div class="form-group">
-                    <input tabindex="1" type="text" id="" name="startDate" readonly class="form-control customDatepicker"
+                    <label for="startDate">Desde</label>
+                    <input tabindex="1" type="text" id="startDate" name="startDate" readonly class="form-control customDatepicker"
                            placeholder="<?php echo lang('start_date'); ?>" value="<?php echo isset($start_date) ? $start_date : ''; ?>">
                 </div>
             </div>
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
 
                 <div class="form-group">
+                    <label for="endMonth">Hasta</label>
                     <input tabindex="2" type="text" id="endMonth" name="endDate" readonly
                            class="form-control customDatepicker" placeholder="<?php echo lang('end_date'); ?>"
                            value="<?php echo isset($end_date) ? $end_date : ''; ?>">
@@ -56,6 +58,7 @@
             </div>
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
                 <div class="form-group">
+                    <label for="user_id"><?php echo lang('user'); ?></label>
                     <select tabindex="2" class="form-control select2 ir_w_100" id="user_id" name="user_id">
                         <option value=""><?php echo lang('all'); ?></option>
                         <option value="<?= escape_output($this->session->userdata['user_id']); ?>">
@@ -71,6 +74,7 @@
             </div>
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
                 <div class="form-group">
+                    <label for="waiter_id"><?php echo lang('waiter'); ?></label>
                     <select tabindex="2" class="form-control select2 ir_w_100" id="waiter_id" name="waiter_id">
                         <option value=""><?php echo lang('waiter'); ?></option>
                         <?php
@@ -87,6 +91,7 @@
             </div>
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
                 <div class="form-group">
+                    <label for="customer_search"><?php echo lang('customer'); ?></label>
                     <select id="customer_search" name="customer" class="form-control select2 ir_w_100">
                         <option value="all">Todos</option>
                     </select>
@@ -97,6 +102,7 @@
                 ?>
                 <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
                     <div class="form-group">
+                        <label for="outlet_id"><?php echo lang('outlet'); ?></label>
                         <select tabindex="2" class="form-control select2 ir_w_100" id="outlet_id" name="outlet_id">
                             <?php
                             $outlets = getAllOutlestByAssign();
@@ -130,15 +136,16 @@
                         <th class="ir_w2_txt_center"><?php echo lang('sn'); ?></th>
                         <th><?php echo lang('date'); ?></th>
                         <th><?php echo lang('sale_no'); ?></th>
+                        <th><?php echo lang('customer_name'); ?></th>
                         <th><?php echo lang('total_items'); ?></th>
                         <th><?php echo lang('subtotal'); ?></th>
                         <th><?php echo 'Total Devuelto'; ?></th>
                         <!-- <th><?php echo lang('delivery'); ?> <?php echo lang('delivery_charge'); ?></th> -->
-                        <th><?php echo lang('service_charge'); ?></th>
+                        <!-- <th><?php echo lang('service_charge'); ?></th> -->
                         <th><?php echo lang('discount'); ?></th>
-                        <th><?php echo lang('vat'); ?></th>
+                        <!-- <th><?php echo lang('vat'); ?></th> -->
                         <th><?php echo lang('g_total'); ?></th>
-                        <th><?php echo lang('payment_method'); ?></th>
+                        <!-- <th><?php echo lang('payment_method'); ?></th> -->
                     </tr>
                     </thead>
                     <tbody>
@@ -179,36 +186,37 @@
                                 <td><?= escape_output(date($this->session->userdata('date_format'), strtotime($value->sale_date))) ?>
                                 </td>
                                 <td><?php echo escape_output($value->sale_no) ?></td>
+                                <td><?php echo escape_output($value->customer_name?$value->customer_name:lang('walk_in_customer')) ?></td>
                                 <td><?php echo escape_output($total_qty) ?></td>
                                 <td><?php echo escape_output(getAmt($value->sub_total)) ?></td>
                                 <!-- <td><?php echo escape_output(getAmt($delivery_row_total)) ?></td> -->
                                 <td><?php echo escape_output(getAmt($total_devuelto)) ?></td>
-                                <td><?php echo escape_output(getAmt($service_row_total)) ?></td>
+                                <!-- <td><?php echo escape_output(getAmt($service_row_total)) ?></td> -->
                                 <td><?php echo escape_output(getAmt($value->total_discount_amount)) ?></td>
-                                <td><?php echo escape_output(getAmt($value->vat)) ?></td>
+                                <!-- <td><?php echo escape_output(getAmt($value->vat)) ?></td> -->
                                 <td><?php echo escape_output(getAmt($value->total_payable)) ?></td>
-                                <td>
+                                <!-- <td> -->
                                     <?php
                                     $outlet_id = $this->session->userdata('outlet_id');
-                                    $salePaymentDetails = salePaymentDetails($value->id,$outlet_id);
-                                    if(isset($salePaymentDetails) && $salePaymentDetails):
-                                        ?>
-                                        <?php foreach ($salePaymentDetails as $ky=>$payment):
-                                        $txt_point = '';
-                                        if($payment->id==5){
-                                            $txt_point = " (Usage Point:".$payment->usage_point.")";
-                                        }
-                                        echo escape_output($payment->payment_name.$txt_point).":".escape_output(getAmtPCustom($payment->amount));
-                                        if($ky<sizeof($salePaymentDetails)-1){
-                                            echo " - ";
-                                        }
-                                        $previous_amount = isset($payments_arr[$payment->payment_name]) && $payments_arr[$payment->payment_name]?$payments_arr[$payment->payment_name]:0;
-                                        $payments_arr[$payment->payment_name] = $previous_amount + $payment->amount;
+                                    // $salePaymentDetails = salePaymentDetails($value->id,$outlet_id);
+                                    // if(isset($salePaymentDetails) && $salePaymentDetails):
+                                    //     ?>
+                                         <?php //foreach ($salePaymentDetails as $ky=>$payment):
+                                    //     $txt_point = '';
+                                    //     if($payment->id==5){
+                                    //         $txt_point = " (Usage Point:".$payment->usage_point.")";
+                                    //     }
+                                    //     echo escape_output($payment->payment_name.$txt_point).":".escape_output(getAmtPCustom($payment->amount));
+                                    //     if($ky<sizeof($salePaymentDetails)-1){
+                                    //         echo " - ";
+                                    //     }
+                                    //     $previous_amount = isset($payments_arr[$payment->payment_name]) && $payments_arr[$payment->payment_name]?$payments_arr[$payment->payment_name]:0;
+                                    //     $payments_arr[$payment->payment_name] = $previous_amount + $payment->amount;
 
-                                    endforeach;
-                                    endif;
+                                    // endforeach;
+                                    // endif;
                                     ?>
-                                </td>
+                                <!-- </td> -->
                             </tr>
                             <?php
                         }
@@ -217,25 +225,26 @@
                     <tr>
                         <td class="ir_w2_txt_center"></td>
                         <td></td>
+                        <td></td>
                         <td class="ir_txt_right"><b><?php echo lang('total'); ?></b> </td>
                         <td><?= escape_output($itemsGrandTotal) ?></td>
                         <td>
                             <?php echo escape_output(getAmt($subGrandTotal)) ?></td>
                         <td><?php echo escape_output(getAmt($deliveryTotal)) ?></td>
-                        <td><?php echo escape_output(getAmt($serviceTotal)) ?></td>
+                        <!-- <td><?php echo escape_output(getAmt($serviceTotal)) ?></td> -->
                         <td>
                             <?php echo escape_output(getAmt($disGrandTotal)) ?></td>
-                        <td>
-                            <?php echo escape_output(getAmt($vatGrandTotal)) ?></td>
+                        
+                            <!-- <td><?php echo escape_output(getAmt($vatGrandTotal)) ?></td> -->
                         <td>
                             <?php echo escape_output(getAmt($pGrandTotal)) ?></td>
-                        <td>
+                        <!-- <td>
                         <?php  
-                            foreach($payments_arr as $key=>$amount){
-                                echo "<b>".escape_output($key).":</b>".escape_output(getAmtPCustom($amount))."<br>";
-                            }
+                            // foreach($payments_arr as $key=>$amount){
+                            //     echo "<b>".escape_output($key).":</b>".escape_output(getAmtPCustom($amount))."<br>";
+                            // }
                         ?>
-                        </td>
+                        </td> -->
                     </tr>
                     </tbody>
 

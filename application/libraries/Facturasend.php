@@ -71,7 +71,7 @@ class Facturasend {
         $url = $this->base_url . '/' . $endpoint;
 
         $headers = [
-            'Content-Type: application/json',
+            'Content-Type: application/json; charset=utf-8',
             $this->auth_header
         ];
 
@@ -86,11 +86,22 @@ class Facturasend {
 
         $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
+
+        // Intentar decodificar como JSON, si falla, devolver como string
+        $decoded_response = json_decode($response, true);
+        
+        // Si json_decode falló o devolvió null, y la respuesta no está vacía,
+        // probablemente es texto plano (como base64)
+        if ($decoded_response === null && !empty($response) && json_last_error() !== JSON_ERROR_NONE) {
+            $decoded_response = $response;
+        }
 
         return [
             'status' => $http_code,
-            'body'   => json_decode($response, true)
+            'body'   => $decoded_response,
+            'content_type' => $content_type
         ];
     }
 
@@ -264,10 +275,10 @@ class Facturasend {
      * Obtiene el PDF de una factura electrónica en formato base64 desde la API.
      *
      * @param string $cdc El Código de Control (CDC) del documento a consultar.
-     * @param string|null $format Opcional. El formato del PDF ('ticket' o 'A4'). Por defecto es 'A4'.
+     * @param string|null $format Opcional. El formato del PDF ('ticket' o 'A4'). Por defecto es 'ticket'.
      * @return array Un array con 'status' (código HTTP) y 'body' (la respuesta de la API).
      */
-    public function get_invoice_pdf_base64($cdc, $format = 'A4')
+    public function get_invoice_pdf_base64($cdc, $format = 'ticket')
     {
         $endpoint = "{$this->tenant_id}/de/pdf";
 
@@ -275,8 +286,8 @@ class Facturasend {
             "cdcList" => [
                 ["cdc" => $cdc]
             ],
-            // "type"   => "base64",
-            // "format" => $format // 'ticket' o 'A4'
+            "type"   => "base64",
+            "format" => $format // 'ticket' o 'A4'
         ];
 
         return $this->_make_request('POST', $endpoint, $payload);

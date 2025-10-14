@@ -95,11 +95,8 @@ class Report extends Cl_Controller {
             }elseif($segment_2=="usageLoyaltyPointReport"){
                 $controller = "203";
                 $function = "view";
-            }elseif($segment_2=="transferReport"){
+            }elseif($segment_2=="transferReport" || $segment_2=="transferConsolidatedReport"){
                 $controller = "307";
-                $function = "view";
-            }elseif($segment_2=="transferConsolidatedReport"){
-                $controller = "308";
                 $function = "view";
             }elseif($segment_2=="zReport"){
                 $controller = "314";

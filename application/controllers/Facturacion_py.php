@@ -1003,6 +1003,101 @@ class Facturacion_py extends Cl_Controller {
 
         
     /**
+     * Método de debug para probar la API de FacturaSend directamente
+     */
+    public function debug_pdf_api($cdc = null)
+    {
+        if (!$cdc) {
+            $cdc = '01801605580004001000108922025101310365299908'; // CDC de prueba
+        }
+        
+        $this->load->library('facturasend');
+        
+        echo '<h2>Debug API FacturaSend - PDF</h2>';
+        echo '<hr>';
+        
+        // Test de configuración
+        echo '<h3>1. Configuración:</h3>';
+        $this->facturasend->test();
+        echo '<hr>';
+        
+        // Test directo con cURL
+        echo '<h3>2. Test directo con cURL (igual a PowerShell):</h3>';
+        
+        $url = 'https://fs-api.novabox.net.py/miabuelaeas/de/pdf';
+        $data = [
+            'cdcList' => [
+                ['cdc' => $cdc]
+            ],
+            'type' => 'base64',
+            'format' => 'ticket'
+        ];
+        
+        $headers = [
+            'Authorization: Bearer api_key_09408306-92AB-4CBB-A18B-7B9D08B9C469',
+            'Content-Type: application/json; charset=utf-8'
+        ];
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        echo '<pre>';
+        echo "URL: $url\n";
+        echo "HTTP Code: $http_code\n";
+        echo "Content-Type: $content_type\n";
+        echo "cURL Error: " . ($error ?: 'None') . "\n";
+        echo "Response Length: " . strlen($response) . "\n";
+        echo "Response Type: " . gettype($response) . "\n";
+        
+        if (strlen($response) < 1000) {
+            echo "Response Content: " . $response . "\n";
+        } else {
+            echo "Response Sample (first 200 chars): " . substr($response, 0, 200) . "...\n";
+            
+            // Verificar si es base64 válido
+            $decoded = base64_decode($response, true);
+            if ($decoded !== false) {
+                echo "✓ Response is valid base64\n";
+                echo "Decoded length: " . strlen($decoded) . "\n";
+                if (substr($decoded, 0, 4) === '%PDF') {
+                    echo "✓ Decoded content is a PDF\n";
+                } else {
+                    echo "✗ Decoded content is NOT a PDF (starts with: " . substr($decoded, 0, 10) . ")\n";
+                }
+            } else {
+                echo "✗ Response is NOT valid base64\n";
+            }
+        }
+        echo '</pre>';
+        echo '<hr>';
+        
+        // Test usando el método de la librería
+        echo '<h3>3. Test usando método get_invoice_pdf_base64:</h3>';
+        $result = $this->facturasend->get_invoice_pdf_base64($cdc, 'ticket');
+        echo '<pre>';
+        echo "Status: " . $result['status'] . "\n";
+        echo "Body Type: " . gettype($result['body']) . "\n";
+        echo "Body Length: " . (is_string($result['body']) ? strlen($result['body']) : 'N/A') . "\n";
+        if (is_string($result['body']) && strlen($result['body']) < 500) {
+            echo "Body Content: " . $result['body'] . "\n";
+        } elseif (is_array($result['body'])) {
+            echo "Body Structure: " . print_r($result['body'], true) . "\n";
+        }
+        echo '</pre>';
+    }
+
+    /**
      * Descargar PDF de factura electrónica
      */
     public function descargar_pdf_factura()
@@ -1017,6 +1112,7 @@ class Facturacion_py extends Cl_Controller {
         header('Content-Type: application/json');
 
         $cdc = $this->input->post('cdc');
+        $format = $this->input->post('format') ?? 'ticket'; // Usar 'ticket' por defecto
         
         if (empty($cdc)) {
             $response = [
@@ -1041,61 +1137,103 @@ class Facturacion_py extends Cl_Controller {
             // Cargar la librería FacturaSend
             $this->load->library('facturasend');
             
-            // Obtener el PDF en base64
-            $result = $this->facturasend->get_invoice_pdf_base64($cdc);
+            // Obtener el PDF en base64 usando el método corregido
+            $result = $this->facturasend->get_invoice_pdf_base64($cdc, $format);
             
-            if ($result['status'] == 200 && isset($result['body'])) {
-                // Verificar diferentes estructuras de respuesta de la API
+            // Log de depuración más detallado
+            log_message('debug', 'FacturaSend PDF Response Status: ' . $result['status']);
+            log_message('debug', 'FacturaSend PDF Response Body Type: ' . gettype($result['body']));
+            log_message('debug', 'FacturaSend PDF Response Body Length: ' . (is_string($result['body']) ? strlen($result['body']) : 'N/A'));
+            
+            if ($result['status'] == 200 && isset($result['body']) && !empty($result['body'])) {
                 $pdf_base64 = null;
                 
-                // Estructura 1: response.body.data
-                if (isset($result['body']['data'])) {
-                    $pdf_base64 = $result['body']['data'];
+                // La API de FacturaSend devuelve el base64 directamente como string
+                if (is_string($result['body'])) {
+                    // Limpiar y validar el base64
+                    $cleaned_base64 = trim($result['body']);
+                    $cleaned_base64 = preg_replace('/[^A-Za-z0-9+\/=]/', '', $cleaned_base64);
+                    
+                    // Verificar que sea base64 válido y tenga contenido suficiente
+                    if (strlen($cleaned_base64) > 100) {
+                        $decoded_test = base64_decode($cleaned_base64, true);
+                        if ($decoded_test !== false && substr($decoded_test, 0, 4) === '%PDF') {
+                            $pdf_base64 = $cleaned_base64;
+                        }
+                    }
                 }
-                // Estructura 2: response.body[0].pdf
-                elseif (isset($result['body'][0]['pdf'])) {
-                    $pdf_base64 = $result['body'][0]['pdf'];
-                }
-                // Estructura 3: response.body directamente es el base64
-                elseif (is_string($result['body']) && !empty($result['body'])) {
-                    $pdf_base64 = $result['body'];
-                }
-                // Estructura 4: buscar en cualquier nivel que contenga 'pdf' o 'base64'
+                // Si body es array (por si la API cambia el formato)
                 elseif (is_array($result['body'])) {
-                    $pdf_base64 = $this->_extract_pdf_from_response($result['body']);
+                    // Buscar en diferentes posibles ubicaciones
+                    if (isset($result['body']['data'])) {
+                        $pdf_base64 = $result['body']['data'];
+                    } elseif (isset($result['body']['pdf'])) {
+                        $pdf_base64 = $result['body']['pdf'];
+                    } elseif (isset($result['body']['result'])) {
+                        $pdf_base64 = $result['body']['result'];
+                    } elseif (isset($result['body'][0]) && is_string($result['body'][0])) {
+                        $pdf_base64 = $result['body'][0];
+                    } else {
+                        // Buscar recursivamente
+                        $pdf_base64 = $this->_extract_pdf_from_response($result['body']);
+                    }
                 }
                 
                 if (!empty($pdf_base64)) {
                     // Limpiar el base64 de posibles caracteres no válidos
+                    $pdf_base64 = trim($pdf_base64);
                     $pdf_base64 = preg_replace('/[^A-Za-z0-9+\/=]/', '', $pdf_base64);
                     
                     // Validar que sea base64 válido
-                    if (base64_decode($pdf_base64, true) !== false) {
-                        $response = [
-                            'success' => true,
-                            'pdf_base64' => $pdf_base64,
-                            'filename' => 'factura_' . $cdc . '.pdf'
-                        ];
+                    $decoded_pdf = base64_decode($pdf_base64, true);
+                    if ($decoded_pdf !== false && strlen($decoded_pdf) > 100) {
+                        // Verificar que sea realmente un PDF
+                        if (substr($decoded_pdf, 0, 4) === '%PDF') {
+                            $response = [
+                                'success' => true,
+                                'pdf_base64' => $pdf_base64,
+                                'filename' => 'factura_' . $cdc . '.pdf',
+                                'size' => strlen($decoded_pdf)
+                            ];
+                        } else {
+                            $response = [
+                                'success' => false,
+                                'message' => 'El contenido recibido no es un PDF válido'
+                            ];
+                        }
                     } else {
                         $response = [
                             'success' => false,
-                            'message' => 'El PDF recibido no tiene un formato base64 válido'
+                            'message' => 'El PDF recibido no tiene un formato base64 válido o está vacío'
                         ];
                     }
                 } else {
                     $response = [
                         'success' => false,
-                        'message' => 'No se pudo obtener el PDF de la respuesta de la API. Verifique que el CDC sea válido y el documento esté aprobado.'
+                        'message' => 'No se pudo obtener el PDF de la respuesta de la API.',
+                        'debug_info' => [
+                            'status' => $result['status'],
+                            'body_type' => gettype($result['body']),
+                            'body_is_empty' => empty($result['body']),
+                            'body_length' => is_string($result['body']) ? strlen($result['body']) : 'N/A',
+                            'body_sample' => is_string($result['body']) ? substr($result['body'], 0, 100) : (is_array($result['body']) ? array_keys($result['body']) : 'not_string_or_array'),
+                            'content_type' => $result['content_type'] ?? 'unknown'
+                        ]
                     ];
                 }
             } else {
-                // Manejar diferentes códigos de error
+                // Manejar diferentes códigos de error o respuesta vacía
                 $error_message = 'Error al obtener el PDF';
                 
-                if (isset($result['body']['error'])) {
+                // Si el status es 200 pero el body está vacío
+                if ($result['status'] == 200 && empty($result['body'])) {
+                    $error_message = 'La API devolvió una respuesta vacía. Posibles causas: CDC inválido, documento no encontrado, o problema en el servidor de FacturaSend.';
+                } elseif (isset($result['body']['error'])) {
                     $error_message = $result['body']['error'];
                 } elseif (isset($result['body']['message'])) {
                     $error_message = $result['body']['message'];
+                } elseif (is_string($result['body']) && !empty($result['body'])) {
+                    $error_message = $result['body'];
                 }
                 
                 switch ($result['status']) {
@@ -1107,6 +1245,9 @@ class Facturacion_py extends Cl_Controller {
                         break;
                     case 403:
                         $error_message = 'No tiene permisos para acceder a este documento';
+                        break;
+                    case 422:
+                        $error_message = 'Datos de solicitud inválidos - CDC: ' . $cdc;
                         break;
                     case 500:
                         $error_message = 'Error interno del servidor de FacturaSend';
@@ -1120,7 +1261,11 @@ class Facturacion_py extends Cl_Controller {
                 
                 $response = [
                     'success' => false,
-                    'message' => $error_message
+                    'message' => $error_message,
+                    'debug_info' => [
+                        'status' => $result['status'],
+                        'response' => $result
+                    ]
                 ];
             }
         } catch (Exception $e) {
@@ -1130,7 +1275,7 @@ class Facturacion_py extends Cl_Controller {
             ];
             
             // Log del error para depuración
-            log_message('error', 'Error al descargar PDF factura: ' . $e->getMessage());
+            log_message('error', 'Error al descargar PDF factura CDC ' . $cdc . ': ' . $e->getMessage());
         }
         
         echo json_encode($response);
@@ -1144,13 +1289,55 @@ class Facturacion_py extends Cl_Controller {
     private function _extract_pdf_from_response($data)
     {
         if (is_array($data)) {
+            // Primero buscar keys específicos que probablemente contengan el PDF
+            $priority_keys = ['data', 'pdf', 'result', 'base64', 'content'];
+            foreach ($priority_keys as $priority_key) {
+                if (isset($data[$priority_key])) {
+                    if (is_string($data[$priority_key]) && !empty($data[$priority_key])) {
+                        // Verificar si parece ser base64 válido
+                        $cleaned = preg_replace('/[^A-Za-z0-9+\/=]/', '', $data[$priority_key]);
+                        if (strlen($cleaned) > 100 && base64_decode($cleaned, true) !== false) {
+                            return $cleaned;
+                        }
+                    } elseif (is_array($data[$priority_key])) {
+                        $result = $this->_extract_pdf_from_response($data[$priority_key]);
+                        if ($result !== null) {
+                            return $result;
+                        }
+                    }
+                }
+            }
+            
+            // Si no encontramos en keys prioritarios, buscar en todos
             foreach ($data as $key => $value) {
-                if (is_string($value) && (strpos($key, 'pdf') !== false || strpos($key, 'base64') !== false)) {
-                    return $value;
+                if (is_string($value) && !empty($value)) {
+                    // Si la key contiene términos relacionados con PDF
+                    if (stripos($key, 'pdf') !== false || 
+                        stripos($key, 'base64') !== false || 
+                        stripos($key, 'data') !== false ||
+                        stripos($key, 'content') !== false) {
+                        
+                        // Verificar si parece ser base64 válido
+                        $cleaned = preg_replace('/[^A-Za-z0-9+\/=]/', '', $value);
+                        if (strlen($cleaned) > 100 && base64_decode($cleaned, true) !== false) {
+                            return $cleaned;
+                        }
+                    }
                 } elseif (is_array($value)) {
                     $result = $this->_extract_pdf_from_response($value);
                     if ($result !== null) {
                         return $result;
+                    }
+                }
+            }
+            
+            // Como último recurso, buscar cualquier string que parezca base64 válido
+            foreach ($data as $value) {
+                if (is_string($value) && strlen($value) > 100) {
+                    $cleaned = preg_replace('/[^A-Za-z0-9+\/=]/', '', $value);
+                    $decoded = base64_decode($cleaned, true);
+                    if ($decoded !== false && substr($decoded, 0, 4) === '%PDF') {
+                        return $cleaned;
                     }
                 }
             }

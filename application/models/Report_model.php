@@ -1890,8 +1890,9 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
      */
     public function detailedSaleReport($startMonth = '', $endMonth = '', $user_id = '',$outlet_id='',$waiter_id='',$customer='all') {
         if ($startMonth || $endMonth || $user_id):
-            $this->db->select('tbl_sales.*,tbl_users.full_name,tbl_payment_methods.name');
+            $this->db->select('tbl_sales.*,tbl_users.full_name,tbl_payment_methods.name,tbl_customers.name as customer_name');
             $this->db->from('tbl_sales');
+            $this->db->join('tbl_customers', 'tbl_customers.id = tbl_sales.customer_id', 'left');
             $this->db->join('tbl_users', 'tbl_users.id = tbl_sales.user_id', 'left');
             $this->db->join('tbl_payment_methods', 'tbl_payment_methods.id = tbl_sales.payment_method_id', 'left');
 
