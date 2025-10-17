@@ -180,7 +180,7 @@ function getIdSaleKitchenBySaleNo($sale_no) {
 }
 function getTotalDevuelto($sale_id) {
     $CI = & get_instance();
-    $CI->db->select('sum(qty) as totalQty, sum(qty*menu_price_without_discount) as totalPrice');
+    $CI->db->select('sum(qty) as totalQty, sum(qty*menu_unit_price) as totalPrice');
     $CI->db->from('tbl_kitchen_sales_details');
     $CI->db->where('sales_id', $sale_id);
     $CI->db->where('del_status', 'Deleted');

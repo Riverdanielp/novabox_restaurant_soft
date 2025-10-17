@@ -45,6 +45,26 @@
             cursor: not-allowed;
         }
     </style>
+    <style>
+        .paging_simple_numbers > a,
+        .paging_simple_numbers > strong {
+            border: 1px solid #dee2e6;
+            color: #007bff;
+            padding: 0.4em 0.75em;
+            margin: 0 0.15em;
+            border-radius: 0.25rem;
+            text-decoration: none;
+        }
+        .paging_simple_numbers > a {
+            background-color: #007bff;
+            color: #fff !important;
+            border-color: #007bff;
+        }
+        .paging_simple_numbers > a:hover {
+            background-color: #f0f3f7;
+            color: #0056b3;
+        }
+    </style>
     <section class="content-header" style="height: 80px;">
         <h3 class="top-left-header">Listado de Facturas Electrónicas</h3>
         <a href="<?php echo base_url('Facturacion_py/formulario'); ?>" class="btn btn-info float-end">
@@ -68,6 +88,7 @@
                     <strong>Error:</strong> <?php echo escape_output($this->session->flashdata('error_custom')); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
+                <?php $this->session->set_flashdata('error_custom', null) ?>
             <?php endif; ?>
             
             <!-- Manejo de mensajes de éxito -->
@@ -77,6 +98,7 @@
                     <strong>Éxito:</strong> <?php echo escape_output($this->session->flashdata('success')); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
+                <?php $this->session->set_flashdata('success', null) ?>
             <?php endif; ?>
             
             <!-- Manejo de mensajes de información -->
@@ -95,6 +117,7 @@
                     <strong>Advertencia:</strong> <?php echo escape_output($this->session->flashdata('warning')); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
+                <?php $this->session->set_flashdata('warning', null) ?>
             <?php endif; ?>
             
             <h4><i data-feather="filter"></i> Filtros</h4>
@@ -136,6 +159,17 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label">Tipo de Comprobante</label>
+                    <select name="tipo_documento" class="form-control select2">
+                        <option value="">Todos</option>
+                        <option value="1" <?= ($filters['tipo_documento']=='1'?'selected':'') ?>>Factura Electrónica</option>
+                        <option value="4" <?= ($filters['tipo_documento']=='4'?'selected':'') ?>>Autofactura</option>
+                        <option value="5" <?= ($filters['tipo_documento']=='5'?'selected':'') ?>>Nota de Crédito</option>
+                        <option value="6" <?= ($filters['tipo_documento']=='6'?'selected':'') ?>>Nota de Débito</option>
+                        <option value="7" <?= ($filters['tipo_documento']=='7'?'selected':'') ?>>Nota de Remisión</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>
                     <div>
                         <button type="submit" class="btn btn-primary btn-sm">
@@ -156,13 +190,30 @@
         <div class="table-box">
             <div class="table-responsive">
                 <table class="table">
+                    <?php
+                    function sort_link($label, $col, $filters) {
+                        $base_url = base_url('Facturacion_py/listado');
+                        $params = $_GET;
+                        $order = 'asc';
+
+                        if(isset($filters['sort']) && $filters['sort'] == $col) {
+                            $order = ($filters['order'] == 'asc') ? 'desc' : 'asc';
+                            $arrow = $filters['order'] == 'asc' ? '↑' : '↓';
+                            $label = "$label <span style='font-size:1em;'>$arrow</span>";
+                        }
+                        $params['sort'] = $col;
+                        $params['order'] = $order;
+                        return '<a href="' . $base_url . '?' . http_build_query($params) . '" class="text-dark text-decoration-none">' . $label . '</a>';
+                    }
+                    ?>
                     <thead>
                         <tr>
-                            <th># Factura</th>
-                            <th>Fecha</th>
-                            <th>Cliente</th>
-                            <th>Usuario</th>
-                            <th>Estado</th>
+                            <th><?php echo sort_link('Tipo', 'tipo_documento', $filters); ?></th>
+                            <th><?php echo sort_link('# Factura', 'numero_formateado', $filters); ?></th>
+                            <th><?php echo sort_link('Fecha', 'fecha', $filters); ?></th>
+                            <th><?php echo sort_link('Cliente', 'cliente_nombre', $filters); ?></th>
+                            <th><?php echo sort_link('Usuario', 'usuario_nombre', $filters); ?></th>
+                            <th><?php echo sort_link('Estado', 'estado', $filters); ?></th>
                             <th>CDC</th>
                             <th class="text-center">Acciones</th>
                         </tr>
@@ -170,6 +221,21 @@
                     <tbody>
                         <?php foreach($facturas as $factura): ?>
                         <tr>
+                            <td>
+                                <?php
+                                $tipos = [
+                                    1 => ['label'=>'Factura Electrónica','class'=>'bg-primary'],
+                                    4 => ['label'=>'Autofactura','class'=>'bg-info'],
+                                    5 => ['label'=>'Nota de Crédito','class'=>'bg-warning text-dark'],
+                                    6 => ['label'=>'Nota de Débito','class'=>'bg-danger'],
+                                    7 => ['label'=>'Nota de Remisión','class'=>'bg-secondary']
+                                ];
+                                $tipo = $factura->tipo_documento;
+                                $tipo_label = isset($tipos[$tipo]) ? $tipos[$tipo]['label'] : 'Desconocido';
+                                $tipo_class = isset($tipos[$tipo]) ? $tipos[$tipo]['class'] : 'bg-light text-dark';
+                                ?>
+                                <span class="badge <?= $tipo_class ?>"><?= $tipo_label ?></span>
+                            </td>
                             <td><?php echo $factura->numero_formateado; ?></td>
                             <td><?php echo date('d/m/Y H:i', strtotime($factura->fecha)); ?></td>
                             <td><?php echo $factura->cliente_nombre; ?></td>
@@ -209,20 +275,58 @@
                                     <?php echo $factura->estado_descripcion; ?>
                                 </span>
                             </td>
-                            <td><?php echo $factura->cdc; ?></td>
-                            <td class="text-center">
-                                <a href="<?php echo base_url('Facturacion_py/formulario/'.$factura->id); ?>" class="btn btn-sm btn-info"><i data-feather="eye"></i> Ver</a>
-                                <button type="button" class="btn btn-sm btn-secondary btn-logs" data-factura-id="<?php echo $factura->id; ?>" data-factura-numero="<?php echo $factura->numero_formateado; ?>">
-                                    <i data-feather="terminal"></i> Logs
-                                </button>
-                                <?php if (!empty($factura->cdc) && in_array($factura->estado, [0, 1, 2, 3])): // Solo para facturas aprobadas ?>
-                                <button type="button" class="btn btn-sm btn-success btn-descargar-pdf" 
-                                        data-cdc="<?php echo $factura->cdc; ?>" 
+                            <td><?php echo $factura->cdc; ?></td><td class="text-center">
+                                <div class="btn_group_wrap">
+                                    <!-- Ver factura -->
+                                    <a class="btn btn-unique menu_assign_class"
+                                        href="<?php echo base_url('Facturacion_py/formulario/'.$factura->id); ?>"
+                                        title="Ver factura">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    <!-- Logs -->
+                                    <a class="btn btn-deep-purple menu_assign_class btn-logs"
+                                        href="javascript:void(0)"
+                                        data-factura-id="<?php echo $factura->id; ?>"
                                         data-factura-numero="<?php echo $factura->numero_formateado; ?>"
-                                        id="btn-pdf-<?php echo $factura->id; ?>">
-                                    <i data-feather="download"></i> PDF
-                                </button>
-                                <?php endif; ?>
+                                        title="Logs">
+                                        <i class="fa fa-terminal"></i>
+                                    </a>
+                                    <!-- Nota de Crédito y Débito SOLO para tipo 1 y estado 1,2,3 -->
+                                    <?php if ($factura->tipo_documento == 1 && in_array($factura->estado, [1,2,3])): ?>
+                                        <?php
+                                            $params = [
+                                                'tipo' => 'nota_credito',
+                                                'cdc' => $factura->cdc,
+                                                'fecha' => $factura->fecha
+                                            ];
+                                            $url_nc = base_url('Facturacion_py/formulario/'.$factura->id).'?'.http_build_query($params);
+
+                                            $params['tipo'] = 'nota_debito';
+                                            $url_nd = base_url('Facturacion_py/formulario/'.$factura->id).'?'.http_build_query($params);
+                                        ?>
+                                        <a class="btn btn-warning menu_assign_class"
+                                            href="<?= $url_nc ?>"
+                                            title="Nota de Crédito">
+                                            <i class="fas fa-file-invoice-dollar"></i>
+                                        </a>
+                                        <a class="btn btn-danger menu_assign_class"
+                                            href="<?= $url_nd ?>"
+                                            title="Nota de Débito">
+                                            <i class="fas fa-receipt"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                    <!-- Botón Descargar PDF, solo si CDC y estado válido -->
+                                    <?php if (!empty($factura->cdc) && in_array($factura->estado, [0, 1, 2, 3])): ?>
+                                        <a class="btn btn-success menu_assign_class btn-descargar-pdf"
+                                            href="javascript:void(0)"
+                                            data-cdc="<?php echo $factura->cdc; ?>"
+                                            data-factura-numero="<?php echo $factura->numero_formateado; ?>"
+                                            id="btn-pdf-<?php echo $factura->id; ?>"
+                                            title="Descargar PDF">
+                                            <i class="fa fa-file-pdf"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -322,7 +426,7 @@
 </div>
 
 <script>
-function formatJsonForDisplay(jsonData, tipoAccion, isFromCdc = false) {
+function formatJsonForDisplay(jsonData, tipoAccion, isFromCdc = false, uniqueId = '') {
     var html = '<div class="row">';
     
     // Información general
@@ -450,60 +554,58 @@ function formatJsonForDisplay(jsonData, tipoAccion, isFromCdc = false) {
     
     html += '</div>';
     
+    var jsonRawId = 'json-raw-content' + (uniqueId ? '-' + uniqueId : '');
+    var btnRawId = 'btn-toggle-json-raw' + (uniqueId ? '-' + uniqueId : '');
+
     // JSON Raw
+
     html += '<div class="mt-3">';
     html += '<div class="card">';
     html += '<div class="card-header">';
     html += '<strong>Respuesta Completa (JSON)</strong>';
-    html += '<button class="btn btn-sm btn-outline-secondary float-end" onclick="toggleJsonRaw()">Mostrar/Ocultar</button>';
-    html += '<button class="btn btn-sm btn-outline-primary float-end me-2" onclick="copyJsonToClipboard()"><i data-feather="copy"></i> Copiar</button>';
+    html += '<button id="' + btnRawId + '" class="btn btn-sm btn-outline-secondary float-end" onclick="toggleJsonRaw(\'' + jsonRawId + '\', \'' + btnRawId + '\')">Mostrar/Ocultar</button>';
+    html += '<button class="btn btn-sm btn-outline-primary float-end me-2" onclick="copyJsonToClipboard(\'' + jsonRawId + '\')"><i data-feather="copy"></i> Copiar</button>';
     html += '</div>';
-    html += '<div class="card-body" id="json-raw-content" style="display: none;">';
+    html += '<div class="card-body" id="' + jsonRawId + '" style="display: none;">';
     html += '<pre class="bg-light p-3" style="max-height: 300px; overflow-y: auto;"><code>' + JSON.stringify(jsonData, null, 2) + '</code></pre>';
     html += '</div></div></div>';
     
     return html;
 }
 
-function toggleJsonRaw() {
-    var rawContent = document.getElementById('json-raw-content');
+function toggleJsonRaw(id, btnId) {
+    var rawContent = document.getElementById(id);
+    if (!rawContent) return;
     if (rawContent.style.display === 'none') {
         rawContent.style.display = 'block';
+        if (btnId) {
+            var btn = document.getElementById(btnId);
+            if (btn) btn.textContent = 'Ocultar';
+        }
     } else {
         rawContent.style.display = 'none';
+        if (btnId) {
+            var btn = document.getElementById(btnId);
+            if (btn) btn.textContent = 'Mostrar/Ocultar';
+        }
     }
 }
 
-function copyJsonToClipboard() {
-    var jsonText = document.querySelector('#json-raw-content code').textContent;
-    
+function copyJsonToClipboard(id) {
+    var rawContent = document.getElementById(id);
+    if (!rawContent) return;
+    var codeElem = rawContent.querySelector('code');
+    var jsonText = codeElem ? codeElem.textContent : '';
+    if (!jsonText) return;
     if (navigator.clipboard) {
-        navigator.clipboard.writeText(jsonText).then(function() {
-            // Mostrar feedback visual
-            var btn = event.target.closest('button');
-            var originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i data-feather="check"></i> Copiado!';
-            btn.classList.remove('btn-outline-primary');
-            btn.classList.add('btn-success');
-            
-            setTimeout(function() {
-                btn.innerHTML = originalHtml;
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-outline-primary');
-                if (typeof feather !== 'undefined') {
-                    feather.replace();
-                }
-            }, 2000);
-        });
+        navigator.clipboard.writeText(jsonText);
     } else {
-        // Fallback para navegadores más antiguos
         var textArea = document.createElement('textarea');
         textArea.value = jsonText;
         document.body.appendChild(textArea);
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        alert('JSON copiado al portapapeles');
     }
 }
 
@@ -574,7 +676,7 @@ $(document).ready(function() {
                                 try {
                                     var jsonData = JSON.parse(log.json_backup);
                                     logsHtml += '<div class="card-body">';
-                                    logsHtml += formatJsonForDisplay(jsonData, log.tipo_accion || 'N/A', false);
+                                    logsHtml += formatJsonForDisplay(jsonData, log.tipo_accion || 'N/A', false, index);
                                     logsHtml += '</div>';
                                 } catch (e) {
                                     logsHtml += '<div class="card-body">';
@@ -624,6 +726,8 @@ $(document).ready(function() {
         descargarPDFFactura(cdc, facturaNumero, buttonId);
     });
     
+    var cdcQueryCount = 0;
+
     // Manejar formulario CDC
     $('#cdcForm').on('submit', function(e) {
         e.preventDefault();
@@ -663,7 +767,8 @@ $(document).ready(function() {
                 $('#cdc-loading').hide();
                 
                 if (response.success && response.data) {
-                    var resultsHtml = formatJsonForDisplay(response.data, 'CONSULTA_CDC', true);
+                    cdcQueryCount++; // Incrementa para cada consulta
+                    var resultsHtml = formatJsonForDisplay(response.data, 'CONSULTA_CDC', true, 'cdc-' + cdcQueryCount);
                     $('#cdc-results').html(resultsHtml).show();
                     
                     // Reactivar iconos de feather

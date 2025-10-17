@@ -8864,124 +8864,6 @@ class Sale extends Cl_Controller {
             
     }
 
-    // application/controllers/Sale.php
-
-    public function generar_factura_electronicaOld($sale_id)
-    {
-        $this->load->helper('factura_send');
-        $this->load->library('facturasend');
-
-        // --- 1. Validaciones Previas (Igual que antes) ---
-        $sale = $this->db->where('id', $sale_id)->get('tbl_sales')->row();
-        if (!$sale) { /* ... manejo de error ... */ }
-        $customer = $this->db->where('id', $sale->customer_id)->get('tbl_customers')->row();
-        if (!$customer->es_contribuyente || strpos($customer->gst_number, '-') === false) { /* ... manejo de error ... */ }
-        
-        $outlet_id = $sale->outlet_id;
-        
-        $outlet_info = $this->Common_model->getDataById($outlet_id, 'tbl_outlets');
-        $sifen_sucursal_id = $outlet_info->sifen_sucursal_id;
-
-        $punto_expedicion_valido = fs_get_punto_expedicion_activo($sifen_sucursal_id);
-        echo '<pre>';
-        var_dump($punto_expedicion_valido); 
-        echo '</pre>';
-        
-        if (!$punto_expedicion_valido) { 
-            return 'No hay un punto de expedicion disponible';
-            /* ... manejo de error ... */ 
-        }
-
-        // --- 2. Recopilar Datos (Igual que antes) ---
-        $sale_details = $this->db->select("sd.*, fm.code, fm.iva_tipo")
-                                ->from("tbl_sales_details sd")
-                                ->join("tbl_food_menus fm", "fm.id = sd.food_menu_id", "left")
-                                ->where("sd.sales_id", $sale_id)
-                                ->get()->result();
-        $user = $this->db->where('id', $sale->user_id)->get('tbl_users')->row();
-        $payment_methods_json = json_decode($sale->self_order_content, true)['payment_object'] ?? '[{"payment_id":"1","amount":"'.$sale->total_payable.'"}]';
-        $payment_methods = json_decode($payment_methods_json, true);
-
-        // --- 3. NORMALIZACIÓN DE DATOS ---
-        // Aquí se mapean los datos del sistema a un array genérico.
-        
-        $cliente_normalizado = [
-            'id_sistema'        => $customer->id,
-            'es_contribuyente'  => (bool)$customer->es_contribuyente,
-            'ruc'               => $customer->gst_number,
-            'nombre'            => $customer->name,
-            'nombre_fantasia'   => $customer->nombre_fantasia,
-            'email'             => $customer->email,
-            'direccion'         => $customer->address,
-            'numero_casa'       => (string)intval($customer->numero_casa),
-            'es_proveedor_estado' => (bool)$customer->es_proveedor_estado,
-            'tipo_contribuyente'=> (int)$customer->tipo_contribuyente,
-            'tipo_documento'    => (int)$customer->tipo_documento,
-            'departamento_id'   => (int)$customer->departamento_id,
-            'distrito_id'       => (int)$customer->distrito_id,
-            'ciudad_id'         => (int)$customer->ciudad_id,
-            'pais_codigo'       => $customer->codigo_pais
-        ];
-
-        $usuario_normalizado = [
-            'id_sistema' => $user->id,
-            'nombre'     => $user->full_name,
-            'cargo'      => 'Vendedor' // O un rol dinámico si lo tienes
-        ];
-
-        $items_normalizados = array_map(function($item) {
-            $iva_valor = 0;
-            if ($item->iva_tipo == '10') $iva_valor = 10;
-            elseif ($item->iva_tipo == '5') $iva_valor = 5;
-
-            return [
-                'codigo'          => $item->code,
-                'descripcion'     => $item->menu_name,
-                'cantidad'        => $item->qty,
-                'precio_unitario' => $item->menu_unit_price,
-                'iva'             => $iva_valor,
-                // Aquí puedes añadir más campos normalizados si los necesitas
-            ];
-        }, $sale_details);
-
-        $condicion_normalizada = [
-            'tipo' => 1, // 1=Contado
-            'entregas' => array_map(function($pago) {
-                return [
-                    'tipo'   => fs_map_payment_method($pago['payment_id']),
-                    'monto'  => $pago['amount'],
-                    'moneda' => 'PYG'
-                ];
-            }, $payment_methods)
-        ];
-
-        // Array final, completamente normalizado, para el helper.
-        $invoice_data = [
-            'venta_id_sistema'  => $sale->id,
-            'fecha'             => date('Y-m-d\TH:i:s'),
-            'moneda'            => 'PYG',
-            'tipo_documento'    => 1, // 1 = Factura Electrónica
-            'punto_expedicion'  => $punto_expedicion_valido, // Objeto del propio helper, es seguro pasarlo.
-            'cliente'           => $cliente_normalizado,
-            'usuario'           => $usuario_normalizado,
-            'items'             => $items_normalizados,
-            'condicion_venta'   => $condicion_normalizada
-        ];
-
-        echo '<pre>';
-        var_dump($invoice_data); 
-        echo '</pre>';
-        // --- 4. Llamar al Helper con datos limpios ---
-        $resultado = fs_create_and_send_invoice($invoice_data);
-
-        echo '<pre>';
-        var_dump($resultado); 
-        echo '</pre>';
-        
-        // --- 5. Devolver Respuesta (Igual que antes) ---
-        // ... tu lógica para el success/error ...
-    }
-
     public function test_sucursal($sifen_sucursal_id = 1){
         ; // Asigna un ID de sucursal válido
         $punto_expedicion_valido = fs_get_punto_expedicion_activo($sifen_sucursal_id);
@@ -9006,7 +8888,7 @@ class Sale extends Cl_Controller {
             return ['status' => 'error', 'message' => "Cliente con ID '$sale->customer_id' no encontrado."];
         }
 
-        if (!isset($customer->es_contribuyente) || !$customer->es_contribuyente || strpos($customer->gst_number, '-') === false) {
+        if (!isset($customer->es_contribuyente) || !$customer->es_contribuyente) {
             return ['status' => 'error', 'message' => 'Facturación cancelada: El cliente no es contribuyente o su RUC no es válido.'];
         }
         
@@ -9052,9 +8934,13 @@ class Sale extends Cl_Controller {
 
         // --- 3. NORMALIZACIÓN DE DATOS ---
         // (Tu código de normalización es correcto y no necesita cambios)
+        
+        $es_contribuyente = ((strpos($customer->gst_number, '-') !== false));
+
         $cliente_normalizado = [
+            'documentoNumero'   => $customer->gst_number,
             'id_sistema'        => $customer->id,
-            'es_contribuyente'  => (bool)$customer->es_contribuyente,
+            'es_contribuyente'  => $es_contribuyente,
             'ruc'               => $customer->gst_number,
             'nombre'            => $customer->name,
             'nombre_fantasia'   => $customer->nombre_fantasia,
@@ -9174,7 +9060,7 @@ class Sale extends Cl_Controller {
         if (!$customer) {
             return ['status' => 'error', 'message' => "Cliente con ID '$sale->customer_id' no encontrado."];
         }
-        if (!isset($customer->es_contribuyente) || !$customer->es_contribuyente || strpos($customer->gst_number, '-') === false) {
+        if (!isset($customer->es_contribuyente) || !$customer->es_contribuyente) {
             return ['status' => 'info', 'message' => 'Facturación omitida: El cliente no es contribuyente o su RUC no es válido.'];
         }
         
@@ -9199,9 +9085,12 @@ class Sale extends Cl_Controller {
             $customer->ciudad_id = $this->config->item('sifen_default_ciudad');
         }
         // Normalización (tu código existente es correcto)
+        $es_contribuyente = ((strpos($customer->gst_number, '-') !== false));
         $cliente_normalizado = [
-            'id_sistema'        => $customer->id, 'es_contribuyente'  => (bool)$customer->es_contribuyente,
-            'ruc'               => $customer->gst_number, 'nombre'            => $customer->name,
+            'id_sistema'        => $customer->id, 'es_contribuyente'  => $es_contribuyente,
+            'ruc'               => $customer->gst_number, 
+            'documentoNumero'   => $customer->gst_number, 
+            'nombre'            => $customer->name,
             'nombre_fantasia'   => $customer->nombre_fantasia, 'email'             => $customer->email,
             'direccion'         => $customer->address, 'es_proveedor_estado' => (bool)$customer->es_proveedor_estado,
             'tipo_contribuyente'=> (int)$customer->tipo_contribuyente, 'tipo_documento'    => (int)$customer->tipo_documento,

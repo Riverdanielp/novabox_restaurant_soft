@@ -124,6 +124,31 @@
             <input type="hidden" name="factura_id" value="<?php echo $factura->id; ?>">
         <?php endif; ?>
         
+        <?php
+        $tipo_param = isset($_GET['tipo']) ? $_GET['tipo'] : null;
+        $cdc_param = isset($_GET['cdc']) ? $_GET['cdc'] : null;
+        $fecha_param = isset($_GET['fecha']) ? $_GET['fecha'] : null;
+
+        // Determinar tipo_documento según el parámetro
+        if ($tipo_param === 'nota_credito') {
+            $tipo_documento_selected = 5;
+        } elseif ($tipo_param === 'nota_debito') {
+            $tipo_documento_selected = 6;
+        } else {
+            $tipo_documento_selected = $is_edit ? $factura->tipo_documento : 1;
+        }
+
+        // Para poner en JS más adelante
+        ?>
+        <script>
+        window.FACTURACION_GET_PARAMS = {
+            tipo: "<?= $tipo_param ?>",
+            cdc: "<?= $cdc_param ?>",
+            fecha: "<?= $fecha_param ?>",
+            tipo_documento_selected: <?= json_encode($tipo_documento_selected) ?>
+        };
+        </script>
+
         <!-- SECCIÓN 1: DATOS DEL DOCUMENTO -->
         <div class="seccion-factura">
             <h4><i data-feather="file-text"></i> Datos del Documento</h4>
@@ -132,7 +157,12 @@
                 <div class="col-md-3">
                     <label>Tipo Documento (*)</label>
                     <select name="tipoDocumento" id="tipoDocumento" class="form-control" required>
-                        <?php foreach($tipos_documento as $k => $v) echo "<option value='{$k}' ".($is_edit && $factura->tipo_documento == $k ? 'selected' : '').">{$v}</option>"; ?>
+                    <?php
+                    foreach($tipos_documento as $k => $v) {
+                        $selected = ($tipo_documento_selected == $k) ? 'selected' : '';
+                        echo "<option value='{$k}' {$selected}>{$v}</option>";
+                    }
+                    ?>
                     </select>
                 </div>
                 
@@ -334,7 +364,7 @@
         <div class="seccion-factura" id="seccion-cliente">
             <h4><i data-feather="user"></i> Datos del Cliente</h4>
             <div class="row g-3">
-                <div class="col-md-3 position-relative"><label>Buscar (RUC/Nombre)</label><input type="text" id="cliente_search_input" class="form-control" placeholder="Escriba para buscar..."><div id="cliente_results" class="autocomplete-results"></div></div>
+                <div class="col-md-3 position-relative"><label>Buscar en BD (RUC/Nombre)</label><input type="text" id="cliente_search_input" class="form-control" placeholder="Escriba para buscar..."><div id="cliente_results" class="autocomplete-results"></div></div>
                 <div class="col-md-3"><label>RUC / C.I. (*)</label><div class="input-group"><input type="text" name="cliente[ruc]" id="cliente_ruc" class="form-control" value="<?php echo $is_edit ? $factura->cliente->ruc : '' ?>" ><button class="btn btn-outline-secondary" type="button" id="ruc_search_btn">API</button></div><small id="ruc_message" class="form-text"></small></div>
                 <div class="col-md-3"><label>Razón Social (*)</label><input type="text" name="cliente[razonSocial]" id="cliente_razonSocial" class="form-control" value="<?php echo $is_edit ? $factura->cliente->razon_social : '' ?>" required></div>
                 <div class="col-md-3"><label>Nombre Fantasía</label><input type="text" name="cliente[nombreFantasia]" id="cliente_nombreFantasia" class="form-control" value="<?php echo $is_edit ? $factura->cliente->nombre_fantasia : '' ?>"></div>
@@ -365,35 +395,83 @@
 
         <!-- SECCIÓN 4: ITEMS -->
         <div class="seccion-factura" id="seccion-items">
+            <?php if ($is_edit && isset($_GET['tipo']) && $_GET['tipo'] == 'nota_debito' && !empty($factura->items)): ?>
+                <section class="alert-wrapper">
+                    <div class="alert alert-success alert-dismissible fade show">
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <div class="alert-body">
+                            <p><i class="m-right fa fa-check"></i>Factura procesada y enviada correctamente. CDC: <?= htmlspecialchars($_GET['cdc'] ?? '') ?></p>
+                        </div>
+                    </div>
+                </section>
+                <div class="card mt-3">
+                    <div class="card-header bg-light"><strong>Items ya procesados</strong></div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr><th>Descripción</th><th>Código</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th></tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach($factura->items as $item): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($item->descripcion) ?></td>
+                                    <td><?= htmlspecialchars($item->codigo) ?></td>
+                                    <td><?= htmlspecialchars($item->cantidad) ?></td>
+                                    <td><?= htmlspecialchars($item->precio_unitario) ?></td>
+                                    <td><?= number_format($item->cantidad * $item->precio_unitario, 0, ',', '.') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+                <?php if ($tipo_param === 'nota_debito'): ?>
+                <div class="alert alert-warning  fade show" role="alert">
+                    <i data-feather="alert-triangle"></i>
+                    <strong>Advertencia: </strong> Aqui agregar los items para la Nota de Débito. Estarás agregando items a una factura ya existente.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php endif; ?>
+                <?php if ($tipo_param === 'nota_credito'): ?>
+                <div class="alert alert-danger  fade show" role="alert">
+                    <i data-feather="alert-triangle"></i>
+                    <strong>Advertencia: </strong> Aqui agregar los items para la Nota de Crédito. Estos items estarán siendo descontados de la factura original.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php endif; ?>
             <h4><i data-feather="shopping-cart"></i> Items de la Factura</h4>
             <div id="items-container">
             <?php if ($is_edit && !empty($factura->items)): ?>
-                <?php foreach($factura->items as $index => $item): ?>
-                <div class="item-row-wrapper mb-3 border p-3 rounded">
-                    <div class="row item-row align-items-center">
-                        <div class="col-md-3 position-relative"><label>Descripción (*)</label><input type="text" name="items[<?php echo $index ?>][descripcion]" class="form-control item-description-input" value="<?php echo $item->descripcion ?>" required><div class="autocomplete-results item-results"></div></div>
-                        <div class="col-md-2"><label>Codigo (*)</label><input type="text" name="items[<?php echo $index ?>][codigo]" placeholder="Al menos 3 digitos" class="form-control item-codigo" value="<?php echo $item->codigo ?>" step="any" required></div>
-                        <div class="col-md-1"><label>Cant. (*)</label><input type="number" name="items[<?php echo $index ?>][cantidad]" class="form-control item-qty" value="<?php echo $item->cantidad ?>" step="any" required></div>
-                        <div class="col-md-2"><label>P. Unit. (*)</label><input type="number" name="items[<?php echo $index ?>][precioUnitario]" class="form-control item-price" value="<?php echo $item->precio_unitario ?>" step="any" required></div>
-                        <div class="col-md-2"><label>Subtotal</label><p class="form-control-static item-subtotal fw-bold">0.00</p></div>
-                        <div class="col-auto ms-auto"><label>&nbsp;</label>
-                        <div>
-                            <button type="button" class="btn btn-secondary btn-sm btn-toggle-advanced" title="Más Opciones"><i data-feather="more-horizontal"></i></button>
-                            <button type="button" class="btn btn-danger btn-sm btn-remove-item" title="Eliminar Item"><i data-feather="trash"></i></button>
+                <?php if ($tipo_param !== 'nota_debito'): ?>
+                    <?php foreach($factura->items as $index => $item): ?>
+                    <div class="item-row-wrapper mb-3 border p-3 rounded">
+                        <div class="row item-row align-items-center">
+                            <div class="col-md-3 position-relative"><label>Descripción (*)</label><input type="text" name="items[<?php echo $index ?>][descripcion]" class="form-control item-description-input" value="<?php echo $item->descripcion ?>" required><div class="autocomplete-results item-results"></div></div>
+                            <div class="col-md-2"><label>Codigo (*)</label><input type="text" name="items[<?php echo $index ?>][codigo]" placeholder="Al menos 3 digitos" class="form-control item-codigo" value="<?php echo $item->codigo ?>" step="any" required></div>
+                            <div class="col-md-1"><label>Cant. (*)</label><input type="number" name="items[<?php echo $index ?>][cantidad]" class="form-control item-qty" value="<?php echo $item->cantidad ?>" step="any" required></div>
+                            <div class="col-md-2"><label>P. Unit. (*)</label><input type="number" name="items[<?php echo $index ?>][precioUnitario]" class="form-control item-price" value="<?php echo $item->precio_unitario ?>" step="any" required></div>
+                            <div class="col-md-2"><label>Subtotal</label><p class="form-control-static item-subtotal fw-bold">0.00</p></div>
+                            <div class="col-auto ms-auto"><label>&nbsp;</label>
+                            <div>
+                                <button type="button" class="btn btn-secondary btn-sm btn-toggle-advanced" title="Más Opciones"><i data-feather="more-horizontal"></i></button>
+                                <button type="button" class="btn btn-danger btn-sm btn-remove-item" title="Eliminar Item"><i data-feather="trash"></i></button>
+                            </div>
+                            </div>
                         </div>
+                        <div class="item-detalles-avanzados row g-3">
+                            <div class="col-md-2"><label>Tipo IVA (*)</label><select name="items[<?php echo $index ?>][ivaTipo]" class="form-control item-iva-tipo" required><?php foreach($tipos_iva_item as $k => $v) echo "<option value='{$k}' ".($item->iva_tipo == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
+                            <div class="col-md-2"><label>% IVA (*)</label><select name="items[<?php echo $index ?>][iva]" class="form-control item-iva" required><option value="10" <?php echo ($item->iva == 10 ? 'selected' : '') ?>>10%</option><option value="5" <?php echo ($item->iva == 5 ? 'selected' : '') ?>>5%</option><option value="0" <?php echo ($item->iva == 0 ? 'selected' : '') ?>>Exenta (0%)</option></select></div>
+                            <div class="col-md-2"><label>Base Imponible % (*)</label><input type="number" name="items[<?php echo $index ?>][ivaBase]" class="form-control item-iva-base" value="<?php echo $item->iva_base ?>" min="1" max="100" required></div>
+                            <div class="col-md-2"><label>NCM</label><input type="text" name="items[<?php echo $index ?>][ncm]" class="form-control"></div>
+                            <div class="col-md-2"><label>Lote</label><input type="text" name="items[<?php echo $index ?>][lote]" class="form-control"></div>
+                            <div class="col-md-2"><label>Vencimiento</label><input type="date" name="items[<?php echo $index ?>][vencimiento]" class="form-control"></div>
+                            <div class="col-md-3"><label>Observación Item</label><input type="text" name="items[<?php echo $index ?>][observacion]" class="form-control"></div>
                         </div>
                     </div>
-                    <div class="item-detalles-avanzados row g-3">
-                        <div class="col-md-2"><label>Tipo IVA (*)</label><select name="items[<?php echo $index ?>][ivaTipo]" class="form-control item-iva-tipo" required><?php foreach($tipos_iva_item as $k => $v) echo "<option value='{$k}' ".($item->iva_tipo == $k ? 'selected' : '').">{$v}</option>"; ?></select></div>
-                        <div class="col-md-2"><label>% IVA (*)</label><select name="items[<?php echo $index ?>][iva]" class="form-control item-iva" required><option value="10" <?php echo ($item->iva == 10 ? 'selected' : '') ?>>10%</option><option value="5" <?php echo ($item->iva == 5 ? 'selected' : '') ?>>5%</option><option value="0" <?php echo ($item->iva == 0 ? 'selected' : '') ?>>Exenta (0%)</option></select></div>
-                        <div class="col-md-2"><label>Base Imponible % (*)</label><input type="number" name="items[<?php echo $index ?>][ivaBase]" class="form-control item-iva-base" value="<?php echo $item->iva_base ?>" min="1" max="100" required></div>
-                        <div class="col-md-2"><label>NCM</label><input type="text" name="items[<?php echo $index ?>][ncm]" class="form-control"></div>
-                        <div class="col-md-2"><label>Lote</label><input type="text" name="items[<?php echo $index ?>][lote]" class="form-control"></div>
-                        <div class="col-md-2"><label>Vencimiento</label><input type="date" name="items[<?php echo $index ?>][vencimiento]" class="form-control"></div>
-                        <div class="col-md-3"><label>Observación Item</label><input type="text" name="items[<?php echo $index ?>][observacion]" class="form-control"></div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             <?php endif; ?>
             </div>
             <button type="button" class="btn btn-default mt-2" id="add-item-btn"><i data-feather="plus"></i> Añadir Item</button>
@@ -588,6 +666,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const isEdit = <?php echo $is_edit ? 'true' : 'false'; ?>;
     const facturaData = <?php echo $is_edit ? json_encode($factura) : 'null'; ?>;
 
+    // --- INICIALIZACIÓN SEGÚN PARÁMETROS GET ---
+    const params = window.FACTURACION_GET_PARAMS || {};
+
+    // Si viene por GET para NC/ND, seteamos el tipo de documento y ejecutamos la lógica
+    if (params.tipo_documento_selected) {
+        const tipoDocSelect = document.getElementById('tipoDocumento');
+        tipoDocSelect.value = params.tipo_documento_selected;
+        actualizarInterfazSegunTipoDocumento();
+
+        // Si cdc y fecha vienen por GET, rellenar los campos de Documento de Referencia
+        if (params.cdc) {
+            document.getElementById('documento_referencia_cdc').value = params.cdc;
+        }
+        if (params.fecha) {
+            document.getElementById('documento_referencia_fecha').value = params.fecha.split(' ')[0]; // solo fecha si lo quieres así
+        }
+    }
+
+    // Si estamos en nota_credito o nota_debito y hay CDC, ajusta fecha emisión a la hora actual por defecto
+    if ((params.tipo === 'nota_credito' || params.tipo === 'nota_debito') && params.cdc) {
+        const now = new Date();
+        const localISOTime = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0') + 'T' +
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0') + ':' +
+            String(now.getSeconds()).padStart(2, '0');
+
+        document.querySelector('input[name="fecha"]').value = localISOTime;
+    }
+
     // --- LÓGICA DE TIPO DE DOCUMENTO Y SECCIONES VISIBLES ---
     function actualizarInterfazSegunTipoDocumento() {
         const tipoDocumento = parseInt(document.getElementById('tipoDocumento').value);
@@ -625,14 +734,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('alerta-nota-credito').style.display = 'block';
                 document.querySelector('.seccion-documento-referencia').style.display = 'block';
                 if (document.getElementById('btn-generar-texto')) document.getElementById('btn-generar-texto').textContent = 'Generar Nota de Crédito';
-                document.getElementById('alerta-desarrollo').style.display = 'block';
+                document.getElementById('alerta-desarrollo').style.display = 'none';
                 break;
                 
             case 6: // Nota de Débito
                 document.getElementById('alerta-nota-debito').style.display = 'block';
                 document.querySelector('.seccion-documento-referencia').style.display = 'block';
                 if (document.getElementById('btn-generar-texto')) document.getElementById('btn-generar-texto').textContent = 'Generar Nota de Débito';
-                document.getElementById('alerta-desarrollo').style.display = 'block';
+                document.getElementById('alerta-desarrollo').style.display = 'none';
                 break;
                 
             case 7: // Nota de Remisión
@@ -809,7 +918,7 @@ document.addEventListener('DOMContentLoaded', function() {
     );
 
     // --- SECCIÓN: ITEMS ---
-    let itemIndex = isEdit ? facturaData.items.length : 0;
+    // let itemIndex = isEdit ? facturaData.items.length : 0;
     document.getElementById('add-item-btn').addEventListener('click', addNewItem);
     function addNewItem() {
         let template = document.getElementById('item-row-template').innerHTML.replace(/{index}/g, itemIndex++);
@@ -817,6 +926,17 @@ document.addEventListener('DOMContentLoaded', function() {
         feather.replace();
     }
     if (!isEdit) {
+        addNewItem();
+    }
+
+    // --- SECCIÓN: ITEMS ---
+    let itemIndex = (isEdit && facturaData && facturaData.items && !(window.FACTURACION_GET_PARAMS && window.FACTURACION_GET_PARAMS.tipo === 'nota_debito')) 
+        ? facturaData.items.length 
+        : 0;
+
+    // Si es edición Y NO nota_debito, no agregamos nada porque ya están los inputs en HTML
+    // Si es edición Y nota_debito, o si es nuevo, agregamos un input vacío con el botón
+    if (!isEdit || (window.FACTURACION_GET_PARAMS && window.FACTURACION_GET_PARAMS.tipo === 'nota_debito')) {
         addNewItem();
     }
 

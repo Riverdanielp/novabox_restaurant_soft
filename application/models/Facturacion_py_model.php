@@ -6,7 +6,7 @@ class Facturacion_py_model extends CI_Model {
 
     private function _get_facturas_query($filters = []) {
         $this->db->select("
-            fe.id, fe.fecha, fe.estado, fe.cdc, fe.id_sale,
+            fe.tipo_documento, fe.id, fe.fecha, fe.estado, fe.cdc, fe.id_sale,
             CONCAT_WS('-', 
                 LPAD(suc.codigo_establecimiento, 3, '0'), 
                 LPAD(pe.codigo_punto, 3, '0'), 
@@ -39,14 +39,25 @@ class Facturacion_py_model extends CI_Model {
         if (!empty($filters['usuario_id'])) {
             $this->db->where('fe.usuario_id', $filters['usuario_id']);
         }
-        if (!empty($filters['estado_id'])) {
+        if (isset($filters['estado_id']) && $filters['estado_id'] !== '') {
             $this->db->where('fe.estado', $filters['estado_id']);
+        }
+        if (!empty($filters['tipo_documento'])) {
+            $this->db->where('fe.tipo_documento', $filters['tipo_documento']);
+        }
+        $allowed_sort = ['fecha','cliente_nombre','usuario_nombre','numero_formateado','estado'];
+        if (isset($filters['sort']) && in_array($filters['sort'], $allowed_sort)) {
+            $sort_field = $filters['sort'];
+            $order = (isset($filters['order']) && strtolower($filters['order']) == 'asc') ? 'ASC' : 'DESC';
+            $this->db->order_by($sort_field, $order);
+        } else {
+            $this->db->order_by('fe.fecha', 'DESC');
         }
     }
 
     public function get_facturas_list($limit, $offset, $filters = []) {
         $this->_get_facturas_query($filters);
-        $this->db->order_by('fe.fecha', 'DESC');
+        // $this->db->order_by('fe.fecha', 'DESC');
         $this->db->limit($limit, $offset);
         return $this->db->get()->result();
     }

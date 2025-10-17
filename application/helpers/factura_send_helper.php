@@ -466,6 +466,10 @@ if (!function_exists('fs_create_and_send_invoice')) {
                 throw new Exception("Error al guardar o actualizar el usuario: No se obtuvo un ID válido");
             }
 
+            $json_original = $data;
+            if (!(isset($data['ruc']))){
+                $json_original['ruc'] = $data['cliente']['documentoNumero'] ?? '0';
+            }
             if ($is_resend) {
                 // REENVÍO: Usar el número de factura existente.
                 $existing_invoice = $ci->db->get_where('py_facturas_electronicas', ['id' => $factura_py_id])->row();
@@ -499,7 +503,17 @@ if (!function_exists('fs_create_and_send_invoice')) {
                 if ($es_numero_personalizado) {
                     $numero_factura = $data['numero_factura_personalizado'];
                 } else {
-                    $numero_factura = $punto_exp->numerador + 1;
+                    if ($data['tipo_documento'] == 4) { // Nota de Débito
+                        $numero_factura = $punto_exp->numerador_nota_debito + 1;
+                    } elseif ($data['tipo_documento'] == 5) { // Nota de Crédito
+                        $numero_factura = $punto_exp->numerador_nota_credito + 1;
+                    } elseif ($data['tipo_documento'] == 6) { // Nota de Remisión
+                        $numero_factura = $punto_exp->numerador_nota_remision + 1;
+                    } elseif ($data['tipo_documento'] == 7) { // Recibo
+                        $numero_factura = $punto_exp->numerador_recibo + 1;
+                    } else { // Factura Electrónica u otros tipos
+                        $numero_factura = $punto_exp->numerador + 1;
+                    }
                 }
                 // <<<<<<< FIN: Lógica para determinar el número de factura >>>>>>>
 
@@ -541,7 +555,7 @@ if (!function_exists('fs_create_and_send_invoice')) {
             // Construir y enviar a la API
             $lote_para_api = fs_build_api_payload($data, $numero_factura, $cliente_py_id, $items_api);
             $response = $ci->facturasend->crear_lote_documentos($lote_para_api);
-            
+
             if (isset($response['status']) && $response['status'] == 200 && ($response['body']['success'] ?? false)) {
                 $cdc = $response['body']['result']['deList'][0]['cdc'];
                 $loteId = $response['body']['result']['loteId'];
@@ -557,7 +571,8 @@ if (!function_exists('fs_create_and_send_invoice')) {
                     'qr' => $qr,
                     'fecha_emision' => $fechaEmision,
                     'iva5' => $dIVA5,
-                    'iva10' => $dIVA10
+                    'iva10' => $dIVA10,
+                    'json_enviado' => json_encode($lote_para_api)
                 ];
                 
                 $ci->db->where('id', $factura_py_id)->update('py_facturas_electronicas', $update_data);
@@ -565,9 +580,17 @@ if (!function_exists('fs_create_and_send_invoice')) {
                 // <<<<<<< INICIO: Lógica CRÍTICA para incrementar el numerador >>>>>>>
                 // Incrementar el numerador SÓLO si es una NUEVA factura Y NO es un número personalizado.
                 if (!$is_resend && !$es_numero_personalizado) {
-                    $ci->db->set('numerador', 'numerador + 1', FALSE)
-                           ->where('id', $punto_exp->id)
-                           ->update('py_sifen_puntos_expedicion');
+                    if ($data['tipo_documento'] == 4) { // Nota de Débito
+                        $ci->db->set('numerador_nota_debito', 'numerador_nota_debito + 1', FALSE)->where('id', $punto_exp->id)->update('py_sifen_puntos_expedicion');
+                    } elseif ($data['tipo_documento'] == 5) { // Nota de Crédito
+                        $ci->db->set('numerador_nota_credito', 'numerador_nota_credito + 1', FALSE)->where('id', $punto_exp->id)->update('py_sifen_puntos_expedicion');
+                    } elseif ($data['tipo_documento'] == 6) { // Nota de Remisión
+                        $ci->db->set('numerador_nota_remision', 'numerador_nota_remision + 1', FALSE)->where('id', $punto_exp->id)->update('py_sifen_puntos_expedicion');
+                    } elseif ($data['tipo_documento'] == 7) { // Recibo
+                        $ci->db->set('numerador_recibo', 'numerador_recibo + 1', FALSE)->where('id', $punto_exp->id)->update('py_sifen_puntos_expedicion');
+                    } else { // Factura Electrónica u otros tipos
+                        $ci->db->set('numerador', 'numerador + 1', FALSE)->where('id', $punto_exp->id)->update('py_sifen_puntos_expedicion');
+                    }
                 }
                 // <<<<<<< FIN: Lógica CRÍTICA para incrementar el numerador >>>>>>>
                 
@@ -589,7 +612,7 @@ if (!function_exists('fs_create_and_send_invoice')) {
 
             } else {
                 // ERROR: Actualizar estado a "Rechazado" y NO consumir el número.
-                $ci->db->where('id', $factura_py_id)->update('py_facturas_electronicas', ['estado' => 4]);
+                $ci->db->where('id', $factura_py_id)->update('py_facturas_electronicas', ['estado' => 4,'json_enviado' => json_encode($lote_para_api)]);
                 fs_log_auditoria($factura_py_id, $usuario_py_id, $is_resend ? 'API_REENVIO_ERROR' : 'API_ERROR', $response);
                 
                 // Confirmamos la transacción (guardando el estado de error), pero el numerador no se tocó.
@@ -605,6 +628,12 @@ if (!function_exists('fs_create_and_send_invoice')) {
 
         } catch (Exception $e) {
             $ci->db->trans_rollback();
+            
+            // Registrar en auditoría el error capturado
+            fs_log_auditoria($factura_py_id, $usuario_py_id ?? null, 'EXCEPCION', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
             return [
                 'status'        => 'error', 
                 'factura_py_id' => $factura_py_id,
@@ -772,12 +801,13 @@ if (!function_exists('fs_build_api_payload')) {
         // echo '</pre>';
 
         // --- Objeto Cliente para la API ---
+        $es_contribuyente = filter_var($cliente_data['es_contribuyente'], FILTER_VALIDATE_BOOLEAN);
+        $tipoOperacion = fs_calculate_tipo_operacion($cliente_data);
         $cliente_api = [
             "contribuyente"     => $cliente_data['es_contribuyente'],
-            "ruc"               => $cliente_data['ruc'],
             "razonSocial"       => $cliente_data['nombre'],
-            "nombreFantasia"    => $cliente_data['nombre_fantasia'],
-            "tipoOperacion"     => fs_calculate_tipo_operacion($cliente_data),
+            // "nombreFantasia"    => $cliente_data['nombre_fantasia'],
+            "tipoOperacion"     => $tipoOperacion,
             "tipoContribuyente" => $cliente_data['tipo_contribuyente'], // CORREGIDO: Campo añadido
             "numeroCasa"        => (string)intval($cliente_data['numero_casa']),
             "direccion"         => $cliente_data['direccion'],
@@ -786,11 +816,15 @@ if (!function_exists('fs_build_api_payload')) {
             "ciudad"            => $cliente_data['ciudad_id'],
             "pais"              => $cliente_data['pais_codigo'],
             "documentoTipo"     => $cliente_data['tipo_documento'],
-            "documentoNumero"   => $cliente_data['ruc'], // Asumimos que el RUC es el nro. doc. para contribuyentes
+            "documentoNumero"   => $cliente_data['documentoNumero'], // Asumimos que el RUC es el nro. doc. para contribuyentes
             "email"             => $cliente_data['email'],
             "codigo"            => str_pad((string)$cliente_py_id, 3, '0', STR_PAD_LEFT)
         ];
 
+        if ($es_contribuyente == true){
+            $cliente_api['ruc']               = $cliente_data['ruc'];
+            $cliente_api['nombre_fantasia']   = $cliente_data['nombreFantasia'] ?? $cliente_data['razonSocial'];
+        } 
         // echo '<pre>';
         // echo '<h1>Cliente API:</h1>';
         // var_dump($cliente_api); 
@@ -831,6 +865,15 @@ if (!function_exists('fs_build_api_payload')) {
             "condicion"       => $data['condicion_venta'],
             "items"           => $items_api
         ];
+        if ($data['tipo_documento'] == 5 || $data['tipo_documento'] == 6){
+            $payload['documentoAsociado'] = [
+                'formato' => 1,
+                'cdc'    => $data['documentoAsociado']['cdc']
+            ];
+            $payload['notaCreditoDebito'] = [
+                'motivo'    => $data['documentoAsociado']['motivo']
+            ];
+        }
 
         // Retornar el payload encapsulado en un array, como lo espera la API de lotes
         return [$payload];

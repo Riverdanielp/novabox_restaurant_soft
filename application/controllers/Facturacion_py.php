@@ -34,8 +34,13 @@ class Facturacion_py extends Cl_Controller {
             'punto_id' => $this->input->get('punto_id'),
             'usuario_id' => $this->input->get('usuario_id'),
             'estado_id' => $this->input->get('estado_id'),
+            'tipo_documento' => $this->input->get('tipo_documento'), 
         ];
-
+        $sort = $this->input->get('sort') ?: 'fecha';
+        $order = $this->input->get('order') ?: 'desc';
+        $filters['sort'] = $sort;
+        $filters['order'] = $order;
+        
         $config = [];
         $config['base_url'] = base_url('Facturacion_py/listado');
         $config['total_rows'] = $this->Facturacion_py_model->count_facturas($filters);
@@ -213,12 +218,12 @@ class Facturacion_py extends Cl_Controller {
         $cliente_normalizado = [
             'id_sistema'        => $post_data['cliente']['codigo'] ?? null,
             'es_contribuyente'  => $es_contribuyente,
-            'ruc'               => $post_data['cliente']['ruc'],
+            // 'es_proveedor_estado' => ($post_data['cliente']['tipoOperacion'] == 3), // B2G
+            
+            'documentoNumero' => $post_data['cliente']['ruc'] ?? '0',
             'nombre'            => $post_data['cliente']['razonSocial'],
-            'nombre_fantasia'   => $post_data['cliente']['nombreFantasia'] ?? $post_data['cliente']['razonSocial'],
             'email'             => $post_data['cliente']['email'] ?? '',
             'direccion'         => $post_data['cliente']['direccion'] ?? '',
-            'es_proveedor_estado' => ($post_data['cliente']['tipoOperacion'] == 3), // B2G
             'tipo_contribuyente'=> (int)$post_data['cliente']['tipoContribuyente'],
             'tipo_documento'    => (int)$post_data['cliente']['documentoTipo'],
             'departamento_id'   => (int)$post_data['cliente']['departamento'],
@@ -226,8 +231,16 @@ class Facturacion_py extends Cl_Controller {
             'ciudad_id'         => (int)$post_data['cliente']['ciudad'],
             'pais_codigo'       => 'PRY', // Default para Paraguay
             'numero_casa'       => (string)($post_data['cliente']['numeroCasa'] ?? '0'),
+
+            'ruc'               => $post_data['cliente']['ruc'],
+            'nombre_fantasia'   => $post_data['cliente']['nombreFantasia'] ?? $post_data['cliente']['razonSocial'],
+            'es_proveedor_estado' => ($post_data['cliente']['tipoOperacion'] == 3), // B2G
         ];
 
+        // echo '<pre>';
+        // var_dump($cliente_normalizado); 
+        // echo '<pre>';
+        // return;
         // 4. Normalizar datos para el usuario/vendedor
         $usuario_normalizado = [
             'id_sistema' => $this->session->userdata('user_id'), // ID del usuario logueado
@@ -440,7 +453,10 @@ class Facturacion_py extends Cl_Controller {
         } elseif ($action === 'duplicate' && $id) {
             // No se necesita nada especial, el helper lo tratará como nuevo
         }
-
+        // echo '<pre>';
+        // var_dump($invoice_data); 
+        // echo '<pre>';
+        // return;
         // 8. Llamar al helper para procesar la factura
         $resultado_helper = fs_create_and_send_invoice($invoice_data);
 

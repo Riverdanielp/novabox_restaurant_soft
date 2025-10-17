@@ -71,9 +71,8 @@
                                 <input type="hidden" name="puntos[<?php echo $index; ?>][id]" value="<?php echo $punto->id; ?>">
                                 <div class="row align-items-end">
                                     <div class="col-md-2"><div class="form-group"><label>Código Punto <span class="required_star">*</span></label><input type="text" name="puntos[<?php echo $index; ?>][codigo_punto]" class="form-control" value="<?php echo $punto->codigo_punto; ?>" required></div></div>
-                                    <div class="col-md-3"><div class="form-group"><label>Nombre Punto</label><input type="text" name="puntos[<?php echo $index; ?>][nombre]" class="form-control" value="<?php echo $punto->nombre; ?>"></div></div>
-                                    <div class="col-md-2"><div class="form-group"><label>Correlativo Actual <span class="required_star">*</span></label><input type="number" name="puntos[<?php echo $index; ?>][numerador]" class="form-control" value="<?php echo $punto->numerador; ?>" required></div></div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-4"><div class="form-group"><label>Nombre Punto</label><input type="text" name="puntos[<?php echo $index; ?>][nombre]" class="form-control" value="<?php echo $punto->nombre; ?>"></div></div>
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label>Timbrado a Usar</label>
                                             <select name="puntos[<?php echo $index; ?>][timbrado_id]" class="form-control select2">
@@ -95,6 +94,12 @@
                                         </div>
                                     </div>
                                     <div class="col-md-1"><div class="form-group"><label>Activo</label><input type="checkbox" name="puntos[<?php echo $index; ?>][activo]" value="1" <?php echo $punto->activo ? 'checked' : ''; ?>></div></div>
+                                    <div class="col-md-2"><div class="form-group"><label>Correlativo Actual <span class="required_star">*</span></label><input type="number" name="puntos[<?php echo $index; ?>][numerador]" class="form-control" value="<?php echo $punto->numerador; ?>" required></div></div>
+                                    <div class="col-md-2"><div class="form-group"><label>Correlativo Auto-Factura <span class="required_star">*</span></label><input type="number" name="puntos[<?php echo $index; ?>][numerador_autofactura]" class="form-control" value="<?php echo $punto->numerador_autofactura; ?>" required></div></div>
+                                    <div class="col-md-2"><div class="form-group"><label>Correlativo Nota de Crédito <span class="required_star">*</span></label><input type="number" name="puntos[<?php echo $index; ?>][numerador_nota_credito]" class="form-control" value="<?php echo $punto->numerador_nota_credito; ?>" required></div></div>
+                                    <div class="col-md-2"><div class="form-group"><label>Correlativo Nota de Débito <span class="required_star">*</span></label><input type="number" name="puntos[<?php echo $index; ?>][numerador_nota_debito]" class="form-control" value="<?php echo $punto->numerador_nota_debito; ?>" required></div></div>
+                                    <div class="col-md-2"><div class="form-group"><label>Correlativo Nota de Remisión <span class="required_star">*</span></label><input type="number" name="puntos[<?php echo $index; ?>][numerador_nota_remision]" class="form-control" value="<?php echo $punto->numerador_nota_remision; ?>" required></div></div>
+                                    <div class="col-md-2"><div class="form-group"><label>Correlativo Recibo <span class="required_star">*</span></label><input type="number" name="puntos[<?php echo $index; ?>][numerador_recibo]" class="form-control" value="<?php echo $punto->numerador_recibo; ?>" required></div></div>
                                 </div>
                             </div>
                         <?php endforeach; ?>

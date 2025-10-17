@@ -3778,7 +3778,7 @@ foreach ($notifications as $single_notification){
                 <button class="print_action_button"  id="pre_impresa_orden_button"  data-sale_no="">  Pre-Impreso </button>
 
                 <?php if (tipoFacturacion() == 'Py_FE') : ?>
-                    <button class="print_action_button"  id="pre_factura_electronica_orden_button"  data-sale_no="">  Factura Electrónica </button>
+                    <!-- <button class="print_action_button"  id="pre_factura_electronica_orden_button"  data-sale_no="">  Factura Electrónica </button> -->
                 <?php endif; ?>
 
                 <button class="txt_38" id="order_details_close_button"><?php echo lang('close'); ?></button>

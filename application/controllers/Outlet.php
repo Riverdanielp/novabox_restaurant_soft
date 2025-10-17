@@ -396,6 +396,11 @@ class Outlet extends Cl_Controller {
                         'codigo_punto' => $punto['codigo_punto'],
                         'nombre' => $punto['nombre'],
                         'numerador' => $punto['numerador'],
+                        'numerador_autofactura' => $punto['numerador_autofactura'],
+                        'numerador_nota_credito' => $punto['numerador_nota_credito'],
+                        'numerador_nota_debito' => $punto['numerador_nota_debito'],
+                        'numerador_nota_remision' => $punto['numerador_nota_remision'],
+                        'numerador_recibo' => $punto['numerador_recibo'],
                         'activo' => isset($punto['activo']) ? 1 : 0
                     ];
 

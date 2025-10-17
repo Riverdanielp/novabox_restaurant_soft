@@ -150,6 +150,7 @@
                     </thead>
                     <tbody>
                     <?php
+                    $devolucionesGrandTotal = 0;
                     $pGrandTotal = 0;
                     $subGrandTotal = 0;
                     $itemsGrandTotal = 0;
@@ -169,8 +170,8 @@
                             $service_row_total = 0;
                             $delivery_row_total = 0;
                             $id_sale_kitchen = getIdSaleKitchenBySaleNo($value->sale_no);
-                            $total_devuelto = 0;
                             $total_devuelto = getTotalDevuelto($id_sale_kitchen);
+                            $devolucionesGrandTotal += $total_devuelto;
                             if($value->charge_type=="service"){
                                 $service_row_total = getPercentageValue($value->delivery_charge,$value->sub_total);
                                 $serviceTotal+=$service_row_total;
@@ -230,7 +231,7 @@
                         <td><?= escape_output($itemsGrandTotal) ?></td>
                         <td>
                             <?php echo escape_output(getAmt($subGrandTotal)) ?></td>
-                        <td><?php echo escape_output(getAmt($deliveryTotal)) ?></td>
+                        <td><?php echo escape_output(getAmt($devolucionesGrandTotal)) ?></td>
                         <!-- <td><?php echo escape_output(getAmt($serviceTotal)) ?></td> -->
                         <td>
                             <?php echo escape_output(getAmt($disGrandTotal)) ?></td>
