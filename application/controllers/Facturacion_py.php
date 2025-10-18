@@ -40,7 +40,7 @@ class Facturacion_py extends Cl_Controller {
         $order = $this->input->get('order') ?: 'desc';
         $filters['sort'] = $sort;
         $filters['order'] = $order;
-        
+
         $config = [];
         $config['base_url'] = base_url('Facturacion_py/listado');
         $config['total_rows'] = $this->Facturacion_py_model->count_facturas($filters);
@@ -215,6 +215,11 @@ class Facturacion_py extends Cl_Controller {
         // Determinar si es contribuyente basado en el tipo o si tiene RUC con guión
         $es_contribuyente = ($post_data['cliente']['tipoContribuyente'] == 2 || (strpos($post_data['cliente']['ruc'], '-') !== false));
 
+        if (!((int)$post_data['cliente']['departamento'] > 0 && (int)$post_data['cliente']['distrito'] > 0 && (int)$post_data['cliente']['ciudad'] > 0)) {
+            $post_data['cliente']['departamento'] = $this->config->item('sifen_default_departamento');
+            $post_data['cliente']['distrito'] = $this->config->item('sifen_default_distrito');
+            $post_data['cliente']['ciudad'] = $this->config->item('sifen_default_ciudad');
+        }
         $cliente_normalizado = [
             'id_sistema'        => $post_data['cliente']['codigo'] ?? null,
             'es_contribuyente'  => $es_contribuyente,

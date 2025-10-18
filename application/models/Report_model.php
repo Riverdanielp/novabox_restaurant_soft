@@ -1226,7 +1226,7 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
      * @param string
      * @param int
      */
-    public function foodMenuSales($startMonth = '', $endMonth = '',$outlet_id='',$payment_method_id='',$kitchen_filter='') {
+    public function foodMenuSales($startMonth = '', $endMonth = '',$outlet_id='',$payment_method_id='',$kitchen_filter='',$customer_id='all') {
         if ($startMonth || $endMonth):
             if ($startMonth && strlen($startMonth) == 16) {
                 $startMonth .= ':00';
@@ -1238,8 +1238,10 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
             // Estrategia simplificada: consulta base sin JOINs de cocinas problemáticos
             $this->db->select('
                 sum(tbl_kitchen_sales_details.qty) as totalQty,
+                sum(tbl_kitchen_sales_details.menu_price_without_discount) as totalPrice,
                 tbl_kitchen_sales_details.food_menu_id,
                 tbl_kitchen_sales_details.menu_name,
+                tbl_kitchen_sales_details.menu_unit_price,
                 tbl_food_menus.code,
                 tbl_kitchen_sales.sale_date,
                 tbl_kitchen_sales.date_time,
@@ -1268,6 +1270,10 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
             // Solo filtrar por outlet si se especifica uno (no vacío)
             if ($outlet_id != '') {
                 $this->db->where('tbl_kitchen_sales_details.outlet_id', $outlet_id);
+            }
+            // Filtrar por cliente si se proporciona un ID válido
+            if ($customer_id !== 'all') {
+                $this->db->where('tbl_kitchen_sales.customer_id', $customer_id);
             }
             
             // Filtros de estado - CRÍTICO para evitar duplicaciones

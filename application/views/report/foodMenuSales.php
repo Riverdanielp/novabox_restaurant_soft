@@ -102,6 +102,17 @@
                         </select>
                     </div>
                 </div>
+
+                
+                <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
+                    <div class="form-group">
+                        <!-- <label for="customer_search"><?php echo lang('customer'); ?></label> -->
+                        <select id="customer_search" name="customer" class="form-control select2 ir_w_100">
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="col-sm-12 col-md-4 col-lg-2">
                     <div class="form-group">
                         <button type="submit" name="submit" value="submit"
@@ -122,7 +133,9 @@
                                 <!-- <th><?php echo lang('code'); ?></th> -->
                                 <th><?php echo lang('food_menu'); ?>(<?php echo lang('code'); ?>)</th>
                                 <th><?php echo lang('category'); ?></th>
+                                <th class="sorting"><?php echo lang('price'); ?></th>
                                 <th class="sorting"><?php echo lang('quantity'); ?></th>
+                                <th class="sorting">Valor Total</th>
                                 <th><?php echo lang('code'); ?></th>
                             </tr>
                         </thead>
@@ -137,7 +150,9 @@
                                 <!-- <td><?php echo escape_output($value->code) ?></td> -->
                                 <td><?php echo escape_output($value->menu_name) ?></td>
                                 <td><?php echo escape_output($value->category_name) ?></td>
-                                <td data-order="<?php echo str_pad(intval($value->totalQty), 10, '0', STR_PAD_LEFT); ?>" style="text-align: right;"><?php echo escape_output($value->totalQty) ?></td>
+                                <td><?php echo getAmtPCustom($value->menu_unit_price) ?></td>
+                                <td data-order="<?php echo str_pad(intval($value->totalQty), 10, '0', STR_PAD_LEFT); ?>" style="text-align: right;"><?php echo ($value->totalQty) ?></td>
+                                <td data-order="<?php echo str_pad(intval($value->totalPrice), 10, '0', STR_PAD_LEFT); ?>" style="text-align: right;"><?php echo getAmtPCustom($value->totalPrice) ?></td>
                                 <td><?php echo escape_output($value->code) ?></td>
                             </tr>
                             <?php
@@ -168,6 +183,8 @@
 <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/pdfmake.min.js"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
+
+<script src="<?php echo base_url(); ?>frequent_changing/js/custom_report.js"></script>
 
 <script>
 // Función para cargar cocinas según la sucursal seleccionada
@@ -332,5 +349,63 @@ $(document).ready(function() {
         });
         
     }, 500); // Esperar 500ms
+});
+</script>
+<script>
+var base_url = "<?php echo base_url(); ?>";
+
+$(document).ready(function() {
+    var selectedCustomer = "<?php echo isset($customer) ? $customer : 'all'; ?>";
+    var selectedCustomerText = "<?php echo isset($customer_text) ? addslashes($customer_text) : 'Todos'; ?>";
+
+    // Limpia el select y setea la opción "Todos"
+    $('#customer_search').empty();
+    $('#customer_search').append('<option value="all">Todos</option>');
+
+    // Si hay cliente seleccionado distinto de "all", agrégalo manualmente como opción seleccionada
+    if (selectedCustomer !== "all" && selectedCustomer) {
+        // Evita duplicados: si es el mismo texto que "Todos" no lo agregues
+        if (selectedCustomerText !== "Todos") {
+            $('#customer_search').append('<option value="' + selectedCustomer + '" selected>' + selectedCustomerText + '</option>');
+            $('#customer_search').val(selectedCustomer); // Selecciona ese cliente
+        }
+    } else {
+        $('#customer_search').val('all');
+    }
+
+    // Inicializa select2
+    $('#customer_search').select2({
+        placeholder: "Seleccione o Agregue un Cliente",
+        allowClear: true,
+        minimumInputLength: 1,
+        ajax: {
+            url: base_url + 'Report/search_customers',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                let results = [{ id: 'all', text: 'Todos' }];
+                results = results.concat(data);
+                return { results: results };
+            },
+            cache: true
+        },
+        templateResult: function(data) {
+            if (data.id === 'all') {
+                return $('<span style="font-weight:bold;">' + data.text + '</span>');
+            }
+            return data.text;
+        },
+        templateSelection: function(data) {
+            return data.text || data.id;
+        }
+    });
+
+    // Si no hay cliente seleccionado, selecciona "Todos"
+    if (!selectedCustomer || selectedCustomer === "all") {
+        $('#customer_search').val('all').trigger('change');
+    }
 });
 </script>

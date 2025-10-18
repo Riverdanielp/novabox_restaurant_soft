@@ -919,20 +919,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- SECCIÓN: ITEMS ---
     // let itemIndex = isEdit ? facturaData.items.length : 0;
+    // --- SECCIÓN: ITEMS ---
+    let itemIndex = (isEdit && facturaData && facturaData.items && !(window.FACTURACION_GET_PARAMS && window.FACTURACION_GET_PARAMS.tipo === 'nota_debito')) 
+        ? facturaData.items.length 
+        : 0;
     document.getElementById('add-item-btn').addEventListener('click', addNewItem);
     function addNewItem() {
         let template = document.getElementById('item-row-template').innerHTML.replace(/{index}/g, itemIndex++);
         document.getElementById('items-container').insertAdjacentHTML('beforeend', template);
         feather.replace();
     }
-    if (!isEdit) {
-        addNewItem();
-    }
+    // if (!isEdit) {
+    //     addNewItem();
+    // }
 
-    // --- SECCIÓN: ITEMS ---
-    let itemIndex = (isEdit && facturaData && facturaData.items && !(window.FACTURACION_GET_PARAMS && window.FACTURACION_GET_PARAMS.tipo === 'nota_debito')) 
-        ? facturaData.items.length 
-        : 0;
 
     // Si es edición Y NO nota_debito, no agregamos nada porque ya están los inputs en HTML
     // Si es edición Y nota_debito, o si es nuevo, agregamos un input vacío con el botón

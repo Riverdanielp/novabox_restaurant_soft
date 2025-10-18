@@ -1900,7 +1900,7 @@ class Common_model extends CI_Model {
      * @param int
      * @return object
      */
-    public function getSaleInfoByUserId($user_id){
+    public function getSaleInfoByUserId($user_id,$limit = 20){
         $company_id = $this->session->userdata('company_id');
         $this->db->select('s.id, s.sale_no, s.total_items, s.total_payable, s.paid_amount, s.date_time, c.name as customer_name, c.phone as customer_phone');
         $this->db->from('tbl_sales s');
@@ -1908,6 +1908,8 @@ class Common_model extends CI_Model {
         $this->db->where('s.user_id', $user_id);
         $this->db->where('s.company_id', $company_id);
 		$this->db->where('s.del_status','Live');
+        $this->db->order_by('s.id', 'DESC');
+        $this->db->limit($limit);
         $result = $this->db->get()->result();
         return $result;
     }

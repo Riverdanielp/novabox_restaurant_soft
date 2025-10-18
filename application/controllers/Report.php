@@ -780,13 +780,30 @@ class Report extends Cl_Controller {
             $end_date =htmlspecialcharscustom($this->input->get($this->security->xss_clean('endDate')));
             $payment_method_id = htmlspecialcharscustom($this->input->get($this->security->xss_clean('payment_method_id')));
             $kitchen_filter = htmlspecialcharscustom($this->input->get($this->security->xss_clean('kitchen_filter')));
-            
+            $customer = htmlspecialcharscustom($this->input->get($this->security->xss_clean('customer')));
+            // Nuevo bloque para obtener el nombre del cliente seleccionado:
+            $customer_text = 'Todos'; // Valor por defecto
+            if ($customer && $customer !== 'all') {
+                // Busca el cliente en la base de datos (puedes usar el modelo o una consulta directa)
+                $this->db->select('name, phone');
+                $this->db->where('id', $customer);
+                $cliente_obj = $this->db->get('tbl_customers')->row();
+                if ($cliente_obj) {
+                    $customer_text = $cliente_obj->name . ' ' . $cliente_obj->phone;
+                }
+            }
+
+            // Enviar ambos al view
+            $data['customer'] = $customer;
+            $data['customer_text'] = $customer_text;
+
             $data['start_date'] = $start_date;
             $data['end_date'] = $end_date;
             $data['outlet_id'] = $outlet_id;
             $data['payment_method_id'] = $payment_method_id;
             $data['kitchen_filter'] = $kitchen_filter;
-            $data['foodMenuSales'] = $this->Report_model->foodMenuSales($start_date, $end_date,$outlet_id,$payment_method_id,$kitchen_filter);
+            $data['customer'] = $customer;
+            $data['foodMenuSales'] = $this->Report_model->foodMenuSales($start_date, $end_date,$outlet_id,$payment_method_id,$kitchen_filter,$customer);
 
         }
         $data['main_content'] = $this->load->view('report/foodMenuSales', $data, TRUE);

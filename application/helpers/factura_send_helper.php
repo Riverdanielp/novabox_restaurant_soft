@@ -823,7 +823,7 @@ if (!function_exists('fs_build_api_payload')) {
 
         if ($es_contribuyente == true){
             $cliente_api['ruc']               = $cliente_data['ruc'];
-            $cliente_api['nombre_fantasia']   = $cliente_data['nombreFantasia'] ?? $cliente_data['razonSocial'];
+            $cliente_api['nombre_fantasia']   = $cliente_data['nombreFantasia'] ?? '';
         } 
         // echo '<pre>';
         // echo '<h1>Cliente API:</h1>';
