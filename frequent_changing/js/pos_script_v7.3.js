@@ -6184,29 +6184,35 @@ function getSafePrice(priceAttr) {
                       let item_total_price_without_discount =
                           parseFloat(item_price).toFixed(ir_precision);
   
-
                         if (typeof tax_information === 'object') {
                         } else if (IsJsonString(tax_information)) {
                             tax_information = JSON.parse(tax_information);
-                        } else if (tax_information === undefined || tax_information === null || tax_information === "" || tax_information === "null") {
-                            tax_information = "";
-                        } else {
+                        } else if (!tax_information) {
                             tax_information = "";
                         }
-                        if (tax_information.length > 0) {
+
+                        if (Array.isArray(tax_information) && tax_information.length > 0) {
                             for (let k in tax_information) {
-                                tax_information[k].tax_field_name = tax_information[k].tax_field_name + ` (${tax_information[k].tax_field_percentage}%)`;
-                                tax_information[k].item_vat_amount_for_unit_item = (
-                                    (parseFloat(item_price) *
-                                        parseFloat(tax_information[k].tax_field_percentage)) /
-                                    parseFloat(100)
+                                const tax = tax_information[k];
+                                const label = `(${tax.tax_field_percentage}%)`;
+
+                                // Evita duplicar el porcentaje en el nombre
+                                if (!tax.tax_field_name.includes(label)) {
+                                    tax.tax_field_name += ` ${label}`;
+                                }
+
+                                tax.item_vat_amount_for_unit_item = (
+                                    (parseFloat(item_price) * parseFloat(tax.tax_field_percentage)) /
+                                    100
                                 ).toFixed(ir_precision);
-                                tax_information[k].item_vat_amount_for_all_quantity = (
-                                    parseFloat(tax_information[k].item_vat_amount_for_unit_item) *
-                                    parseFloat(1)
+
+                                tax.item_vat_amount_for_all_quantity = (
+                                    parseFloat(tax.item_vat_amount_for_unit_item) * 1
                                 ).toFixed(ir_precision);
                             }
                         }
+
+                        console.log(tax_information);
 
                       //get vat amount for specific item/menu
                       let item_vat_amount_for_unit_item = (
@@ -12393,9 +12399,9 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
       let apply_on_delivery_charge = Number($("#apply_on_delivery_charge").val());
 
       if ($("#delivery_charge").val() != "" && countable_d_c == "yes") {
-        console.log('sub_total_show',sub_total_show);
-        console.log('#delivery_charge"',$("#delivery_charge").val());
-        console.log(Number(get_particular_item_discount_amount($("#delivery_charge").val(),sub_total_show)));
+        // console.log('sub_total_show',sub_total_show);
+        // console.log('#delivery_charge"',$("#delivery_charge").val());
+        // console.log(Number(get_particular_item_discount_amount($("#delivery_charge").val(),sub_total_show)));
         let delivery_charge_amount = Number(get_particular_item_discount_amount($("#delivery_charge").val(),sub_total_show));
        
         // if(apply_on_delivery_charge==2){

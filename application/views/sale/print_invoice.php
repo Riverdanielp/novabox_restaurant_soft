@@ -307,6 +307,10 @@ $download_url = "";
                         </tr>
                         <?php
                         endif;
+                        // echo '<pre>';
+                        // var_dump($sale_object->sale_vat_objects); 
+                        // echo '<pre>';
+                        
                         ?>
                         <?php
                         if ($this->session->userdata('collect_tax')=='Yes' && $sale_object->sale_vat_objects!=NULL):

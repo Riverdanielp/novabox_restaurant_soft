@@ -1472,12 +1472,13 @@ class Sale extends Cl_Controller {
         ])->row();
         echo json_encode($customer);
     }
-     /**
+
+    /**
      * add sale by ajax
      * @access public
      * @return int
      * @param no
-     */
+    */
     public function add_kitchen_sale_by_ajax(){
         //check creating invoice
         $status_creating_invocie = true;
