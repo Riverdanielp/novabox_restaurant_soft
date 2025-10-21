@@ -225,7 +225,7 @@ class Facturacion_py extends Cl_Controller {
             'es_contribuyente'  => $es_contribuyente,
             // 'es_proveedor_estado' => ($post_data['cliente']['tipoOperacion'] == 3), // B2G
             
-            'documentoNumero' => $post_data['cliente']['ruc'] ?? '0',
+            'documentoNumero'   => $post_data['cliente']['ruc'] ?? '0',
             'nombre'            => $post_data['cliente']['razonSocial'],
             'email'             => $post_data['cliente']['email'] ?? '',
             'direccion'         => $post_data['cliente']['direccion'] ?? '',

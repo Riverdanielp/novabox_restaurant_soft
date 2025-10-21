@@ -7568,12 +7568,12 @@ function getSafePrice(priceAttr) {
                   let table_name = is_active_action.find(".get_table_details").attr("data-name");
                   let booked_id = Number(is_active_action.find(".get_table_details").attr("data-booked_id"));
                   let order_number = (is_active_action.find(".get_table_details").attr("data-order_number"));
-                  if(order_number){
-                    if (!$("#order_"+get_plan_string(order_number)).length) {
-                        toastr['warning']((this_order_engage), '');
-                        return false;
-                    }
-                  }
+                //   if(order_number){
+                //     if (!$("#order_"+get_plan_string(order_number)).length) {
+                //         toastr['warning']((this_order_engage), '');
+                //         return false;
+                //     }
+                //   }
                   if(booked_id){
                     if(active_count>1){
                          if(this_active==55){ 
@@ -12276,6 +12276,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
           $("#tips_amount").val(),
           sub_total_show
         );
+        // tips_amount = 666;
         $("#show_tips_amount").html(
           Number(tips_amount).toFixed(ir_precision)
         );
@@ -12392,13 +12393,16 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
       let apply_on_delivery_charge = Number($("#apply_on_delivery_charge").val());
 
       if ($("#delivery_charge").val() != "" && countable_d_c == "yes") {
+        console.log('sub_total_show',sub_total_show);
+        console.log('#delivery_charge"',$("#delivery_charge").val());
+        console.log(Number(get_particular_item_discount_amount($("#delivery_charge").val(),sub_total_show)));
         let delivery_charge_amount = Number(get_particular_item_discount_amount($("#delivery_charge").val(),sub_total_show));
        
-        if(apply_on_delivery_charge==2){
-            delivery_charge_amount_tax = Number(get_particular_item_discount_amount($("#delivery_charge").val(),total_tax_custom));
-            delivery_charge_amount+=delivery_charge_amount_tax;
-        }
-
+        // if(apply_on_delivery_charge==2){
+        //     delivery_charge_amount_tax = Number(get_particular_item_discount_amount($("#delivery_charge").val(),total_tax_custom));
+        //     delivery_charge_amount+=delivery_charge_amount_tax;
+        // }
+        
         $("#show_charge_amount").html(
           Number(delivery_charge_amount).toFixed(ir_precision)
         );

@@ -1373,8 +1373,9 @@ class Sale extends Cl_Controller {
     public function search_customers() {
         $term = $this->input->get('q');
         $this->db->like('name', $term);
-        $this->db->or_like('phone', $term);
+        // $this->db->or_like('phone', $term);
         $this->db->limit(10); // Solo 10 por búsqueda
+        $this->db->where('del_status', 'Live');
         $customers = $this->db->get('tbl_customers')->result();
 
         $results = [];
@@ -3185,6 +3186,22 @@ class Sale extends Cl_Controller {
             $sale_no_update_array = array('sale_no' => $sale_no);
             $this->db->where('id', $sales_id);
             $this->db->update('tbl_sales', $sale_no_update_array);
+            
+            $this->db->where('sale_no', $sale_no)
+                ->update('tbl_numeros', [
+                    'sale_id' => NULL,
+                    'sale_no' => NULL,
+                    "user_id" => NULL
+                ]);
+                    
+            $data_sale_kitchen = [
+                'table_id' => '0',
+                'orders_table_text' => '',
+            ];
+            $this->db->where('sale_no', $sale_no);
+            $this->db->update('tbl_kitchen_sales', $data_sale_kitchen);
+
+            
         }
         foreach($order_details->orders_table as $single_order_table){
             $order_table_info = array();
@@ -3434,12 +3451,12 @@ class Sale extends Cl_Controller {
             $this->db->trans_rollback();
             $response_data['message'] = 'Error al sincronizar la venta en la base de datos.';
         } else {
-            $this->db->where('sale_no', $sale_no)
-                ->update('tbl_numeros', [
-                    'sale_id' => NULL,
-                    'sale_no' => NULL,
-                    "user_id" => NULL
-                ]);
+            // $this->db->where('sale_no', $sale_no)
+            //     ->update('tbl_numeros', [
+            //         'sale_id' => NULL,
+            //         'sale_no' => NULL,
+            //         "user_id" => NULL
+            //     ]);
             $this->db->trans_commit();
 
             $response_data['sale_id_offline'] = $sale_id_offline;
@@ -5062,7 +5079,7 @@ class Sale extends Cl_Controller {
         echo 'supplier payment sum: '.$this->getSupplierPaymentSum().'<br/>';
         echo 'customer due receive amount sum: '.$this->getCustomerDueReceiveAmountSum("").'<br/>';
         echo 'expense amount sum: '.$this->getExpenseAmountSum().'<br/>';
-        echo 'sale amount sum: '.$this->getSaleAmountSum().'<br/>';
+        // echo 'sale amount sum: '.$this->getSaleAmountSum().'<br/>';
         echo 'sale in cash sum: '.$this->getSaleInCashSum("").'<br/>';
         echo 'sale in paypal sum: '.$this->getSaleInPaypalSum("").'<br/>';
         // echo 'sale in paypal sum: '.$this->getSaleInPaypalSum().'<br/>';
@@ -8753,7 +8770,7 @@ class Sale extends Cl_Controller {
     {
         if ($tipo_documento == 1) {
             // Factura Electrónica
-            $data = $this->data_demo_facturacion_electronica();
+            $data = $this->data_demo_facturacion_electronica($numero_factura);
         } elseif ($tipo_documento == 4) {
             // Autofactura Electrónica
             $data = $this->data_demo_autofactura_electronica($numero_factura, $cdc_asociado);
@@ -8865,7 +8882,7 @@ class Sale extends Cl_Controller {
     }
 
     public function test_sucursal($sifen_sucursal_id = 1){
-        ; // Asigna un ID de sucursal válido
+        // ; // Asigna un ID de sucursal válido
         $punto_expedicion_valido = fs_get_punto_expedicion_activo($sifen_sucursal_id);
         echo '<pre>';
         var_dump($punto_expedicion_valido); 

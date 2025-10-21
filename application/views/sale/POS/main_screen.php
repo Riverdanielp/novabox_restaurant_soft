@@ -5272,6 +5272,7 @@ foreach ($notifications as $single_notification){
     <script src="<?php echo base_url(); ?>assets/POS/js/media.js?v=7.5"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.js?v=7.5"></script>
     <script type="text/javascript">
+        var base_url = "<?php echo base_url() ?>"; 
     /*This variable could not be escaped because this is building object*/
     window.customers = [<?php echo ($customer_objects);?>]
     /*This variable could not be escaped because this is building object*/
@@ -5624,7 +5625,6 @@ foreach ($notifications as $single_notification){
     <?php if (tipoFacturacion() != "RD_AI"): ?>
         <?php  $this->load->config('config'); ?>
         <script>
-            var base_url = "<?php echo base_url() ?>"; 
             let default_pais = "PRY";    // Paraguay ISO3
             let default_departamento = "<?php echo fs_default_departamento() ?>"; // id departamento
             let default_distrito = "<?php echo fs_default_distrito() ?>";    // id distrito
@@ -5771,15 +5771,15 @@ foreach ($notifications as $single_notification){
         
             let diff = 0;
             let dueText = $("#finalize_total_due").text() || "0";
-            console.log('dueText original:', dueText);
+            // console.log('dueText original:', dueText);
             
             // Intentar convertir usando parseCurrencyToNumber
             diff = parseCurrencyToNumber(dueText);
-            console.log('diff después de parseCurrencyToNumber:', diff);
+            // console.log('diff después de parseCurrencyToNumber:', diff);
             
             // Verificar si la conversión resultó en NaN
             if (isNaN(diff)) {
-                console.log('NaN detected después de parseCurrencyToNumber');
+                // console.log('NaN detected después de parseCurrencyToNumber');
                 diff = 0; // Valor por defecto
             }
             // console.log(diff);

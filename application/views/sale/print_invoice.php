@@ -279,11 +279,20 @@ $download_url = "";
                         if($sale_object->delivery_charge && $sale_object->delivery_charge!="0.00" && $sale_object->delivery_charge_actual_charge!="0" && $sale_object->delivery_charge_actual_charge):
                         ?>
                         <tr>
-                           <th><?php echo lang($sale_object->charge_type); ?></th>
+                            <?php if ($sale_object->charge_type == 'service') : ?>
+                                <th>Propina Legal <?php echo escape_output((getPlanTextOrP($sale_object->delivery_charge))); ?></th>
+                            <?php else : ?>
+                                <?php echo lang($sale_object->charge_type); ?></th>
+                            <?php endif; ?>
                             <th class="text-right">
-                                <?php echo escape_output((getPlanTextOrP($sale_object->delivery_charge))); ?>
+                                <?php echo escape_output(getAmtCustom($sale_object->delivery_charge_actual_charge)); ?>
                             </th>
                         </tr>
+                        <?php
+                        // echo '<pre>';
+                        // var_dump($sale_object); 
+                        // echo '<pre>';
+                        ?>
                         <?php
                         endif;
                         ?>
