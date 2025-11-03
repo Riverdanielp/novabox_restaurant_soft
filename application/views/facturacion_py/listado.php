@@ -65,17 +65,8 @@
             color: #0056b3;
         }
     </style>
-    <section class="content-header" style="height: 80px;">
+    <section class="content-header">
         <h3 class="top-left-header">Listado de Facturas Electrónicas</h3>
-        <a href="<?php echo base_url('Facturacion_py/formulario'); ?>" class="btn btn-info float-end">
-            <i data-feather="plus"></i> Crear Factura Manual
-        </a>
-        <button type="button" class="btn btn-warning float-end me-2" data-bs-toggle="modal" data-bs-target="#cdcModal">
-            <i data-feather="search"></i> Consultar Estado CDC
-        </button>
-        <a href="<?php echo base_url('Facturacion_py/sync_estados_pendientes'); ?>" class="btn btn-primary float-end me-2">
-            <i data-feather="refresh-cw"></i> Sincronizar Estados Pendientes
-        </a>
     </section>
 
     <!-- Filtros -->
@@ -120,8 +111,38 @@
                 <?php $this->session->set_flashdata('warning', null) ?>
             <?php endif; ?>
             
-            <h4><i data-feather="filter"></i> Filtros</h4>
+            
+            <div class="row mb-3">
+                <div class="col-md-auto mb-2">
+                    <h4><i data-feather="filter"></i> Filtros</h4>
+                </div>
+                <div class="col-md-auto mb-2">
+                    <a href="<?php echo base_url('Facturacion_py/formulario'); ?>" class="btn btn-info ">
+                        <i data-feather="plus"></i> Crear Factura Manual
+                    </a>
+                </div>
+                <div class="col-md-auto mb-2">
+                    <a href="<?php echo base_url('Facturacion_py/correlativos'); ?>" class="btn btn-secondary  me-2">
+                        <i data-feather="grid"></i> Control de Correlativos
+                    </a>
+                </div>
+                <div class="col-md-auto mb-2">
+                    <button type="button" class="btn btn-warning  me-2" data-bs-toggle="modal" data-bs-target="#cdcModal">
+                        <i data-feather="search"></i> Consultar Estado CDC
+                    </button>
+                </div>
+                <div class="col-md-auto mb-2">
+                    <a href="<?php echo base_url('Facturacion_py/sync_estados_pendientes'); ?>" class="btn btn-primary  me-2">
+                        <i data-feather="refresh-cw"></i> Sincronizar Estados Pendientes
+                    </a>
+                </div>
+            </div>
+
             <?php echo form_open(base_url('Facturacion_py/listado'), ['method' => 'GET']); ?>
+            
+                    
+
+
             <div class="row mb-3">
                 <div class="col-md-2">
                     <label class="form-label">Fecha Inicio</label>

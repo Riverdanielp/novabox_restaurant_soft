@@ -66,6 +66,55 @@ class Facturacion_py extends Cl_Controller {
     }
 
     /**
+     * Muestra la vista de control de correlativos de facturas
+     */
+    public function correlativos() {
+        $punto_id = $this->input->get('punto_id');
+        $mes = $this->input->get('mes') ?: date('m');
+        $anio = $this->input->get('anio') ?: date('Y');
+
+        $data = [];
+
+        // Datos para filtros
+        $data['sifen_sucursales'] = fs_get_sucursales();
+        $data['puntos_expedicion'] = fs_get_puntos_expedicion();
+        
+        // Crear array de sucursales indexado por ID para fácil acceso
+        $sucursales_index = [];
+        foreach ($data['sifen_sucursales'] as $sucursal) {
+            $sucursales_index[$sucursal->id] = $sucursal;
+        }
+        $data['sucursales_index'] = $sucursales_index;
+        $data['mes'] = $mes;
+        $data['anio'] = $anio;
+
+        // Solo obtener datos si se seleccionó un punto
+        if ($punto_id) {
+            // Obtener resumen de correlativos
+            $data['resumen'] = $this->Facturacion_py_model->get_correlativos_resumen($punto_id, $mes, $anio);
+
+            // Obtener facturas del mes
+            $data['facturas'] = $this->Facturacion_py_model->get_facturas_por_mes($punto_id, $mes, $anio);
+
+            // Obtener punto seleccionado con nombre de sucursal
+            $punto = fs_get_puntos_expedicion($punto_id);
+            if ($punto) {
+                $punto->sucursal_nombre = isset($sucursales_index[$punto->sucursal_id]) ? $sucursales_index[$punto->sucursal_id]->nombre : 'Sucursal ' . $punto->sucursal_id;
+            }
+            $data['punto_seleccionado'] = $punto;
+        }
+
+        // Navegación de meses
+        $data['mes_anterior'] = date('m', strtotime("$anio-$mes-01 -1 month"));
+        $data['anio_anterior'] = date('Y', strtotime("$anio-$mes-01 -1 month"));
+        $data['mes_siguiente'] = date('m', strtotime("$anio-$mes-01 +1 month"));
+        $data['anio_siguiente'] = date('Y', strtotime("$anio-$mes-01 +1 month"));
+
+        $data['main_content'] = $this->load->view('facturacion_py/correlativos', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+
+    /**
      * Muestra el formulario para crear o editar una factura.
      */
     public function formulario($id = null) {
@@ -221,7 +270,7 @@ class Facturacion_py extends Cl_Controller {
             $post_data['cliente']['ciudad'] = $this->config->item('sifen_default_ciudad');
         }
         $cliente_normalizado = [
-            'id_sistema'        => $post_data['cliente']['codigo'] ?? null,
+            'id_sistema'        => $post_data['cliente']['codigo'] ?: null,
             'es_contribuyente'  => $es_contribuyente,
             // 'es_proveedor_estado' => ($post_data['cliente']['tipoOperacion'] == 3), // B2G
             
@@ -818,6 +867,43 @@ class Facturacion_py extends Cl_Controller {
     }
 
     /**
+     * Método AJAX para obtener detalles completos de una factura
+     */
+    public function ajax_get_factura_detalle() {
+        $factura_id = $this->input->post('factura_id');
+
+        if (!$factura_id) {
+            echo json_encode(['success' => false, 'message' => 'ID de factura requerido']);
+            return;
+        }
+
+        $factura = $this->Facturacion_py_model->get_factura_completa($factura_id);
+
+        if (!$factura) {
+            echo json_encode(['success' => false, 'message' => 'Factura no encontrada']);
+            return;
+        }
+
+        // Obtener logs si es rechazada
+        $logs = [];
+        // if ($factura->estado == 4) { // Rechazado
+            $logs = $this->Facturacion_py_model->get_auditoria_logs($factura_id);
+        // }
+
+        // Formatear datos para el modal
+        $data = [
+            'factura' => $factura,
+            'cliente' => $factura->cliente,
+            'items' => $factura->items,
+            'usuario' => $factura->usuario,
+            'condicion' => $factura->condicion,
+            'logs' => $logs
+        ];
+
+        echo json_encode(['success' => true, 'data' => $data]);
+    }
+
+    /**
      * Método AJAX para consultar el estado de un CDC específico
      */
     public function ajax_consultar_cdc() {
@@ -1369,7 +1455,8 @@ class Facturacion_py extends Cl_Controller {
     /**
      * Obtiene o crea un usuario en py_factura_usuario basado en el usuario del sistema
      * @param int $system_user_id ID del usuario en tbl_users
-     * @return int ID del usuario en py_factura_usuario
+     // * @re
+ int ID del usuario en py_factura_usuario
      */
     private function get_or_create_py_usuario($system_user_id) {
         // Buscar si ya existe el usuario en py_factura_usuario

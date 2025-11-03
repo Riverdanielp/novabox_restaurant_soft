@@ -3899,7 +3899,7 @@ function d($s,$t){
     return $return;
 }
 
-function getSaleDate($startDate, $endDate,$type){
+function getSaleDateOld($startDate, $endDate,$type){
     $return_array = array();
     if($type=="day"){
         $start  = new DateTime($startDate);
@@ -3966,6 +3966,77 @@ function getSaleDate($startDate, $endDate,$type){
         }
         $return_array = $dates;
     }
+    return $return_array;
+}
+function getSaleDate($startDate, $endDate, $type, $max_buckets = 100) {
+    $return_array = array();
+    
+    // Calcular días totales para decidir si limitar
+    $start_dt = new DateTime($startDate);
+    $end_dt = new DateTime($endDate);
+    $total_days = $start_dt->diff($end_dt)->days + 1;
+    
+    // Si el rango es muy amplio, forzar a "month" para reducir buckets
+    if ($total_days > 90 && $type == 'day') {
+        $type = 'month';
+    } elseif ($total_days > 400 && $type == 'week') {
+        $type = 'month';
+    }
+    
+    if ($type == "day") {
+        // Usar DatePeriod para eficiencia (sin loop manual)
+        $period = new DatePeriod(
+            new DateTime($startDate),
+            new DateInterval('P1D'),
+            new DateTime($endDate . ' +1 day')
+        );
+        $counter = 0;
+        foreach ($period as $date) {
+            if ($counter >= $max_buckets) break; // Límite de seguridad
+            $d = $date->format("Y-m-d");
+            $return_array[] = $d . "||" . $d . "||" . date('D, d F ', strtotime($d)) . "||" . date('d F ', strtotime($d));
+            $counter++;
+        }
+    } elseif ($type == "week") {
+        // Calcular semanas eficientemente con DatePeriod
+        $period = new DatePeriod(
+            new DateTime($startDate),
+            new DateInterval('P1W'), // Semana
+            new DateTime($endDate)
+        );
+        $counter = 0;
+        $prev_start = null;
+        foreach ($period as $date) {
+            if ($counter >= $max_buckets) break;
+            $week_start = $date->format("Y-m-d");
+            $week_end = $date->modify('+6 days')->format("Y-m-d");
+            if ($week_end > $endDate) $week_end = $endDate;
+            $label = date('D, d F ', strtotime($week_start)) . " - " . date('D, d F ', strtotime($week_end));
+            $short_label = date('d F ', strtotime($week_start)) . " - " . date('d F ', strtotime($week_end));
+            $return_array[] = $week_start . "||" . $week_end . "||" . $label . "||" . $short_label;
+            $counter++;
+        }
+    } elseif ($type == "month") {
+        // Usar DatePeriod con P1M para meses
+        $period = new DatePeriod(
+            new DateTime($startDate),
+            new DateInterval('P1M'),
+            new DateTime($endDate . ' +1 month')
+        );
+        $counter = 0;
+        foreach ($period as $date) {
+            if ($counter >= $max_buckets) break;
+            $month_start = $date->format("Y-m-01");
+            $month_end = $date->format("Y-m-t");
+            if ($month_start > $endDate) break;
+            if ($month_end > $endDate) $month_end = $endDate;
+            $label = date('D, d F ', strtotime($month_start)) . " - " . date('D, d F ', strtotime($month_end));
+            $short_label = date('d F ', strtotime($month_start)) . " - " . date('d F ', strtotime($month_end));
+            $return_array[] = $month_start . "||" . $month_end . "||" . $label . "||" . $short_label;
+            $counter++;
+        }
+    }
+    
     return $return_array;
 }
 function removeCountryCode($phone){

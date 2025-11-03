@@ -68,7 +68,28 @@ class Facturacion_py_model extends CI_Model {
     }
 
     public function get_factura_completa($id) {
-        $factura = $this->db->get_where('py_facturas_electronicas', ['id' => $id])->row();
+        
+        $this->db->select("
+            fe.tipo_documento, fe.*,
+            CONCAT_WS('-', 
+                LPAD(suc.codigo_establecimiento, 3, '0'), 
+                LPAD(pe.codigo_punto, 3, '0'), 
+                LPAD(fe.numero, 7, '0')
+            ) as numero_formateado,
+            fc.razon_social as cliente_nombre,
+            fu.nombre as usuario_nombre,
+            est.descripcion as estado_descripcion
+        ");
+        $this->db->from('py_facturas_electronicas fe');
+        $this->db->join('py_factura_cliente fc', 'fe.cliente_id = fc.id', 'left');
+        $this->db->join('py_factura_usuario fu', 'fe.usuario_id = fu.id', 'left');
+        $this->db->join('py_sifen_sucursales suc', 'fe.sucursal_id = suc.id', 'left');
+        $this->db->join('py_sifen_puntos_expedicion pe', 'fe.punto_expedicion_id = pe.id', 'left');
+        $this->db->join('py_sifen_documentos_estados est', 'fe.estado = est.id', 'left');
+        $this->db->where('fe.id', $id);
+        
+        $factura = $this->db->get()->row();
+        
         if ($factura) {
             $factura->cliente = $this->db->get_where('py_factura_cliente', ['id' => $factura->cliente_id])->row();
             $factura->items = $this->db->get_where('py_factura_items', ['factura_id' => $id])->result();
@@ -122,6 +143,47 @@ class Facturacion_py_model extends CI_Model {
             ->limit(10)
             ->get('py_factura_usuario')
             ->result();
+    }
+
+    /**
+     * Obtiene el resumen de correlativos para un punto de expedición en un mes específico
+     */
+    public function get_correlativos_resumen($punto_id, $mes, $anio) {
+        $this->db->select('MIN(fe.numero) as min_numero, MAX(fe.numero) as max_numero, COUNT(*) as total_facturas');
+        $this->db->from('py_facturas_electronicas fe');
+        $this->db->where('fe.punto_expedicion_id', $punto_id);
+        $this->db->where('MONTH(fe.fecha)', $mes);
+        $this->db->where('YEAR(fe.fecha)', $anio);
+        return $this->db->get()->row();
+    }
+
+    /**
+     * Obtiene las facturas para un punto de expedición en un mes específico
+     */
+    public function get_facturas_por_mes($punto_id, $mes, $anio) {
+        $this->db->select("
+            fe.id, fe.numero, fe.estado, fe.cdc, fe.fecha,
+            CONCAT_WS('-', 
+                LPAD(suc.codigo_establecimiento, 3, '0'), 
+                LPAD(pe.codigo_punto, 3, '0'), 
+                LPAD(fe.numero, 7, '0')
+            ) as numero_formateado,
+            fc.razon_social as cliente_nombre,
+            est.descripcion as estado_descripcion
+        ");
+        $this->db->from('py_facturas_electronicas fe');
+        $this->db->join('py_factura_cliente fc', 'fe.cliente_id = fc.id', 'left');
+        $this->db->join('py_sifen_sucursales suc', 'fe.sucursal_id = suc.id', 'left');
+        $this->db->join('py_sifen_puntos_expedicion pe', 'fe.punto_expedicion_id = pe.id', 'left');
+        $this->db->join('py_sifen_documentos_estados est', 'fe.estado = est.id', 'left');
+        $this->db->where('fe.punto_expedicion_id', $punto_id);
+        // Usar DATE() para evitar problemas de zona horaria
+        $fecha_inicio = $anio . '-' . str_pad($mes, 2, '0', STR_PAD_LEFT) . '-01';
+        $fecha_fin = date('Y-m-t', strtotime($fecha_inicio));
+        $this->db->where('DATE(fe.fecha) >=', $fecha_inicio);
+        $this->db->where('DATE(fe.fecha) <=', $fecha_fin);
+        $this->db->order_by('fe.numero', 'ASC');
+        return $this->db->get()->result();
     }
 
 }

@@ -1,19 +1,5 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is Dashboard_model Model
-  ###########################################################
- */
+
 class Dashboard_model extends CI_Model {
 
      /**
@@ -200,28 +186,19 @@ FROM tbl_food_menus fm  INNER JOIN (select * from tbl_food_menu_categories where
         $this->db->from('tbl_sales_details');
         $this->db->join('tbl_sales', 'tbl_sales.id = tbl_sales_details.sales_id', 'left');
         $this->db->where('sale_date>=', $start_date);
-        $this->db->where('sale_date <=', $end_date); 
-        $this->db->order_by('totalQty desc');
+        $this->db->where('sale_date <=', $end_date);
         $this->db->where('tbl_sales_details.outlet_id', $outlet_id);
         $this->db->where('tbl_sales_details.del_status', 'Live');
+        // OPTIM: mantener consistencia y selectividad
+        $this->db->where('tbl_sales.order_status', 3);
+        $this->db->where('tbl_sales.del_status', 'Live');
         $this->db->group_by('food_menu_id');
+        $this->db->order_by('totalQty', 'DESC');
         $this->db->limit(10);
         $result = $this->db->get();   
-        
-        if($result != false){  
-            return $result->result();
-        }else{
-            return false;
-        }
+        return $result ? $result->result() : false;
     }
-     /**
-     * top ten customer
-     * @access public
-     * @return object
-     * @param string
-     * @param string
-     * @param int
-     */
+
     public function top_ten_customer($start_date, $end_date,$outlet_id='') {
         $company_id = $this->session->userdata('company_id');
         $this->db->select('sum(tbl_sales.total_payable) as total_payable, tbl_sales.customer_id, tbl_customers.name, tbl_sales.sale_date,tbl_customers.phone');
@@ -229,20 +206,70 @@ FROM tbl_food_menus fm  INNER JOIN (select * from tbl_food_menu_categories where
         $this->db->join('tbl_customers', 'tbl_sales.customer_id = tbl_customers.id', 'left');
         $this->db->where('tbl_sales.sale_date>=', $start_date);
         $this->db->where('tbl_sales.sale_date <=', $end_date);
-        $this->db->order_by('total_payable desc');
         $this->db->where('tbl_sales.outlet_id', $outlet_id);
         $this->db->where('tbl_sales.company_id', $company_id);
         $this->db->where('tbl_sales.del_status', 'Live');
+        // OPTIM: ventas finalizadas
+        $this->db->where('tbl_sales.order_status', 3);
         $this->db->group_by('customer_id');
+        $this->db->order_by('total_payable', 'DESC');
         $this->db->limit(10);
         $result = $this->db->get();
-
-        if($result != false){
-            return $result->result();
-        }else{
-            return false;
-        }
+        return $result ? $result->result() : false;
     }
+
+    public function dinein_count($first_day_this_month, $last_day_this_month,$outlet_id='') {
+        $this->db->select('count(*) as dinein_count');
+        $this->db->from('tbl_sales'); 
+        $this->db->where('tbl_sales.sale_date>=', $first_day_this_month);
+        $this->db->where('tbl_sales.sale_date <=', $last_day_this_month); 
+        $this->db->where('tbl_sales.order_type', 1);
+        $this->db->where('tbl_sales.outlet_id', $outlet_id);
+        $this->db->where('tbl_sales.del_status', 'Live');
+        $this->db->where('tbl_sales.order_status', 3);
+        return $this->db->get()->row();
+    }
+
+    public function take_away_count($first_day_this_month, $last_day_this_month,$outlet_id='') {
+        $this->db->select('count(*) as take_away_count');
+        $this->db->from('tbl_sales'); 
+        $this->db->where('tbl_sales.sale_date>=', $first_day_this_month);
+        $this->db->where('tbl_sales.sale_date <=', $last_day_this_month);         
+        $this->db->where('tbl_sales.order_type', 2);
+        $this->db->where('tbl_sales.outlet_id', $outlet_id);
+        $this->db->where('tbl_sales.del_status', 'Live');
+        $this->db->where('tbl_sales.order_status', 3);
+        return $this->db->get()->row();
+    }
+
+    public function delivery_count($first_day_this_month, $last_day_this_month,$outlet_id='') {
+        $this->db->select('count(*) as delivery_count');
+        $this->db->from('tbl_sales'); 
+        $this->db->where('tbl_sales.sale_date>=', $first_day_this_month);
+        $this->db->where('tbl_sales.sale_date <=', $last_day_this_month);         
+        $this->db->where('tbl_sales.order_type', 3);
+        $this->db->where('tbl_sales.outlet_id', $outlet_id);
+        $this->db->where('tbl_sales.del_status', 'Live');
+        $this->db->where('tbl_sales.order_status', 3);
+        return $this->db->get()->row();
+    }
+
+    public function sale_sum($first_day_this_month, $last_day_this_month,$outlet_id='') {
+        $this->db->select('sum(paid_amount) as sale_sum');
+        $this->db->from('tbl_sales');  
+        $this->db->where('tbl_sales.sale_date>=', $first_day_this_month);
+        $this->db->where('tbl_sales.sale_date <=', $last_day_this_month);         
+        $this->db->where('tbl_sales.outlet_id', $outlet_id);
+        $this->db->where('tbl_sales.del_status', 'Live');
+        // OPTIM: consistentemente ventas cerradas
+        $this->db->where('tbl_sales.order_status', 3);
+        $result = $this->db->get()->row();
+        if (empty($result->sale_sum)) {
+            $result->sale_sum = 0;
+        }
+        return $result;
+    }
+
      /**
      * customer receivable
      * @access public
@@ -287,60 +314,7 @@ FROM tbl_food_menus fm  INNER JOIN (select * from tbl_food_menu_categories where
             return false;
         }
     }
-     /**
-     * dinein count
-     * @access public
-     * @return object
-     * @param string
-     * @param string
-     * @param int
-     */
-    public function dinein_count($first_day_this_month, $last_day_this_month,$outlet_id='') {
-        $this->db->select('count(*) as dinein_count');
-        $this->db->from('tbl_sales'); 
-        $this->db->where('tbl_sales.sale_date>=', $first_day_this_month);
-        $this->db->where('tbl_sales.sale_date <=', $last_day_this_month); 
-        $this->db->where('tbl_sales.order_type', 1);
-        $this->db->where('tbl_sales.outlet_id', $outlet_id);
-        $this->db->where('tbl_sales.del_status', 'Live'); 
-        return $this->db->get()->row();
-    }
-     /**
-     * take away count
-     * @access public
-     * @return object
-     * @param string
-     * @param string
-     */
-    public function take_away_count($first_day_this_month, $last_day_this_month) {
-        $outlet_id = $this->session->userdata('outlet_id');
-        $this->db->select('count(*) as take_away_count');
-        $this->db->from('tbl_sales'); 
-        $this->db->where('tbl_sales.sale_date>=', $first_day_this_month);
-        $this->db->where('tbl_sales.sale_date <=', $last_day_this_month);         
-        $this->db->where('tbl_sales.order_type', 2);
-        $this->db->where('tbl_sales.outlet_id', $outlet_id);
-        $this->db->where('tbl_sales.del_status', 'Live'); 
-        return $this->db->get()->row();
-    }
-     /**
-     * delivery count
-     * @access public
-     * @return object
-     * @param string
-     * @param string
-     */
-    public function delivery_count($first_day_this_month, $last_day_this_month) {
-        $outlet_id = $this->session->userdata('outlet_id');
-        $this->db->select('count(*) as delivery_count');
-        $this->db->from('tbl_sales'); 
-        $this->db->where('tbl_sales.sale_date>=', $first_day_this_month);
-        $this->db->where('tbl_sales.sale_date <=', $last_day_this_month);         
-        $this->db->where('tbl_sales.order_type', 3);
-        $this->db->where('tbl_sales.outlet_id', $outlet_id);
-        $this->db->where('tbl_sales.del_status', 'Live'); 
-        return $this->db->get()->row();
-    }
+
      /**
      * purchase_sum
      * @access public
@@ -364,29 +338,7 @@ FROM tbl_food_menus fm  INNER JOIN (select * from tbl_food_menu_categories where
 
         return $result;
     }
-     /**
-     * sale sum
-     * @access public
-     * @return object
-     * @param string
-     * @param string
-     * @param int
-     */
-    public function sale_sum($first_day_this_month, $last_day_this_month,$outlet_id='') {
-        $this->db->select('sum(paid_amount) as sale_sum');
-        $this->db->from('tbl_sales');  
-        $this->db->where('tbl_sales.sale_date>=', $first_day_this_month);
-        $this->db->where('tbl_sales.sale_date <=', $last_day_this_month);         
-        $this->db->where('tbl_sales.outlet_id', $outlet_id);
-        $this->db->where('tbl_sales.del_status', 'Live'); 
-        $result = $this->db->get()->row();
 
-        if (empty($result->sale_sum)) {
-            $result->sale_sum = 0;
-        }
-
-        return $result;
-    }
      /**
      * waste sum
      * @access public

@@ -200,6 +200,17 @@ FROM tbl_ingredients i  LEFT JOIN (select * from tbl_ingredients where del_statu
         return $result;
     }
 
+
+        // OPTIMIZACIÓN: contador liviano para el Dashboard
+    public function countAllIngredientsByCompany() {
+        $company_id = $this->session->userdata('company_id');
+        $this->db->select('COUNT(*) AS c');
+        $this->db->from('tbl_ingredients');
+        $this->db->where('company_id', $company_id);
+        $this->db->where('del_status', 'Live');
+        $row = $this->db->get()->row();
+        return (int)($row ? $row->c : 0);
+    }
 }
 
 ?>

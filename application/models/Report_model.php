@@ -2772,6 +2772,414 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
         $query = $this->db->get();
         return $query->result();
     }
-    
+
+    // SERIES: Revenue por bucket
+    public function getRevenueSeries($start_date, $end_date, $outlet_id, $type='day'){
+        $bucket = $this->bucketExpr('sale_date', $type);
+        $sql = "
+            SELECT {$bucket} AS bucket_key, SUM(total_payable) AS v
+            FROM tbl_sales
+            WHERE sale_date BETWEEN ? AND ?
+              AND outlet_id = ?
+              AND order_status = 3
+              AND del_status = 'Live'
+            GROUP BY bucket_key
+            ORDER BY bucket_key
+        ";
+        $rows = $this->db->query($sql, [$start_date, $end_date, $outlet_id])->result();
+        $map = [];
+        foreach($rows as $r){
+            $map[$r->bucket_key] = (float)$r->v;
+        }
+        return $map;
+    }
+
+    // SERIES: Transacciones por bucket
+    public function getTransactionsSeries($start_date, $end_date, $outlet_id, $type='day'){
+        $bucket = $this->bucketExpr('sale_date', $type);
+        $sql = "
+            SELECT {$bucket} AS bucket_key, COUNT(id) AS v
+            FROM tbl_sales
+            WHERE sale_date BETWEEN ? AND ?
+              AND outlet_id = ?
+              AND order_status = 3
+              AND del_status = 'Live'
+            GROUP BY bucket_key
+            ORDER BY bucket_key
+        ";
+        $rows = $this->db->query($sql, [$start_date, $end_date, $outlet_id])->result();
+        $map = [];
+        foreach($rows as $r){
+            $map[$r->bucket_key] = (int)$r->v;
+        }
+        return $map;
+    }
+
+    // SERIES: “Customers” (mismo conteo que transacciones en tu implementación actual)
+    public function getCustomersSeries($start_date, $end_date, $outlet_id, $type='day'){
+        // Si quisieras distintos clientes por día: COUNT(DISTINCT customer_id)
+        $bucket = $this->bucketExpr('sale_date', $type);
+        $sql = "
+            SELECT {$bucket} AS bucket_key, COUNT(id) AS v
+            FROM tbl_sales
+            WHERE sale_date BETWEEN ? AND ?
+              AND outlet_id = ?
+              AND order_status = 3
+              AND del_status = 'Live'
+            GROUP BY bucket_key
+            ORDER BY bucket_key
+        ";
+        $rows = $this->db->query($sql, [$start_date, $end_date, $outlet_id])->result();
+        $map = [];
+        foreach($rows as $r){
+            $map[$r->bucket_key] = (int)$r->v;
+        }
+        return $map;
+    }
+
+    // TOTALES (rango completo)
+    public function getRevenueTotal($start_date, $end_date, $outlet_id){
+        $row = $this->db->query("
+            SELECT SUM(total_payable) t
+            FROM tbl_sales
+            WHERE sale_date BETWEEN ? AND ?
+              AND outlet_id = ?
+              AND order_status = 3
+              AND del_status = 'Live'
+        ", [$start_date, $end_date, $outlet_id])->row();
+        return (float)($row && $row->t ? $row->t : 0);
+    }
+
+    public function getTransactionsTotal($start_date, $end_date, $outlet_id){
+        $row = $this->db->query("
+            SELECT COUNT(id) t
+            FROM tbl_sales
+            WHERE sale_date BETWEEN ? AND ?
+              AND outlet_id = ?
+              AND order_status = 3
+              AND del_status = 'Live'
+        ", [$start_date, $end_date, $outlet_id])->row();
+        return (int)($row && $row->t ? $row->t : 0);
+    }
+
+    public function getCustomersTotal($start_date, $end_date, $outlet_id){
+        // Igual que tu implementación actual (conteo de ventas)
+        $row = $this->db->query("
+            SELECT COUNT(id) t
+            FROM tbl_sales
+            WHERE sale_date BETWEEN ? AND ?
+              AND outlet_id = ?
+              AND order_status = 3
+              AND del_status = 'Live'
+        ", [$start_date, $end_date, $outlet_id])->row();
+        return (int)($row && $row->t ? $row->t : 0);
+    }
+
+    private function bucketExpr($colDate, $type){
+        if ($type === 'week') {
+            return "DATE_SUB($colDate, INTERVAL WEEKDAY($colDate) DAY)";
+        } elseif ($type === 'month') {
+            return "DATE_FORMAT($colDate, '%Y-%m-01')";
+        }
+        return "$colDate";
+    }
+
+    /**
+     * SERIES: Profit por bucket (day|week|month)
+     * Usa `cost` en las tablas de consumos y filtra refunds por rango datetime sin DATE()
+     */
+    public function getProfitSeries($start_date, $end_date, $outlet_id, $type='day'){
+        // bucket sobre la columna de fecha de ventas (sale_date) o refund_date_time
+        $bucketSales  = $this->bucketExpr('s.sale_date', $type);
+        // Para refunds agrupamos por DATE(refund_date_time) en SELECT sólo; el WHERE usa rango sobre refund_date_time
+        $bucketRefund = $this->bucketExpr("DATE(s.refund_date_time)", $type);
+        $bucketWastes = $this->bucketExpr('w.date', $type);
+        $bucketExpenses = $this->bucketExpr('e.date', $type);
+
+        // Rango datetime para refunds: usar formato 'YYYY-MM-DD HH:MM:SS'
+        $startDT = $start_date . ' 00:00:00';
+        // end +1 day for half-open interval
+        $endDT = date('Y-m-d', strtotime($end_date . ' +1 day')) . ' 00:00:00';
+
+        $map = [];
+
+        // 1) Sales: total_payable y vat por bucket
+        $sqlSales = "
+            SELECT {$bucketSales} AS b, SUM(s.total_payable) AS s_total, SUM(s.vat) AS s_vat
+            FROM tbl_sales s
+            WHERE s.sale_date BETWEEN ? AND ?
+              AND s.outlet_id = ?
+              AND s.order_status = 3
+              AND s.del_status = 'Live'
+            GROUP BY b
+            ORDER BY b
+        ";
+        $q = $this->db->query($sqlSales, [$start_date, $end_date, $outlet_id]);
+        if ($q !== false) {
+            foreach ($q->result() as $r) {
+                $key = $r->b;
+                if (!isset($map[$key])) $map[$key] = ['s'=>0,'tax'=>0,'r'=>0,'c'=>0,'w'=>0,'e'=>0];
+                $map[$key]['s'] = (float)$r->s_total;
+                $map[$key]['tax'] = (float)$r->s_vat;
+            }
+        } else {
+            log_message('error', 'getProfitSeries: fallo query sales: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 2) Refunds por refund_date_time en rango [startDT, endDT)
+        $sqlRefunds = "
+            SELECT {$bucketRefund} AS b, SUM(s.total_refund) AS r_total
+            FROM tbl_sales s
+            WHERE s.refund_date_time IS NOT NULL
+              AND s.refund_date_time >= ?
+              AND s.refund_date_time <  ?
+              AND s.outlet_id = ?
+              AND s.order_status = 3
+              AND s.del_status = 'Live'
+            GROUP BY b
+            ORDER BY b
+        ";
+        $q = $this->db->query($sqlRefunds, [$startDT, $endDT, $outlet_id]);
+        if ($q !== false) {
+            foreach ($q->result() as $r) {
+                $key = $r->b;
+                if (!isset($map[$key])) $map[$key] = ['s'=>0,'tax'=>0,'r'=>0,'c'=>0,'w'=>0,'e'=>0];
+                $map[$key]['r'] = (float)$r->r_total;
+            }
+        } else {
+            log_message('error', 'getProfitSeries: fallo query refunds: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 3) COGS desde tbl_sale_consumptions_of_menus (usa columna `cost`)
+        // agrupamos por sale_date (bucketSales)
+        $sqlCogsMenu = "
+            SELECT {$bucketSales} AS b, SUM(scom.consumption * COALESCE(scom.cost,0)) AS c
+            FROM tbl_sale_consumptions_of_menus scom
+            INNER JOIN tbl_sales s ON s.id = scom.sales_id
+            WHERE s.sale_date BETWEEN ? AND ?
+              AND s.outlet_id = ?
+              AND s.order_status = 3
+              AND s.del_status = 'Live'
+              AND scom.del_status = 'Live'
+            GROUP BY b
+            ORDER BY b
+        ";
+        $q = $this->db->query($sqlCogsMenu, [$start_date, $end_date, $outlet_id]);
+        if ($q !== false) {
+            foreach ($q->result() as $r) {
+                $key = $r->b;
+                if (!isset($map[$key])) $map[$key] = ['s'=>0,'tax'=>0,'r'=>0,'c'=>0,'w'=>0,'e'=>0];
+                $map[$key]['c'] += (float)$r->c;
+            }
+        } else {
+            log_message('error', 'getProfitSeries: fallo query cogs_menu: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 4) COGS desde tbl_sale_consumptions_of_modifiers_of_menus (usa columna `cost`)
+        $sqlCogsMod = "
+            SELECT {$bucketSales} AS b, SUM(scmod.consumption * COALESCE(scmod.cost,0)) AS c
+            FROM tbl_sale_consumptions_of_modifiers_of_menus scmod
+            INNER JOIN tbl_sales s ON s.id = scmod.sales_id
+            WHERE s.sale_date BETWEEN ? AND ?
+              AND s.outlet_id = ?
+              AND s.order_status = 3
+              AND s.del_status = 'Live'
+              AND scmod.del_status = 'Live'
+            GROUP BY b
+            ORDER BY b
+        ";
+        $q = $this->db->query($sqlCogsMod, [$start_date, $end_date, $outlet_id]);
+        if ($q !== false) {
+            foreach ($q->result() as $r) {
+                $key = $r->b;
+                if (!isset($map[$key])) $map[$key] = ['s'=>0,'tax'=>0,'r'=>0,'c'=>0,'w'=>0,'e'=>0];
+                $map[$key]['c'] += (float)$r->c;
+            }
+        } else {
+            log_message('error', 'getProfitSeries: fallo query cogs_mod: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 5) Wastes por bucket
+        $sqlWastes = "
+            SELECT {$bucketWastes} AS b, SUM(w.total_loss) AS w_total
+            FROM tbl_wastes w
+            WHERE w.date BETWEEN ? AND ?
+              AND w.outlet_id = ?
+              AND w.del_status = 'Live'
+            GROUP BY b
+            ORDER BY b
+        ";
+        $q = $this->db->query($sqlWastes, [$start_date, $end_date, $outlet_id]);
+        if ($q !== false) {
+            foreach ($q->result() as $r) {
+                $key = $r->b;
+                if (!isset($map[$key])) $map[$key] = ['s'=>0,'tax'=>0,'r'=>0,'c'=>0,'w'=>0,'e'=>0];
+                $map[$key]['w'] = (float)$r->w_total;
+            }
+        } else {
+            log_message('error', 'getProfitSeries: fallo query wastes: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 6) Expenses por bucket
+        $sqlExpenses = "
+            SELECT {$bucketExpenses} AS b, SUM(e.amount) AS e_total
+            FROM tbl_expenses e
+            WHERE e.date BETWEEN ? AND ?
+              AND e.outlet_id = ?
+              AND e.del_status = 'Live'
+            GROUP BY b
+            ORDER BY b
+        ";
+        $q = $this->db->query($sqlExpenses, [$start_date, $end_date, $outlet_id]);
+        if ($q !== false) {
+            foreach ($q->result() as $r) {
+                $key = $r->b;
+                if (!isset($map[$key])) $map[$key] = ['s'=>0,'tax'=>0,'r'=>0,'c'=>0,'w'=>0,'e'=>0];
+                $map[$key]['e'] = (float)$r->e_total;
+            }
+        } else {
+            log_message('error', 'getProfitSeries: fallo query expenses: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // Construir salida: array [ 'YYYY-MM-DD' => profit ]
+        $out = [];
+        foreach ($map as $k => $v) {
+            $profit = ($v['s'] - $v['tax'] - $v['r'] - $v['c'] - $v['w'] - $v['e']);
+            // Normalizar clave a YYYY-MM-DD (bucket puede venir ya como 'YYYY-MM-DD' o 'YYYY-MM-01' etc.)
+            $keyDate = date('Y-m-d', strtotime($k));
+            $out[$keyDate] = $profit;
+        }
+
+        return $out;
+    }
+
+    /**
+     * TOTAL: Profit en rango completo
+     * Calcula los mismos componentes pero en 1 fila (no GROUP BY)
+     */
+    public function getProfitTotal($start_date, $end_date, $outlet_id){
+        // 1) Sales totals
+        $sqlSales = "
+            SELECT SUM(s.total_payable) AS s_total, SUM(s.vat) AS s_vat
+            FROM tbl_sales s
+            WHERE s.sale_date BETWEEN ? AND ?
+              AND s.outlet_id = ?
+              AND s.order_status = 3
+              AND s.del_status = 'Live'
+        ";
+        $q = $this->db->query($sqlSales, [$start_date, $end_date, $outlet_id]);
+        $s_total = $s_vat = 0.0;
+        if ($q !== false) {
+            $r = $q->row();
+            $s_total = isset($r->s_total) ? (float)$r->s_total : 0.0;
+            $s_vat = isset($r->s_vat) ? (float)$r->s_vat : 0.0;
+        } else {
+            log_message('error', 'getProfitTotal: fallo query sales: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 2) Refunds por refund_date_time (rango half-open)
+        $startDT = $start_date . ' 00:00:00';
+        $endDT = date('Y-m-d', strtotime($end_date . ' +1 day')) . ' 00:00:00';
+        $sqlRefunds = "
+            SELECT SUM(s.total_refund) AS r_total
+            FROM tbl_sales s
+            WHERE s.refund_date_time IS NOT NULL
+              AND s.refund_date_time >= ?
+              AND s.refund_date_time < ?
+              AND s.outlet_id = ?
+              AND s.order_status = 3
+              AND s.del_status = 'Live'
+        ";
+        $q = $this->db->query($sqlRefunds, [$startDT, $endDT, $outlet_id]);
+        $r_total = 0.0;
+        if ($q !== false) {
+            $r = $q->row();
+            $r_total = isset($r->r_total) ? (float)$r->r_total : 0.0;
+        } else {
+            log_message('error', 'getProfitTotal: fallo query refunds: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 3) COGS: consumo menus
+        $sqlCogsMenu = "
+            SELECT SUM(scom.consumption * COALESCE(scom.cost,0)) AS c_total
+            FROM tbl_sale_consumptions_of_menus scom
+            INNER JOIN tbl_sales s ON s.id = scom.sales_id
+            WHERE s.sale_date BETWEEN ? AND ?
+              AND s.outlet_id = ?
+              AND s.order_status = 3
+              AND s.del_status = 'Live'
+              AND scom.del_status = 'Live'
+        ";
+        $q = $this->db->query($sqlCogsMenu, [$start_date, $end_date, $outlet_id]);
+        $cogs_menu_total = 0.0;
+        if ($q !== false) {
+            $r = $q->row();
+            $cogs_menu_total = isset($r->c_total) ? (float)$r->c_total : 0.0;
+        } else {
+            log_message('error', 'getProfitTotal: fallo query cogs_menu: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 4) COGS: consumo modificadores
+        $sqlCogsMod = "
+            SELECT SUM(scmod.consumption * COALESCE(scmod.cost,0)) AS c_total
+            FROM tbl_sale_consumptions_of_modifiers_of_menus scmod
+            INNER JOIN tbl_sales s ON s.id = scmod.sales_id
+            WHERE s.sale_date BETWEEN ? AND ?
+              AND s.outlet_id = ?
+              AND s.order_status = 3
+              AND s.del_status = 'Live'
+              AND scmod.del_status = 'Live'
+        ";
+        $q = $this->db->query($sqlCogsMod, [$start_date, $end_date, $outlet_id]);
+        $cogs_mod_total = 0.0;
+        if ($q !== false) {
+            $r = $q->row();
+            $cogs_mod_total = isset($r->c_total) ? (float)$r->c_total : 0.0;
+        } else {
+            log_message('error', 'getProfitTotal: fallo query cogs_mod: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 5) Wastes total
+        $sqlWastes = "
+            SELECT SUM(w.total_loss) AS w_total
+            FROM tbl_wastes w
+            WHERE w.date BETWEEN ? AND ?
+              AND w.outlet_id = ?
+              AND w.del_status = 'Live'
+        ";
+        $q = $this->db->query($sqlWastes, [$start_date, $end_date, $outlet_id]);
+        $w_total = 0.0;
+        if ($q !== false) {
+            $r = $q->row();
+            $w_total = isset($r->w_total) ? (float)$r->w_total : 0.0;
+        } else {
+            log_message('error', 'getProfitTotal: fallo query wastes: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // 6) Expenses total
+        $sqlExpenses = "
+            SELECT SUM(e.amount) AS e_total
+            FROM tbl_expenses e
+            WHERE e.date BETWEEN ? AND ?
+              AND e.outlet_id = ?
+              AND e.del_status = 'Live'
+        ";
+        $q = $this->db->query($sqlExpenses, [$start_date, $end_date, $outlet_id]);
+        $e_total = 0.0;
+        if ($q !== false) {
+            $r = $q->row();
+            $e_total = isset($r->e_total) ? (float)$r->e_total : 0.0;
+        } else {
+            log_message('error', 'getProfitTotal: fallo query expenses: '.$this->db->last_query().' - '.json_encode($this->db->error()));
+        }
+
+        // Calcular profit
+        $total_cogs = $cogs_menu_total + $cogs_mod_total;
+        $profit = ($s_total - $s_vat - $r_total - $total_cogs - $w_total - $e_total);
+
+        return $profit;
+    }
+
+
 }
 
