@@ -121,6 +121,41 @@ class Purchase extends Cl_Controller {
     }
     public function deletePurchase($id) {
         $id = $this->custom->encrypt_decrypt($id, 'decrypt');
+
+        // Obtener datos de la compra antes de eliminarla para revertir movimiento contable
+        $purchase = $this->Common_model->getDataById($id, "tbl_purchase");
+
+        // Revertir movimiento contable si existía
+        if ($purchase && !empty($purchase->account_id) && floatval($purchase->paid) > 0) {
+            $this->load->model('Account_model');
+            $this->load->model('Account_transaction_model');
+
+            $account = $this->Account_model->getAccountById($purchase->account_id);
+            if ($account) {
+                // Devolver el dinero a la cuenta (revertir la compra)
+                $new_balance = floatval($account->current_balance) + floatval($purchase->paid);
+                $this->Account_model->updateBalance($purchase->account_id, $new_balance);
+
+                // Obtener nombre del proveedor para descripción
+                $supplier = $this->Common_model->getDataById($purchase->supplier_id, 'tbl_suppliers');
+                $supplier_name = $supplier ? $supplier->name : 'Proveedor';
+
+                // Registrar transacción de reversión
+                $transaction_data = [
+                    'to_account_id' => $purchase->account_id, // Reversión de compra = entrada de dinero
+                    'transaction_type' => 'Deposito',
+                    'amount' => floatval($purchase->paid),
+                    'reference_type' => 'purchase_reversal',
+                    'reference_id' => $id,
+                    'note' => 'Reversión de compra #' . $purchase->reference_no . ' (eliminada)',
+                    'transaction_date' => date('Y-m-d H:i:s'),
+                    'user_id' => $this->session->userdata('user_id'),
+                    'company_id' => $this->session->userdata('company_id')
+                ];
+                $this->Account_transaction_model->insertTransaction($transaction_data);
+            }
+        }
+
         $this->Common_model->deleteStatusChangeWithChild($id, $id, "tbl_purchase", "tbl_purchase_ingredients", 'id', 'purchase_id');
         $this->session->set_flashdata('exception', lang('delete_success'));
         redirect('Purchase/purchases');
@@ -189,19 +224,112 @@ class Purchase extends Cl_Controller {
                 $purchase_info['paid'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('paid')));
                 $purchase_info['due'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('due')));
                 $purchase_info['payment_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('payment_id')));
+                $purchase_info['account_id'] = !empty($this->input->post('account_id')) ? $this->input->post('account_id') : NULL;
                 $purchase_info['counter_id'] = $this->session->userdata('counter_id');
                 $purchase_info['user_id'] = $this->session->userdata('user_id');
                 $purchase_info['outlet_id'] = $this->session->userdata('outlet_id');
                 
+                // Cargar modelos necesarios para registro contable
+                $this->load->model('Account_model');
+                $this->load->model('Account_transaction_model');
+                
                 if ($id == "") {
+                    // NUEVA COMPRA
                     $purchase_info['added_date_time'] = date('Y-m-d H:i:s');
                     $purchase_id = $this->Common_model->insertInformation($purchase_info, "tbl_purchase");
                     $this->savePurchaseIngredients($_POST['ingredient_id'], $purchase_id, 'tbl_purchase_ingredients');
+                    
+                    // Registrar movimiento contable si se especificó cuenta y hay monto pagado
+                    if (!empty($purchase_info['account_id']) && floatval($purchase_info['paid']) > 0) {
+                        $account = $this->Account_model->getAccountById($purchase_info['account_id']);
+                        if ($account) {
+                            $balance_before = floatval($account->current_balance);
+                            $amount = floatval($purchase_info['paid']);
+                            $balance_after = $balance_before - $amount; // Las compras RESTAN del saldo
+                            
+                            // Actualizar saldo de la cuenta
+                            $this->Account_model->updateBalance($purchase_info['account_id'], $balance_after);
+                            
+                            // Crear registro de transacción
+                            $transaction_data = [
+                                'from_account_id' => $purchase_info['account_id'], // Compra = salida de dinero
+                                'transaction_type' => 'Compra',
+                                'amount' => $amount,
+                                'reference_type' => 'purchase',
+                                'reference_id' => $purchase_id,
+                                'note' => 'Compra #' . $purchase_info['reference_no'],
+                                'transaction_date' => date('Y-m-d H:i:s'),
+                                'user_id' => $this->session->userdata('user_id'),
+                                'company_id' => $this->session->userdata('company_id')
+                            ];
+                            $this->Account_transaction_model->insertTransaction($transaction_data);
+                        }
+                    }
+                    
                     $this->session->set_flashdata('exception', lang('insertion_success'));
                 } else {
-                    $this->Common_model->updateInformation($purchase_info, $id, "tbl_purchase");
-                    $this->Common_model->deletingMultipleFormData('purchase_id', $id, 'tbl_purchase_ingredients');
-                    $this->savePurchaseIngredients($_POST['ingredient_id'], $id, 'tbl_purchase_ingredients');
+                    // EDITAR COMPRA EXISTENTE
+                    // Obtener datos antiguos de la compra
+                    $old_purchase = $this->Common_model->getDataById($id, "tbl_purchase");
+
+                    // Verificar si la cuenta o el monto cambió
+                    $account_changed = ($old_purchase->account_id != $purchase_info['account_id']);
+                    $amount_changed = (floatval($old_purchase->paid) != floatval($purchase_info['paid']));
+
+                    // Solo procesar movimientos contables si algo cambió
+                    if ($account_changed || $amount_changed) {
+                        // Si había un account_id anterior y monto pagado, revertir la transacción
+                        if ($old_purchase && !empty($old_purchase->account_id) && floatval($old_purchase->paid) > 0) {
+                            $old_account = $this->Account_model->getAccountById($old_purchase->account_id);
+                            if ($old_account) {
+                                $balance_before_reversal = floatval($old_account->current_balance);
+                                $old_amount = floatval($old_purchase->paid);
+                                $balance_after_reversal = $balance_before_reversal + $old_amount; // DEVOLVER el dinero
+
+                                $this->Account_model->updateBalance($old_purchase->account_id, $balance_after_reversal);
+
+                                // Registrar transacción de reversión
+                                $reversal_data = [
+                                    'to_account_id' => $old_purchase->account_id, // Reversión de compra = entrada de dinero
+                                    'transaction_type' => 'Deposito',
+                                    'amount' => $old_amount,
+                                    'reference_type' => 'purchase',
+                                    'reference_id' => $id,
+                                    'note' => 'Reversión de compra #' . $old_purchase->reference_no . ' (editada)',
+                                    'transaction_date' => date('Y-m-d H:i:s'),
+                                    'user_id' => $this->session->userdata('user_id'),
+                                    'company_id' => $this->session->userdata('company_id')
+                                ];
+                                $this->Account_transaction_model->insertTransaction($reversal_data);
+                            }
+                        }
+
+                        // Aplicar nueva transacción si hay cuenta y monto
+                        if (!empty($purchase_info['account_id']) && floatval($purchase_info['paid']) > 0) {
+                            $new_account = $this->Account_model->getAccountById($purchase_info['account_id']);
+                            if ($new_account) {
+                                $balance_before_new = floatval($new_account->current_balance);
+                                $new_amount = floatval($purchase_info['paid']);
+                                $balance_after_new = $balance_before_new - $new_amount; // Las compras RESTAN
+
+                                $this->Account_model->updateBalance($purchase_info['account_id'], $balance_after_new);
+
+                                $new_transaction_data = [
+                                    'from_account_id' => $purchase_info['account_id'], // Compra = salida de dinero
+                                    'transaction_type' => 'Compra',
+                                    'amount' => $new_amount,
+                                    'reference_type' => 'purchase',
+                                    'reference_id' => $id,
+                                    'note' => 'Compra #' . $purchase_info['reference_no'],
+                                    'transaction_date' => date('Y-m-d H:i:s'),
+                                    'user_id' => $this->session->userdata('user_id'),
+                                    'company_id' => $this->session->userdata('company_id')
+                                ];
+                                $this->Account_transaction_model->insertTransaction($new_transaction_data);
+                            }
+                        }
+                    }
+                    
                     $this->session->set_flashdata('exception',lang('update_success'));
                 }
 
@@ -215,6 +343,8 @@ class Purchase extends Cl_Controller {
                     $data['ingredients'] = $this->Purchase_model->getIngredientListWithUnitAndPrice($company_id);
                     $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                     $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
+                    $this->load->model('Account_model');
+                    $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
                     $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                     $this->load->view('userHome', $data);
                 } else {
@@ -227,6 +357,8 @@ class Purchase extends Cl_Controller {
                     $data['purchase_ingredients'] = $this->Purchase_model->getPurchaseIngredients($id);
                     $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                     $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
+                    $this->load->model('Account_model');
+                    $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
                     $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                     $this->load->view('userHome', $data);
                 }
@@ -241,6 +373,8 @@ class Purchase extends Cl_Controller {
                 $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                 $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
                 $data['detalles_factura'] = [];
+                $this->load->model('Account_model');
+                $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
                 $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
@@ -254,6 +388,8 @@ class Purchase extends Cl_Controller {
                 $data['purchase_ingredients'] = $this->Purchase_model->getPurchaseIngredients($id);
                 $data['categories'] = $this->Common_model->getAllByCompanyId($company_id, 'tbl_food_menu_categories');
                 $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
+                $this->load->model('Account_model');
+                $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
                 $data['main_content'] = $this->load->view('purchase/addEditPurchase', $data, TRUE);
                 $this->load->view('userHome', $data);
             }
@@ -462,6 +598,7 @@ class Purchase extends Cl_Controller {
             'date' => $data['date'],
             'paid' => $data['paid'],
             'payment_id' => $data['payment_id'],
+            'account_id' => !empty($data['account_id']) ? $data['account_id'] : NULL,
             'user_id' => $this->session->userdata('user_id'),
             'outlet_id' => $outlet_id
         ];
@@ -621,6 +758,14 @@ class Purchase extends Cl_Controller {
 
     public function ajaxGuardarDatosCompra() {
         $purchase_id = $this->input->post('purchase_id');
+        
+        // Cargar modelos necesarios para registro contable
+        $this->load->model('Account_model');
+        $this->load->model('Account_transaction_model');
+        
+        // Obtener datos antiguos de la compra antes de actualizar
+        $old_purchase = $this->Common_model->getDataById($purchase_id, "tbl_purchase");
+        
         $data = [
             'reference_no' => $this->input->post('reference_no'),
             'supplier_id' => $this->input->post('supplier_id'),
@@ -628,6 +773,7 @@ class Purchase extends Cl_Controller {
             'date' => $this->input->post('date'),
             'paid' => $this->input->post('paid'),
             'payment_id' => $this->input->post('payment_id'),
+            'account_id' => !empty($this->input->post('account_id')) ? $this->input->post('account_id') : NULL,
             'grand_total' => $this->input->post('grand_total'),
             'due' => $this->input->post('due'),
         ];
@@ -648,7 +794,73 @@ class Purchase extends Cl_Controller {
         } else {
             $data['factura_nro'] = $this->input->post('factura_nro');
         }
-        $this->Common_model->updateInformation($data, $purchase_id, "tbl_purchase");
+        
+        // ============ LÓGICA DE REGISTRO CONTABLE ============
+        
+        // Verificar si la cuenta o el monto cambió
+        $account_changed = ($old_purchase->account_id != $data['account_id']);
+        $amount_changed = (floatval($old_purchase->paid) != floatval($data['paid']));
+        
+        // Solo procesar movimientos contables si algo cambió
+        if ($account_changed || $amount_changed) {
+            // Si había un account_id anterior y monto pagado, revertir la transacción
+            if ($old_purchase && !empty($old_purchase->account_id) && floatval($old_purchase->paid) > 0) {
+                $old_account = $this->Account_model->getAccountById($old_purchase->account_id);
+                if ($old_account) {
+                    $balance_before_reversal = floatval($old_account->current_balance);
+                    $old_amount = floatval($old_purchase->paid);
+                    $balance_after_reversal = $balance_before_reversal + $old_amount; // DEVOLVER el dinero
+                    
+                    $this->Account_model->updateBalance($old_purchase->account_id, $balance_after_reversal);
+                    
+                    // Registrar transacción de reversión
+                    $reversal_data = [
+                        'to_account_id' => $old_purchase->account_id, // Reversión de compra = entrada de dinero
+                        'transaction_type' => 'Deposito',
+                        'amount' => $old_amount,
+                        'reference_type' => 'purchase',
+                        'reference_id' => $purchase_id,
+                        'note' => 'Reversión de compra #' . $old_purchase->reference_no . ' (datos finales actualizados)',
+                        'transaction_date' => date('Y-m-d H:i:s'),
+                        'user_id' => $this->session->userdata('user_id'),
+                        'company_id' => $this->session->userdata('company_id')
+                    ];
+                    $this->Account_transaction_model->insertTransaction($reversal_data);
+                }
+            }
+            
+            // Actualizar los datos de la compra
+            $this->Common_model->updateInformation($data, $purchase_id, "tbl_purchase");
+            
+            // Aplicar nueva transacción si hay cuenta y monto
+            if (!empty($data['account_id']) && floatval($data['paid']) > 0) {
+                $new_account = $this->Account_model->getAccountById($data['account_id']);
+                if ($new_account) {
+                    $balance_before_new = floatval($new_account->current_balance);
+                    $new_amount = floatval($data['paid']);
+                    $balance_after_new = $balance_before_new - $new_amount; // Las compras RESTAN
+                    
+                    $this->Account_model->updateBalance($data['account_id'], $balance_after_new);
+                    
+                    $new_transaction_data = [
+                        'from_account_id' => $data['account_id'], // Compra = salida de dinero
+                        'transaction_type' => 'Compra',
+                        'amount' => $new_amount,
+                        'reference_type' => 'purchase',
+                        'reference_id' => $purchase_id,
+                        'note' => 'Compra #' . $data['reference_no'],
+                        'transaction_date' => date('Y-m-d H:i:s'),
+                        'user_id' => $this->session->userdata('user_id'),
+                        'company_id' => $this->session->userdata('company_id')
+                    ];
+                    $this->Account_transaction_model->insertTransaction($new_transaction_data);
+                }
+            }
+        } else {
+            // Solo actualizar los datos sin movimientos contables
+            $this->Common_model->updateInformation($data, $purchase_id, "tbl_purchase");
+        }
+        
         echo json_encode(['success' => true]);
     }
 

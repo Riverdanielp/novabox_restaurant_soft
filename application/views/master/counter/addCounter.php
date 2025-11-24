@@ -100,6 +100,44 @@
                         <?php } ?>
                     </div>
 
+                    <div class="clearfix"></div>
+                    
+                    <!-- Configuración de Apertura/Cierre con Cuentas -->
+                    <div class="col-12 mb-3">
+                        <h5 class="mb-3"><i class="fa fa-cog"></i> Configuración de Movimientos Contables</h5>
+                    </div>
+
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="affect_opening_to_accounts" id="affect_opening_to_accounts" value="1">
+                                <label class="form-check-label" for="affect_opening_to_accounts">
+                                    <i class="fa fa-exchange-alt"></i> Afectar Apertura a Cuentas
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">Si está activo, la apertura de caja generará movimientos contables descontando de las cuentas asociadas a cada método de pago.</small>
+                        </div>
+                    </div>
+
+                    <div class="clearfix"></div>
+
+                    <div class="col-12 mb-3">
+                        <h5 class="mb-3"><i class="fa fa-dollar-sign"></i> Montos Predeterminados de Apertura</h5>
+                        <small class="form-text text-muted mb-3">Configure los valores predeterminados que se cargarán automáticamente al abrir caja con este contador.</small>
+                    </div>
+
+                    <?php if (isset($payment_methods) && !empty($payment_methods)): ?>
+                        <?php foreach ($payment_methods as $pm): ?>
+                            <div class="col-md-6 col-lg-3 mb-3">
+                                <div class="form-group">
+                                    <label><i class="fa fa-credit-card"></i> <?php echo escape_output($pm->name); ?></label>
+                                    <input type="hidden" name="default_payment_ids[]" value="<?php echo escape_output($pm->id); ?>">
+                                    <input type="number" step="0.01" min="0" name="default_payment_amounts[]" class="form-control" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+
                 </div>
             </div>
             <div class="box-footer">

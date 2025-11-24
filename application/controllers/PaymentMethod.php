@@ -1,19 +1,4 @@
 <?php
-/*
-  ###########################################################
-  # PRODUCT NAME: 	iRestora PLUS - Next Gen Restaurant POS
-  ###########################################################
-  # AUTHER:		Doorsoft
-  ###########################################################
-  # EMAIL:		info@doorsoft.co
-  ###########################################################
-  # COPYRIGHTS:		RESERVED BY Door Soft
-  ###########################################################
-  # WEBSITE:		http://www.doorsoft.co
-  ###########################################################
-  # This is PaymentMethod Controller
-  ###########################################################
- */
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -23,6 +8,7 @@ class PaymentMethod extends Cl_Controller {
         parent::__construct();
         $this->load->model('Common_model');
         $this->load->model('Sale_model');
+        $this->load->model('Account_model');
         $this->load->library('form_validation');
         $this->Common_model->setDefaultTimezone();
 
@@ -105,6 +91,7 @@ class PaymentMethod extends Cl_Controller {
      * @param int
      */
     public function addEditPaymentMethod($encrypted_id = "") {
+        $company_id = $this->session->userdata('company_id');
         $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
         if($this->input->post('submit')) {
             $this->form_validation->set_rules('name', lang('payment_method_name'), 'required|max_length[50]');
@@ -120,6 +107,7 @@ class PaymentMethod extends Cl_Controller {
                 $fmc_info['name'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('name')));
                 $fmc_info['description'] =escape_output($this->input->post($this->security->xss_clean('description')));
                 $fmc_info['tipo_trx'] =escape_output($this->input->post($this->security->xss_clean('tipo_trx')));
+                $fmc_info['account_id'] = $this->input->post('account_id') ? $this->input->post('account_id') : NULL;
                 $fmc_info['user_id'] = $this->session->userdata('user_id');
                 $fmc_info['company_id'] = $this->session->userdata('company_id');
                 if ($id == "") {
@@ -133,12 +121,14 @@ class PaymentMethod extends Cl_Controller {
             } else {
                 if ($id == "") {
                     $data = array();
+                    $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
                     $data['main_content'] = $this->load->view('master/paymentMethod/addPaymentMethod', $data, TRUE);
                     $this->load->view('userHome', $data);
                 } else {
                     $data = array();
                     $data['encrypted_id'] = $encrypted_id;
                     $data['payment_method_information'] = $this->Common_model->getDataById($id, "tbl_payment_methods");
+                    $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
                     $data['main_content'] = $this->load->view('master/paymentMethod/editPaymentMethod', $data, TRUE);
                     $this->load->view('userHome', $data);
                 }
@@ -146,12 +136,14 @@ class PaymentMethod extends Cl_Controller {
         } else {
             if ($id == "") {
                 $data = array();
+                $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
                 $data['main_content'] = $this->load->view('master/paymentMethod/addPaymentMethod', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
                 $data = array();
                 $data['encrypted_id'] = $encrypted_id;
                 $data['payment_method_information'] = $this->Common_model->getDataById($id, "tbl_payment_methods");
+                $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
                 $data['main_content'] = $this->load->view('master/paymentMethod/editPaymentMethod', $data, TRUE);
                 $this->load->view('userHome', $data);
             }

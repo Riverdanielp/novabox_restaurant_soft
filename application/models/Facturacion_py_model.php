@@ -148,10 +148,11 @@ class Facturacion_py_model extends CI_Model {
     /**
      * Obtiene el resumen de correlativos para un punto de expedición en un mes específico
      */
-    public function get_correlativos_resumen($punto_id, $mes, $anio) {
+    public function get_correlativos_resumen($punto_id, $mes, $anio, $tipo_documento = '1') {
         $this->db->select('MIN(fe.numero) as min_numero, MAX(fe.numero) as max_numero, COUNT(*) as total_facturas');
         $this->db->from('py_facturas_electronicas fe');
         $this->db->where('fe.punto_expedicion_id', $punto_id);
+        $this->db->where('fe.tipo_documento', $tipo_documento);
         $this->db->where('MONTH(fe.fecha)', $mes);
         $this->db->where('YEAR(fe.fecha)', $anio);
         return $this->db->get()->row();
@@ -160,9 +161,9 @@ class Facturacion_py_model extends CI_Model {
     /**
      * Obtiene las facturas para un punto de expedición en un mes específico
      */
-    public function get_facturas_por_mes($punto_id, $mes, $anio) {
+    public function get_facturas_por_mes($punto_id, $mes, $anio, $tipo_documento = '1') {
         $this->db->select("
-            fe.id, fe.numero, fe.estado, fe.cdc, fe.fecha,
+            fe.id, fe.numero, fe.estado, fe.cdc, fe.fecha, fe.tipo_documento,
             CONCAT_WS('-', 
                 LPAD(suc.codigo_establecimiento, 3, '0'), 
                 LPAD(pe.codigo_punto, 3, '0'), 
@@ -177,6 +178,7 @@ class Facturacion_py_model extends CI_Model {
         $this->db->join('py_sifen_puntos_expedicion pe', 'fe.punto_expedicion_id = pe.id', 'left');
         $this->db->join('py_sifen_documentos_estados est', 'fe.estado = est.id', 'left');
         $this->db->where('fe.punto_expedicion_id', $punto_id);
+        $this->db->where('fe.tipo_documento', $tipo_documento);
         // Usar DATE() para evitar problemas de zona horaria
         $fecha_inicio = $anio . '-' . str_pad($mes, 2, '0', STR_PAD_LEFT) . '-01';
         $fecha_fin = date('Y-m-t', strtotime($fecha_inicio));

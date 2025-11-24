@@ -7207,7 +7207,7 @@ function getSafePrice(priceAttr) {
                           function(inputValue){
                               if (inputValue === false) return false;
                               if (inputValue === "") {
-                                  swal.showInputError("Please enter your reason!");
+                                  swal.showInputError("Por favor, introduzca el motivo!");
                                   return false
                               }else{
                                   $(".sa-button-container").find('.cancel').click();
@@ -8101,12 +8101,12 @@ function getSafePrice(priceAttr) {
                 });
   
                 let tax_information_item = "";
-                // for (let i = 0; i < window.items.length; i++) {
-                //     // look for the entry with a matching `code` value
-                //     // if (items[i].item_id == item_id) {
-                //     //     tax_information_item = items[i].tax_information;
-                //     // }
-                // }
+                for (let i = 0; i < window.items.length; i++) {
+                    // look for the entry with a matching `code` value
+                    if (items[i].item_id == item_id) {
+                        tax_information_item = items[i].tax_information;
+                    }
+                }
   
                 tax_information_item= IsJsonString(tax_information_item)
                     ? JSON.parse(tax_information_item)
@@ -10631,6 +10631,7 @@ function getPaymentArrayWithChangeAndDue() {
         let customer_id = $("#customer_id_modal").val();
         let customer_name = $("#customer_name_modal").val();
         let customer_phone = $("#customer_phone_modal").val();
+        let customer_phone_prefix = $("#customer_phone_prefix_modal").val();
         let customer_email = $("#customer_email_modal").val();
         let customer_password = $("#customer_password_modal").val();
         let customer_dob = $("#customer_dob_modal").val();
@@ -10749,6 +10750,7 @@ function getPaymentArrayWithChangeAndDue() {
             customer_id: customer_id,
             customer_name: customer_name,
             customer_phone: customer_phone,
+            customer_phone_prefix: customer_phone_prefix,
             customer_email: customer_email,
             customer_dob: customer_dob,
             customer_doa: customer_doa,
@@ -13046,6 +13048,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
             "#customer_id_modal",
             "#customer_name_modal",
             "#customer_phone_modal",
+            "#customer_phone_prefix_modal",
             "#customer_email_modal",
             "#customer_dob_modal",
             "#customer_doa_modal",
@@ -16022,6 +16025,7 @@ function set_quantity_for_balanza_item(item_id, cantidad_balanza, precio_unitari
                 $("#customer_id_modal").val(response.id || "");
                 $("#customer_name_modal").val(response.name || "");
                 $("#customer_phone_modal").val(response.phone || "");
+                $("#customer_phone_prefix_modal").val(response.prefix || "");
                 $("#customer_email_modal").val(response.email || "");
                 $("#customer_dob_modal").val(response.date_of_birth || "");
                 $("#customer_doa_modal").val(response.date_of_anniversary || "");

@@ -34,6 +34,7 @@
                         <th class="title" class="ir_w_20"><?php echo lang('category'); ?></th>
                         <th class="title" class="ir_w_20"><?php echo lang('stock_qty_amount'); ?></th>
                         <th class="title" class="ir_w_20"><?php echo lang('alert_qty_amount'); ?></th>
+                        <th class="title" class="ir_w_10"><?php echo lang('actions'); ?></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -69,11 +70,15 @@
                                     <td><?= escape_output($value->name) ?></td>
                                     <td><?php echo escape_output($value->category_name); ?></td>
                                     <?php if(($value->ing_type=="Plain Ingredient" && $value->is_direct_food!=2) && $value->conversion_rate!=1):?>
-                                            <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>"><?php echo floatval($total_sale_unit); ?><?php echo " " . $value->unit_name2 ?></span> <span><?= ($totalStock) ? floatval($totalStock%$conversion_rate) : getAmtP(0) ?><?= " " . escape_output($value->unit_name)?></span></td>
+                                            <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>">
+                                                 <?php echo floatval($total_sale_unit); ?><?php echo " " . $value->unit_name2 ?> <span><?php echo ($totalStock) ? floatval($totalStock%$conversion_rate) : getAmtP(0) ?><?php echo " " . escape_output($value->unit_name)?></span>
+                                            </td>
                                     <?php else:
                                         $stock_float = (float)($total_sale_unit + (($totalStock) ? ($totalStock%$conversion_rate) : (0)));
                                         ?>
-                                        <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>"><?php echo escape_output(floatval($stock_float)) ?> <?= " " . escape_output($value->unit_name)?></span></td>
+                                        <td style="<?= ($totalStock <= ($value->alert_quantity*$value->conversion_rate)) ? 'color:red' : '' ?>">
+                                           <?php echo round(floatval($stock_float),2) ?> <?php echo " " . escape_output($value->unit_name)?>
+                                        </td>
                                     <?php
                                     endif
                                     ?>
@@ -86,6 +91,10 @@
                                             <?php
                                         endif
                                         ?>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-info open-modal-btn" data-ingredient-id="<?php echo $value->id; ?>">Ver Detalles</button>
+                                        <a href="<?php echo base_url(); ?>Inventory/ingredientSalesHistory/<?php echo $value->id; ?>" class="btn btn-sm btn-primary">Histórico Ventas</a>
                                     </td>
                                 </tr>
                                 <?php
@@ -176,11 +185,61 @@
         </div>
     </div>
 
+    <div class="modal fade" id="ingredientModal" tabindex="-1" role="dialog" aria-labelledby="ingredientModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ingredientModalLabel">Detalles del Ingrediente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="ingredientTab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="stock-tab" data-bs-toggle="tab" href="#stock" role="tab" aria-controls="stock" aria-selected="true">Stock por Sucursal</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="movements-tab" data-bs-toggle="tab" href="#movements" role="tab" aria-controls="movements" aria-selected="false">Últimos Movimientos</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="ingredientTabContent">
+                        <div class="tab-pane fade show active" id="stock" role="tabpanel" aria-labelledby="stock-tab">
+                            <div id="stockContent">
+                                <!-- Stock por sucursales se cargará aquí -->
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="movements" role="tabpanel" aria-labelledby="movements-tab">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="startDate">Fecha Desde:</label>
+                                    <input type="date" class="form-control" id="startDate">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="endDate">Fecha Hasta:</label>
+                                    <input type="date" class="form-control" id="endDate">
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-primary mt-4" onclick="loadMovements(1, $('#startDate').val(), $('#endDate').val())">Filtrar</button>
+                                </div>
+                            </div>
+                            <div id="movementsContent">
+                                <!-- Movimientos se cargarán aquí -->
+                            </div>
+                            <nav aria-label="Movements pagination">
+                                <ul class="pagination" id="movementsPagination">
+                                    <!-- Paginación se generará aquí -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </section>
 
 <script src="<?php echo base_url(); ?>frequent_changing/js/inventory.js"></script>
 <!-- DataTables -->
-<script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js"></script>
 <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jquery.dataTables.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js">
 </script>
@@ -203,116 +262,56 @@
   var ingredientCategories = <?php echo json_encode($ingredient_categories); ?>;
 </script>
 <script>
-document.getElementById('printTicketBtn').addEventListener('click', function() {
-    // Organizar inventario por categoría
-    var groupedByCategory = {};
-    inventoryData.forEach(function(item) {
-        var cat = item.category_name || 'Sin categoría';
-        if (!groupedByCategory[cat]) groupedByCategory[cat] = [];
-        groupedByCategory[cat].push(item);
+jQuery(document).ready(function() {
+    function openIngredientModal(ingredientId) {
+        currentIngredientId = ingredientId;
+        jQuery('#ingredientModal').modal('show');
+        loadStockByOutlets();
+        loadMovements();
+    }
+
+    function loadStockByOutlets() {
+        jQuery.ajax({
+            url: '<?php echo base_url(); ?>Inventory/getStockByOutlets',
+            type: 'POST',
+            data: { ingredient_id: currentIngredientId },
+            success: function(response) {
+                jQuery('#stockContent').html(response);
+            }
+        });
+    }
+
+    function loadMovements(page = 1, startDate = '', endDate = '') {
+        currentPage = page;
+        jQuery.ajax({
+            url: '<?php echo base_url(); ?>Inventory/getIngredientMovements',
+            type: 'POST',
+            data: { 
+                ingredient_id: currentIngredientId, 
+                page: page, 
+                start_date: startDate, 
+                end_date: endDate 
+            },
+            success: function(response) {
+                const data = JSON.parse(response);
+                jQuery('#movementsContent').html(data.html);
+                jQuery('#movementsPagination').html(data.pagination);
+            }
+        });
+    }
+
+    // Event listener para los botones de abrir modal
+    jQuery(document).on('click', '.open-modal-btn', function() {
+        const ingredientId = jQuery(this).data('ingredient-id');
+        openIngredientModal(ingredientId);
     });
 
-    // Generar HTML para el ticket
-    var ticketWidth = 80; // Cambia a 56 para 56mm
-    var html = `
-    <html>
-      <head>
-        <title>Reporte de Inventario</title>
-        <style>
-          @media print {
-            body, html { width: ${ticketWidth}mm; }
-          }
-          body { width: ${ticketWidth}mm; font-family: Arial, sans-serif; font-size: 12px; }
-          .center { text-align: center; }
-          h3 { margin: 5px 0; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-          th, td { border-bottom: 1px dotted #ccc; padding: 3px; text-align: left; font-size: 10px; }
-          th { font-weight: bold; }
-          .dots { letter-spacing: 2px; color: #ccc; font-size: 9px; text-align: center; }
-          .category-title { margin-top: 8px; margin-bottom: 2px; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <div class="center">
-          <h2>Reporte de inventario</h2>
-          <h3>${outlet_name}</h3>
-        </div>
-          <h3>USUARIO: ${username}</h3>
-          <h3>HORA: ${hora}</h3>
-    `;
+    jQuery('#startDate, #endDate').change(function() {
+        loadMovements(1, jQuery('#startDate').val(), jQuery('#endDate').val());
+    });
 
-    for (const [category, items] of Object.entries(groupedByCategory)) {
-        html += `<div class="category-title">${category}</div>`;
-        html += `<table>
-                  <thead>
-                    <tr>
-                      <th style="width:22%;">Cod</th>
-                      <th style="width:48%;">Prod</th>
-                      <th style="width:20%;">Cant</th>
-                      <th style="width:10%;">...</th>
-                    </tr>
-                  </thead>
-                  <tbody>`;
-        items.forEach(function(item) {
-            var cantidad = calcularStock(item);
-
-            html += `
-              <tr>
-                <td>${item.code}</td>
-                <td>${item.name}</td>
-                <td>${cantidad}</td>
-                <td class="dots">.............</td>
-              </tr>
-            `;
-        });
-        html += `</tbody></table>`;
-    }
-
-    html += `</body></html>`;
-
-    // Abrir ventana y mandar a imprimir
-    var win = window.open("", "Imprimir Ticket", "width=400,height=600");
-    win.document.write(html);
-    win.document.close();
-    setTimeout(function() {
-      win.focus();
-      win.print();
-      win.close(); // Descomenta si quieres cerrar automáticamente después de imprimir
-    }, 500);
+    // Hacer loadMovements global para el onclick del botón filtrar
+    window.loadMovements = loadMovements;
 });
-function toNumber(valor) {
-    var n = parseFloat(valor);
-    return isNaN(n) ? 0 : n;
-}
-function calcularStock(item) {
-    var conversion = toNumber(item.conversion_rate) ? toNumber(item.conversion_rate) : 1;
-    var totalStock = (toNumber(item.total_purchase) * conversion)
-        - toNumber(item.total_consumption)
-        - toNumber(item.total_modifiers_consumption)
-        - toNumber(item.total_waste)
-        + toNumber(item.total_consumption_plus)
-        - toNumber(item.total_consumption_minus)
-        + (toNumber(item.total_transfer_plus) * conversion)
-        - (toNumber(item.total_transfer_minus) * conversion)
-        + (toNumber(item.total_transfer_plus_2) * conversion)
-        - (toNumber(item.total_transfer_minus_2) * conversion)
-        + (toNumber(item.total_production) * conversion);
-
-    var total_sale_unit;
-    if (!toNumber(item.conversion_rate)) {
-        total_sale_unit = totalStock / 1;
-    } else {
-        total_sale_unit = totalStock / conversion;
-    }
-
-    var cantidad;
-    if(item.ing_type == "Plain Ingredient" && item.is_direct_food != 2 && conversion != 1){
-        cantidad = parseFloat(total_sale_unit) + " " + (totalStock % conversion);
-    } else {
-        var stock_float = parseFloat(total_sale_unit) + ((totalStock) ? (totalStock % conversion) : 0);
-        cantidad = parseFloat(stock_float).toFixed(2);
-    }
-    return cantidad;
-}
 
 </script>

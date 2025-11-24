@@ -887,6 +887,7 @@ body .ui-tooltip {
 
 #show_tables_modal2 .select_table_modal_info_holder2 .all-dineIn-table {
 	height: calc(100% - 32px);
+	overflow: scroll;
   }
 .width_86{
 	width: 100% !important;

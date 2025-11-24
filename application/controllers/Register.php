@@ -12,6 +12,9 @@ class Register extends Cl_Controller {
         $this->load->model('Common_model');
         $this->load->model('Master_model');
         $this->load->model('Register_model');
+        $this->load->model('Account_model');
+        $this->load->model('Account_transaction_model');
+        $this->load->model('PaymentMethod_model');
         $this->load->library('form_validation');
         
         $this->Common_model->setDefaultTimezone();
@@ -141,9 +144,46 @@ class Register extends Cl_Controller {
                 }
                 $register_info['opening_details'] = json_encode($arr);
 
-                   $this->Common_model->insertInformation($register_info, "tbl_register");
+                   $register_id = $this->Common_model->insertInformation($register_info, "tbl_register");
+                   
+                   // ===== NUEVA LÓGICA: Verificar si debe afectar cuentas en apertura =====
+                   $counter_details = $this->Common_model->getDataById($register_info['counter_id'], "tbl_counters");
+                   
+                   if (isset($counter_details->affect_opening_to_accounts) && $counter_details->affect_opening_to_accounts == 1) {
+                       // Generar movimientos contables por cada método de pago
+                       foreach ($payment_ids as $key => $payment_id) {
+                           $amount = (float)$payments[$key];
+                           
+                           if ($amount > 0) {
+                               // Obtener información del método de pago
+                               $payment_method = $this->PaymentMethod_model->getPaymentMethodById($payment_id);
+                               
+                               if ($payment_method && $payment_method->account_id) {
+                                   // Crear movimiento contable: DESCONTAR de la cuenta
+                                   $transaction_data = array(
+                                       'transaction_type' => 'Apertura de Caja',
+                                       'from_account_id' => $payment_method->account_id, // Se descuenta de esta cuenta
+                                       'to_account_id' => NULL,
+                                       'amount' => $amount,
+                                       'reference_type' => 'register_opening',
+                                       'reference_id' => $register_id,
+                                       'register_id' => $register_id,
+                                       'note' => 'Apertura de Caja #' . $register_id . ' - Método de Pago: ' . $payment_names[$key] . ' - Monto: $' . number_format($amount, 2),
+                                       'transaction_date' => date('Y-m-d H:i:s'),
+                                       'created_at' => date('Y-m-d H:i:s'),
+                                       'company_id' => $company_id,
+                                       'user_id' => $user_id,
+                                       'del_status' => 'Live'
+                                   );
+                                   
+                                   $this->Account_transaction_model->insertTransaction($transaction_data);
+                               }
+                           }
+                       }
+                   }
+                   // ===== FIN NUEVA LÓGICA =====
+                   
                    // Printer Session Data Set
-                   $counter_details = $this->Common_model->getPrinterIdByCounterId($register_info['counter_id']);
                    $printer_info = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
                    $print_arr = [];
                    $print_arr['counter_id'] = $register_info['counter_id'];
@@ -316,4 +356,43 @@ class Register extends Cl_Controller {
                 
     }
 
+    /**
+     * getCounterPreset - Endpoint AJAX para obtener configuración del contador
+     * @access public
+     * @param int
+     * @return json
+     */
+    public function getCounterPreset($counter_id = null) {
+        if (!$counter_id) {
+            $counter_id = $this->input->post('counter_id');
+        }
+        
+        if (!$counter_id) {
+            echo json_encode(['error' => 'No counter ID provided']);
+            return;
+        }
+
+        $counter = $this->Common_model->getDataById($counter_id, "tbl_counters");
+        
+        if (!$counter) {
+            echo json_encode(['error' => 'Counter not found']);
+            return;
+        }
+
+        // Decodificar el JSON de default_opening_payments
+        $default_payments = [];
+        if (!empty($counter->default_opening_payments)) {
+            $decoded = json_decode($counter->default_opening_payments, true);
+            if (is_array($decoded)) {
+                $default_payments = $decoded;
+            }
+        }
+
+        $response = [
+            'affect_opening_to_accounts' => (int)$counter->affect_opening_to_accounts,
+            'default_opening_payments' => $default_payments
+        ];
+
+        echo json_encode($response);
+    }
 }

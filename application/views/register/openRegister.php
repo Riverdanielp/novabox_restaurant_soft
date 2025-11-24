@@ -65,13 +65,18 @@
                     </div>
                     <div class="clearfix"></div>
 
-                        <?php foreach (getAllPaymentMethods(5) as $value):?>
+                        <?php 
+                        $pm_index = 0;
+                        foreach (getAllPaymentMethods(5) as $value):
+                        ?>
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label><?php echo escape_output($value->name); ?></label>
                                 <input type="hidden" value="<?php echo escape_output($value->name); ?>" name="payment_names[]">
                                 <input type="hidden" value="<?php echo escape_output($value->id); ?>" name="payment_ids[]">
-                                <input tabindex="1" onfocus="select();" type="text" name="payments[]" class="form-control cal_row"
+                                <input tabindex="1" onfocus="select();" type="text" name="payments[]" 
+                                    class="form-control cal_row payment-input" 
+                                    data-payment-id="<?php echo escape_output($value->id); ?>"
                                     placeholder="<?php echo lang('opening_balance'); ?>"
                                     value="0">
                             </div>
@@ -81,7 +86,10 @@
                             </div>
                             <?php } ?>
                         </div>
-                        <?php endforeach;?>
+                        <?php 
+                        $pm_index++;
+                        endforeach;
+                        ?>
                     </div>
                                 
                     
@@ -144,5 +152,5 @@
             
             </div>
     </div>
-    <script type="text/javascript" src="<?php echo base_url('frequent_changing/js/opening_register.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo base_url('frequent_changing/js/opening_register.js?v=7.5001'); ?>"></script>
 </section>

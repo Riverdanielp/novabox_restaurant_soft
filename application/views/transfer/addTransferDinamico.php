@@ -30,7 +30,7 @@
                                 <?php endif; } ?>
                             </select> -->
 
-                            <select class="form-control select2" name="to_outlet_id" id="to_outlet_id" <?= $disable_to_outlet ? 'disabled' : '' ?>>
+                            <select class="form-control select2" name="to_outlet_id" id="to_outlet_id" <?= $disable_to_outlet ? 'readonly' : '' ?>>
                                 <option value=""><?php echo lang('select'); ?></option>
                                 <?php
                                     $outlet_id_actual = $this->session->userdata('outlet_id');
@@ -89,14 +89,14 @@
                         <div class="col-md-3">
                             <label><?php echo lang('status'); ?></label>
                             <select class="form-control select2" name="status" id="status"
-                                <?= $status_editable ? '' : 'disabled' ?>>
-                                <?php if($status_editable_emisor): ?>
+                                <?= $status_editable ? '' : '' ?>>
+                                <?php //if($status_editable_emisor): ?>
                                     <option value="2" <?= $status==2?'selected':''; ?>><?php echo lang('Draft'); ?></option>
                                     <option value="3" <?= $status==3?'selected':''; ?>><?php echo lang('Sent'); ?></option>
-                                <?php endif; ?>
-                                <?php if($status_editable_receptor): ?>
-                                    <option value="1" <?= $status==1?'selected':''; ?>><?php echo lang('Received'); ?></option>
-                                <?php endif; ?>
+                                <?php //endif; ?>
+                                <?php //if($status_editable_receptor): ?>
+                                    <option value="1" <?= $status==1?'selected':''; ?>><?php echo lang('Sent'); ?> y <?php echo lang('Received'); ?></option>
+                                <?php //endif; ?>
                             </select>
                         </div>
                     </div>
@@ -115,7 +115,7 @@
         
                         <div class="col-md-6 ">
                             <br><br>
-                            <button type="button" class="btn btn-primary" id="btn_guardar_transfer" <?= $transfer_editable?'':'disabled' ?>>
+                            <button type="button" class="btn btn-primary" id="btn_guardar_transfer" <?= $transfer_editable?'':'' ?>>
                                 <i class="fa fa-save"></i> Guardar Cambios
                             </button>
                         </div>

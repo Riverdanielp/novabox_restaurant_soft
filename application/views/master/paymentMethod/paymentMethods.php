@@ -55,6 +55,8 @@
                                 <th class="ir_w_1"> <?php echo lang('sn'); ?></th>
                                 <th class="ir_w_10 "><?php echo lang('payment_method_name'); ?></th>
                                 <th  class="ir_w_10"><?php echo lang('description'); ?></th>
+                                <th class="ir_w_8">Tipo Transacción</th>
+                                <th class="ir_w_10">Cuenta Asociada</th>
                                 <th class="ir_w_26"><?php echo lang('added_by'); ?></th>
                                 <th  class="ir_w_1 ir_txt_center not-export-col"><?php echo lang('actions'); ?></th>
                             </tr>
@@ -71,6 +73,32 @@
                                 <td class="ir_txt_center"><?php echo escape_output($key); ?></td>
                                 <td><?php echo escape_output($value->name) ?></td>
                                 <td><?php echo escape_output($value->description) ?></td>
+                                <td>
+                                    <?php 
+                                        if ($value->tipo_trx == 'Contado') {
+                                            echo '<span class="badge bg-success">Contado</span>';
+                                        } elseif ($value->tipo_trx == 'Crédito') {
+                                            echo '<span class="badge bg-warning">Crédito</span>';
+                                        } else {
+                                            echo '<span class="badge bg-secondary">Sin Clasificar</span>';
+                                        }
+                                    ?>
+                                </td>
+                                <td>
+                                    <?php 
+                                        if ($value->account_id) {
+                                            // Obtener nombre de la cuenta
+                                            $account_info = $this->db->get_where('tbl_accounts', array('id' => $value->account_id))->row();
+                                            if ($account_info) {
+                                                echo '<span class="badge bg-info">' . escape_output($account_info->account_name) . '</span>';
+                                            } else {
+                                                echo '<span class="badge bg-danger">Cuenta no encontrada</span>';
+                                            }
+                                        } else {
+                                            echo '<span class="badge bg-dark">Predeterminada</span>';
+                                        }
+                                    ?>
+                                </td>
                                 <td><?php echo escape_output(userName($value->user_id)); ?></td>
 
                                 <td>

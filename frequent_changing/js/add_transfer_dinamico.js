@@ -5,6 +5,7 @@ $(function() {
     // --- Autocompletar por código/nombre (igual que antes) ---
     let sugerencias = [];
     let seleccion_sugerencia = -1;
+    let is_menu_selected = false;
 
     $("#codigo_busqueda").on('input', function(e) {
         let valor = $(this).val().trim();
@@ -17,8 +18,9 @@ $(function() {
                 sugerencias = res.items;
                 let html = '';
                 res.items.forEach((item, i) => {
-                    html += `<div class="sugerencia-item" data-index="${i}" data-id="${item.id}" style="padding:6px;cursor:pointer;">
-                        <b>${item.code}</b> - ${item.name} <small>(${item.unit_name})</small>
+                    let tipo = item.is_menu ? ' (Menú)' : '';
+                    html += `<div class="sugerencia-item" data-index="${i}" data-id="${item.id}" data-is-menu="${item.is_menu}" style="padding:6px;cursor:pointer;">
+                        <b>${item.code}</b> - ${item.name}${tipo} <small>(${item.unit_name})</small>
                     </div>`;
                 });
                 $("#sugerencias").html(html).show();
@@ -121,9 +123,25 @@ $(function() {
     $("#sugerencias").on('mousedown', '.sugerencia-item', function(e) {
         let idx = $(this).data('index');
         let item = sugerencias[idx];
-        cargarProducto(item.code);
+        cargarProductoDesdeSugerencia(item);
         $("#sugerencias").hide();
     });
+
+    function cargarProductoDesdeSugerencia(item) {
+        $("#producto_nombre").val(item.name);
+        $("#ingrediente_id").val(item.id);
+        $("#qty_stock").val(item.is_menu ? 'Menú' : 'Cargando...');
+        $("#qty_transfer").focus();
+        is_menu_selected = item.is_menu;
+        if (!item.is_menu) {
+            // Si no es menú, cargar stock
+            $.post(base_url + "Transfer/ajaxBuscarIngredientePorCodigo", { codigo: item.code }, function(res) {
+                if (res.success) {
+                    $("#qty_stock").val(res.stock);
+                }
+            }, 'json');
+        }
+    }
 
     $(document).on('click', function(e) {
         if (!$(e.target).closest("#codigo_busqueda, #sugerencias").length) {
@@ -142,8 +160,9 @@ $(function() {
             if (res.success) {
                 $("#producto_nombre").val(res.name);
                 $("#ingrediente_id").val(res.id);
-                $("#qty_stock").val(res.stock);
+                $("#qty_stock").val(res.is_menu ? 'Menú' : res.stock);
                 $("#qty_transfer").focus();
+                is_menu_selected = res.is_menu;
             } else {
                 alert("Producto no encontrado");
             }
@@ -188,7 +207,7 @@ $(function() {
             transfer_id: transfer_id,
             reference_no: $("#reference_no").val(),
             date: $("#date").val(),
-            transfer_type: 1,
+            transfer_type: is_menu_selected ? 2 : 1,
             to_outlet_id: $("#to_outlet_id").val(),
             ingredient_id: ingrediente_id,
             quantity_amount: cantidad

@@ -110,7 +110,17 @@
                         <?php endfor; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
+                    <label for="tipo_documento" class="form-label">Tipo de Comprobante</label>
+                    <select name="tipo_documento" id="tipo_documento" class="form-select">
+                        <option value="1" <?php echo ($tipo_documento == '1') ? 'selected' : ''; ?>>Factura Electrónica</option>
+                        <option value="4" <?php echo ($tipo_documento == '4') ? 'selected' : ''; ?>>Autofactura</option>
+                        <option value="5" <?php echo ($tipo_documento == '5') ? 'selected' : ''; ?>>Nota de Crédito</option>
+                        <option value="6" <?php echo ($tipo_documento == '6') ? 'selected' : ''; ?>>Nota de Débito</option>
+                        <option value="7" <?php echo ($tipo_documento == '7') ? 'selected' : ''; ?>>Nota de Remisión</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
                     <label class="form-label">&nbsp;</label>
                     <button type="submit" class="btn btn-primary form-control">
                         <i data-feather="search"></i> Filtrar
@@ -144,7 +154,7 @@
 
     <!-- Navegación de meses -->
     <div class="month-nav">
-        <a href="<?php echo base_url('Facturacion_py/correlativos?punto_id=' . $this->input->get('punto_id') . '&mes=' . $mes_anterior . '&anio=' . $anio_anterior); ?>" class="btn btn-outline-secondary">
+        <a href="<?php echo base_url('Facturacion_py/correlativos?punto_id=' . $this->input->get('punto_id') . '&mes=' . $mes_anterior . '&anio=' . $anio_anterior . '&tipo_documento=' . $tipo_documento); ?>" class="btn btn-outline-secondary">
             <i data-feather="chevron-left"></i>
         </a>
         <?php 
@@ -156,7 +166,7 @@
         $mes_actual = isset($meses[$mes]) ? $meses[$mes] : $mes;
         ?>
         <h4><?php echo $mes_actual . ' ' . $anio; ?></h4>
-        <a href="<?php echo base_url('Facturacion_py/correlativos?punto_id=' . $this->input->get('punto_id') . '&mes=' . $mes_siguiente . '&anio=' . $anio_siguiente); ?>" class="btn btn-outline-secondary">
+        <a href="<?php echo base_url('Facturacion_py/correlativos?punto_id=' . $this->input->get('punto_id') . '&mes=' . $mes_siguiente . '&anio=' . $anio_siguiente . '&tipo_documento=' . $tipo_documento); ?>" class="btn btn-outline-secondary">
             <i data-feather="chevron-right"></i>
         </a>
     </div>
@@ -270,11 +280,22 @@ function abrirModalFactura(facturaId) {
 
 function mostrarDetallesFactura(data) {
     var html = '';
+    
+    // Mapeo de tipos de documentos
+    var tiposDocumento = {
+        '1': 'Factura Electrónica',
+        '4': 'Autofactura',
+        '5': 'Nota de Crédito',
+        '6': 'Nota de Débito',
+        '7': 'Nota de Remisión'
+    };
+    var tipoDocTexto = tiposDocumento[data.factura.tipo_documento] || 'Tipo ' + data.factura.tipo_documento;
 
     // Información básica
     html += '<div class="row mb-3">';
     html += '<div class="col-md-6">';
     html += '<h5>Datos de Factura</h5>';
+    html += '<p><strong>Tipo:</strong> ' + tipoDocTexto + '</p>';
     html += '<p><strong>Número:</strong> ' + data.factura.numero_formateado + '</p>';
     html += '<p><strong>Fecha:</strong> ' + data.factura.fecha + '</p>';
     html += '<p><strong>Estado:</strong> <span class="badge bg-primary">' + data.factura.estado_descripcion + '</span></p>';
@@ -335,14 +356,14 @@ function mostrarDetallesFactura(data) {
     html += '<button class="btn btn-info me-2" onclick="verFactura(' + data.factura.id + ')">';
     html += '<i data-feather="eye"></i> Ver</button>';
     if (data.factura.cdc) {
-        html += '<button class="btn btn-success me-2" onclick="descargarPDFFactura(\'' + data.factura.cdc + '\', \'' + data.factura.numero_formateado + '\', \'btn-pdf-' + data.factura.id + '\')">';
-        html += '<i data-feather="download"></i> PDF</button>';
+        html += '<button class="btn btn-success me-2" id="btn-pdf-ticket-' + data.factura.id + '" onclick="descargarPDFFactura(\'' + data.factura.cdc + '\', \'' + data.factura.numero_formateado + '\', \'btn-pdf-ticket-' + data.factura.id + '\', \'ticket\')">'; 
+        html += '<i data-feather="download"></i> PDF Ticket</button>';
+        html += '<button class="btn btn-success me-2" id="btn-pdf-a4-' + data.factura.id + '" onclick="descargarPDFFactura(\'' + data.factura.cdc + '\', \'' + data.factura.numero_formateado + '\', \'btn-pdf-a4-' + data.factura.id + '\', \'a4\')">'; 
+        html += '<i data-feather="file-text"></i> PDF A4</button>';
     }
     html += '<button class="btn btn-primary" onclick="copiarFactura(' + data.factura.id + ')">';
     html += '<i data-feather="copy"></i> Copiar</button>';
-    html += '</div>';
-
-    $('#facturaModalBody').html(html);
+    html += '</div>';    $('#facturaModalBody').html(html);
 
     // Reactivar iconos
     if (typeof feather !== 'undefined') {
@@ -356,6 +377,94 @@ function verFactura(id) {
 
 function copiarFactura(id) {
     window.open('<?php echo base_url("Facturacion_py/formulario/"); ?>' + id + '?action=duplicate', '_blank');
+}
+
+function descargarPDFFactura(cdc, facturaNumero, buttonId, formato) {
+    // Validar CDC
+    if (!cdc || cdc.trim() === '') {
+        alert('CDC no disponible para esta factura');
+        return;
+    }
+
+    // Obtener el botón
+    const button = document.getElementById(buttonId);
+    if (!button) {
+        alert('Error interno: botón no encontrado');
+        return;
+    }
+
+    // Deshabilitar botón y mostrar estado de carga
+    button.disabled = true;
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i data-feather="loader" class="spinner"></i> Descargando...';
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+
+    // Realizar petición AJAX
+    $.ajax({
+        url: '<?php echo base_url("Facturacion_py/descargar_pdf_factura"); ?>',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            cdc: cdc,
+            format: formato || 'ticket'
+        },
+        success: function(response) {
+            if (response.success) {
+                // Descargar el PDF
+                var linkSource = 'data:application/pdf;base64,' + response.pdf_base64;
+                var downloadLink = document.createElement('a');
+                downloadLink.href = linkSource;
+                downloadLink.download = response.filename;
+                downloadLink.click();
+                
+                // Mostrar mensaje de éxito
+                if (typeof mostrarExito !== 'undefined') {
+                    mostrarExito('PDF de factura ' + facturaNumero + ' descargado correctamente');
+                } else {
+                    alert('PDF de factura ' + facturaNumero + ' descargado correctamente');
+                }
+            } else {
+                var errorMsg = 'Error al descargar PDF de factura ' + facturaNumero + ': ' + (response.message || 'Error desconocido');
+                if (typeof mostrarError !== 'undefined') {
+                    mostrarError(errorMsg);
+                } else {
+                    alert(errorMsg);
+                }
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error AJAX al descargar PDF:', error);
+            var errorMessage = 'Error de conexión al servidor';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.status === 404) {
+                errorMessage = 'Servicio no encontrado';
+            } else if (xhr.status === 500) {
+                errorMessage = 'Error interno del servidor';
+            }
+            
+            var fullError = 'Error al descargar PDF de factura ' + facturaNumero + ': ' + errorMessage;
+            if (typeof mostrarError !== 'undefined') {
+                mostrarError(fullError);
+            } else {
+                alert(fullError);
+            }
+        },
+        complete: function() {
+            // Rehabilitar botón
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+                // Reactivar iconos de feather
+                if (typeof feather !== 'undefined') {
+                    feather.replace();
+                }
+            }
+        }
+    });
 }
 
 $(document).ready(function() {

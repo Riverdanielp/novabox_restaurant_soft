@@ -72,6 +72,7 @@ class Facturacion_py extends Cl_Controller {
         $punto_id = $this->input->get('punto_id');
         $mes = $this->input->get('mes') ?: date('m');
         $anio = $this->input->get('anio') ?: date('Y');
+        $tipo_documento = $this->input->get('tipo_documento') ?: '1';
 
         $data = [];
 
@@ -87,14 +88,32 @@ class Facturacion_py extends Cl_Controller {
         $data['sucursales_index'] = $sucursales_index;
         $data['mes'] = $mes;
         $data['anio'] = $anio;
+        $data['tipo_documento'] = $tipo_documento;
+
+        // Nombre del mes actual
+        $meses = [
+            '01' => 'Enero',
+            '02' => 'Febrero',
+            '03' => 'Marzo',
+            '04' => 'Abril',
+            '05' => 'Mayo',
+            '06' => 'Junio',
+            '07' => 'Julio',
+            '08' => 'Agosto',
+            '09' => 'Septiembre',
+            '10' => 'Octubre',
+            '11' => 'Noviembre',
+            '12' => 'Diciembre'
+        ];
+        $data['mes_actual'] = isset($meses[$mes]) ? $meses[$mes] : $mes;
 
         // Solo obtener datos si se seleccionó un punto
         if ($punto_id) {
             // Obtener resumen de correlativos
-            $data['resumen'] = $this->Facturacion_py_model->get_correlativos_resumen($punto_id, $mes, $anio);
+            $data['resumen'] = $this->Facturacion_py_model->get_correlativos_resumen($punto_id, $mes, $anio, $tipo_documento);
 
             // Obtener facturas del mes
-            $data['facturas'] = $this->Facturacion_py_model->get_facturas_por_mes($punto_id, $mes, $anio);
+            $data['facturas'] = $this->Facturacion_py_model->get_facturas_por_mes($punto_id, $mes, $anio, $tipo_documento);
 
             // Obtener punto seleccionado con nombre de sucursal
             $punto = fs_get_puntos_expedicion($punto_id);
@@ -277,6 +296,7 @@ class Facturacion_py extends Cl_Controller {
             'documentoNumero'   => $post_data['cliente']['ruc'] ?? '0',
             'nombre'            => $post_data['cliente']['razonSocial'],
             'email'             => $post_data['cliente']['email'] ?? '',
+            'celular'           => $post_data['cliente']['telefono'] ?? '',
             'direccion'         => $post_data['cliente']['direccion'] ?? '',
             'tipo_contribuyente'=> (int)$post_data['cliente']['tipoContribuyente'],
             'tipo_documento'    => (int)$post_data['cliente']['documentoTipo'],

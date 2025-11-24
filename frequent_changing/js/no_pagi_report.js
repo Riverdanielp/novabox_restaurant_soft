@@ -1,5 +1,5 @@
 //pdf,print,export datatable
-let jqry = $.noConflict();
+let jqry = $;
 jqry(document).ready(function () {
     "use strict";
 

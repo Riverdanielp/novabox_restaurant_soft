@@ -7,7 +7,7 @@ if (!function_exists('getEnvOrDefault')) {
 }
 
 function VERS(){
-    return '?v=7.5420667';
+    return '?v=7.5420668';
 }
 
 // Obtener la configuración desde el entorno o usar valores por defecto
@@ -398,9 +398,9 @@ function getCustomerDueOLD($customer_id) {
 
 }
 
-function getCustomerDue($customer_id) {
+function getCustomerDue($customer_id,$outlet_id = null) {
     $CI = & get_instance();
-    $outlet_id = $CI->session->userdata('outlet_id');
+    //$outlet_id = $CI->session->userdata('outlet_id');
 
     if($outlet_id){
         $customer_due = $CI->db->query(
@@ -1016,16 +1016,36 @@ function getCompanyInfo($company_id = '') {
             $company_id = 1;
         }
     }
-    // Usa get_where, nunca select('*') aquí
-    // return $CI->db->get_where("tbl_companies", ["id" => $company_id])->row();
     
+    // Clave única para la sesión basada en company_id
+    $cache_key = 'company_info_' . $company_id;
+    $cache_time_key = 'company_info_time_' . $company_id;
+    
+    // Verificar si existe en sesión y no ha expirado (5 minutos = 300 segundos)
+    $cached_data = $CI->session->userdata($cache_key);
+    $cached_time = $CI->session->userdata($cache_time_key);
+    
+    if ($cached_data && $cached_time && (time() - $cached_time) < 300) {
+        // Cache válido, retornar datos guardados
+        return $cached_data;
+    }
+    
+    // Cache expirado o no existe, consultar base de datos
     // SELECT con LEFT JOIN para obtener también el nombre del cliente por defecto
     $CI->db->select('tbl_companies.*, tbl_customers.name AS default_customer_name');
     $CI->db->from('tbl_companies');
     $CI->db->join('tbl_customers', 'tbl_customers.id = tbl_companies.default_customer', 'left');
     $CI->db->where('tbl_companies.id', $company_id);
     
-    return $CI->db->get()->row();
+    $result = $CI->db->get()->row();
+    
+    // Guardar en sesión con timestamp actual
+    if ($result) {
+        $CI->session->set_userdata($cache_key, $result);
+        $CI->session->set_userdata($cache_time_key, time());
+    }
+    
+    return $result;
 }
 /**
  * get Company Info
@@ -1670,6 +1690,41 @@ function get_all_running_order_for_new_pc_all() {
     $query = $CI->db->get();
 
     return $query->result();
+}
+
+function get_all_running_order_for_new_pc_all_without_where_not_in() {
+    $CI = & get_instance();
+    $sale_no_all = isset($_POST['sale_no_all']) ? $_POST['sale_no_all'] : '';
+    $sale_no_array = array_filter(explode(',', $sale_no_all)); // Sale_nos a filtrar
+
+    $company_id = $CI->session->userdata('company_id');
+    $outlet_id = $CI->session->userdata('outlet_id');
+
+    // 1. Consulta sin el where_not_in
+    $CI->db->select('ks.id, ks.sale_no, ks.self_order_content');
+    $CI->db->from('tbl_kitchen_sales ks');
+    $CI->db->join('tbl_sales s', 
+        's.sale_no = ks.sale_no AND s.outlet_id = ks.outlet_id AND s.company_id = ks.company_id AND s.del_status = "Live"', 
+        'left');
+    $CI->db->where('ks.company_id', $company_id);
+    $CI->db->where('ks.outlet_id', $outlet_id);
+    $CI->db->where('ks.del_status', 'Live');
+    $CI->db->where('s.id IS NULL', null, false);
+
+    $query = $CI->db->get();
+    $result = $query->result();
+
+    // 2. Filtra en PHP si $sale_no_array tiene valores
+    if (!empty($sale_no_array) && !empty($result)) {
+        $sale_no_array = array_map('trim', $sale_no_array);
+        $filtered = array_filter($result, function($item) use ($sale_no_array) {
+            return !in_array($item->sale_no, $sale_no_array);
+        });
+        // Re-index de los resultados
+        return array_values($filtered);
+    }
+
+    return $result;
 }
 
 function getOrderReceivingId($id) {
@@ -2753,7 +2808,7 @@ function getOrderItemsSaleTable($id){
 function getSupplierNameById($id) {
     $CI = & get_instance();
     $supplier_information = $CI->db->query("SELECT * FROM tbl_suppliers where `id`='$id'")->row();
-    return $supplier_information->name;
+    return $supplier_information ? $supplier_information->name : '';
 }
 /**
  * get Supplier Name By Id

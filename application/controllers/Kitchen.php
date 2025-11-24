@@ -636,20 +636,35 @@ class Kitchen extends Cl_Controller {
     {
         $sale_no = $this->input->post('sale_no');
         $sale = getKitchenSaleDetailsBySaleNo($sale_no);
-        $is_done = $this->Kitchen_model->get_total_kitchen_type_done_items($sale->id);
-        $is_cooked = $this->Kitchen_model->get_total_kitchen_type_started_cooking_items($sale->id);
         $data['status'] = false;
         $data['is_done'] = false;
         $data['is_cooked'] = false;
-        if($is_done){
-            $data['status'] = true;
-            $data['is_done'] = true;
+
+        $date_time = $sale->date_time;
+        // Convertimos a DateTime
+        $fechaGuardada = new DateTime($date_time);
+        // Fecha y hora actual
+        $ahora = new DateTime();
+        // Diferencia
+        $diferencia = $fechaGuardada->diff($ahora);
+        // Verificar si ya pasaron 24 horas
+        if ($diferencia->days > 0 || $diferencia->h >= 24) {
+                // $data['status'] = true;
+                // $data['is_cooked'] = true;
+        } else {
+            
+            $is_done = $this->Kitchen_model->get_total_kitchen_type_done_items($sale->id);
+            $is_cooked = $this->Kitchen_model->get_total_kitchen_type_started_cooking_items($sale->id);
+            if($is_done){
+                $data['status'] = true;
+                $data['is_done'] = true;
+            }
+            if($is_cooked){
+                $data['status'] = true;
+                $data['is_cooked'] = true;
+            }
         }
-        if($is_cooked){
-            $data['status'] = true;
-            $data['is_cooked'] = true;
-        }
-       echo json_encode($data);
+    echo json_encode($data);
     }
      /**
      * update cooking status, delivery, take away

@@ -340,6 +340,22 @@
                         </div>
                     </div>
                     <div class="col-md-1"></div>
+                    <div class="clearfix"></div>
+                    <div class="col-md-8"></div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label><?php echo lang('account'); ?></label>
+                            <select tabindex="4" class="form-control select2 ir_w_100" id="account_id" name="account_id">
+                                <option value=""><?php echo lang('default'); ?> (Caja Abierta)</option>
+                                <?php if(isset($accounts)) { foreach ($accounts as $account) { ?>
+                                    <option value="<?php echo escape_output($account->id) ?>"
+                                        <?php echo set_select('account_id', $account->id, (isset($purchase_details) && $purchase_details->account_id == $account->id)); ?>>
+                                        <?php echo escape_output($account->account_name)?></option>
+                                <?php }} ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-1"></div>
                 </div>
                 <div class="row">
                     <input class="form-control" readonly type="hidden" name="subtotal" id="subtotal"
@@ -699,6 +715,7 @@ function agregarItemAJAX(item) {
             date: $('#date').val(),
             paid: $('#paid').val(),
             payment_id: $('#payment_id').val(),
+            account_id: $('#account_id').val(),
             item: item,
             
             <?php if(tipoFacturacion() == 'RD_AI'): ?>
@@ -901,6 +918,7 @@ function guardarCompraFinalAjax() {
             date: $('#date').val(),
             paid: $('#paid').val(),
             payment_id: $('#payment_id').val(),
+            account_id: $('#account_id').val(),
             grand_total: $('#grand_total').val(),
             due: $('#due').val(),
             

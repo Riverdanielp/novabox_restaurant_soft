@@ -12,12 +12,135 @@ if ($value =$this->session->flashdata('exception')) {
 
 <section class="content-header px-0">
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12">
             <h2 class="top-left-header"><?php echo lang('customer_due_receives'); ?> </h2>
             <input type="hidden" class="datatable_name" data-title="<?php echo lang('customer_due_receives'); ?>" data-id_name="datatable">
         </div>
-        <div class="col-md-6">
+    </div>
+</section>
 
+<!-- Widgets de Estadísticas -->
+<section class="content-header mb-3">
+    <div class="row">
+        <!-- Widget 1: Total Pagos -->
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white mb-0">Total Pagos</h6>
+                            <h2 class="text-white mt-2 mb-0" id="widget_total_payments">$0.00</h2>
+                            <small class="text-white-50">Período seleccionado</small>
+                        </div>
+                        <div>
+                            <i class="fa fa-credit-card fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widget 2: Cantidad de Pagos -->
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white mb-0">Cantidad de Pagos</h6>
+                            <h2 class="text-white mt-2 mb-0" id="widget_payment_count">0</h2>
+                            <small class="text-white-50">Transacciones</small>
+                        </div>
+                        <div>
+                            <i class="fa fa-chart-bar fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widget 3: Promedio por Pago -->
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white mb-0">Promedio por Pago</h6>
+                            <h2 class="text-white mt-2 mb-0" id="widget_average_payment">$0.00</h2>
+                            <small class="text-white-50">Valor promedio</small>
+                        </div>
+                        <div>
+                            <i class="fa fa-calculator fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widget 4: Pago Máximo -->
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white mb-0">Pago Máximo</h6>
+                            <h2 class="text-white mt-2 mb-0" id="widget_max_payment">$0.00</h2>
+                            <small class="text-white-50">Mayor transacción</small>
+                        </div>
+                        <div>
+                            <i class="fa fa-money-bill fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="content-header mb-3">
+    <div class="box-wrapper">
+        <div class="row">
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>Fecha Inicio</label>
+                    <input type="date" id="filter_date_from" class="form-control" value="<?php echo $filter_date_from; ?>">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>Fecha Fin</label>
+                    <input type="date" id="filter_date_to" class="form-control" value="<?php echo $filter_date_to; ?>">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Cliente</label>
+                    <select id="filter_customer" class="form-control" style="width: 100%;">
+                        <option value="">Todos los clientes</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <select id="filter_user" class="form-control" style="width: 100%;">
+                        <option value="">Todos los usuarios</option>
+                        <?php foreach($users as $user): ?>
+                            <option value="<?php echo $user->id; ?>" <?php echo ($filter_user_id == $user->id) ? 'selected' : ''; ?>>
+                                <?php echo escape_output($user->full_name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn_apply_filters" class="btn btn-primary form-control">
+                        <i class="fa fa-filter"></i> Aplicar Filtros
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -47,6 +170,23 @@ if ($value =$this->session->flashdata('exception')) {
                                 $i = count($customerDueReceives);
                             }
                             foreach ($customerDueReceives as $value) {
+                                // Obtener ventas afectadas por este pago
+                                $this->db->select('s.sale_no, s.sale_date, drs.amount');
+                                $this->db->from('tbl_customer_due_receives_sales drs');
+                                $this->db->join('tbl_sales s', 's.id = drs.sale_id', 'left');
+                                $this->db->where('drs.due_receive_id', $value->id);
+                                $this->db->order_by('s.sale_date', 'ASC');
+                                $affected_sales = $this->db->get()->result();
+                                
+                                $sales_list = [];
+                                foreach ($affected_sales as $sale) {
+                                    $sales_list[] = [
+                                        'sale_no' => escape_output($sale->sale_no),
+                                        'sale_date' => escape_output(date($this->session->userdata('date_format'), strtotime($sale->sale_date))),
+                                        'amount' => escape_output(getAmtPCustom($sale->amount))
+                                    ];
+                                }
+                                
                                 // Preparamos los datos para el ticket en un array
                                 $ticketData = [
                                     'ref_no' => escape_output($value->reference_no),
@@ -54,7 +194,8 @@ if ($value =$this->session->flashdata('exception')) {
                                     'customer' => escape_output(getCustomerName($value->customer_id)),
                                     'amount' => escape_output(getAmtPCustom($value->amount)),
                                     'payment_method' => escape_output(getPaymentName($value->payment_id)),
-                                    'note' => escape_output($value->note ?? '')
+                                    'note' => escape_output($value->note ?? ''),
+                                    'sales' => $sales_list
                                 ];
                                 ?>
                             <tr>
@@ -97,6 +238,10 @@ if ($value =$this->session->flashdata('exception')) {
 
 
 <?php $this->view('common/footer_js')?>
+
+<!-- Select2 CSS y JS -->
+<link href="<?php echo base_url(); ?>assets/bower_components/select2/dist/css/select2.min.css" rel="stylesheet" />
+<script src="<?php echo base_url(); ?>assets/bower_components/select2/dist/js/select2.min.js"></script>
 
 <!-- INICIO DEL SCRIPT DE IMPRESIÓN -->
 <script>
@@ -203,6 +348,29 @@ function printTicket(data) {
                         </tr>
                     </table>
 
+                    ${data.sales && data.sales.length > 0 ? `
+                        <div class="divider"></div>
+                        <h5 style="text-align:center; margin: 10px 0;">VENTAS ABONADAS</h5>
+                        <table style="font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <td class="label">Venta</td>
+                                    <td class="label">Fecha</td>
+                                    <td class="label" style="text-align:right;">Abonado</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.sales.map(sale => `
+                                    <tr>
+                                        <td>${sale.sale_no}</td>
+                                        <td>${sale.sale_date}</td>
+                                        <td style="text-align:right;">${sale.amount}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : ''}
+
                      ${data.note ? `<div class="divider"></div><p><b>Nota:</b> ${data.note}</p>` : ''}
                 </section>
 
@@ -230,3 +398,123 @@ function printTicket(data) {
 }
 </script>
 <!-- FIN DEL SCRIPT DE IMPRESIÓN -->
+
+<!-- Script para inicializar Select2 y Widgets -->
+<script>
+$(document).ready(function() {
+    let base_url = $("#base_url_").val();
+    console.log('Base URL:', base_url);
+    
+    // Inicializar Select2 para clientes con opción "Todos" siempre visible
+    $('#filter_customer').select2({
+        ajax: {
+            url: base_url + 'Customer_due_receive/getCustomersWithDue',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    q: params.term,
+                    date_from: $('#filter_date_from').val(),
+                    date_to: $('#filter_date_to').val()
+                };
+            },
+            processResults: function(data) {
+                // Siempre incluir "Todos los clientes" al inicio
+                let results = [{id: '', text: 'Todos los clientes'}];
+                if (data.results && data.results.length > 0) {
+                    results = results.concat(data.results);
+                }
+                return { results: results };
+            }
+        },
+        placeholder: 'Todos los clientes',
+        allowClear: true,
+        minimumResultsForSearch: 0 // Siempre mostrar búsqueda
+    });
+    
+    // Preseleccionar cliente si viene del filtro
+    <?php if ($filter_customer_id): ?>
+        let customerName = '<?php echo getCustomerName($filter_customer_id); ?>';
+        let option = new Option(customerName, '<?php echo $filter_customer_id; ?>', true, true);
+        $('#filter_customer').append(option).trigger('change');
+    <?php endif; ?>
+    
+    // Función para actualizar widgets
+    function updateWidgets() {
+        let dateFrom = $('#filter_date_from').val();
+        let dateTo = $('#filter_date_to').val();
+        let customerId = $('#filter_customer').val();
+        let userId = $('#filter_user').val();
+        
+        $.ajax({
+            url: base_url + 'Customer_due/getPaymentsStatistics',
+            type: 'GET',
+            data: {
+                date_from: dateFrom,
+                date_to: dateTo,
+                customer_id: customerId || '',
+                user_id: userId || ''
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#widget_total_payments').text(response.data.total_payments_formatted);
+                    $('#widget_payment_count').text(response.data.payment_count);
+                    $('#widget_average_payment').text(response.data.average_payment_formatted);
+                    $('#widget_max_payment').text(response.data.max_payment_formatted);
+                }
+            },
+            error: function() {
+                $('#widget_total_payments').text('$0.00');
+                $('#widget_payment_count').text('0');
+                $('#widget_average_payment').text('$0.00');
+                $('#widget_max_payment').text('$0.00');
+            }
+        });
+    }
+    
+    // Botón Aplicar Filtros - RECARGAR PÁGINA con parámetros
+    $('#btn_apply_filters').click(function() {
+        let dateFrom = $('#filter_date_from').val();
+        let dateTo = $('#filter_date_to').val();
+        let customerId = $('#filter_customer').val();
+        let userId = $('#filter_user').val();
+        
+        // Construir URL con parámetros GET
+        let url = base_url + 'Customer_due_receive/customerDueReceives?';
+        url += 'date_from=' + dateFrom;
+        url += '&date_to=' + dateTo;
+        if (customerId) url += '&customer_id=' + customerId;
+        if (userId) url += '&user_id=' + userId;
+        
+        // Recargar página con filtros
+        window.location.href = url;
+    });
+    
+    // Actualizar widgets al cargar
+    updateWidgets();
+    
+    // Actualizar widgets cuando cambian las fechas
+    $('#filter_date_from, #filter_date_to').on('change', function() {
+        updateWidgets();
+    });
+    
+    // DataTable - verificar si ya está inicializado
+    if (!$.fn.DataTable.isDataTable('#datatable')) {
+        $('#datatable').DataTable({
+            autoWidth: false,
+            ordering: true,
+            language: {
+                lengthMenu: "Mostrar _MENU_ registros por página",
+                search: "Buscar:",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ pagos",
+                infoEmpty: "Mostrando 0 a 0 de 0 pagos",
+                zeroRecords: "No se encontraron pagos",
+                emptyTable: "No hay pagos registrados",
+                loadingRecords: "Cargando...",
+                processing: "Procesando..."
+            }
+        });
+    }
+});
+</script>

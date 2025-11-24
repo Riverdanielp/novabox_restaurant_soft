@@ -70,6 +70,28 @@
                                 </div>
                             <?php } ?>
                         </div>
+
+                        <div class="col-sm-12 mb-2 col-md-6">
+                            <div class="form-group">
+                                <label>Cuenta Asociada <i class="fa fa-info-circle" data-toggle="tooltip" title="Si no selecciona una cuenta, los pagos irán a la cuenta predeterminada del sistema (Caja Cofre)"></i></label>
+                                <select tabindex="3" class="form-control select2" name="account_id" id="account_id">
+                                    <option value="">-- Usar Cuenta Predeterminada (Caja Cofre) --</option>
+                                    <?php if (isset($accounts) && !empty($accounts)): ?>
+                                        <?php foreach ($accounts as $account): ?>
+                                            <option value="<?php echo escape_output($account->id); ?>" 
+                                                <?php echo (isset($payment_method_information->account_id) && $payment_method_information->account_id == $account->id) ? 'selected' : ''; ?>>
+                                                <?php echo escape_output($account->account_name); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                            <?php if (form_error('account_id')) { ?>
+                            <div class="callout callout-danger my-2">
+                                <?php echo form_error('account_id'); ?>
+                            </div>
+                            <?php } ?>
+                        </div>
                     </div>
                     <!-- /.box-body -->
                 </div>

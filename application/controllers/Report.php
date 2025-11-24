@@ -1587,6 +1587,24 @@ class Report extends Cl_Controller {
         }
         if ($hay_resumen) $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
     
+        // === VENTAS A CREDITO ===
+        $ventas_credito = $this->Sale_model->getCreditSales($opening_date_time, $to_datetime, $user_id, $outlet_id);
+        $ventas_credito_total = $this->Sale_model->getCreditSalesTotal($opening_date_time, $to_datetime, $user_id, $outlet_id);
+        
+        if ($ventas_credito_total && $ventas_credito_total->cantidad > 0) {
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'VENTAS A CREDITO'];
+            
+            if (!empty($ventas_credito)) {
+                foreach ($ventas_credito as $vc) {
+                    $content[] = ['type' => 'extremos', 'textLeft' => '#' . $vc->sale_no . ' - ' . substr($vc->customer_name, 0, 20), 'textRight' => getAmtPCustom($vc->due_amount)];
+                }
+            }
+            $content[] = ['type' => 'extremos', 'textLeft' => 'Total Pendiente: ' . $ventas_credito_total->cantidad, 'textRight' => getAmtPCustom($ventas_credito_total->total_due)];
+            $content[] = ['type' => 'text', 'align' => 'center', 'text' => $line];
+        }
+    
         // === VENTA TOTAL CAJA ===
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => ''];
         $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'VENTA TOTAL CAJA'];
@@ -1602,20 +1620,44 @@ class Report extends Cl_Controller {
     
         // Preparar array equivalente a $array_declaracion
         $array_declaracion = [];
+        
+        // Primero, agregamos todos los métodos de pago que tienen esperado (de opening_details)
+        foreach ($metodos_pago_cierre as $payment_id => $metodo) {
+            $array_declaracion[$payment_id] = [
+                'nombre' => $metodo['nombre'],
+                'declarado' => 0, // Por defecto 0, se actualizará si hay declaración
+                'esperado' => $metodo['esperado_sin_saldo'],
+            ];
+        }
+        
+        // Luego, actualizamos con los montos declarados que existen en tbl_register_statement
         if (!empty($declaraciones)) {
-            $hay_declaracion = false;
             foreach ($declaraciones as $d) {
                 $id = $d->payment_id;
                 $nombre = $d->payment_txt ?: $id;
                 $declarado = (float)$d->mount;
-                $esperado = isset($metodos_pago_cierre[$id]['esperado_sin_saldo']) ? $metodos_pago_cierre[$id]['esperado_sin_saldo'] : 0;
-                $array_declaracion[] = [
-                    'nombre' => $nombre,
-                    'declarado' => $declarado,
-                    'esperado' => $esperado,
-                ];
+                
+                // Si el payment_id ya existe en el array (tiene esperado), actualizar el declarado
+                if (isset($array_declaracion[$id])) {
+                    $array_declaracion[$id]['declarado'] = $declarado;
+                    // Actualizar el nombre si viene de la declaración (puede ser más descriptivo)
+                    if ($nombre && $nombre != $id) {
+                        $array_declaracion[$id]['nombre'] = $nombre;
+                    }
+                } else {
+                    // Si no existe en esperados, agregarlo (caso de métodos declarados que no estaban en opening_details)
+                    $esperado = isset($metodos_pago_cierre[$id]['esperado_sin_saldo']) ? $metodos_pago_cierre[$id]['esperado_sin_saldo'] : 0;
+                    $array_declaracion[$id] = [
+                        'nombre' => $nombre,
+                        'declarado' => $declarado,
+                        'esperado' => $esperado,
+                    ];
+                }
             }
         }
+        
+        // Convertir a array indexado para mantener compatibilidad con el resto del código
+        $array_declaracion = array_values($array_declaracion);
     
         if (!empty($array_declaracion)) {
             $content[] = ['type' => 'text', 'align' => 'center', 'text' => 'DECLARACION DE CIERRE'];

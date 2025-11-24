@@ -173,4 +173,72 @@ class Inventory extends Cl_Controller {
         echo json_encode($data);
     }
 
+    public function getStockByOutlets() {
+        $ingredient_id = $this->input->post('ingredient_id');
+        $company_id = $this->session->userdata('company_id');
+        $outlets = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_outlets");
+        $html = '<table class="table table-striped"><thead><tr><th>Sucursal</th><th>Stock</th></tr></thead><tbody>';
+        foreach ($outlets as $outlet) {
+            $stock = $this->Inventory_model->getCurrentInventoryByOutlet($ingredient_id, $outlet->id);
+            $html .= '<tr><td>' . $outlet->outlet_name . '</td><td>' . $stock['total_stock'] . ' ' . $stock['stock_unit'] . '</td></tr>';
+        }
+        $html .= '</tbody></table>';
+        echo $html;
+    }
+
+    public function getIngredientMovements() {
+        $ingredient_id = $this->input->post('ingredient_id');
+        $page = $this->input->post('page') ?: 1;
+        $start_date = $this->input->post('start_date');
+        $end_date = $this->input->post('end_date');
+        $per_page = 10;
+        $offset = ($page - 1) * $per_page;
+
+        $movements = $this->Inventory_model->getIngredientMovements($ingredient_id, $per_page, $offset, $start_date, $end_date);
+        $total_movements = $this->Inventory_model->countIngredientMovements($ingredient_id, $start_date, $end_date);
+        $total_pages = ceil($total_movements / $per_page);
+
+        $html = '<table class="table table-striped"><thead><tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Acción</th></tr></thead><tbody>';
+        foreach ($movements as $movement) {
+            $button = '';
+            if ($movement->type == 'Compra') {
+                $button = '<a href="' . base_url() . 'Purchase/purchaseDetails/' . $movement->movement_id . '" class="btn btn-primary btn-sm" target="_blank">Ver Compra</a>';
+            } elseif ($movement->type == 'Consumo' || $movement->type == 'Consumo Modificador') {
+                $button = '<a href="' . base_url() . 'Sale/print_invoice/' . $movement->movement_id . '" class="btn btn-primary btn-sm" target="_blank">Ver Venta</a>';
+            } elseif ($movement->type == 'Desperdicio') {
+                $button = '<a href="' . base_url() . 'Waste/wasteDetails/' . $movement->movement_id . '" class="btn btn-primary btn-sm" target="_blank">Ver Desperdicio</a>';
+            } elseif (strpos($movement->type, 'Ajuste') !== false) {
+                $button = '<a href="' . base_url() . 'Inventory_adjustment/inventoryAdjustmentDetails/' . $movement->movement_id . '" class="btn btn-primary btn-sm" target="_blank">Ver Ajuste</a>';
+            } elseif ($movement->type == 'Producción') {
+                $button = '<a href="' . base_url() . 'Production/productionDetails/' . $movement->movement_id . '" class="btn btn-primary btn-sm" target="_blank">Ver Producción</a>';
+            } elseif (strpos($movement->type, 'Transferencia') !== false) {
+                $button = '<a href="' . base_url() . 'Transfer/transferDetails/' . $movement->movement_id . '" class="btn btn-primary btn-sm" target="_blank">Ver Transferencia</a>';
+            }
+            $html .= '<tr><td>' . $movement->date . '</td><td>' . $movement->type . '</td><td>' . $movement->quantity . '</td><td>' . $button . '</td></tr>';
+        }
+        $html .= '</tbody></table>';
+
+        $pagination = '';
+        for ($i = 1; $i <= $total_pages; $i++) {
+            $active = ($i == $page) ? 'active' : '';
+            $pagination .= '<li class="page-item ' . $active . '"><a class="page-link" href="#" onclick="loadMovements(' . $i . ', \'' . $start_date . '\', \'' . $end_date . '\')">' . $i . '</a></li>';
+        }
+
+        echo json_encode(['html' => $html, 'pagination' => $pagination]);
+    }
+
+    public function ingredientSalesHistory($ingredient_id) {
+        $data = array();
+        $data['ingredient_id'] = $ingredient_id;
+        // Obtener el nombre del ingrediente
+        $this->db->select('name');
+        $this->db->from('tbl_ingredients');
+        $this->db->where('id', $ingredient_id);
+        $ingredient = $this->db->get()->row();
+        $data['ingredient_name'] = $ingredient ? $ingredient->name : 'Ingrediente desconocido';
+        $data['sales_history'] = $this->Inventory_model->getIngredientSalesHistory($ingredient_id);
+        $data['main_content'] = $this->load->view('inventory/ingredient_sales_history', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+
 }

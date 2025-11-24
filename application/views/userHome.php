@@ -1015,6 +1015,8 @@
                                 <span> <?php echo lang('customer_due_receive'); ?></span>
                             </a>
                             <ul class="treeview-menu">
+                                <li data-access="view-151" class="menu_assign_class" data-menu__cid="irp_13"><a class="child-menu" href="<?php echo base_url()?>Customer_due/customersDue">
+                                        <?php echo lang('List'); ?> Cuentas de Clientes</a></li>
                                 <li data-access="add-151" class="menu_assign_class" data-menu__cid="irp_13"><a class="child-menu" href="<?php echo base_url()?>Customer_due_receive/addCustomerDueReceive">
                                         <?php echo lang('Add'); ?> <?php echo lang('customer_due_receive'); ?></a></li>
                                 <li data-access="view-151" class="menu_assign_class" data-menu__cid="irp_13"><a class="child-menu" href="<?php echo base_url()?>Customer_due_receive/customerDueReceives">
@@ -1106,6 +1108,48 @@
                             <span class="menu-header-text"><?php echo lang('Account_Attendance');?></span>
                             <i data-feather="more-vertical"></i>
                         </li>
+
+                        <li class="menu-header small border_bottom_none accounting_accounts">
+                            <span class="menu-header-text">Cuentas Contables</span>
+                            <i data-feather="more-vertical"></i>
+                        </li>
+                        <li class="treeview menu__cidirp_20 accounting_accounts">
+                            <a href="javascript:void(0)">
+                                <i data-feather="briefcase"></i>
+                                <span>Cuentas Contables</span>
+                            </a>
+                            <ul class="treeview-menu">
+                                <li data-access="add-260" class="menu_assign_class" data-menu__cid="irp_20">
+                                    <a class="child-menu" href="<?php echo base_url()?>Account/addEditAccount">
+                                        <?php echo lang('Add'); ?> Cuenta Contable
+                                    </a>
+                                </li>
+                                <li data-access="view-260" class="menu_assign_class" data-menu__cid="irp_20">
+                                    <a class="child-menu" href="<?php echo base_url()?>Account/accounts">
+                                        <?php echo lang('List'); ?> Cuentas Contables
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="treeview menu__cidirp_21 accounting_accounts">
+                            <a href="javascript:void(0)">
+                                <i data-feather="activity"></i>
+                                <span>Movimientos</span>
+                            </a>
+                            <ul class="treeview-menu">
+                                <li data-access="add-260" class="menu_assign_class" data-menu__cid="irp_21">
+                                    <a class="child-menu" href="<?php echo base_url()?>Account_transaction/addAccountTransaction">
+                                        <?php echo lang('Add'); ?> Movimiento Contable
+                                    </a>
+                                </li>
+                                <li data-access="view-260" class="menu_assign_class" data-menu__cid="irp_21">
+                                    <a class="child-menu" href="<?php echo base_url()?>Account_transaction/accountTransactions">
+                                        <?php echo lang('List'); ?> Movimientos Contables
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
                         <li class="treeview menu__cidirp_17 account_attendance">
                             <a href="javascript:void(0)">
                                 <i data-feather="users"></i>
@@ -1134,8 +1178,6 @@
                                         <?php echo lang('List'); ?> <?php echo lang('attendance'); ?></a></li>
                             </ul>
                         </li>
-
-
 
                         <li class="menu-header small border_bottom_none setting_report1">
                             <span class="menu-header-text"><?php echo lang('Report_Settings');?></span>
@@ -1347,6 +1389,9 @@ endif;
     <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/new-script.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>assets/plugins/slick-slider/slick.min.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/js/new_ui_design.js?v=7.52"></script>
+<script>
+window.$ = window.jQuery;
+</script>
 </body>
 
 </html>

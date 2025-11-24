@@ -988,11 +988,15 @@ $(function () {
         $("#pay_due_modal_customer_id").val(customerId);
         $("#pay_due_modal_customer_name").text(customerName);
 
-        // $('#pay_due_modal_amount').val('');
-        // $('#pay_due_modal_note').val('');
-        // $('#pay_due_modal_payment_id').val('').trigger('change');
+        // Limpiar formulario
+        $('#pay_due_modal_amount').val('');
+        $('#pay_due_modal_note').val('');
+        $('#pay_due_modal_payment_id').val('').trigger('change');
 
         $("#pay_due_modal_registro").addClass("active");
+        
+        // Cargar las ventas pendientes para distribución
+        loadPendingSalesForPayment(customerId);
         
         // Cargar la lista de pagos recientes
         loadRecentDuePayments();
@@ -1003,99 +1007,115 @@ $(function () {
         $("#pay_due_modal_registro").removeClass("active");
     });
 
-
-    // // Enviar el formulario de pago de deuda
-    // $(document).on('click', '#pay_due_modal_submit', function() {
-    //     let $btn = $(this);
-    //     $btn.prop('disabled', true);
-    //     let base_url = $("#base_url_customer").val();
-    
-    //     // Obteniendo todos los valores del modal
-    //     let customerIdVal = $('#pay_due_modal_customer_id').val();
-    //     let dateVal = $('#pay_due_modal_date').val();
-    //     let amountVal = $('#pay_due_modal_amount').val();
-    //     let paymentVal = $('#pay_due_modal_payment_id').val();
-    //     let noteVal = $('#pay_due_modal_note').val();
-    //     let csrf_value_ = $("#csrf_value_").val();
-    //     // let csrfName = "<?php echo $this->security->get_csrf_token_name(); ?>";
-    //     // let csrfHash = "<?php echo $this->security->get_csrf_hash(); ?>";
-
-    //     // Validación local rápida
-    //     let error = false;
-    //     if (!amountVal || parseFloat(amountVal) <= 0) {
-    //         toastr['error']('El campo Monto es requerido y debe ser mayor a cero.', '');
-    //         error = true;
-    //     }
-    //     if (!paymentVal) {
-    //         toastr['error']('El campo Método de Pago es requerido.', '');
-    //         error = true;
-    //     }
-    //     if (error) {
-    //         $btn.prop('disabled', false);
-    //         return;
-    //     }
-
-    //     // Preparar datos del formulario para enviar
-    //     let formData = {
-    //         customer_id: customerIdVal,
-    //         date: dateVal,
-    //         amount: amountVal,
-    //         payment_id: paymentVal,
-    //         note: noteVal
-    //     };
-    //     // formData[csrfName] = csrfHash;
-    
-    //     $.ajax({
-    //         url: base_url + "Sale/addCustomerDueReceiveAjax",
-    //         method: "POST",
-    //         data: formData,
-    //         dataType: "json",
-    //         success: function(resp) {
-    //             if (resp.status == "ok") {
-    //                 toastr['success'](resp.msg, 'Éxito');
-    //                 $("#pay_due_modal_registro").removeClass("active");
-                    
-    //                 let print_type_bill = $(".print_type_bill").val();
-    //                 if (print_type_bill == "printer_app") {
-                        
-    //                     $.ajax({
-    //                         url: base_url + "Sale/printer_app_bill/" + sale_no,
-    //                         method: "GET",
-    //                         success: function(base64) {
-    //                             // console.log(base64);
-    //                             window.location.href = 'print://' + base64;
-    //                         },
-    //                         error: function() {
-    //                             alert("Error al generar el ticket para la impresora.");
-    //                         }
-    //                     });
-
-    //                 } else {
-    //                     print_pay_due_receipt(data);
-    //                 }
-    //                 // Opcional: Actualizar la información de la deuda del cliente en la UI del TPV
-    //                 // Esto es importante para que el usuario vea el cambio reflejado.
-    //                 // Podrías necesitar otra llamada AJAX para obtener la nueva deuda.
-    //                 fetch_customer_due(customerIdVal);
-    //             } else {
-    //                 toastr['error'](resp.msg, 'Error');
-    //                 // Si hay errores de validación específicos, podrías mostrarlos
-    //                 if(resp.errors){
-    //                     // Ejemplo: $('#error-amount').text(resp.errors.amount);
-    //                 }
-    //             }
-    //         },
-    //         error: function(jqXHR, textStatus, errorThrown){
-    //             toastr['error']('Error de comunicación con el servidor: ' + textStatus, 'Error');
-    //             console.error("AJAX Error: ", textStatus, errorThrown, jqXHR.responseText);
-    //         },
-    //         complete: function(){
-    //             $btn.prop('disabled', false);
-    //         }
-    //     });
-    // });
-
     // --- LÓGICA DE PAGOS Y IMPRESIÓN ---
+
+    /**
+     * Carga las ventas pendientes del cliente en la tabla del modal
+     */
+    function loadPendingSalesForPayment(customerId) {
+        let tbody = $('#modal_pending_sales_body');
+        tbody.html('<tr><td colspan="5" class="text-center">Cargando...</td></tr>');
+        
+        let base_url = $("#base_url_customer").val();
+        
+        $.ajax({
+            url: base_url + "Sale/getPendingSalesAjax",
+            method: "GET",
+            data: { customer_id: customerId },
+            dataType: "json",
+            success: function(response) {
+                tbody.empty();
+                
+                if (response.status === 'success' && response.data && response.data.length > 0) {
+                    response.data.forEach(function(sale) {
+                        let isNegative = sale.is_negative_payment || false;
+                        let saleId = isNegative ? 'NEG-' + sale.id : sale.id;
+                        let saleNo = sale.sale_no;
+                        let totalDue = parseFloat(sale.total_payable || sale.due_amount || 0);
+                        let remainingDue = parseFloat(sale.remaining_due || 0);
+                        
+                        let row = `
+                            <tr data-sale-id="${saleId}" style="padding: 0;">
+                                <td style="padding: 4px 6px; border: 1px solid #ddd; font-size: 12px;">${saleNo}</td>
+                                <td style="padding: 4px 6px; border: 1px solid #ddd; font-size: 12px;">${sale.sale_date}</td>
+                                <td style="padding: 4px 6px; border: 1px solid #ddd; font-size: 12px; text-align: right;">${formatNumberToCurrency(totalDue)}</td>
+                                <td style="padding: 4px 6px; border: 1px solid #ddd; font-size: 12px; text-align: right;">${formatNumberToCurrency(remainingDue)}</td>
+                                <td style="padding: 3px 3px; border: 1px solid #ddd; background: red;">
+                                    <input type="number" 
+                                           class="form-control text-right sale-payment-amount" 
+                                           data-sale-id="${saleId}"
+                                           data-max="${remainingDue}"
+                                           min="0" 
+                                           max="${remainingDue}"
+                                           step="0.01"
+                                           value="${remainingDue.toFixed(2)}"
+                                           style="padding: 3px 4px; font-size: 12px; height: 28px;">
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                    
+                    // Recalcular total cuando cambien los montos individuales
+                    calculateModalTotalPayment();
+                } else {
+                    tbody.html('<tr><td colspan="5" class="text-center" style="padding: 8px; font-size: 12px;">No hay ventas pendientes</td></tr>');
+                }
+            },
+            error: function() {
+                tbody.html('<tr><td colspan="5" class="text-center text-danger">Error al cargar ventas</td></tr>');
+            }
+        });
+    }
+
+    /**
+     * Calcula el total del pago sumando los montos individuales de cada venta
+     */
+    function calculateModalTotalPayment() {
+        let total = 0;
+        $('.sale-payment-amount').each(function() {
+            let val = parseFloat($(this).val()) || 0;
+            total += val;
+        });
+        $('#pay_due_modal_amount').val(total.toFixed(2));
+    }
+
+    /**
+     * Cuando el usuario escribe en un campo de monto individual, recalcular el total
+     */
+    $(document).on('input', '.sale-payment-amount', function() {
+        let maxAmount = parseFloat($(this).data('max')) || 0;
+        let currentValue = parseFloat($(this).val()) || 0;
+        
+        // Validar que no exceda el máximo
+        if (currentValue > maxAmount) {
+            $(this).val(maxAmount.toFixed(2));
+        }
+        
+        calculateModalTotalPayment();
+    });
+
+    /**
+     * Si el usuario modifica el monto total, distribuir proporcionalmente
+     */
+    $(document).on('input', '#pay_due_modal_amount', function() {
+        let totalPayment = parseFloat($(this).val()) || 0;
+        let remainingPayment = totalPayment;
+        
+        // Distribuir a cada venta pendiente en orden
+        $('.sale-payment-amount').each(function() {
+            if (remainingPayment <= 0) {
+                $(this).val('0');
+                return;
+            }
+            
+            let maxAmount = parseFloat($(this).data('max')) || 0;
+            let amountToAssign = Math.min(remainingPayment, maxAmount);
+            
+            $(this).val(amountToAssign.toFixed(2));
+            remainingPayment -= amountToAssign;
+        });
+    });
 
     // Enviar formulario de pago
     $(document).on('click', '#pay_due_modal_submit', function() {
@@ -1105,19 +1125,28 @@ $(function () {
         let amountVal = $('#pay_due_modal_amount').val();
         let paymentVal = $('#pay_due_modal_payment_id').val();
         let base_url = $("#base_url_customer").val();
-        // let csrf_name = "<?php //echo $this->security->get_csrf_token_name(); ?>";
-        // let csrf_value = "<?php //echo $this->security->get_csrf_hash(); ?>";
+        
+        // Construir sales_details (ventas con sus montos)
+        let salesDetails = {};
+        $('.sale-payment-amount').each(function() {
+            let saleId = $(this).data('sale-id');
+            let amount = parseFloat($(this).val()) || 0;
+            
+            if (amount > 0) {
+                salesDetails[saleId] = amount;
+            }
+        });
+        
         let formData = {
             customer_id: $('#pay_due_modal_customer_id').val(),
             date: $('#pay_due_modal_date').val(),
             amount: $('#pay_due_modal_amount').val(),
             payment_id: $('#pay_due_modal_payment_id').val(),
+            account_id: $('#pay_due_modal_account_id').val(),
             note: $('#pay_due_modal_note').val(),
-            // [csrf_name]: csrf_value // Añadir CSRF
+            sales_details: salesDetails
         };
 
-        // Validación local...
-        
         // Validación local rápida
         let error = false;
         if (!amountVal || parseFloat(amountVal) <= 0) {
@@ -1148,6 +1177,7 @@ $(function () {
                     // Actualizar UI
                     fetch_customer_due(formData.customer_id); // Actualiza la deuda del cliente
                     loadRecentDuePayments(); // Recarga la lista de pagos en el modal
+                    loadPendingSalesForPayment(formData.customer_id); // Recargar ventas pendientes
 
                     // Limpiar formulario para el siguiente pago
                     $('#pay_due_modal_amount').val('');
@@ -1195,20 +1225,12 @@ $(function () {
                             </tr>`;
                         listContainer.append(row);
                     });
-                    
-                    // DataTable para tablas detalle
-                    $('.DataTables_recent_due_payments_list').DataTable({
-                        'autoWidth': false,
-                        'ordering': false,
-                        'paging': false,
-                        'bFilter': false,
-                        'info': false,
-                        'responsive': true,
-                        'language': { 'emptyTable': 'Sin datos de ventas' }
-                    });
                 } else {
                     listContainer.html('<tr><td colspan="5" class="text-center">No hay pagos recientes.</td></tr>');
                 }
+            },
+            error: function() {
+                listContainer.html('<tr><td colspan="5" class="text-center text-danger">Error al cargar pagos</td></tr>');
             }
         });
     }
@@ -1263,11 +1285,23 @@ $(function () {
                 }
             });
         } else {
-            // Si es impresión web, necesitamos todos los datos del recibo.
-            // Si `data` no los tiene (ej. en reimpresión), tendríamos que hacer un AJAX aquí.
-            // Pero como `addCustomerDueReceiveAjax` ya los devuelve, esto funciona para el pago nuevo.
-            // Para reimpresión, necesitamos mejorarla.
-            print_pay_due_receipt(data);
+            // Para impresión web, obtener los detalles completos del pago (incluyendo ventas afectadas)
+            $.ajax({
+                url: base_url + "Sale/getPaymentDetailAjax",
+                method: "GET",
+                data: { payment_id: data.payment_id },
+                dataType: "json",
+                success: function(response) {
+                    if (response.status === 'success') {
+                        print_pay_due_receipt(response.data);
+                    } else {
+                        print_pay_due_receipt(data); // Fallback a datos básicos
+                    }
+                },
+                error: function() {
+                    print_pay_due_receipt(data); // Fallback a datos básicos
+                }
+            });
         }
     }
 
@@ -1290,7 +1324,32 @@ $(function () {
         };
 
         // --- HTML del Ticket ---
-                        // width: 300px;
+        let salesTableHTML = '';
+        if (data.sales && data.sales.length > 0) {
+            salesTableHTML = `
+                <div class="divider"></div>
+                <h5 style="text-align: center; margin-bottom: 10px;">VENTAS PAGADAS</h5>
+                <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                    <thead style="border-bottom: 1px solid #000;">
+                        <tr>
+                            <th style="text-align: left; padding: 3px 0;">Venta</th>
+                            <th style="text-align: center; padding: 3px 0;">Fecha</th>
+                            <th style="text-align: right; padding: 3px 0;">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.sales.map(sale => `
+                            <tr style="border-bottom: 1px dotted #ccc;">
+                                <td style="text-align: left; padding: 3px 0;">${sale.sale_no}</td>
+                                <td style="text-align: center; padding: 3px 0;">${sale.sale_date}</td>
+                                <td style="text-align: right; padding: 3px 0;">${sale.amount}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
         let ticketHTML = `
             <!DOCTYPE html>
             <html lang="es">
@@ -1377,9 +1436,11 @@ $(function () {
                         <table>
                             <tr>
                                 <td class="label total">TOTAL PAGO:</td>
-                                <td class="total" style="text-align:right;">${formatNumberToCurrency(data.amount)}</td>
+                                <td class="total" style="text-align:right;">${data.amount}</td>
                             </tr>
                         </table>
+
+                        ${salesTableHTML}
 
                         ${data.note ? `<div class="divider"></div><p><b>Nota:</b> ${data.note}</p>` : ''}
                     </section>

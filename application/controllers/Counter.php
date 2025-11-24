@@ -13,6 +13,7 @@ class Counter extends Cl_Controller {
         parent::__construct();
         $this->load->model('Authentication_model');
         $this->load->model('Common_model');
+        $this->load->model('PaymentMethod_model');
         $this->load->library('form_validation');
         $this->Common_model->setDefaultTimezone();
         if (!$this->session->has_userdata('user_id')) {
@@ -65,6 +66,23 @@ class Counter extends Cl_Controller {
                 $igc_info['invoice_printer_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('invoice_printer_id')));
                 $igc_info['bill_printer_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('bill_printer_id')));
                 $igc_info['description'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('description')));
+                
+                // Nuevos campos para control de apertura/cierre con cuentas
+                $igc_info['affect_opening_to_accounts'] = $this->input->post('affect_opening_to_accounts') ? 1 : 0;
+                
+                // Construir JSON con los valores predeterminados de apertura por método de pago
+                $default_payments = [];
+                $payment_ids = $this->input->post('default_payment_ids');
+                $payment_amounts = $this->input->post('default_payment_amounts');
+                
+                if ($payment_ids && is_array($payment_ids)) {
+                    foreach ($payment_ids as $key => $pm_id) {
+                        $amount = isset($payment_amounts[$key]) ? (float)$payment_amounts[$key] : 0;
+                        $default_payments[$pm_id] = $amount;
+                    }
+                }
+                $igc_info['default_opening_payments'] = json_encode($default_payments);
+                
                 $igc_info['company_id'] = $this->session->userdata('company_id');
                 $igc_info['user_id'] = $this->session->userdata('user_id');
                 if ($id == "") {
@@ -84,12 +102,14 @@ class Counter extends Cl_Controller {
                 if ($id == "") {
                     $data = array();
                     $data['printers'] =  $this->Common_model->getAllPrinter($company_id);
+                    $data['payment_methods'] = $this->PaymentMethod_model->getAllPaymentMethods($company_id);
                     $data['main_content'] = $this->load->view('master/counter/addCounter', $data, TRUE);
                     $this->load->view('userHome', $data);
                 } else {
                     $data = array();
                     $data['encrypted_id'] = $encrypted_id;
                     $data['printers'] =  $this->Common_model->getAllPrinter($company_id);
+                    $data['payment_methods'] = $this->PaymentMethod_model->getAllPaymentMethods($company_id);
                     $data['counter'] = $this->Common_model->getDataById($id, "tbl_counters");
                     $data['main_content'] = $this->load->view('master/counter/editCounter', $data, TRUE);
                     $this->load->view('userHome', $data);
@@ -99,12 +119,14 @@ class Counter extends Cl_Controller {
             if ($id == "") {
                 $data = array();
                 $data['printers'] =  $this->Common_model->getAllPrinter($company_id);
+                $data['payment_methods'] = $this->PaymentMethod_model->getAllPaymentMethods($company_id);
                 $data['main_content'] = $this->load->view('master/counter/addCounter', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
                 $data = array();
                 $data['encrypted_id'] = $encrypted_id;  
                 $data['printers'] =  $this->Common_model->getAllPrinter($company_id);
+                $data['payment_methods'] = $this->PaymentMethod_model->getAllPaymentMethods($company_id);
                 $data['counter'] = $this->Common_model->getDataById($id, "tbl_counters");
                 $data['main_content'] = $this->load->view('master/counter/editCounter', $data, TRUE);
                 $this->load->view('userHome', $data);

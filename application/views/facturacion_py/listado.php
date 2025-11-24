@@ -342,9 +342,19 @@
                                             href="javascript:void(0)"
                                             data-cdc="<?php echo $factura->cdc; ?>"
                                             data-factura-numero="<?php echo $factura->numero_formateado; ?>"
-                                            id="btn-pdf-<?php echo $factura->id; ?>"
-                                            title="Descargar PDF">
+                                            data-formato="ticket"
+                                            id="btn-pdf-ticket-<?php echo $factura->id; ?>"
+                                            title="Descargar PDF Ticket">
                                             <i class="fa fa-file-pdf"></i>
+                                        </a>
+                                        <a class="btn btn-success menu_assign_class btn-descargar-pdf"
+                                            href="javascript:void(0)"
+                                            data-cdc="<?php echo $factura->cdc; ?>"
+                                            data-factura-numero="<?php echo $factura->numero_formateado; ?>"
+                                            data-formato="a4"
+                                            id="btn-pdf-a4-<?php echo $factura->id; ?>"
+                                            title="Descargar PDF A4">
+                                            <i class="fa fa-file-text"></i>
                                         </a>
                                     <?php endif; ?>
                                 </div>
@@ -743,8 +753,9 @@ $(document).ready(function() {
         var cdc = $(this).data('cdc');
         var facturaNumero = $(this).data('factura-numero');
         var buttonId = $(this).attr('id');
-        
-        descargarPDFFactura(cdc, facturaNumero, buttonId);
+        var formato = $(this).data('formato') || 'ticket';
+
+        descargarPDFFactura(cdc, facturaNumero, buttonId, formato);
     });
     
     var cdcQueryCount = 0;
@@ -854,8 +865,9 @@ $(document).ready(function() {
  * @param {string} cdc - Código de Control del documento
  * @param {string} facturaNumero - Número de factura para mostrar en mensajes
  * @param {string} buttonId - ID del botón que disparó la acción
+ * @param {string} formato - Formato del PDF ('ticket' o 'a4')
  */
-function descargarPDFFactura(cdc, facturaNumero, buttonId) {
+function descargarPDFFactura(cdc, facturaNumero, buttonId, formato) {
     // Validar CDC
     if (!cdc || cdc.trim() === '') {
         mostrarError('CDC no disponible para esta factura');
@@ -880,7 +892,8 @@ function descargarPDFFactura(cdc, facturaNumero, buttonId) {
         type: 'POST',
         dataType: 'json',
         data: {
-            cdc: cdc
+            cdc: cdc,
+            format: formato || 'ticket'
         },
         success: function(response) {
             if (response.success) {

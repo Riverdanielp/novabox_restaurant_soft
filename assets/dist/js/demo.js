@@ -4,20 +4,20 @@
  * You should not use this file in production.
  * This file is for demo purposes only.
  */
-$(function () {
+jQuery(function () {
     'use strict'
 
     /**
      * Get access to plugins
      */
 
-    /*$('[data-toggle="control-sidebar"]').controlSidebar();*/
+    /*jQuery('[data-toggle="control-sidebar"]').controlSidebar();*/
 
-    /* $('[data-toggle="push-menu"]').pushMenu()*/
+    /* jQuery('[data-toggle="push-menu"]').pushMenu()*/
 
-    var $pushMenu       = $('[data-toggle="push-menu"]').data('lte.pushmenu')
-    var $controlSidebar = $('[data-toggle="control-sidebar"]').data('lte.controlsidebar')
-    var $layout         = $('body').data('lte.layout')
+    var jQuerypushMenu       = jQuery('[data-toggle="push-menu"]').data('lte.pushmenu')
+    var jQuerycontrolSidebar = jQuery('[data-toggle="control-sidebar"]').data('lte.controlsidebar')
+    var jQuerylayout         = jQuery('body').data('lte.layout')
 
     /**
      * List of all the available skins
@@ -75,13 +75,13 @@ $(function () {
      * @returns void
      */
     function changeLayout(cls) {
-        $('body').toggleClass(cls)
-        $layout.fixSidebar()
-        if ($('body').hasClass('fixed') && cls == 'fixed') {
-            $pushMenu.expandOnHover()
-            $layout.activate()
+        jQuery('body').toggleClass(cls)
+        jQuerylayout.fixSidebar()
+        if (jQuery('body').hasClass('fixed') && cls == 'fixed') {
+            jQuerypushMenu.expandOnHover()
+            jQuerylayout.activate()
         }
-        $controlSidebar.fix()
+        jQuerycontrolSidebar.fix()
     }
 
     /**
@@ -90,11 +90,11 @@ $(function () {
      * @returns Boolean false to prevent link's default action
      */
     function changeSkin(cls) {
-        $.each(mySkins, function (i) {
-            $('body').removeClass(mySkins[i])
+        jQuery.each(mySkins, function (i) {
+            jQuery('body').removeClass(mySkins[i])
         })
 
-        $('body').addClass(cls)
+        jQuery('body').addClass(cls)
         store('skin', cls)
         return false
     }
@@ -106,84 +106,84 @@ $(function () {
      */
     function setup() {
         var tmp = get('skin')
-        if (tmp && $.inArray(tmp, mySkins))
+        if (tmp && jQuery.inArray(tmp, mySkins))
             changeSkin(tmp)
 
         // Add the change skin listener
-        $('[data-skin]').on('click', function (e) {
-            if ($(this).hasClass('knob'))
+        jQuery('[data-skin]').on('click', function (e) {
+            if (jQuery(this).hasClass('knob'))
                 return
             e.preventDefault()
-            changeSkin($(this).data('skin'))
+            changeSkin(jQuery(this).data('skin'))
         })
 
         // Add the layout manager
-        $('[data-layout]').on('click', function () {
-            changeLayout($(this).data('layout'))
+        jQuery('[data-layout]').on('click', function () {
+            changeLayout(jQuery(this).data('layout'))
         })
 
-        $('[data-controlsidebar]').on('click', function () {
-            changeLayout($(this).data('controlsidebar'))
-            var slide = !$controlSidebar.options.slide
+        jQuery('[data-controlsidebar]').on('click', function () {
+            changeLayout(jQuery(this).data('controlsidebar'))
+            var slide = !jQuerycontrolSidebar.options.slide
 
-            $controlSidebar.options.slide = slide
+            jQuerycontrolSidebar.options.slide = slide
             if (!slide)
-                $('.control-sidebar').removeClass('control-sidebar-open')
+                jQuery('.control-sidebar').removeClass('control-sidebar-open')
         })
 
-        $('[data-sidebarskin="toggle"]').on('click', function () {
-            var $sidebar = $('.control-sidebar')
-            if ($sidebar.hasClass('control-sidebar-dark')) {
-                $sidebar.removeClass('control-sidebar-dark')
-                $sidebar.addClass('control-sidebar-light')
+        jQuery('[data-sidebarskin="toggle"]').on('click', function () {
+            var jQuerysidebar = jQuery('.control-sidebar')
+            if (jQuerysidebar.hasClass('control-sidebar-dark')) {
+                jQuerysidebar.removeClass('control-sidebar-dark')
+                jQuerysidebar.addClass('control-sidebar-light')
             } else {
-                $sidebar.removeClass('control-sidebar-light')
-                $sidebar.addClass('control-sidebar-dark')
+                jQuerysidebar.removeClass('control-sidebar-light')
+                jQuerysidebar.addClass('control-sidebar-dark')
             }
         })
 
-        $('[data-enable="expandOnHover"]').on('click', function () {
-            $(this).attr('disabled', true)
-            $pushMenu.expandOnHover()
-            if (!$('body').hasClass('sidebar-collapse'))
-                $('[data-layout="sidebar-collapse"]').click()
+        jQuery('[data-enable="expandOnHover"]').on('click', function () {
+            jQuery(this).attr('disabled', true)
+            jQuerypushMenu.expandOnHover()
+            if (!jQuery('body').hasClass('sidebar-collapse'))
+                jQuery('[data-layout="sidebar-collapse"]').click()
         })
 
         //  Reset options
-        if ($('body').hasClass('fixed')) {
-            $('[data-layout="fixed"]').attr('checked', 'checked')
+        if (jQuery('body').hasClass('fixed')) {
+            jQuery('[data-layout="fixed"]').attr('checked', 'checked')
         }
-        if ($('body').hasClass('layout-boxed')) {
-            $('[data-layout="layout-boxed"]').attr('checked', 'checked')
+        if (jQuery('body').hasClass('layout-boxed')) {
+            jQuery('[data-layout="layout-boxed"]').attr('checked', 'checked')
         }
-        if ($('body').hasClass('sidebar-collapse')) {
-            $('[data-layout="sidebar-collapse"]').attr('checked', 'checked')
+        if (jQuery('body').hasClass('sidebar-collapse')) {
+            jQuery('[data-layout="sidebar-collapse"]').attr('checked', 'checked')
         }
 
     }
 
     // Create the new tab
-    var $tabPane = $('<div />', {
+    var jQuerytabPane = jQuery('<div />', {
         'id'   : 'control-sidebar-theme-demo-options-tab',
         'class': 'tab-pane active'
     })
 
     // Create the tab button
-    var $tabButton = $('<li />', { 'class': 'active' })
+    var jQuerytabButton = jQuery('<li />', { 'class': 'active' })
         .html('<a href=\'#control-sidebar-theme-demo-options-tab\' data-toggle=\'tab\'>'
             + '<i class="fa fa-wrench"></i>'
             + '</a>')
 
     // Add the tab button to the right sidebar tabs
-    $('[href="#control-sidebar-home-tab"]')
+    jQuery('[href="#control-sidebar-home-tab"]')
         .parent()
-        .before($tabButton)
+        .before(jQuerytabButton)
 
     // Create the menu
-    var $demoSettings = $('<div />')
+    var jQuerydemoSettings = jQuery('<div />')
 
     // Layout options
-    $demoSettings.append(
+    jQuerydemoSettings.append(
         '<h4 class="control-sidebar-heading">'
         + 'Layout Options'
         + '</h4>'
@@ -236,115 +236,115 @@ $(function () {
         + '<p>Toggle between dark and light skins for the right sidebar</p>'
         + '</div>'
     )
-    var $skinsList = $('<ul />', { 'class': 'list-unstyled clearfix' })
+    var jQueryskinsList = jQuery('<ul />', { 'class': 'list-unstyled clearfix' })
 
     // Dark sidebar skins
-    var $skinBlue =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    var jQueryskinBlue =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-blue" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px; background: #367fa9"></span><span class="bg-light-blue" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #222d32"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin">Blue</p>')
-    $skinsList.append($skinBlue)
-    var $skinBlack =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinBlue)
+    var jQueryskinBlack =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-black" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div style="box-shadow: 0 0 2px rgba(0,0,0,0.1)" class="clearfix"><span style="display:block; width: 20%; float: left; height: 7px; background: #fefefe"></span><span style="display:block; width: 80%; float: left; height: 7px; background: #fefefe"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #222"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin">Black</p>')
-    $skinsList.append($skinBlack)
-    var $skinPurple =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinBlack)
+    var jQueryskinPurple =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-purple" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px;" class="bg-purple-active"></span><span class="bg-purple" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #222d32"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin">Purple</p>')
-    $skinsList.append($skinPurple)
-    var $skinGreen =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinPurple)
+    var jQueryskinGreen =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-green" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px;" class="bg-green-active"></span><span class="bg-green" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #222d32"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin">Green</p>')
-    $skinsList.append($skinGreen)
-    var $skinRed =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinGreen)
+    var jQueryskinRed =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-red" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px;" class="bg-red-active"></span><span class="bg-red" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #222d32"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin">Red</p>')
-    $skinsList.append($skinRed)
-    var $skinYellow =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinRed)
+    var jQueryskinYellow =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-yellow" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px;" class="bg-yellow-active"></span><span class="bg-yellow" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #222d32"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin">Yellow</p>')
-    $skinsList.append($skinYellow)
+    jQueryskinsList.append(jQueryskinYellow)
 
     // Light sidebar skins
-    var $skinBlueLight =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    var jQueryskinBlueLight =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-blue-light" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px; background: #367fa9"></span><span class="bg-light-blue" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #f9fafc"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin" style="font-size: 12px">Blue Light</p>')
-    $skinsList.append($skinBlueLight)
-    var $skinBlackLight =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinBlueLight)
+    var jQueryskinBlackLight =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-black-light" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div style="box-shadow: 0 0 2px rgba(0,0,0,0.1)" class="clearfix"><span style="display:block; width: 20%; float: left; height: 7px; background: #fefefe"></span><span style="display:block; width: 80%; float: left; height: 7px; background: #fefefe"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #f9fafc"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin" style="font-size: 12px">Black Light</p>')
-    $skinsList.append($skinBlackLight)
-    var $skinPurpleLight =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinBlackLight)
+    var jQueryskinPurpleLight =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-purple-light" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px;" class="bg-purple-active"></span><span class="bg-purple" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #f9fafc"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin" style="font-size: 12px">Purple Light</p>')
-    $skinsList.append($skinPurpleLight)
-    var $skinGreenLight =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinPurpleLight)
+    var jQueryskinGreenLight =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-green-light" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px;" class="bg-green-active"></span><span class="bg-green" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #f9fafc"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin" style="font-size: 12px">Green Light</p>')
-    $skinsList.append($skinGreenLight)
-    var $skinRedLight =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinGreenLight)
+    var jQueryskinRedLight =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-red-light" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px;" class="bg-red-active"></span><span class="bg-red" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #f9fafc"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin" style="font-size: 12px">Red Light</p>')
-    $skinsList.append($skinRedLight)
-    var $skinYellowLight =
-        $('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
+    jQueryskinsList.append(jQueryskinRedLight)
+    var jQueryskinYellowLight =
+        jQuery('<li />', { style: 'float:left; width: 33.33333%; padding: 5px;' })
             .append('<a href="javascript:void(0)" data-skin="skin-yellow-light" style="display: block; box-shadow: 0 0 3px rgba(0,0,0,0.4)" class="clearfix full-opacity-hover">'
                 + '<div><span style="display:block; width: 20%; float: left; height: 7px;" class="bg-yellow-active"></span><span class="bg-yellow" style="display:block; width: 80%; float: left; height: 7px;"></span></div>'
                 + '<div><span style="display:block; width: 20%; float: left; height: 20px; background: #f9fafc"></span><span style="display:block; width: 80%; float: left; height: 20px; background: #f4f5f7"></span></div>'
                 + '</a>'
                 + '<p class="text-center no-margin" style="font-size: 12px">Yellow Light</p>')
-    $skinsList.append($skinYellowLight)
+    jQueryskinsList.append(jQueryskinYellowLight)
 
-    $demoSettings.append('<h4 class="control-sidebar-heading">Skins</h4>')
-    $demoSettings.append($skinsList)
+    jQuerydemoSettings.append('<h4 class="control-sidebar-heading">Skins</h4>')
+    jQuerydemoSettings.append(jQueryskinsList)
 
-    $tabPane.append($demoSettings)
-    $('#control-sidebar-home-tab').after($tabPane)
+    jQuerytabPane.append(jQuerydemoSettings)
+    jQuery('#control-sidebar-home-tab').after(jQuerytabPane)
 
     setup()
 
-    /* $('[data-toggle="tooltip"]').tooltip()*/
+    /* jQuery('[data-toggle="tooltip"]').tooltip()*/
 })

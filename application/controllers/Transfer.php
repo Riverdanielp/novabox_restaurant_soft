@@ -676,18 +676,47 @@ public function ajaxAgregarTransferDetalle() {
     }
 
     // Guardar detalle en la BD local
-    $detalle = [
-        'ingredient_id' => $this->input->post('ingredient_id'),
-        'quantity_amount' => $this->input->post('quantity_amount'),
-        'total_cost' => $this->input->post('total_cost'),
-        'single_cost_total' => $this->input->post('single_cost_total'),
-        'transfer_id' => $transfer_id,
-        'from_outlet_id' => $this->session->userdata('outlet_id'),
-        'to_outlet_id' => isset($id_parts[1]) ? null : $to_outlet_id_int,
-        'transfer_type' => $this->input->post('transfer_type'),
-        'del_status' => 'Live'
-    ];
-    $detalle_id = $this->Common_model->insertInformation($detalle, "tbl_transfer_ingredients");
+    $item_id = $this->input->post('ingredient_id');
+    $quantity = $this->input->post('quantity_amount');
+    $transfer_type = $this->input->post('transfer_type');
+
+    if ($transfer_type == 2) {
+        // Es un menú, obtener sus ingredientes
+        $this->db->select('ingredient_id, consumption');
+        $this->db->from('tbl_food_menus_ingredients');
+        $this->db->where('food_menu_id', $item_id);
+        $menu_ingredients = $this->db->get()->result();
+
+        foreach ($menu_ingredients as $mi) {
+            $detalle = [
+                'ingredient_id' => $mi->ingredient_id,
+                'quantity_amount' => $mi->consumption * $quantity,
+                'total_cost' => 0, // Calcular si necesario
+                'single_cost_total' => 0,
+                'transfer_id' => $transfer_id,
+                'from_outlet_id' => $this->session->userdata('outlet_id'),
+                'to_outlet_id' => isset($id_parts[1]) ? null : $to_outlet_id_int,
+                'transfer_type' => 1, // Los detalles son ingredients
+                'del_status' => 'Live'
+            ];
+            $this->Common_model->insertInformation($detalle, "tbl_transfer_ingredients");
+        }
+        $detalle_id = null; // No hay un solo detalle_id para menús
+    } else {
+        // Es un ingrediente directo
+        $detalle = [
+            'ingredient_id' => $item_id,
+            'quantity_amount' => $quantity,
+            'total_cost' => $this->input->post('total_cost'),
+            'single_cost_total' => $this->input->post('single_cost_total'),
+            'transfer_id' => $transfer_id,
+            'from_outlet_id' => $this->session->userdata('outlet_id'),
+            'to_outlet_id' => isset($id_parts[1]) ? null : $to_outlet_id_int,
+            'transfer_type' => $transfer_type,
+            'del_status' => 'Live'
+        ];
+        $detalle_id = $this->Common_model->insertInformation($detalle, "tbl_transfer_ingredients");
+    }
 
     // --- Sincronización multiDB: SIEMPRE si $to_db_key != 'default' ---
     if ($to_db_key != 'default') {
@@ -708,23 +737,42 @@ public function ajaxAgregarTransferDetalle() {
             ]);
         }
 
-        // Crear el ingrediente remoto (y food_menu si aplica)
-        $ingredient_id_remote = get_or_create_remote_ingredient($detalle['ingredient_id'], $to_db_key);
-
-        // Insertar el detalle en la remota
-        $db_remota = $this->load->database($to_db_key, TRUE);
-        $detalle_remoto = [
-            'ingredient_id' => $ingredient_id_remote,
-            'quantity_amount' => $detalle['quantity_amount'],
-            'total_cost' => $detalle['total_cost'],
-            'single_cost_total' => $detalle['single_cost_total'],
-            'transfer_id' => $remote_transfer_id, // id de la transferencia remota
-            'from_outlet_id' => null, //$detalle['from_outlet_id'],
-            'to_outlet_id' => $to_outlet_id_int, // id del outlet destino
-            'transfer_type' => $detalle['transfer_type'],
-            'del_status' => 'Live'
-        ];
-        $db_remota->insert('tbl_transfer_ingredients', $detalle_remoto);
+        // Sincronizar detalles
+        if ($transfer_type == 2) {
+            // Para menús, sincronizar cada ingrediente
+            foreach ($menu_ingredients as $mi) {
+                $ingredient_id_remote = get_or_create_remote_ingredient($mi->ingredient_id, $to_db_key);
+                $detalle_remoto = [
+                    'ingredient_id' => $ingredient_id_remote,
+                    'quantity_amount' => $mi->consumption * $quantity,
+                    'total_cost' => 0,
+                    'single_cost_total' => 0,
+                    'transfer_id' => $remote_transfer_id,
+                    'from_outlet_id' => null,
+                    'to_outlet_id' => $to_outlet_id_int,
+                    'transfer_type' => 1,
+                    'del_status' => 'Live'
+                ];
+                $db_remota = $this->load->database($to_db_key, TRUE);
+                $db_remota->insert('tbl_transfer_ingredients', $detalle_remoto);
+            }
+        } else {
+            // Para ingredientes directos
+            $ingredient_id_remote = get_or_create_remote_ingredient($item_id, $to_db_key);
+            $detalle_remoto = [
+                'ingredient_id' => $ingredient_id_remote,
+                'quantity_amount' => $quantity,
+                'total_cost' => $this->input->post('total_cost'),
+                'single_cost_total' => $this->input->post('single_cost_total'),
+                'transfer_id' => $remote_transfer_id,
+                'from_outlet_id' => null,
+                'to_outlet_id' => $to_outlet_id_int,
+                'transfer_type' => $transfer_type,
+                'del_status' => 'Live'
+            ];
+            $db_remota = $this->load->database($to_db_key, TRUE);
+            $db_remota->insert('tbl_transfer_ingredients', $detalle_remoto);
+        }
     }
 
     echo json_encode(['success' => true, 'transfer_id' => $transfer_id, 'detalle_id' => $detalle_id]);
@@ -844,6 +892,15 @@ public function ajaxGuardarTransferInfo() {
         }
     }
 
+    // --- Actualizar status y outlet_id en tbl_transfer_ingredients (local) ---
+    $this->db->where('transfer_id', $transfer_id)->update('tbl_transfer_ingredients', ['status' => $status]);
+
+    // --- Actualizar status y outlet_id en tbl_transfer_ingredients (remota si multi-DB) ---
+    if ($to_db_key != 'default' && isset($remote_transfer_id)) {
+        $db_remota = $this->load->database($to_db_key, TRUE);
+        $db_remota->where('transfer_id', $remote_transfer_id)->update('tbl_transfer_ingredients', ['status' => $status, 'to_outlet_id' => $to_outlet_id_int]);
+    }
+
     echo json_encode(['success' => true, 'transfer_id' => $transfer_id, 'reload' => $reload]);
 }
 
@@ -877,29 +934,54 @@ public function ajaxGuardarTransferInfo() {
 
     public function ajaxBuscarIngredientesPorNombre() {
         $term = $this->input->post('term', true);
-        $result = $this->Inventory_adjustment_model->buscarIngredientesPorNombre($term);
         $sugerencias = [];
-        foreach ($result as $row) {
+
+        // Buscar en ingredients
+        $result_ingredients = $this->Inventory_adjustment_model->buscarIngredientesPorNombre($term);
+        foreach ($result_ingredients as $row) {
             $sugerencias[] = [
                 'id' => $row->id,
                 'code' => $row->code,
                 'name' => $row->name,
                 'label' => $row->code . ' - ' . $row->name,
                 'unit_name' => $row->unit_name,
+                'is_menu' => false,
             ];
         }
+
+        // Buscar en food_menus
+        $this->db->where('del_status', 'Live');
+        $this->db->where('product_type', 1);
+        $this->db->group_start();
+        $this->db->like('code', $term);
+        $this->db->or_like('name', $term);
+        $this->db->group_end();
+        $this->db->limit(10);
+        $result_menus = $this->db->get('tbl_food_menus')->result();
+        foreach ($result_menus as $row) {
+            $sugerencias[] = [
+                'id' => $row->id,
+                'code' => $row->code,
+                'name' => $row->name,
+                'label' => $row->code . ' - ' . $row->name . ' (Menú)',
+                'unit_name' => 'Menú',
+                'is_menu' => true,
+            ];
+        }
+
         echo json_encode(['success' => true, 'items' => $sugerencias]);
     }
 
     /**
-     * Ajax: Buscar ingrediente por código
+     * Ajax: Buscar ingrediente o menú por código
      */
     public function ajaxBuscarIngredientePorCodigo() {
         $code = $this->input->post('codigo', true);
+
+        // Buscar primero en ingredients
         $row = $this->Inventory_adjustment_model->getIngredientByCode($code);
         if ($row) {
             $stock = $this->Inventory_model->getCurrentInventory($row->id);
-            // $last_purchase_cost = $this->Inventory_adjustment_model->getLastPurchasePrice($row->id);
             echo json_encode([
                 'success' => true,
                 'id' => $row->id,
@@ -908,6 +990,24 @@ public function ajaxGuardarTransferInfo() {
                 'unit' => $row->unit_id,
                 'stock' => $stock['total_stock'],
                 'costo' => $row->consumption_unit_cost,
+                'is_menu' => false,
+            ]);
+            return;
+        }
+
+        // Si no es ingrediente, buscar en food_menus
+        $this->db->where('code', $code);
+        $menu = $this->db->get('tbl_food_menus')->row();
+        if ($menu) {
+            echo json_encode([
+                'success' => true,
+                'id' => $menu->id,
+                'code' => $menu->code,
+                'name' => $menu->name,
+                'unit' => null, // No aplica para menús
+                'stock' => 'Menú', // Indicador
+                'costo' => 0, // No aplica
+                'is_menu' => true,
             ]);
         } else {
             echo json_encode(['success' => false]);

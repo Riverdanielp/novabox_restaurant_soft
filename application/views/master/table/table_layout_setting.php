@@ -141,7 +141,7 @@
   
 <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/custom_card_design_zak.css">
 <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.css">
-<link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.structure.css">
+<link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.structure.css?v=7.51">
 <script src="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.js"></script>
 <link rel="stylesheet" href="<?php echo base_url()?>assets/bower_components/bootstrap-colorpicker/dist/css/bootstrap-colorpicker.min.css">
 <script src="<?php echo base_url()?>assets/bower_components/bootstrap-colorpicker/dist/js/bootstrap-colorpicker.min.js"></script>

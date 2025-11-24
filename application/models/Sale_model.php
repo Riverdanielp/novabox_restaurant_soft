@@ -1367,6 +1367,7 @@ class Sale_model extends CI_Model {
       $this->db->where("added_date_time>=", $date);
       $this->db->where("added_date_time<=", $end);
       $this->db->where('del_status', 'Live');
+      $this->db->where('account_id IS NULL'); // Solo compras desde caja abierta
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
@@ -1383,12 +1384,14 @@ class Sale_model extends CI_Model {
       }
       $this->db->select("sum(amount) as total_amount");
       $this->db->from('tbl_customer_due_receives');
+      $this->db->where("amount >", 0);
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date>=", $date);
       $this->db->where("date<=", $end);
       $this->db->where('del_status', 'Live');
+      $this->db->where('account_id IS NULL'); // Solo cobros a caja abierta
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
@@ -1411,6 +1414,7 @@ class Sale_model extends CI_Model {
       $this->db->where("added_date_time	>=", $date);
       $this->db->where("added_date_time	<=", $end);
       $this->db->where('del_status', 'Live');
+      $this->db->where('account_id IS NULL'); // Solo pagos desde caja abierta
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
@@ -1433,6 +1437,7 @@ class Sale_model extends CI_Model {
       $this->db->where("added_date_time	>=", $date);
       $this->db->where("added_date_time	<=", $end);
       $this->db->where('del_status', 'Live');
+      $this->db->where('account_id IS NULL'); // Solo gastos desde caja abierta
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
@@ -1526,6 +1531,52 @@ class Sale_model extends CI_Model {
       $this->db->where('del_status', 'Live');
       $this->db->group_by('multi_currency');
       $data =  $this->db->get()->result();
+      return $data;
+    }
+    public function getCreditSales($date,$end = null,$user_id=null,$outlet_id=null)
+    {
+      if (!$user_id) {
+        $user_id = $this->session->userdata('user_id');
+      }
+      if (!$outlet_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
+      }
+      $this->db->select("tbl_sales.sale_no, tbl_customers.name as customer_name, tbl_sales.total_payable, tbl_sales.paid_amount, tbl_sales.due_amount, tbl_sales.sale_date, tbl_sales.paid_date_time");
+      $this->db->from('tbl_sales');
+      $this->db->join('tbl_customers', 'tbl_customers.id = tbl_sales.customer_id', 'left');
+      $this->db->where("tbl_sales.user_id", $user_id);
+      $this->db->where("tbl_sales.outlet_id", $outlet_id);
+      $this->db->where("tbl_sales.paid_date_time >=", $date);
+      $this->db->where("tbl_sales.paid_date_time <=", $end);
+      $this->db->where("tbl_sales.due_amount >", 0);
+      $this->db->where('tbl_sales.del_status', 'Live');
+      $this->db->order_by('tbl_sales.paid_date_time', 'ASC');
+      $data = $this->db->get()->result();
+      return $data;
+    }
+    public function getCreditSalesTotal($date,$end = null,$user_id=null,$outlet_id=null)
+    {
+      if (!$user_id) {
+        $user_id = $this->session->userdata('user_id');
+      }
+      if (!$outlet_id) {
+        $outlet_id = $this->session->userdata('outlet_id');
+      }
+      if (!$end) {
+        $end = date('Y-m-d H:i:s');
+      }
+      $this->db->select("COUNT(*) as cantidad, SUM(tbl_sales.due_amount) as total_due");
+      $this->db->from('tbl_sales');
+      $this->db->where("tbl_sales.user_id", $user_id);
+      $this->db->where("tbl_sales.outlet_id", $outlet_id);
+      $this->db->where("tbl_sales.paid_date_time >=", $date);
+      $this->db->where("tbl_sales.paid_date_time <=", $end);
+      $this->db->where("tbl_sales.due_amount >", 0);
+      $this->db->where('tbl_sales.del_status', 'Live');
+      $data = $this->db->get()->row();
       return $data;
     }
     public function allSaleByDateTime($date,$end = null,$user_id=null,$outlet_id=null)

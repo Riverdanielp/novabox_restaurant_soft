@@ -509,6 +509,8 @@ class Sale extends Cl_Controller {
         $data['sale_details'] = $this->Common_model->getDataById($sale_id, "tbl_sales");
         $data['ing_categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_ingredient_categories');
         $data['tables'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_tables");
+        $this->load->model('Account_model');
+        $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
         $this->db->where("outlet_id", $outlet_id);
         $this->db->where("del_status", "Live");
         // $this->db->order_by("name", "ASC");
@@ -1269,6 +1271,7 @@ class Sale extends Cl_Controller {
         $customer_id = htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_id')));
         $data['name'] = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_name'))));
         $data['phone'] = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_phone'))));
+        $data['prefix'] = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_phone_prefix'))));
         $data['default_discount'] = trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_default_discount'))));
         $data['email'] = trim_checker($this->input->post($this->security->xss_clean('customer_email')));
         $data['password_online_user'] = md5(trim_checker($this->input->post($this->security->xss_clean('customer_password'))));
@@ -2728,27 +2731,27 @@ class Sale extends Cl_Controller {
             }
         }
 
-        $txt = '<b>Reason: '.$reason."</b>";
+        $txt = '<b>Causa: '.$reason."</b>";
         $txt .= '<br>';
 
         $customer_info = getCustomerData($order_details->customer_id);
-        $txt.="Sale No: ".$order_details->sale_no.", ";
-        $txt.="Sale Date: ".date($this->session->userdata('date_format'), strtotime($order_details->date_time)).", ";
-        $txt.="Customer: ".(isset($customer_info) && $customer_info->name?$customer_info->name:'---')." - ".(isset($customer_info) && $customer_info->phone?$customer_info->phone:'').", ";
+        $txt.="Venta N°: ".$order_details->sale_no.", ";
+        $txt.="Fecha Venta: ".date($this->session->userdata('date_format'), strtotime($order_details->date_time)).", ";
+        $txt.="Cliente: ".(isset($customer_info) && $customer_info->name?$customer_info->name:'---')." - ".(isset($customer_info) && $customer_info->phone?$customer_info->phone:'').", ";
 
         if(isset($order_details->total_vat) && $order_details->total_vat){
-            $txt.="VAT: ".$order_details->total_vat.",";
+            $txt.="IVA: ".$order_details->total_vat.",";
         }
         if(isset($order_details->total_discount_amount) && $order_details->total_discount_amount){
-            $txt.="Discount: ".$order_details->total_discount_amount.", ";
+            $txt.="Descuento: ".$order_details->total_discount_amount.", ";
         }
         if(isset($order_details->delivery_charge) && $order_details->delivery_charge){
-            $txt.="Charge: ".$order_details->delivery_charge.", ";
+            $txt.="Cargo: ".$order_details->delivery_charge.", ";
         }
         if(isset($order_details->tips_amount) && $order_details->tips_amount){
-            $txt.="Tips: ".$order_details->tips_amount.", ";
+            $txt.="Propinas: ".$order_details->tips_amount.", ";
         }
-        $txt.="Total Payable: ".$order_details->total_payable;
+        $txt.="Total a Pagar: ".$order_details->total_payable;
         if(count($order_details->items)>0){
             $txt.="<br><b>Items:</b><br>";
             foreach($order_details->items as $key=>$item){
@@ -5098,6 +5101,7 @@ class Sale extends Cl_Controller {
         $user_id = $this->session->userdata('user_id');
         $outlet_id = $this->session->userdata('outlet_id');
         $counter_id = $this->session->userdata('counter_id');
+        $company_id = $this->session->userdata('company_id');
         $opening_date_time = $this->getOpeningDateTime();
         $opening_details = $this->getOpeningDetails();
         $closing_date_time = date('Y-m-d H:i:s');
@@ -5113,23 +5117,40 @@ class Sale extends Cl_Controller {
         $payment_details = array();
         $others_currency = array();
 
+        // Array para cachear los cálculos por método de pago - OPTIMIZACIÓN
+        $payment_calculations = [];
+
         // Armar detalles por método de pago
         $detalles_metodo_pago = [];
         $resumen_final = [];
         $metodos_pago_cierre = []; // Para declaración
 
+        // PRIMER CICLO: Calcular totales y cachear resultados
         foreach ($opening_details_decode as $key => $value) {
             $payments = explode("||", $value);
             $payment_id = $payments[0];
             $payment_name = $payments[1];
             $opening_balance = (float) $payments[2];
 
+            // EJECUTAR CONSULTAS UNA SOLA VEZ Y CACHEAR RESULTADOS
             $total_sale = (float) $this->Sale_model->getAllSaleByPayment($opening_date_time, $payment_id);
             $total_purchase = (float) $this->Sale_model->getAllPurchaseByPayment($opening_date_time, $payment_id);
             $total_due_receive = (float) $this->Sale_model->getAllDueReceiveByPayment($opening_date_time, $payment_id);
             $total_due_payment = (float) $this->Sale_model->getAllDuePaymentByPayment($opening_date_time, $payment_id);
             $total_expense = (float) $this->Sale_model->getAllExpenseByPayment($opening_date_time, $payment_id);
             $refund_amount = (float) $this->Sale_model->getAllRefundByPayment($opening_date_time, $payment_id);
+
+            // Cachear los resultados
+            $payment_calculations[$payment_id] = [
+                'payment_name' => $payment_name,
+                'opening_balance' => $opening_balance,
+                'total_sale' => $total_sale,
+                'total_purchase' => $total_purchase,
+                'total_due_receive' => $total_due_receive,
+                'total_due_payment' => $total_due_payment,
+                'total_expense' => $total_expense,
+                'refund_amount' => $refund_amount
+            ];
 
             $total_sale_all += $total_sale;
             $total_purchase_all += $total_purchase;
@@ -5249,6 +5270,103 @@ class Sale extends Cl_Controller {
             }
         }
 
+        // ======================================================================
+        // INTEGRACIÓN CON MÓDULO DE CUENTAS - USANDO CACHE DE CÁLCULOS
+        // Registrar movimientos de cuenta por cada método de pago con saldo > 0
+        // ======================================================================
+        $this->load->model('Account_model');
+        $this->load->model('Account_transaction_model');
+        
+        // Verificar si el contador tiene habilitada la afectación a cuentas en cierre
+        $counter_data = $this->Common_model->getDataById($counter_id, "tbl_counters");
+        $should_affect_accounts = (isset($counter_data->affect_opening_to_accounts) && $counter_data->affect_opening_to_accounts == 1);
+        
+        if ($should_affect_accounts) {
+            // Obtener cuenta predeterminada del sistema (Caja Cofre)
+            $default_account = $this->Account_model->getDefaultAccount($company_id);
+            $default_account_id = $default_account ? $default_account->id : null;
+
+            // SEGUNDO CICLO: Usar datos cacheados para crear movimientos (SIN REPETIR CONSULTAS)
+            foreach ($payment_calculations as $payment_id => $calc) {
+                $payment_name = $calc['payment_name'];
+                $total_sale = $calc['total_sale'];
+                $total_purchase = $calc['total_purchase'];
+                $total_due_receive = $calc['total_due_receive'];
+                $total_due_payment = $calc['total_due_payment'];
+                $total_expense = $calc['total_expense'];
+                $refund_amount = $calc['refund_amount'];
+                
+                $inline_closing = $total_sale - $total_purchase + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
+                
+                // Solo crear movimiento si hay saldo diferente de 0
+                if ($inline_closing != 0) {
+                    // Obtener la cuenta asociada a este método de pago
+                    $payment_method = $this->db->get_where('tbl_payment_methods', array('id' => $payment_id))->row();
+                    $target_account_id = null;
+                    
+                    if ($payment_method && $payment_method->account_id) {
+                        // Usar cuenta específica del método de pago
+                        $target_account_id = $payment_method->account_id;
+                    } else {
+                        // Usar cuenta predeterminada (Caja Cofre)
+                        $target_account_id = $default_account_id;
+                    }
+                    
+                    // Crear movimiento de cuenta si tenemos cuenta destino válida
+                    if ($target_account_id) {
+                        // Construir nota solo con valores diferentes de 0
+                        $note_lines = [
+                            "Cierre de Caja #$register_id - Método de Pago: $payment_name"
+                        ];
+                        
+                        if ($total_sale > 0) {
+                            $note_lines[] = "Ventas: $" . number_format($total_sale, 2);
+                        }
+                        if ($total_purchase > 0) {
+                            $note_lines[] = "Compras: $" . number_format($total_purchase, 2);
+                        }
+                        if ($total_due_receive > 0) {
+                            $note_lines[] = "Ingresos: $" . number_format($total_due_receive, 2);
+                        }
+                        $egresos_total = $total_due_payment + $total_expense;
+                        if ($egresos_total > 0) {
+                            $note_lines[] = "Egresos: $" . number_format($egresos_total, 2);
+                        }
+                        if ($refund_amount > 0) {
+                            $note_lines[] = "Devoluciones: $" . number_format($refund_amount, 2);
+                        }
+                        $note_lines[] = "Total: $" . number_format($inline_closing, 2);
+                        
+                        $transaction_data = array(
+                            'transaction_type' => 'Cierre Caja',
+                            'from_account_id' => NULL, // No hay cuenta origen en cierre de caja
+                            'to_account_id' => $target_account_id,
+                            'amount' => abs($inline_closing), // Usar valor absoluto
+                            'reference_type' => 'register_close',
+                            'reference_id' => $register_id,
+                            'register_id' => $register_id, // Nuevo campo para identificar el cierre
+                            'note' => implode("\n", $note_lines),
+                            'transaction_date' => date('Y-m-d H:i:s'),
+                            'created_at' => $closing_date_time,
+                            'company_id' => $company_id,
+                            'user_id' => $user_id,
+                            'del_status' => 'Live'
+                        );
+                        
+                        // Insertar el movimiento
+                        $this->Account_transaction_model->insertTransaction($transaction_data);
+                    }
+                }
+            }
+        }
+        // ======================================================================
+        // FIN INTEGRACIÓN CON MÓDULO DE CUENTAS
+        // ======================================================================
+
+        // VENTAS A CRÉDITO
+        $ventas_credito = $this->Sale_model->getCreditSales($from_datetime, $to_datetime, $user_id, $outlet_id);
+        $ventas_credito_total = $this->Sale_model->getCreditSalesTotal($from_datetime, $to_datetime, $user_id, $outlet_id);
+
         $mensaje = $this->generarMensajeCierreCaja([
             'company_name'         => $this->session->userdata('outlet_name'),
             'counter_name'         => getCounterName($counter_id),
@@ -5259,7 +5377,9 @@ class Sale extends Cl_Controller {
             'detalles_metodo_pago' => $detalles_metodo_pago,
             'resumen_final'        => $resumen_final,
             'declaracion'          => $array_declaracion,
-            'total_sale_all' => $total_sale_all,
+            'total_sale_all'       => $total_sale_all,
+            'ventas_credito'       => $ventas_credito,
+            'ventas_credito_total' => $ventas_credito_total,
         ]);
 
         // ENVÍA EL MENSAJE A TODOS LOS NÚMEROS CONFIGURADOS
@@ -5354,6 +5474,22 @@ class Sale extends Cl_Controller {
         }
         if ($hay_resumen) $msg[] = $line;
 
+        // VENTAS A CRÉDITO
+        if (isset($ventas_credito_total) && $ventas_credito_total && $ventas_credito_total->cantidad > 0) {
+            $msg[] = "";
+            $msg[] = $line;
+            $msg[] = "*VENTAS A CREDITO*";
+            if (isset($ventas_credito) && count($ventas_credito) > 0) {
+                foreach ($ventas_credito as $vc) {
+                    $cliente = substr($vc->customer_name, 0, 15);
+                    $venta_line = "#" . $vc->sale_no . " - " . $cliente;
+                    $msg[] = str_pad($venta_line, 25) . str_pad(getAmtPCustom($vc->due_amount), 10, " ", STR_PAD_LEFT);
+                }
+            }
+            $total_line = "Total Pendiente: " . $ventas_credito_total->cantidad;
+            $msg[] = str_pad($total_line, 25) . str_pad(getAmtPCustom($ventas_credito_total->total_due), 10, " ", STR_PAD_LEFT);
+            $msg[] = $line;
+        }
         
         // VENTA TOTAL CAJA
         $msg[] = "";
@@ -5566,7 +5702,7 @@ class Sale extends Cl_Controller {
             $return_data['get_waiter_orders_for_delete_sender'] = $get_waiter_orders_for_delete_sender; 
             $return_data['already_invoiced_orders'] = $already_invoiced_orders;
             // $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc($user_id);
-            $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc_all();
+            $return_data['get_all_running_order_for_new_pc'] = get_all_running_order_for_new_pc_all_without_where_not_in(); //get_all_running_order_for_new_pc_all();
             $return_data['occupied_numbers'] = $this->getUpdatedNumbers();
             $return_data['redis_status'] = 'Cargado desde BD...';
 
@@ -8964,6 +9100,7 @@ class Sale extends Cl_Controller {
             'nombre_fantasia'   => $customer->nombre_fantasia,
             'email'             => $customer->email,
             'direccion'         => $customer->address,
+            'celular'           => $customer->prefix . clean_phone_number($customer->phone),
             'es_proveedor_estado' => (bool)$customer->es_proveedor_estado,
             'tipo_contribuyente'=> (int)$customer->tipo_contribuyente,
             'tipo_documento'    => (int)$customer->tipo_documento,
@@ -9073,24 +9210,36 @@ class Sale extends Cl_Controller {
             return ['status' => 'error', 'message' => "El objeto de venta proporcionado está vacío."];
         }
 
-        // Validación de Cliente
-        $customer = $this->db->where('id', $sale->customer_id)->get('tbl_customers')->row();
-        if (!$customer) {
+        // ===== SOLUCIÓN 7: Validación temprana + JOIN único para Customer y Outlet =====
+        // Una sola consulta para traer cliente + outlet
+        $query = $this->db
+            ->select('c.*, o.sifen_sucursal_id')
+            ->from('tbl_customers c')
+            ->join('tbl_outlets o', 'o.id = ' . intval($sale->outlet_id), 'left')
+            ->where('c.id', $sale->customer_id)
+            ->get();
+        
+        if ($query->num_rows() == 0) {
             return ['status' => 'error', 'message' => "Cliente con ID '$sale->customer_id' no encontrado."];
         }
+        
+        $row = $query->row();
+        $customer = $row; // Cliente tiene todas las columnas de tbl_customers
+        $sifen_sucursal_id = $row->sifen_sucursal_id; // Outlet data desde el JOIN
+        
+        // ===== SOLUCIÓN 7: Validación temprana de es_contribuyente =====
         if (!isset($customer->es_contribuyente) || !$customer->es_contribuyente) {
             return ['status' => 'info', 'message' => 'Facturación omitida: El cliente no es contribuyente o su RUC no es válido.'];
         }
         
         // Validación de Punto de Expedición
-        $outlet_info = $this->Common_model->getDataById($sale->outlet_id, 'tbl_outlets');
-        if (!$outlet_info || !isset($outlet_info->sifen_sucursal_id) || empty($outlet_info->sifen_sucursal_id)) {
+        if (empty($sifen_sucursal_id)) {
             return ['status' => 'error', 'message' => "La sucursal (Outlet ID: $sale->outlet_id) no tiene un ID de SIFEN configurado."];
         }
         
-        $punto_expedicion_valido = fs_get_punto_expedicion_activo($outlet_info->sifen_sucursal_id);
+        $punto_expedicion_valido = fs_get_punto_expedicion_activo($sifen_sucursal_id);
         if (!$punto_expedicion_valido) { 
-            return ['status' => 'error', 'message' => "No se encontró un punto de expedición activo para la sucursal SIFEN ID: {$outlet_info->sifen_sucursal_id}."];
+            return ['status' => 'error', 'message' => "No se encontró un punto de expedición activo para la sucursal SIFEN ID: {$sifen_sucursal_id}."];
         }
 
         // --- 2. Recopilar y Normalizar Datos ---
@@ -9115,22 +9264,56 @@ class Sale extends Cl_Controller {
             'departamento_id'   => (int)$customer->departamento_id, 'distrito_id'       => (int)$customer->distrito_id,
             'ciudad_id'         => (int)$customer->ciudad_id, 'pais_codigo'       => $customer->codigo_pais,
             'numero_casa'       => (string)intval($customer->numero_casa),
+            'celular'           => $customer->prefix . clean_phone_number($customer->phone),
         ];
         $usuario_normalizado = [ 'id_sistema' => $user->id, 'nombre' => $user->full_name, 'documento' => $user->documento, 'cargo' => 'Vendedor' ];
-        $items_normalizados = array_map(function($item) {
+        
+        // ===== SOLUCIÓN 7: Eliminar N+1 queries al procesar items =====
+        // Recopilar todos los food_menu_id únicos de los detalles
+        $food_menu_ids = array_unique(array_column($sale_details, 'food_menu_id'));
+        
+        // Una sola consulta para traer TODOS los menús necesarios
+        $food_menus_data = [];
+        if (!empty($food_menu_ids)) {
+            $menus_query = $this->db
+                ->select('id, code, iva_tipo')
+                ->where_in('id', $food_menu_ids)
+                ->get('tbl_food_menus')
+                ->result();
+            
+            foreach ($menus_query as $menu) {
+                $food_menus_data[$menu->id] = $menu;
+            }
+        }
+        
+        // Normalizar items usando los datos precargados
+        $items_normalizados = array_map(function($item) use ($food_menus_data) {
             $iva_valor = 0;
-            if (isset($item->iva_tipo)) { // Desde tbl_sales_details
-                if ($item->iva_tipo == '10') $iva_valor = 10; elseif ($item->iva_tipo == '5') $iva_valor = 5;
-            } else { // Desde tbl_kitchen_sales_details (asumiendo estructura similar)
-                $food_menu = $this->db->select('iva_tipo')->where('id', $item->food_menu_id)->get('tbl_food_menus')->row();
-                if($food_menu){
-                    if ($food_menu->iva_tipo == '10') $iva_valor = 10; elseif ($food_menu->iva_tipo == '5') $iva_valor = 5;
+            
+            if (isset($item->iva_tipo)) { 
+                // Desde tbl_sales_details (ya viene el iva_tipo)
+                if ($item->iva_tipo == '10') $iva_valor = 10; 
+                elseif ($item->iva_tipo == '5') $iva_valor = 5;
+            } else { 
+                // Desde tbl_kitchen_sales_details - usar datos precargados
+                if (isset($food_menus_data[$item->food_menu_id])) {
+                    $food_menu = $food_menus_data[$item->food_menu_id];
+                    if ($food_menu->iva_tipo == '10') $iva_valor = 10; 
+                    elseif ($food_menu->iva_tipo == '5') $iva_valor = 5;
                 }
             }
+            
+            // Obtener código del menú desde datos precargados
+            $codigo = isset($food_menus_data[$item->food_menu_id]) 
+                ? $food_menus_data[$item->food_menu_id]->code 
+                : 'N/A';
+            
             return [
-                'codigo' => $this->db->where('id', $item->food_menu_id)->get('tbl_food_menus')->row()->code ?? 'N/A',
-                'descripcion' => $item->menu_name, 'cantidad' => $item->qty,
-                'precio_unitario' => $item->menu_unit_price, 'iva' => $iva_valor,
+                'codigo' => $codigo,
+                'descripcion' => $item->menu_name, 
+                'cantidad' => $item->qty,
+                'precio_unitario' => $item->menu_unit_price, 
+                'iva' => $iva_valor,
             ];
         }, $sale_details);
         $condicion_normalizada = [ 'tipo' => 1, 'entregas' => array_map(function($pago) { return ['tipo' => fs_map_payment_method($pago['payment_id']),'monto' => $pago['amount'],'moneda' => 'PYG']; }, $payment_methods)];
@@ -9295,6 +9478,7 @@ class Sale extends Cl_Controller {
         if ($this->form_validation->run() == TRUE) {// Asumiendo que las reglas ya están seteadas
             try {
                 $outlet_id = $this->session->userdata('outlet_id');
+                $company_id = $this->session->userdata('company_id');
 
                 $due_receive_info = [
                     'date' => date("Y-m-d H:i:s"),
@@ -9303,11 +9487,12 @@ class Sale extends Cl_Controller {
                     'reference_no' => $this->Customer_due_receive_model->generateReferenceNo($outlet_id),
                     'customer_id' => $this->input->post('customer_id'),
                     'payment_id' => $this->input->post('payment_id'),
+                    'account_id' => !empty($this->input->post('account_id')) ? $this->input->post('account_id') : NULL,
                     'note' => $this->input->post('note'),
                     'counter_id' => $this->session->userdata('counter_id'),
                     'user_id' => $this->session->userdata('user_id'),
                     'outlet_id' => $outlet_id,
-                    'company_id' => $this->session->userdata('company_id')
+                    'company_id' => $company_id
                 ];
 
                 $due_receive_info = $this->security->xss_clean($due_receive_info);
@@ -9316,6 +9501,72 @@ class Sale extends Cl_Controller {
                 $payment_id = $this->Common_model->insertInformationAndGetId($due_receive_info, "tbl_customer_due_receives");
 
                 if ($payment_id) {
+                    // ============ LÓGICA DE REGISTRO CONTABLE ============
+                    // Los cobros a clientes SUMAN al saldo de la cuenta (son ingresos)
+                    if (!empty($due_receive_info['account_id']) && floatval($due_receive_info['amount']) > 0) {
+                        $this->load->model('Account_model');
+                        $this->load->model('Account_transaction_model');
+                        
+                        $account = $this->Account_model->getAccountById($due_receive_info['account_id']);
+                        if ($account) {
+                            $balance_before = floatval($account->current_balance);
+                            $amount = floatval($due_receive_info['amount']);
+                            $balance_after = $balance_before + $amount; // Los cobros SUMAN al saldo
+                            
+                            // Actualizar saldo de la cuenta
+                            $this->Account_model->updateBalance($due_receive_info['account_id'], $balance_after);
+                            
+                            // Obtener nombre del cliente para descripción
+                            $customer_info = $this->Common_model->getDataById($due_receive_info['customer_id'], 'tbl_customers');
+                            $customer_name = $customer_info ? $customer_info->name : 'Cliente';
+                            
+                            // Crear registro de transacción
+                            $transaction_data = [
+                                'to_account_id' => $due_receive_info['account_id'], // Cobro = entrada de dinero
+                                'transaction_type' => 'Cobro Cliente',
+                                'amount' => $amount,
+                                'reference_type' => 'customer_payment',
+                                'reference_id' => $payment_id,
+                                'note' => 'Cobro de ' . $customer_name . ' - Ref: ' . $due_receive_info['reference_no'],
+                                'transaction_date' => date('Y-m-d H:i:s'),
+                                'user_id' => $this->session->userdata('user_id'),
+                                'company_id' => $company_id
+                            ];
+                            $this->Account_transaction_model->insertTransaction($transaction_data);
+                        }
+                    }
+                    
+                    // Procesar sales_details (ventas afectadas por este pago)
+                    $sales_details = $this->input->post('sales_details');
+                    if ($sales_details && is_array($sales_details)) {
+                        foreach ($sales_details as $sale_id => $payment_amount) {
+                            $payment_amount = floatval($payment_amount);
+                            
+                            if ($payment_amount > 0) {
+                                // Verificar si es un pago negativo (saldo inicial) - ID empieza con "NEG-"
+                                if (strpos($sale_id, 'NEG-') === 0) {
+                                    // Es un pago negativo - NO guardar en tbl_customer_due_receives_sales
+                                    // Solo sirve para balancear, los pagos positivos y negativos se anulan
+                                    continue;
+                                }
+                                
+                                // Es una venta real - procesar normalmente
+                                // Insertar en tbl_customer_due_receives_sales
+                                $sale_payment_data = [
+                                    'due_receive_id' => $payment_id,
+                                    'sale_id' => $sale_id,
+                                    'amount' => $payment_amount
+                                ];
+                                $this->db->insert('tbl_customer_due_receives_sales', $sale_payment_data);
+                                
+                                // Actualizar paid_due_amount en tbl_sales (SUMAR al existente)
+                                $this->db->set('paid_due_amount', 'paid_due_amount + ' . $payment_amount, FALSE);
+                                $this->db->where('id', $sale_id);
+                                $this->db->update('tbl_sales');
+                            }
+                        }
+                    }
+
                     // --- ¡NUEVO! CALCULAR EL SALDO RESTANTE ---
                     $new_remaining_due = getCustomerDue($this->input->post('customer_id'));
 
@@ -9355,6 +9606,91 @@ class Sale extends Cl_Controller {
             $json_response('validation_error', 'Por favor, corrige los errores.', $errors);
         }
     }
+
+    /**
+     * Obtener ventas pendientes de un cliente para distribuir pagos (Ajax)
+     * @access public
+     * @return json
+     */
+    public function getPendingSalesAjax() {
+        header('Content-Type: application/json');
+        
+        $customer_id = $this->input->get('customer_id');
+        $outlet_id = $this->session->userdata('outlet_id');
+        
+        if (!$customer_id) {
+            echo json_encode(['status' => 'error', 'data' => []]);
+            return;
+        }
+        
+        // Cargar el modelo necesario
+        $this->load->model('Customer_due_receive_model');
+        
+        // Obtener ventas pendientes (incluye saldos iniciales negativos)
+        $pending_sales = $this->Customer_due_receive_model->getPendingSales($customer_id, $outlet_id);
+        
+        echo json_encode([
+            'status' => 'success',
+            'data' => $pending_sales
+        ]);
+    }
+
+    /**
+     * Obtener detalles del pago con ventas afectadas para impresión
+     * @access public
+     * @return json
+     */
+    public function getPaymentDetailAjax() {
+        header('Content-Type: application/json');
+        
+        $payment_id = $this->input->get('payment_id');
+        
+        if (!$payment_id) {
+            echo json_encode(['status' => 'error']);
+            return;
+        }
+        
+        // Obtener datos del pago
+        $this->db->select('*');
+        $this->db->from('tbl_customer_due_receives');
+        $this->db->where('id', $payment_id);
+        $payment = $this->db->get()->row();
+        
+        if (!$payment) {
+            echo json_encode(['status' => 'error']);
+            return;
+        }
+        
+        // Obtener ventas afectadas
+        $this->db->select('s.sale_no, s.sale_date, drs.amount');
+        $this->db->from('tbl_customer_due_receives_sales drs');
+        $this->db->join('tbl_sales s', 's.id = drs.sale_id', 'left');
+        $this->db->where('drs.due_receive_id', $payment_id);
+        $this->db->order_by('s.sale_date', 'ASC');
+        $affected_sales = $this->db->get()->result();
+        
+        $sales_list = [];
+        foreach ($affected_sales as $sale) {
+            $sales_list[] = [
+                'sale_no' => $sale->sale_no,
+                'sale_date' => date($this->session->userdata('date_format'), strtotime($sale->sale_date)),
+                'amount' => getAmtP($sale->amount)
+            ];
+        }
+        
+        $ticket_data = [
+            'ref_no' => $payment->reference_no,
+            'date' => date($this->session->userdata('date_format'), strtotime($payment->only_date)),
+            'customer' => getCustomerName($payment->customer_id),
+            'amount' => getAmtP($payment->amount),
+            'payment_method' => getPaymentName($payment->payment_id),
+            'note' => $payment->note ?? '',
+            'sales' => $sales_list
+        ];
+        
+        echo json_encode(['status' => 'success', 'data' => $ticket_data]);
+    }
+
     // En tu controlador: Customer_due_receive.php
 
     /**

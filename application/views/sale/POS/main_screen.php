@@ -617,7 +617,7 @@ foreach ($notifications as $single_notification){
 
     <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/custom_card_design_zak.css?v=7.5">
     <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.css?v=7.5">
-    <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.structure.css?v=7.5">
+    <link rel="stylesheet" href="<?php echo base_url()?>frequent_changing/table_design/jquery-ui.structure.css?v=7.51">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -701,7 +701,7 @@ foreach ($notifications as $single_notification){
     <style>
         .table-responsive {
             width: 100%; /* Ocupa todo el ancho disponible */
-            min-height: 200px; /* Altura mínima para pantallas pequeñas */
+             /*min-height: 200px; Altura mínima para pantallas pequeñas */
             max-height: 80vh; /* Altura máxima relativa al viewport */
             overflow-y: auto; /* Habilita el scroll vertical */
             /* Opcional: para visualizar el contenedor */
@@ -2210,7 +2210,15 @@ foreach ($notifications as $single_notification){
                                 <small>(<?php echo lang('should_have_country_code'); ?>)</small>
                             </p>
 
-                            <input type="text" class="add_customer_modal_input" placeholder="<?php echo lang('phone'); ?>" id="customer_phone_modal" required>
+                            <div style="display: flex;">
+                                <select id="customer_phone_prefix_modal" class="add_customer_modal_input form-control" style="width: 30%; margin-right: 10px;">
+                                    <option value=""><?php echo lang('select_prefix'); ?></option>
+                                    <?php foreach(get_phone_prefixes() as $country => $prefix): ?>
+                                        <option value="<?php echo $prefix; ?>"><?php echo $country . ' (+' . $prefix . ')'; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <input type="text" class="add_customer_modal_input" placeholder="<?php echo lang('phone'); ?>" id="customer_phone_modal" required style="width: 70%;">
+                            </div>
                         </div>
                         <div class="customer_section">
                             <p class="input_level"><?php echo lang('email'); ?></p>
@@ -2385,7 +2393,7 @@ foreach ($notifications as $single_notification){
     <div id="show_tables_modal2" class="modal display_none">
 
         <!-- Modal content -->
-        <div class="modal-content" id="modal_content_show_tables2">
+        <div class="modal-content" id="modal_content_show_tables2" style="OVERFLOW: scroll;">
             <h1 class="ir_pos_relative">
                 <?php echo lang('tables'); ?>
                 <a href="javascript:void(0)" class="alertCloseIcon" id="table_modal_cancel_button2">
@@ -3190,65 +3198,95 @@ foreach ($notifications as $single_notification){
             <a href="javascript:void(0)" class="pos__modal__close close_pay_due_modal"><i class="fal fa-times"></i></a>
         </header>
         <div class="pos__modal__body scrollbar-macosx">
-            <!-- <div class="pay_due_form_content"></div> -->
-                <div class="row">
-                    <input type="hidden" name="pay_due_modal_reference_no" value="">
-                    <input type="hidden" id="pay_due_modal_customer_id" value="">
-                    <div class="col-md-4">
-
-                        <div class="form-group">
-                            <label><?php echo lang('date'); ?> <span class="required_star">*</span></label>
-                            <input tabindex="1" type="text" id="pay_due_modal_date" readonly name="date" class="form-control"
-                                placeholder="<?php echo lang('date'); ?>" value="<?php echo date("Y-m-d",strtotime('today')); ?>">
-                        </div>
+            <div class="row">
+                <input type="hidden" name="pay_due_modal_reference_no" value="">
+                <input type="hidden" id="pay_due_modal_customer_id" value="">
+                
+                <!-- SECCIÓN DE VENTAS PENDIENTES -->
+                <div class="col-md-12">
+                    <h5 style="margin-bottom: 8px; font-size: 13px; font-weight: bold;">Ventas Pendientes</h5>
+                    <div class="table-responsive" style="overflow-y: auto; border: 1px solid #ddd; width: 100%;">
+                        <table class="table table-sm table-bordered" id="modal_pending_sales_table" style="margin-bottom: 0; font-size: 12px; width: 100%;">
+                            <thead style="background-color: #f5f5f5; position: sticky; top: 0;">
+                                <tr style="padding: 0;">
+                                    <th style="width: 25%; padding: 4px 6px; border: 1px solid #ddd;">Venta</th>
+                                    <th style="width: 20%; padding: 4px 6px; border: 1px solid #ddd;">Fecha</th>
+                                    <th style="width: 18%; padding: 4px 6px; border: 1px solid #ddd; text-align: right;">Total</th>
+                                    <th style="width: 18%; padding: 4px 6px; border: 1px solid #ddd; text-align: right;">Pendiente</th>
+                                    <th style="width: 19%; padding: 4px 6px; border: 1px solid #ddd;">Abonar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal_pending_sales_body">
+                                <tr>
+                                    <td colspan="5" class="text-center" style="padding: 8px; font-size: 12px;">Cargando ventas pendientes...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label><?php echo lang('payment_method'); ?> <span class="required_star">*</span></label>
-                            <select tabindex="3" class="form-control select2 ir_w_100" id="pay_due_modal_payment_id"
-                                    name="payment_id">
-                                <option value=""><?php echo lang('select'); ?></option>
-                                <?php foreach (getAllPaymentMethods(5) as $value) {
-                                    ?>
-                                    <option value="<?php echo escape_output($value->id) ?>"
-                                        <?php echo set_select('payment_id', $value->id); ?>>
-                                        <?php echo escape_output($value->name)?></option>
-                                    <?php
-                                } ?>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label><?php echo lang('amount'); ?> <span class="required_star">*</span></label>
-                            <input tabindex="2" type="text" id="pay_due_modal_amount"
-                                class="form-control integerchk ir_w_100" placeholder="<?php echo lang('amount'); ?>"
-                                value="<?php echo set_value('amount'); ?>">
-                        </div>
-
-
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label><?php echo lang('note'); ?></label>
-                            <textarea tabindex="5" class="form-control" rows="4" id="pay_due_modal_note"
-                                placeholder="<?php echo lang('enter'); ?> ..."><?php echo escape_output($this->input->post('note')); ?></textarea>
-                        </div>
-                    </div>
-
-                    
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label><br></label>
-                            
-                            <button type="submit" id="pay_due_modal_submit" class="btn callout-info">Realizar Pago</button>
-                        </div>
-                    </div>
-
-
                 </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><?php echo lang('date'); ?> <span class="required_star">*</span></label>
+                        <input tabindex="1" type="text" id="pay_due_modal_date" readonly name="date" class="form-control"
+                            placeholder="<?php echo lang('date'); ?>" value="<?php echo date("Y-m-d",strtotime('today')); ?>">
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><?php echo lang('payment_method'); ?> <span class="required_star">*</span></label>
+                        <select tabindex="3" class="form-control select2 ir_w_100" id="pay_due_modal_payment_id"
+                                name="payment_id">
+                            <option value=""><?php echo lang('select'); ?></option>
+                            <?php foreach (getAllPaymentMethods(5) as $value) {
+                                ?>
+                                <option value="<?php echo escape_output($value->id) ?>"
+                                    <?php echo set_select('payment_id', $value->id); ?>>
+                                    <?php echo escape_output($value->name)?></option>
+                                <?php
+                            } ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><?php echo lang('account'); ?></label>
+                        <select tabindex="4" class="form-control select2 ir_w_100" id="pay_due_modal_account_id" name="account_id">
+                            <option value=""><?php echo lang('default'); ?> (Caja Abierta)</option>
+                            <?php if(isset($accounts)) { foreach ($accounts as $account) { ?>
+                                <option value="<?php echo escape_output($account->id) ?>">
+                                    <?php echo escape_output($account->account_name)?></option>
+                            <?php }} ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><?php echo lang('amount'); ?> <span class="required_star">*</span></label>
+                        <input tabindex="2" type="number" id="pay_due_modal_amount"
+                            class="form-control ir_w_100" placeholder="<?php echo lang('amount'); ?>"
+                            value="0" step="0.01" min="0">
+                    </div>
+                </div>
+                
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label><?php echo lang('note'); ?></label>
+                        <textarea tabindex="5" class="form-control" rows="3" id="pay_due_modal_note"
+                            placeholder="<?php echo lang('enter'); ?> ..."><?php echo escape_output($this->input->post('note')); ?></textarea>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label><br></label>
+                        <button type="submit" id="pay_due_modal_submit" class="btn callout-info" style="width: 100%;">Realizar Pago</button>
+                    </div>
+                </div>
+            </div>
 
                     
             <!-- === NUEVA SECCIÓN: PAGOS RECIENTES === -->
@@ -3258,7 +3296,7 @@ foreach ($notifications as $single_notification){
                 <h4 class="pos__modal__title">Últimos 10 Pagos Realizados</h4>
                 <div class="table-responsive">
                     
-                        <table class="table_register_details table_sale_details top_margin_15 dataTable no-footer" id="DataTables_recent_due_payments_list" role="grid">
+                        <table class="table_register_details top_margin_15 dataTable no-footer" id="DataTables_recent_due_payments_list" role="grid">
                         <thead>
                             <tr>
                                 <th>Ref.</th>
@@ -5814,6 +5852,9 @@ foreach ($notifications as $single_notification){
     <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js?v=7.5"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/js/register_details.js<?php echo VERS() ?>"></script>
+    <script>
+        window.phonePrefixes = <?php echo json_encode(get_phone_prefixes()); ?>;
+    </script>
 </body>
 
 </html>
