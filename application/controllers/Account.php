@@ -35,10 +35,33 @@ class Account extends Cl_Controller {
             'transaction_type' => $this->input->get('transaction_type')
         );
 
-        $data['transactions'] = $this->Account_transaction_model->getAllTransactionsByCompany($company_id, $filters);
+        // Paginación
+        $limit = 10000; // registros por página
+        $page = $this->input->get('page') ? (int)$this->input->get('page') : 1;
+        $offset = ($page - 1) * $limit;
+
+        // Obtener transacciones paginadas
+        $data['transactions'] = $this->Account_transaction_model->getAllTransactionsByCompany($company_id, $filters, $limit, $offset);
+
+        // Obtener total para paginación
+        $total_transactions = $this->Account_transaction_model->getTotalTransactionsByCompany($company_id, $filters);
+        $total_pages = ceil($total_transactions / $limit);
+
+        // Información de paginación
+        $data['pagination'] = array(
+            'current_page' => $page,
+            'total_pages' => $total_pages,
+            'total_records' => $total_transactions,
+            'limit' => $limit,
+            'has_previous' => $page > 1,
+            'has_next' => $page < $total_pages,
+            'previous_page' => $page > 1 ? $page - 1 : null,
+            'next_page' => $page < $total_pages ? $page + 1 : null
+        );
+
         $data['accounts'] = $this->Account_model->getAllAccountsByCompany($company_id);
         $data['filters'] = $filters;
-        
+
         $data['main_content'] = $this->load->view('account/accountTransactions', $data, TRUE);
         $this->load->view('userHome', $data);
     }
@@ -214,7 +237,7 @@ class Account extends Cl_Controller {
 
         $this->form_validation->set_rules('transaction_type', 'Tipo de movimiento', 'required');
         $this->form_validation->set_rules('amount', 'Monto', 'required|numeric|greater_than[0]');
-        $this->form_validation->set_rules('transaction_date', 'Fecha', 'required');
+        // $this->form_validation->set_rules('transaction_date', 'Fecha', 'required');
 
         // Validaciones según tipo
         if ($transaction_type == 'Transferencia') {
@@ -253,7 +276,7 @@ class Account extends Cl_Controller {
                 'to_account_id' => $this->input->post('to_account_id') ? $this->input->post('to_account_id') : NULL,
                 'amount' => $this->input->post('amount'),
                 'note' => $this->input->post('note'),
-                'transaction_date' => $this->input->post('transaction_date'),
+                'transaction_date' => date('Y-m-d H:i:s'),
                 'created_at' => date('Y-m-d H:i:s'),
                 'company_id' => $company_id,
                 'user_id' => $user_id,

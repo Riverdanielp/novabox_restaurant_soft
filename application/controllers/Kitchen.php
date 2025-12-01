@@ -66,6 +66,12 @@ class Kitchen extends Cl_Controller {
         $id = d($id,2);
         $data = array();
         $kitchen = $this->Common_model->getDataById($id, "tbl_kitchens");
+        
+        if (!$kitchen) {
+            // Si no se encuentra la cocina, redirigir
+            redirect('Kitchen/kitchens');
+        }
+        
         $printer = $this->Common_model->getPrinterInfoById($kitchen->printer_id);
         $printer = isset($printer) ? $printer : new stdClass(); 
         $data['kitchen'] = $kitchen;
@@ -414,6 +420,11 @@ class Kitchen extends Cl_Controller {
         $outlet_id = $this->session->userdata('outlet_id');
         $user_id = $this->session->userdata('user_id');
         $kitchen = $this->Common_model->getDataById($kitchen_id, "tbl_kitchens");
+        
+        if (!$kitchen) {
+            return array(); // Retornar array vacío si la cocina no existe
+        }
+        
         $data1 = $this->Kitchen_model->getNewOrders($kitchen->outlet_id,$kitchen_id);
         $i = 0;
         for($i;$i<count($data1);$i++){
@@ -1089,9 +1100,17 @@ class Kitchen extends Cl_Controller {
         // Configuración de la impresora
         // El path de la impresora lo puedes definir fijo o según la cocina:
         $kitchen_data = $this->Common_model->getDataById($kitchen_id, "tbl_kitchens");
-        $printer = $this->Common_model->getPrinterInfoById($kitchen_data->printer_id);
-        $printer_path = isset($printer->path) ? $printer->path : 'kitchen_' . $kitchen_id;
-        $print_format = isset($printer->print_format) ? $printer->print_format : '80mm';
+        
+        if (!$kitchen_data) {
+            // Si no se encuentra la cocina, usar valores por defecto
+            $printer_path = 'kitchen_' . $kitchen_id;
+            $print_format = '80mm';
+        } else {
+            $printer = $this->Common_model->getPrinterInfoById($kitchen_data->printer_id);
+            $printer_path = isset($printer->path) ? $printer->path : 'kitchen_' . $kitchen_id;
+            $print_format = isset($printer->print_format) ? $printer->print_format : '80mm';
+        }
+        
         $width = ($print_format == "80mm") ? 80 : 58;
     
         // echo '<pre>';

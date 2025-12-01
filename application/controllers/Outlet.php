@@ -380,7 +380,11 @@ class Outlet extends Cl_Controller {
         if ($this->input->post('submit_link')) {
             // PROCESO 1: Vincular el Outlet a una Sucursal SIFEN
             $sifen_sucursal_id = $this->input->post('sifen_sucursal_id');
-            $this->Common_model->updateInformation(['sifen_sucursal_id' => $sifen_sucursal_id], $outlet_id, 'tbl_outlets');
+            $facturar_todas_ventas = $this->input->post('facturar_todas_ventas') ? 1 : 0;
+            $this->Common_model->updateInformation([
+                'sifen_sucursal_id' => $sifen_sucursal_id,
+                'facturar_todas_ventas' => $facturar_todas_ventas
+            ], $outlet_id, 'tbl_outlets');
             $this->session->set_flashdata('exception', 'El outlet ha sido vinculado a la sucursal SIFEN correctamente.');
             redirect('Outlet/configuracionSifen/' . $encrypted_id);
 

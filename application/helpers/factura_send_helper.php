@@ -1349,11 +1349,14 @@ if (!function_exists('fs_prepare_items_data')) {
         $items = [];
         
         foreach ($items_data as $item) {
+            // Formatear cantidad con máximo 6 decimales automáticamente
+            $cantidad = round(floatval($item['cantidad'] ?? 1), 6);
+            $precio_unitario = round(floatval($item['precio_unitario'] ?? 0), 6);
             $normalized_item = [
                 'codigo' => $item['codigo'] ?? '',
                 'descripcion' => $item['descripcion'] ?? 'Producto',
-                'cantidad' => floatval($item['cantidad'] ?? 1),
-                'precio_unitario' => floatval($item['precio_unitario'] ?? 0),
+                'cantidad' => $cantidad,
+                'precio_unitario' => $precio_unitario,
                 'iva' => intval($item['iva'] ?? 10),
                 'ivaBase' => 100, // Por defecto 100%
                 'ivaTipo' => ($item['iva'] > 0) ? 1 : 3, // 1 = Gravado, 3 = Exento

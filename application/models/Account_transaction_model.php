@@ -4,11 +4,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 class Account_transaction_model extends CI_Model {
 
     /**
-     * Obtener todas las transacciones de una empresa
+     * Obtener todas las transacciones de una empresa (con paginación)
      */
-    public function getAllTransactionsByCompany($company_id, $filters = array()) {
-        $this->db->select('t.*, 
-                          fa.account_name as from_account_name, 
+    public function getAllTransactionsByCompany($company_id, $filters = array(), $limit = 50, $offset = 0) {
+        $this->db->select('t.*,
+                          fa.account_name as from_account_name,
                           ta.account_name as to_account_name,
                           u.full_name as user_name');
         $this->db->from('tbl_account_transactions t');
@@ -33,7 +33,40 @@ class Account_transaction_model extends CI_Model {
         }
 
         $this->db->order_by('t.created_at', 'DESC');
+
+        // Aplicar paginación
+        if ($limit > 0) {
+            $this->db->limit($limit, $offset);
+        }
+
         return $this->db->get()->result();
+    }
+
+    /**
+     * Obtener el total de transacciones para paginación
+     */
+    public function getTotalTransactionsByCompany($company_id, $filters = array()) {
+        $this->db->select('COUNT(*) as total');
+        $this->db->from('tbl_account_transactions t');
+        $this->db->where('t.company_id', $company_id);
+        $this->db->where('t.del_status', 'Live');
+
+        // Aplicar filtros
+        if (isset($filters['date_from']) && $filters['date_from']) {
+            $this->db->where('t.transaction_date >=', $filters['date_from']);
+        }
+        if (isset($filters['date_to']) && $filters['date_to']) {
+            $this->db->where('t.transaction_date <=', $filters['date_to']);
+        }
+        if (isset($filters['account_id']) && $filters['account_id']) {
+            $this->db->where('(t.from_account_id = ' . $filters['account_id'] . ' OR t.to_account_id = ' . $filters['account_id'] . ')');
+        }
+        if (isset($filters['transaction_type']) && $filters['transaction_type']) {
+            $this->db->where('t.transaction_type', $filters['transaction_type']);
+        }
+
+        $result = $this->db->get()->row();
+        return $result ? $result->total : 0;
     }
 
     /**

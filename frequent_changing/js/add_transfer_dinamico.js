@@ -275,10 +275,14 @@ $(function() {
             tbody.empty();
             if (res.success && res.items.length > 0) {
                 res.items.forEach(function(item, idx) {
+                    let displayName = item.name || '';
+                    if (item.food_menu_name && item.food_menu_name.length > 1) {
+                        displayName += ' (' + item.food_menu_name + ')';
+                    }
                     tbody.append(`
                         <tr>
                             <td>${idx + 1}</td>
-                            <td>${item.name || ''}</td>
+                            <td>${displayName}</td>
                             <td>${item.code || ''}</td>
                             <td>${item.quantity_amount || ''}</td>
                             <td>

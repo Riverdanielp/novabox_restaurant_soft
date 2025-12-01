@@ -26,7 +26,7 @@
             <h4><i data-feather="link"></i> 1. Vincular a Sucursal Fiscal (SIFEN)</h4>
             <?php echo form_open(base_url('Outlet/configuracionSifen/' . $encrypted_id)); ?>
                 <div class="row align-items-end">
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <label>Seleccione la Sucursal Fiscal a la que pertenece este Outlet</label>
                         <select name="sifen_sucursal_id" class="form-control select2">
                             <option value="">Ninguna (No emite factura electrónica)</option>
@@ -36,6 +36,14 @@
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="facturar_todas_ventas" name="facturar_todas_ventas" value="1" <?php echo (isset($outlet_info->facturar_todas_ventas) && $outlet_info->facturar_todas_ventas) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="facturar_todas_ventas">
+                                Facturar todas las ventas
+                            </label>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <button type="submit" name="submit_link" value="submit" class="btn bg-blue-btn"><i data-feather="save"></i> Guardar Vinculación</button>

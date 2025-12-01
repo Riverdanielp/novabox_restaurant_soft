@@ -447,6 +447,9 @@ class Transfer extends Cl_Controller {
         foreach ($food_details as $fd) {
             if ($fd->transfer_type == 1) {
                 $name = getIngredientNameById($fd->ingredient_id) . " (" . getIngredientCodeById($fd->ingredient_id) . ")";
+                if (isset($fd->food_menu_name) && strlen($fd->food_menu_name) > 1) {
+                    $name .= ' (' . $fd->food_menu_name . ')';
+                }
             } else {
                 $name = getFoodMenuNameById($fd->ingredient_id) . " (" . getFoodMenuCodeById($fd->ingredient_id) . ")";
             }
@@ -682,6 +685,12 @@ public function ajaxAgregarTransferDetalle() {
 
     if ($transfer_type == 2) {
         // Es un menú, obtener sus ingredientes
+        $this->db->select('name');
+        $this->db->from('tbl_food_menus');
+        $this->db->where('id', $item_id);
+        $menu = $this->db->get()->row();
+        $menu_name = $menu ? $menu->name : '';
+
         $this->db->select('ingredient_id, consumption');
         $this->db->from('tbl_food_menus_ingredients');
         $this->db->where('food_menu_id', $item_id);
@@ -690,6 +699,7 @@ public function ajaxAgregarTransferDetalle() {
         foreach ($menu_ingredients as $mi) {
             $detalle = [
                 'ingredient_id' => $mi->ingredient_id,
+                'food_menu_name' => $menu_name,
                 'quantity_amount' => $mi->consumption * $quantity,
                 'total_cost' => 0, // Calcular si necesario
                 'single_cost_total' => 0,
@@ -744,6 +754,7 @@ public function ajaxAgregarTransferDetalle() {
                 $ingredient_id_remote = get_or_create_remote_ingredient($mi->ingredient_id, $to_db_key);
                 $detalle_remoto = [
                     'ingredient_id' => $ingredient_id_remote,
+                    'food_menu_name' => $menu_name,
                     'quantity_amount' => $mi->consumption * $quantity,
                     'total_cost' => 0,
                     'single_cost_total' => 0,
@@ -911,7 +922,7 @@ public function ajaxGuardarTransferInfo() {
     }
 
     public function getTransferIngredients($transfer_id) {
-        $this->db->select("tbl_transfer_ingredients.*, tbl_ingredients.name, tbl_ingredients.code");
+        $this->db->select("tbl_transfer_ingredients.*, tbl_ingredients.name, tbl_ingredients.code, tbl_transfer_ingredients.food_menu_name");
         $this->db->from("tbl_transfer_ingredients");
         $this->db->join('tbl_ingredients', 'tbl_ingredients.id = tbl_transfer_ingredients.ingredient_id', 'left');
         $this->db->where("tbl_transfer_ingredients.transfer_id", $transfer_id);

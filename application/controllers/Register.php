@@ -153,6 +153,7 @@ class Register extends Cl_Controller {
                        // Generar movimientos contables por cada método de pago
                        foreach ($payment_ids as $key => $payment_id) {
                            $amount = (float)$payments[$key];
+                           $payment_name = $payment_names[$key];
                            
                            if ($amount > 0) {
                                // Obtener información del método de pago
@@ -161,14 +162,14 @@ class Register extends Cl_Controller {
                                if ($payment_method && $payment_method->account_id) {
                                    // Crear movimiento contable: DESCONTAR de la cuenta
                                    $transaction_data = array(
-                                       'transaction_type' => 'Apertura de Caja',
+                                       'transaction_type' => 'Retiro',
                                        'from_account_id' => $payment_method->account_id, // Se descuenta de esta cuenta
                                        'to_account_id' => NULL,
                                        'amount' => $amount,
                                        'reference_type' => 'register_opening',
                                        'reference_id' => $register_id,
                                        'register_id' => $register_id,
-                                       'note' => 'Apertura de Caja #' . $register_id . ' - Método de Pago: ' . $payment_names[$key] . ' - Monto: $' . number_format($amount, 2),
+                                       'note' => 'Apertura de Caja #' . $register_id . ' - Método de Pago: ' . $payment_name . ' - Monto: $' . number_format($amount, 2),
                                        'transaction_date' => date('Y-m-d H:i:s'),
                                        'created_at' => date('Y-m-d H:i:s'),
                                        'company_id' => $company_id,
@@ -176,7 +177,7 @@ class Register extends Cl_Controller {
                                        'del_status' => 'Live'
                                    );
                                    
-                                   $this->Account_transaction_model->insertTransaction($transaction_data);
+                                   $insert_result = $this->Account_transaction_model->insertTransaction($transaction_data);
                                }
                            }
                        }

@@ -201,6 +201,7 @@ if ($value = $this->session->flashdata('exception_err')) {
             <table id="datatable" class="table table-bordered table-striped">
                 <thead>
                     <tr>
+                        <th></th>
                         <th class="ir_w_1"><?php echo lang('sn'); ?></th>
                         <th class="ir_w_8">Fecha</th>
                         <th class="ir_w_10">Tipo</th>
@@ -218,6 +219,7 @@ if ($value = $this->session->flashdata('exception_err')) {
                     foreach ($transactions as $trans) {
                         ?>
                         <tr>
+                            <td></td>
                             <td><?php echo escape_output($i++); ?></td>
                             <td><?php echo escape_output(date('d/m/Y', strtotime($trans->transaction_date))); ?></td>
                             <td>
@@ -237,7 +239,7 @@ if ($value = $this->session->flashdata('exception_err')) {
                             <td><?php echo isset($trans->to_account_name) && $trans->to_account_name ? escape_output($trans->to_account_name) : '-'; ?></td>
                             <td class="ir_txt_right fw-bold"><?php echo escape_output(getAmtCustom($trans->amount)); ?></td>
                             <td><?php echo isset($trans->user_name) ? escape_output($trans->user_name) : '-'; ?></td>
-                            <td><?php echo isset($trans->note) ? escape_output(substr($trans->note, 0, 30)) : '-'; ?></td>
+                            <td><?php echo isset($trans->note) ? escape_output($trans->note) : '-'; ?></td>
                             <td class="text-center">
                                 <div class="btn-group">
                                     <?php if (!isset($trans->reference_type) || !$trans->reference_type || !isset($trans->reference_id) || !$trans->reference_id): ?>
@@ -254,6 +256,76 @@ if ($value = $this->session->flashdata('exception_err')) {
         </div>
     </div>
 </div>
+
+<!-- Paginación -->
+<?php if ($pagination['total_pages'] > 1): ?>
+<div class="row mt-3">
+    <div class="col-12">
+        <nav aria-label="Navegación de páginas">
+            <ul class="pagination justify-content-center">
+                <!-- Primera página -->
+                <?php if ($pagination['current_page'] > 1): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="<?php echo base_url('Account/accountTransactions?' . http_build_query(array_merge($filters, ['page' => 1]))); ?>">
+                            <i class="fa fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- Página anterior -->
+                <?php if ($pagination['has_previous']): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="<?php echo base_url('Account/accountTransactions?' . http_build_query(array_merge($filters, ['page' => $pagination['previous_page']]))); ?>">
+                            <i class="fa fa-angle-left"></i>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- Páginas numeradas -->
+                <?php
+                $start_page = max(1, $pagination['current_page'] - 2);
+                $end_page = min($pagination['total_pages'], $pagination['current_page'] + 2);
+
+                for ($i = $start_page; $i <= $end_page; $i++):
+                ?>
+                    <li class="page-item <?php echo $i == $pagination['current_page'] ? 'active' : ''; ?>">
+                        <a class="page-link" href="<?php echo base_url('Account/accountTransactions?' . http_build_query(array_merge($filters, ['page' => $i]))); ?>">
+                            <?php echo $i; ?>
+                        </a>
+                    </li>
+                <?php endfor; ?>
+
+                <!-- Página siguiente -->
+                <?php if ($pagination['has_next']): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="<?php echo base_url('Account/accountTransactions?' . http_build_query(array_merge($filters, ['page' => $pagination['next_page']]))); ?>">
+                            <i class="fa fa-angle-right"></i>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <!-- Última página -->
+                <?php if ($pagination['current_page'] < $pagination['total_pages']): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="<?php echo base_url('Account/accountTransactions?' . http_build_query(array_merge($filters, ['page' => $pagination['total_pages']]))); ?>">
+                            <i class="fa fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                <?php endif; ?>
+            </ul>
+        </nav>
+
+        <!-- Información de paginación -->
+        <div class="text-center mt-2">
+            <small class="text-muted">
+                Mostrando <?php echo count($transactions); ?> de <?php echo $pagination['total_records']; ?> registros
+                (Página <?php echo $pagination['current_page']; ?> de <?php echo $pagination['total_pages']; ?>)
+            </small>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 </section>
 
 <!-- DataTables -->
@@ -287,7 +359,7 @@ if ($value = $this->session->flashdata('exception_err')) {
         // Evitar reinicialización de DataTable si ya existe
         if (!$.fn.DataTable.isDataTable('#datatable')) {
             var datatable = $('#datatable').DataTable({
-                "order": [[1, "desc"]],
+                // "order": [[0, "desc"]],
                 "language": {
                     "url": "<?php echo base_url(); ?>assets/plugins/datatables/Spanish.json"
                 },

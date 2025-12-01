@@ -404,39 +404,42 @@ class Sale extends Cl_Controller {
        
         if($counter_id){
                    $counter_details = $this->Common_model->getPrinterIdByCounterId($counter_id);
-                   $printer_info = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
-                   $print_arr = [];
-                   $print_arr['counter_id'] = $counter_id;
-                   $print_arr['printer_id'] = $counter_details->invoice_printer_id;
-                   if($printer_info){
-                        $print_arr['path'] = $printer_info->path;
-                        $print_arr['title'] = $printer_info->title;
-                        $print_arr['type'] = $printer_info->type;
-                        $print_arr['characters_per_line'] = $printer_info->characters_per_line;
-                        $print_arr['printer_ip_address'] = $printer_info->printer_ip_address;
-                        $print_arr['printer_port'] = $printer_info->printer_port;
-                        $print_arr['printing_choice'] = $printer_info->printing_choice;
-                        $print_arr['ipvfour_address'] = $printer_info->ipvfour_address;
-                        $print_arr['print_format'] = $printer_info->print_format;
-                        $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
+                   
+                   if ($counter_details) {
+                       $printer_info = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
+                       $print_arr = [];
+                       $print_arr['counter_id'] = $counter_id;
+                       $print_arr['printer_id'] = $counter_details->invoice_printer_id;
+                       if($printer_info){
+                            $print_arr['path'] = $printer_info->path;
+                            $print_arr['title'] = $printer_info->title;
+                            $print_arr['type'] = $printer_info->type;
+                            $print_arr['characters_per_line'] = $printer_info->characters_per_line;
+                            $print_arr['printer_ip_address'] = $printer_info->printer_ip_address;
+                            $print_arr['printer_port'] = $printer_info->printer_port;
+                            $print_arr['printing_choice'] = $printer_info->printing_choice;
+                            $print_arr['ipvfour_address'] = $printer_info->ipvfour_address;
+                            $print_arr['print_format'] = $printer_info->print_format;
+                            $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
+                       }
+                       //bill
+                       $printer_info_bill = $this->Common_model->getPrinterInfoById($counter_details->bill_printer_id);
+                  
+                       $print_arr['bill_printer_id'] = $counter_details->bill_printer_id;
+                       if($printer_info_bill){
+                            $print_arr['path_bill'] = $printer_info_bill->path;
+                            $print_arr['title_bill'] = $printer_info_bill->title;
+                            $print_arr['type_bill'] = $printer_info_bill->type;
+                            $print_arr['characters_per_line_bill'] = $printer_info_bill->characters_per_line;
+                            $print_arr['printer_ip_address_bill'] = $printer_info_bill->printer_ip_address;
+                            $print_arr['printer_port_bill'] = $printer_info_bill->printer_port;
+                            $print_arr['printing_choice_bill'] = $printer_info_bill->printing_choice;
+                            $print_arr['ipvfour_address_bill'] = $printer_info_bill->ipvfour_address;
+                            $print_arr['print_format_bill'] = $printer_info_bill->print_format;
+                            $print_arr['inv_qr_code_enable_status_bill'] = $printer_info_bill->inv_qr_code_enable_status;
+                       }
+                       $this->session->set_userdata($print_arr);
                    }
-                   //bill
-                   $printer_info_bill = $this->Common_model->getPrinterInfoById($counter_details->bill_printer_id);
-              
-                   $print_arr['bill_printer_id'] = $counter_details->bill_printer_id;
-                   if($printer_info_bill){
-                        $print_arr['path_bill'] = $printer_info_bill->path;
-                        $print_arr['title_bill'] = $printer_info_bill->title;
-                        $print_arr['type_bill'] = $printer_info_bill->type;
-                        $print_arr['characters_per_line_bill'] = $printer_info_bill->characters_per_line;
-                        $print_arr['printer_ip_address_bill'] = $printer_info_bill->printer_ip_address;
-                        $print_arr['printer_port_bill'] = $printer_info_bill->printer_port;
-                        $print_arr['printing_choice_bill'] = $printer_info_bill->printing_choice;
-                        $print_arr['ipvfour_address_bill'] = $printer_info_bill->ipvfour_address;
-                        $print_arr['print_format_bill'] = $printer_info_bill->print_format;
-                        $print_arr['inv_qr_code_enable_status_bill'] = $printer_info_bill->inv_qr_code_enable_status;
-                   }
-                   $this->session->set_userdata($print_arr);
         }
 
         if(isset($is_waiter) && $is_waiter!="Yes" && $is_online_order!="Yes"){
@@ -5273,18 +5276,70 @@ class Sale extends Cl_Controller {
         // ======================================================================
         // INTEGRACIÓN CON MÓDULO DE CUENTAS - USANDO CACHE DE CÁLCULOS
         // Registrar movimientos de cuenta por cada método de pago con saldo > 0
+        // NOTA: Los movimientos de cierre de caja SIEMPRE afectan cuentas, independientemente de affect_opening_to_accounts (que es solo para apertura)
         // ======================================================================
         $this->load->model('Account_model');
         $this->load->model('Account_transaction_model');
         
-        // Verificar si el contador tiene habilitada la afectación a cuentas en cierre
-        $counter_data = $this->Common_model->getDataById($counter_id, "tbl_counters");
-        $should_affect_accounts = (isset($counter_data->affect_opening_to_accounts) && $counter_data->affect_opening_to_accounts == 1);
+        // Para cierre de caja, SIEMPRE afectar cuentas (no depende de affect_opening_to_accounts)
+        $should_affect_accounts = true; // Siempre true para cierre
         
         if ($should_affect_accounts) {
             // Obtener cuenta predeterminada del sistema (Caja Cofre)
             $default_account = $this->Account_model->getDefaultAccount($company_id);
-            $default_account_id = $default_account ? $default_account->id : null;
+            $default_account_id = $default_account ? $default_account->id : 1; // Fallback a cuenta 1 (Cofre Caja)
+            
+            // Verificar si el contador tiene affect_opening_to_accounts activado
+            $counter_details = $this->Common_model->getDataById($counter_id, "tbl_counters");
+            $counter_affects_accounts = isset($counter_details->affect_opening_to_accounts) && $counter_details->affect_opening_to_accounts == 1;
+            
+            // Log para depuración
+            // log_message('error', "Cierre de caja - Contador habilitado. Default Account ID: $default_account_id, Counter affects accounts: " . ($counter_affects_accounts ? 'SI' : 'NO'));
+
+            // SI EL CONTADOR AFECTA CUENTAS EN APERTURA, CALCULAR EL TOTAL DE APERTURA DESDE opening_details
+            if ($counter_affects_accounts && $register && !empty($opening_details_decode)) {
+                // Calcular el total de salidas en apertura desde opening_details (más eficiente)
+                $total_opening_output = 0;
+                foreach ($opening_details_decode as $detail) {
+                    $parts = explode('||', $detail);
+                    if (count($parts) >= 3) {
+                        $payment_id = $parts[0];
+                        $amount = (float)$parts[2];
+
+                        // Solo contar si el monto es mayor a 0 y el método de pago tiene account_id
+                        if ($amount > 0) {
+                            $payment_method = $this->db->get_where('tbl_payment_methods', array('id' => $payment_id))->row();
+                            if ($payment_method && $payment_method->account_id) {
+                                $total_opening_output += $amount;
+                            }
+                        }
+                    }
+                }
+
+                if ($total_opening_output > 0) {
+                    // Crear movimiento de ENTRADA para balancear la salida de apertura
+                    $opening_transaction_data = array(
+                            'transaction_type' => 'Deposito',
+                            'from_account_id' => NULL, // No hay cuenta origen
+                            'to_account_id' => $default_account_id, // Entrada a la cuenta predeterminada
+                            'amount' => $total_opening_output,
+                            'reference_type' => 'register_close',
+                            'reference_id' => $register_id,
+                            'register_id' => $register_id,
+                            'note' => 'Balance de Apertura - Cierre de Caja #' . $register_id . ' - Monto de apertura: $' . number_format($total_opening_output, 2),
+                            'transaction_date' => date('Y-m-d H:i:s'),
+                            'created_at' => $closing_date_time,
+                            'company_id' => $company_id,
+                            'user_id' => $user_id,
+                            'del_status' => 'Live'
+                        );
+                        
+                        $insert_result = $this->Account_transaction_model->insertTransaction($opening_transaction_data);
+                        // log_message('error', "Movimiento de balance apertura creado - Monto: $total_opening_output - Resultado: " . ($insert_result ? 'Éxito' : 'Fallo'));
+                } else {
+                    // log_message('error', "No hay montos de apertura que afecten cuentas para registro $register_id");
+                }
+            }
 
             // SEGUNDO CICLO: Usar datos cacheados para crear movimientos (SIN REPETIR CONSULTAS)
             foreach ($payment_calculations as $payment_id => $calc) {
@@ -5312,52 +5367,66 @@ class Sale extends Cl_Controller {
                         $target_account_id = $default_account_id;
                     }
                     
+                    // Log para verificar asignación
+                    // log_message('error', "Método de pago $payment_name (ID: $payment_id) - Inline closing: $inline_closing - Target Account: $target_account_id");
+                    
                     // Crear movimiento de cuenta si tenemos cuenta destino válida
                     if ($target_account_id) {
-                        // Construir nota solo con valores diferentes de 0
-                        $note_lines = [
-                            "Cierre de Caja #$register_id - Método de Pago: $payment_name"
-                        ];
-                        
-                        if ($total_sale > 0) {
-                            $note_lines[] = "Ventas: $" . number_format($total_sale, 2);
+                        // Verificar que la cuenta existe
+                        $account_exists = $this->Account_model->getAccountById($target_account_id);
+                        if ($account_exists) {
+                            // Construir nota solo con valores diferentes de 0
+                            $note_lines = [
+                                "Cierre de Caja #$register_id - Método de Pago: $payment_name"
+                            ];
+                            
+                            if ($total_sale > 0) {
+                                $note_lines[] = "Ventas: $" . number_format($total_sale, 2);
+                            }
+                            if ($total_purchase > 0) {
+                                $note_lines[] = "Compras: $" . number_format($total_purchase, 2);
+                            }
+                            if ($total_due_receive > 0) {
+                                $note_lines[] = "Ingresos: $" . number_format($total_due_receive, 2);
+                            }
+                            $egresos_total = $total_due_payment + $total_expense;
+                            if ($egresos_total > 0) {
+                                $note_lines[] = "Egresos: $" . number_format($egresos_total, 2);
+                            }
+                            if ($refund_amount > 0) {
+                                $note_lines[] = "Devoluciones: $" . number_format($refund_amount, 2);
+                            }
+                            $note_lines[] = "Total: $" . number_format($inline_closing, 2);
+                            
+                            $transaction_data = array(
+                                'transaction_type' => 'Cierre Caja',
+                                'from_account_id' => NULL, // No hay cuenta origen en cierre de caja
+                                'to_account_id' => $target_account_id,
+                                'amount' => abs($inline_closing), // Usar valor absoluto
+                                'reference_type' => 'register_close',
+                                'reference_id' => $register_id,
+                                'register_id' => $register_id, // Nuevo campo para identificar el cierre
+                                'note' => implode("\n", $note_lines),
+                                'transaction_date' => date('Y-m-d H:i:s'),
+                                'created_at' => $closing_date_time,
+                                'company_id' => $company_id,
+                                'user_id' => $user_id,
+                                'del_status' => 'Live'
+                            );
+                            
+                            // Insertar el movimiento
+                            $insert_result = $this->Account_transaction_model->insertTransaction($transaction_data);
+                            // log_message('error', "Movimiento creado para $payment_name - Resultado: " . ($insert_result ? 'Éxito' : 'Fallo'));
+                        } else {
+                            // log_message('error', "Cuenta destino $target_account_id no existe para cierre de caja.");
                         }
-                        if ($total_purchase > 0) {
-                            $note_lines[] = "Compras: $" . number_format($total_purchase, 2);
-                        }
-                        if ($total_due_receive > 0) {
-                            $note_lines[] = "Ingresos: $" . number_format($total_due_receive, 2);
-                        }
-                        $egresos_total = $total_due_payment + $total_expense;
-                        if ($egresos_total > 0) {
-                            $note_lines[] = "Egresos: $" . number_format($egresos_total, 2);
-                        }
-                        if ($refund_amount > 0) {
-                            $note_lines[] = "Devoluciones: $" . number_format($refund_amount, 2);
-                        }
-                        $note_lines[] = "Total: $" . number_format($inline_closing, 2);
-                        
-                        $transaction_data = array(
-                            'transaction_type' => 'Cierre Caja',
-                            'from_account_id' => NULL, // No hay cuenta origen en cierre de caja
-                            'to_account_id' => $target_account_id,
-                            'amount' => abs($inline_closing), // Usar valor absoluto
-                            'reference_type' => 'register_close',
-                            'reference_id' => $register_id,
-                            'register_id' => $register_id, // Nuevo campo para identificar el cierre
-                            'note' => implode("\n", $note_lines),
-                            'transaction_date' => date('Y-m-d H:i:s'),
-                            'created_at' => $closing_date_time,
-                            'company_id' => $company_id,
-                            'user_id' => $user_id,
-                            'del_status' => 'Live'
-                        );
-                        
-                        // Insertar el movimiento
-                        $this->Account_transaction_model->insertTransaction($transaction_data);
+                    } else {
+                        // log_message('error', "No se pudo asignar cuenta destino para método de pago $payment_name (ID: $payment_id)");
                     }
                 }
             }
+        } else {
+            // log_message('error', "Cierre de caja - Contador NO habilitado para afectar cuentas. Counter ID: $counter_id");
         }
         // ======================================================================
         // FIN INTEGRACIÓN CON MÓDULO DE CUENTAS
@@ -9213,7 +9282,7 @@ class Sale extends Cl_Controller {
         // ===== SOLUCIÓN 7: Validación temprana + JOIN único para Customer y Outlet =====
         // Una sola consulta para traer cliente + outlet
         $query = $this->db
-            ->select('c.*, o.sifen_sucursal_id')
+            ->select('c.*, o.sifen_sucursal_id, o.facturar_todas_ventas')
             ->from('tbl_customers c')
             ->join('tbl_outlets o', 'o.id = ' . intval($sale->outlet_id), 'left')
             ->where('c.id', $sale->customer_id)
@@ -9226,9 +9295,11 @@ class Sale extends Cl_Controller {
         $row = $query->row();
         $customer = $row; // Cliente tiene todas las columnas de tbl_customers
         $sifen_sucursal_id = $row->sifen_sucursal_id; // Outlet data desde el JOIN
+        $facturar_todas_ventas = $row->facturar_todas_ventas; // Nuevo campo
         
         // ===== SOLUCIÓN 7: Validación temprana de es_contribuyente =====
-        if (!isset($customer->es_contribuyente) || !$customer->es_contribuyente) {
+        // Solo validar si NO se factura todas las ventas
+        if (!$facturar_todas_ventas && (!isset($customer->es_contribuyente) || !$customer->es_contribuyente)) {
             return ['status' => 'info', 'message' => 'Facturación omitida: El cliente no es contribuyente o su RUC no es válido.'];
         }
         
@@ -9253,19 +9324,46 @@ class Sale extends Cl_Controller {
         }
         // Normalización (tu código existente es correcto)
         $es_contribuyente = ((strpos($customer->gst_number, '-') !== false));
-        $cliente_normalizado = [
-            'id_sistema'        => $customer->id, 'es_contribuyente'  => $es_contribuyente,
-            'ruc'               => $customer->gst_number, 
-            'documentoNumero'   => $customer->gst_number, 
-            'nombre'            => $customer->name,
-            'nombre_fantasia'   => $customer->nombre_fantasia, 'email'             => $customer->email,
-            'direccion'         => $customer->address, 'es_proveedor_estado' => (bool)$customer->es_proveedor_estado,
-            'tipo_contribuyente'=> (int)$customer->tipo_contribuyente, 'tipo_documento'    => (int)$customer->tipo_documento,
-            'departamento_id'   => (int)$customer->departamento_id, 'distrito_id'       => (int)$customer->distrito_id,
-            'ciudad_id'         => (int)$customer->ciudad_id, 'pais_codigo'       => $customer->codigo_pais,
-            'numero_casa'       => (string)intval($customer->numero_casa),
-            'celular'           => $customer->prefix . clean_phone_number($customer->phone),
-        ];
+        
+        // Si se factura todas las ventas y gst_number está vacío o es menor a 6 dígitos, usar valores por defecto
+        if ($facturar_todas_ventas && (empty($customer->gst_number) || strlen($customer->gst_number) < 6)) {
+            $cliente_normalizado = [
+                'id_sistema'        => 1,
+                'es_contribuyente'  => false,
+                'ruc'               => '0',
+                'documentoNumero'   => '0',
+                'nombre'            => 'Sin Nombre',
+                'nombre_fantasia'   => '',
+                'email'             => '',
+                'direccion'         => '',
+                'es_proveedor_estado' => false,
+                'tipo_contribuyente'=> 0,
+                'tipo_documento'    => 9, // 9-No especificado
+                'departamento_id'   => (int)$customer->departamento_id ?: $this->config->item('sifen_default_departamento'),
+                'distrito_id'       => (int)$customer->distrito_id ?: $this->config->item('sifen_default_distrito'),
+                'ciudad_id'         => (int)$customer->ciudad_id ?: $this->config->item('sifen_default_ciudad'),
+                'pais_codigo'       => 'PRY', // Código correcto para Paraguay
+                'numero_casa'       => '',
+                'celular'           => '',
+            ];
+        } else {
+            $cliente_normalizado = [
+                'id_sistema'        => $customer->id, 'es_contribuyente'  => $es_contribuyente,
+                'ruc'               => $customer->gst_number, 
+                'documentoNumero'   => $customer->gst_number, 
+                'nombre'            => $customer->name,
+                'nombre_fantasia'   => $customer->nombre_fantasia, 'email'             => $customer->email,
+                'direccion'         => $customer->address, 'es_proveedor_estado' => (bool)$customer->es_proveedor_estado,
+                'tipo_contribuyente'=> (int)$customer->tipo_contribuyente, 'tipo_documento'    => ((int)$customer->tipo_documento == 0) ? 9 : (int)$customer->tipo_documento,
+                'departamento_id'   => (int)$customer->departamento_id, 'distrito_id'       => (int)$customer->distrito_id,
+                'ciudad_id'         => (int)$customer->ciudad_id, 'pais_codigo'       => ($customer->codigo_pais == 'PY') ? 'PRY' : $customer->codigo_pais,
+                'numero_casa'       => (string)intval($customer->numero_casa),
+                'celular'           => (function() use ($customer) {
+                    $celular = $customer->prefix . clean_phone_number($customer->phone);
+                    return (strlen($celular) >= 10 && strlen($celular) <= 20) ? $celular : '';
+                })(),
+            ];
+        }
         $usuario_normalizado = [ 'id_sistema' => $user->id, 'nombre' => $user->full_name, 'documento' => $user->documento, 'cargo' => 'Vendedor' ];
         
         // ===== SOLUCIÓN 7: Eliminar N+1 queries al procesar items =====
