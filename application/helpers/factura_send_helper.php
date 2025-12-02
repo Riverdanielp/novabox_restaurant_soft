@@ -873,7 +873,7 @@ if (!function_exists('fs_build_api_payload')) {
             "documentoTipo"     => $cliente_data['tipo_documento'],
             "documentoNumero"   => $cliente_data['documentoNumero'], // Asumimos que el RUC es el nro. doc. para contribuyentes
             "email"             => $cliente_data['email'],
-            "celular"           => $cliente_data['celular'],
+            "celular"           => fs_validate_and_clean_celular($cliente_data['celular']),
             "codigo"            => str_pad((string)$cliente_py_id, 3, '0', STR_PAD_LEFT)
         ];
 
@@ -1501,6 +1501,35 @@ if (!function_exists('fs_apply_global_discount')) {
         }
         
         return $items;
+    }
+}
+
+/**
+ * Valida y limpia el número de celular
+ * Quita todos los símbolos y verifica que tenga entre 10 y 15 dígitos
+ * Si no cumple, devuelve vacío
+ * 
+ * @param string $celular Número de celular a validar
+ * @return string Número de celular limpio o vacío
+ */
+if (!function_exists('fs_validate_and_clean_celular')) {
+    function fs_validate_and_clean_celular($celular) {
+        // Si está vacío, devolver vacío
+        if (empty($celular)) {
+            return '';
+        }
+        
+        // Quitar todos los caracteres que no sean dígitos
+        $celular_limpio = preg_replace('/[^0-9]/', '', $celular);
+        
+        // Verificar que tenga entre 10 y 15 dígitos
+        $longitud = strlen($celular_limpio);
+        if ($longitud >= 10 && $longitud <= 15) {
+            return $celular_limpio;
+        }
+        
+        // Si no cumple, devolver vacío
+        return '';
     }
 }
 

@@ -3252,19 +3252,6 @@ foreach ($notifications as $single_notification){
 
                 <div class="col-md-4">
                     <div class="form-group">
-                        <label><?php echo lang('account'); ?></label>
-                        <select tabindex="4" class="form-control select2 ir_w_100" id="pay_due_modal_account_id" name="account_id">
-                            <option value=""><?php echo lang('default'); ?> (Caja Abierta)</option>
-                            <?php if(isset($accounts)) { foreach ($accounts as $account) { ?>
-                                <option value="<?php echo escape_output($account->id) ?>">
-                                    <?php echo escape_output($account->account_name)?></option>
-                            <?php }} ?>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="form-group">
                         <label><?php echo lang('amount'); ?> <span class="required_star">*</span></label>
                         <input tabindex="2" type="number" id="pay_due_modal_amount"
                             class="form-control ir_w_100" placeholder="<?php echo lang('amount'); ?>"

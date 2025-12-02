@@ -92,7 +92,7 @@
             <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
                 <div class="form-group">
                     <label for="customer_search"><?php echo lang('customer'); ?></label>
-                    <select id="customer_search" name="customer" class="form-control select2 ir_w_100">
+                    <select id="customer_search" name="customer" class="form-control  ir_w_100">
                         <option value="all">Todos</option>
                     </select>
                 </div>
@@ -272,6 +272,10 @@
 
 <script src="<?php echo base_url(); ?>frequent_changing/js/custom_report.js"></script>
 
+<!-- Select2 CSS y JS -->
+<link href="<?php echo base_url(); ?>assets/bower_components/select2/dist/css/select2.min.css" rel="stylesheet" />
+<script src="<?php echo base_url(); ?>assets/bower_components/select2/dist/js/select2.min.js"></script>
+
 
 <script>
     
@@ -299,8 +303,14 @@ $(document).ready(function() {
     }
 
     function setCustomerSelect2() {
-        var option = new Option(selectedCustomerText, selectedCustomer, true, true);
-        $('#customer_search').append(option).trigger('change');
+        // Si no es 'all', append la option
+        if(selectedCustomer !== "all") {
+            var option = new Option(selectedCustomerText, selectedCustomer, true, true);
+            $('#customer_search').append(option);
+        } else {
+            // Para 'all', asegurar que esté selected
+            $('#customer_search').val('all');
+        }
         
         $('#customer_search').select2({
             placeholder: "Seleccione o Agregue un Cliente",
@@ -330,6 +340,7 @@ $(document).ready(function() {
                 return data.text || data.id;
             }
         });
+        $('#customer_search').select2('val', selectedCustomer).trigger('change');
     }
 });
 </script>

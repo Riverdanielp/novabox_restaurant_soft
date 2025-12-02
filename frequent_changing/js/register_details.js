@@ -184,36 +184,15 @@ $(function () {
 
                 $(".html_content").html(response.html_content_for_div);
 
-                $(`#datatable`).DataTable({
-                    'autoWidth'   : false,
-                    'ordering'    : false,
-                    'paging'    : false,
-                    'bFilter'    : false,
-                    dom: 'Blfrtip',
-                    buttons: [
-                        {
-                            extend: "print",
-                            text: '<i class="fa fa-print"></i> Print',
-                            titleAttr: "print",
-                        },
-                        {
-                            extend: "excelHtml5",
-                            text: '<i class="fa fa-file-excel-o"></i> Excel',
-                            titleAttr: "Excel",
-                        },
-                        {
-                            extend: "csvHtml5",
-                            text: '<i class="fa fa-file-text-o"></i> CSV',
-                            titleAttr: "CSV",
-                        },
-                        {
-                            extend: "pdfHtml5",
-                            text: '<i class="fa fa-file-pdf-o"></i> PDF',
-                            titleAttr: "PDF",
-                        },
-                        
-                    ]
-                });
+                
+                if ($(`#datatable`).length > 0) {
+                    // No usar DataTables en esta tabla debido a su estructura mixta de <th> y <td>
+                    // try {
+                    //     $(`#datatable`).DataTable({...});
+                    // } catch(e) {
+                    //     console.error("Error al inicializar DataTable #datatable:", e);
+                    // }
+                }
             },
             error: function () {
                 alert("error");
@@ -308,35 +287,14 @@ $(function () {
                     $("#opening_register_time").html(response.opening_date_time);
                     $(".html_content").html(response.html_content_for_div);
 
-                    $(`#datatable`).DataTable({
-                        'autoWidth'   : false,
-                        'ordering'    : false,
-                        'paging'    : false,
-                        'bFilter'    : false,
-                        dom: 'Blfrtip',
-                        buttons: [
-                            {
-                                extend: "print",
-                                text: '<i class="fa fa-print"></i> Print',
-                                titleAttr: "print",
-                            },
-                            {
-                                extend: "excelHtml5",
-                                text: '<i class="fa fa-file-excel-o"></i> Excel',
-                                titleAttr: "Excel",
-                            },
-                            {
-                                extend: "csvHtml5",
-                                text: '<i class="fa fa-file-text-o"></i> CSV',
-                                titleAttr: "CSV",
-                            },
-                            {
-                                extend: "pdfHtml5",
-                                text: '<i class="fa fa-file-pdf-o"></i> PDF',
-                                titleAttr: "PDF",
-                            },
-                        ]
-                    });
+                    if ($(`#datatable`).length > 0) {
+                        // No usar DataTables en esta tabla debido a su estructura mixta de <th> y <td>
+                        // try {
+                        //     $(`#datatable`).DataTable({...});
+                        // } catch(e) {
+                        //     console.error("Error al inicializar DataTable #datatable:", e);
+                        // }
+                    }
 
 
                 },
@@ -385,56 +343,50 @@ $(function () {
                             }
                         });
                     }
-                    // DataTable para la tabla principal
-                    $(`#datatable`).DataTable({
-                        'autoWidth'   : false,
-                        'ordering'    : false,
-                        'paging'    : false,
-                        'bFilter'    : false,
-                        dom: 'Blfrtip',
-                        buttons: [
-                            {
-                                extend: "print",
-                                text: '<i class="fa fa-print"></i> Print',
-                                titleAttr: "print",
-                            },
-                            {
-                                extend: "excelHtml5",
-                                text: '<i class="fa fa-file-excel-o"></i> Excel',
-                                titleAttr: "Excel",
-                            },
-                            {
-                                extend: "csvHtml5",
-                                text: '<i class="fa fa-file-text-o"></i> CSV',
-                                titleAttr: "CSV",
-                            },
-                            {
-                                extend: "pdfHtml5",
-                                text: '<i class="fa fa-file-pdf-o"></i> PDF',
-                                titleAttr: "PDF",
-                            },
-                        ]
-                    });
+                    // DataTable para la tabla principal - NO USAR DataTables en esta tabla
+                    // La tabla #datatable tiene estructura mixta con <th> y <td>, no es compatible con DataTables
+                    // if ($(`#datatable`).length > 0) {
+                    //     try {
+                    //         $(`#datatable`).DataTable({...});
+                    //     } catch(e) {
+                    //         console.error("Error al inicializar DataTable #datatable:", e);
+                    //     }
+                    // }
     
-                    // DataTable para tablas detalle
-                    $('.table_sale_details').DataTable({
-                        'autoWidth': false,
-                        'ordering': false,
-                        'paging': false,
-                        'bFilter': false,
-                        'info': false,
-                        'responsive': true,
-                        'language': { 'emptyTable': 'Sin datos de ventas' }
-                    });
-                    $('.table_expense_details').DataTable({
-                        'autoWidth': false,
-                        'ordering': false,
-                        'paging': false,
-                        'bFilter': false,
-                        'info': false,
-                        'responsive': true,
-                        'language': { 'emptyTable': 'Sin gastos registrados' }
-                    });
+                    // DataTable para tablas detalle - verificar que existan primero
+                    if ($('.table_sale_details').length) {
+                        $('.table_sale_details').DataTable({
+                            'autoWidth': false,
+                            'ordering': false,
+                            'paging': false,
+                            'bFilter': false,
+                            'info': false,
+                            'responsive': true,
+                            'language': { 'emptyTable': 'Sin datos de ventas' }
+                        });
+                    }
+                    if ($('.table_expense_details').length) {
+                        $('.table_expense_details').DataTable({
+                            'autoWidth': false,
+                            'ordering': false,
+                            'paging': false,
+                            'bFilter': false,
+                            'info': false,
+                            'responsive': true,
+                            'language': { 'emptyTable': 'Sin gastos registrados' }
+                        });
+                    }
+                    if ($('.table_credit_sales').length) {
+                        $('.table_credit_sales').DataTable({
+                            'autoWidth': false,
+                            'ordering': false,
+                            'paging': false,
+                            'bFilter': false,
+                            'info': false,
+                            'responsive': true,
+                            'language': { 'emptyTable': 'Sin ventas a crédito pendientes' }
+                        });
+                    }
                 },
                 error: function () {
                     $(".modal_loader").hide();
@@ -1142,7 +1094,6 @@ $(function () {
             date: $('#pay_due_modal_date').val(),
             amount: $('#pay_due_modal_amount').val(),
             payment_id: $('#pay_due_modal_payment_id').val(),
-            account_id: $('#pay_due_modal_account_id').val(),
             note: $('#pay_due_modal_note').val(),
             sales_details: salesDetails
         };

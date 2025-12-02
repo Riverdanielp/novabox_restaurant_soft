@@ -4756,8 +4756,42 @@ class Sale extends Cl_Controller {
                 </tr>';
                 $html_content .= '</tbody></table>';
             }
+
         }
 
+            // Tabla de ventas a crédito
+            $credit_sales = $this->Sale_model->getCreditSales($fromDate, $toDate);
+            $total_credit_sales = 0;
+            
+            if ($credit_sales && count($credit_sales) > 0) {
+            $html_content .= '<h3>Ventas a Crédito</h3>';
+                $html_content .= '<table class="table_register_details table_credit_sales top_margin_15">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Número</th>
+                            <th>Cliente</th>
+                            <th class="text_right">Monto Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>';
+                foreach ($credit_sales as $sale) {
+                    $html_content .= '<tr>
+                        <td>'.date("Y-m-d H:i", strtotime($sale->paid_date_time)).'</td>
+                        <td>#'.$sale->number_slot_name.' '.$sale->sale_no.'</td>
+                        <td>'.htmlspecialchars($sale->customer_name).'</td>
+                        <td class="text_right">'.getAmtPCustom($sale->due_amount).'</td>
+                    </tr>';
+                    $total_credit_sales += $sale->due_amount;
+                }
+                $html_content .= '<tr>
+                    <td></td>
+                    <td></td>
+                    <td><b>TOTAL CRÉDITO</b></td>
+                    <td class="text_right"><b>'.getAmtPCustom($total_credit_sales).'</b></td>
+                </tr>';
+                $html_content .= '</tbody></table>';
+            }
         // Tabla principal (solo si corresponde mostrarla)
         if($show_main_table){
             $html_content .= '<h3>Resumen de Cierre</h3>';
@@ -4872,6 +4906,11 @@ class Sale extends Cl_Controller {
                             </tr>';
             }
     
+            $html_content.='<tr>
+                                <td></td><td></td>
+                                <th>Ventas a crédito</th>
+                                <th class="text_right">'.getAmtPCustom($total_credit_sales).'</th>
+                            </tr><tr></tr><tr></tr>';
             $html_content.='</tbody></table>';
         }
     
@@ -9585,7 +9624,7 @@ class Sale extends Cl_Controller {
                     'reference_no' => $this->Customer_due_receive_model->generateReferenceNo($outlet_id),
                     'customer_id' => $this->input->post('customer_id'),
                     'payment_id' => $this->input->post('payment_id'),
-                    'account_id' => !empty($this->input->post('account_id')) ? $this->input->post('account_id') : NULL,
+                    // 'account_id' => !empty($this->input->post('account_id')) ? $this->input->post('account_id') : NULL,
                     'note' => $this->input->post('note'),
                     'counter_id' => $this->session->userdata('counter_id'),
                     'user_id' => $this->session->userdata('user_id'),
