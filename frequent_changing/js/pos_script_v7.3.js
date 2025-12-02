@@ -10055,7 +10055,7 @@ function getPaymentArrayWithChangeAndDue() {
             e.preventDefault();
 
             // 0. Validar que el cliente NO sea el cliente por defecto del sistema
-            let current_customer_id = $("#walk_in_customer").val() || "1";
+            let current_customer_id = $("#selected_invoice_sale_customer").val() || "1";
             let default_customer_id = $("#default_customer_hidden").val() || "1";
             
             if (String(current_customer_id) === String(default_customer_id)) {
